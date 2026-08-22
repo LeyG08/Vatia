@@ -41,9 +41,10 @@ function NodoSimbolo({ data }: NodeProps<Node<NodoData>>) {
             position={POSICION_POR_ROL[p.rol]}
             className={`handle-${p.rol}`}
             style={{
-              width: 8,
-              height: 8,
-              border: "none",
+              width: 10,
+              height: 10,
+              border: "1.5px solid rgba(37, 99, 235, 0.55)",
+              borderRadius: "50%",
               background: "transparent",
               pointerEvents: "all",
               left: `${((p.x - vb.minX) / vb.ancho) * 100}%`,

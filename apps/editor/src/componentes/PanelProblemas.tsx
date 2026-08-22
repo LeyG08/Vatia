@@ -17,7 +17,7 @@ function PanelProblemas() {
     })),
   ];
 
-  if (todos.length === 0 && !abierto) return null;
+  if (todos.length === 0) return null;
   const hayErrores = todos.some((p) => p.nivel === "error");
 
   return (

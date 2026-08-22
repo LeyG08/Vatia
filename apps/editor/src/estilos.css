@@ -193,6 +193,16 @@ body,
   background: rgba(37, 99, 235, 0.25);
 }
 
+/* Selección de nodos */
+.react-flow__node-simbolo.selected .nodo-simbolo::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px dashed var(--acento);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
 .nodo-faltante {
   border: 2px dashed var(--error);
   color: var(--error);

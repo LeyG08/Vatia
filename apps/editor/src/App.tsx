@@ -2,8 +2,6 @@ import { useCallback, useEffect } from "react";
 import {
   Background,
   BackgroundVariant,
-  Controls,
-  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
@@ -110,14 +108,12 @@ function Lienzo() {
         snapGrid={[10, 10]}
         deleteKeyCode={[]}
         multiSelectionKeyCode={["Shift"]}
-        defaultEdgeOptions={{ type: "step" }}
+        defaultEdgeOptions={{ type: "step", style: { strokeWidth: 1.5 } }}
         connectionRadius={24}
         fitView
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={10} size={1} />
-        <Controls />
-        <MiniMap pannable zoomable />
       </ReactFlow>
       <PanelProblemas />
     </div>
