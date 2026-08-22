@@ -9,6 +9,11 @@ function BarraSuperior() {
   const cargar = useEditor((s) => s.cargarProyecto);
   const deshacerFn = useEditor((s) => s.deshacer);
   const rehacerFn = useEditor((s) => s.rehacer);
+  const alternarPaleta = useEditor((s) => s.alternarPaleta);
+  const paletaVisible = useEditor((s) => s.paletaVisible);
+  const version = useEditor((s) => s.version);
+  const puedeDeshacer = version >= 0 && historial.puedeDeshacer;
+  const puedeRehacer = version >= 0 && historial.puedeRehacer;
   const inputArchivo = useRef<HTMLInputElement>(null);
 
   function guardar() {
@@ -41,17 +46,29 @@ function BarraSuperior() {
   return (
     <header className="barra-superior">
       <strong className="marca">Vatia</strong>
+      <button
+        type="button"
+        className={paletaVisible ? "activo" : ""}
+        onClick={alternarPaleta}
+        title="Mostrar / ocultar barra de símbolos"
+      >
+        ☰ Símbolos
+      </button>
       <input
         className="nombre-proyecto"
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
         aria-label="Nombre del proyecto"
       />
-      <button type="button" onClick={guardar}>
-        Guardar JSON
+      <button type="button" onClick={guardar} title="Guardar proyecto JSON">
+        💾 Guardar
       </button>
-      <button type="button" onClick={() => inputArchivo.current?.click()}>
-        Cargar…
+      <button
+        type="button"
+        onClick={() => inputArchivo.current?.click()}
+        title="Cargar proyecto JSON"
+      >
+        📂 Cargar…
       </button>
       <input
         ref={inputArchivo}
@@ -64,21 +81,22 @@ function BarraSuperior() {
       <button
         type="button"
         onClick={deshacerFn}
-        disabled={!historial.puedeDeshacer}
-        title="Ctrl+Z"
+        disabled={!puedeDeshacer}
+        title="Deshacer (Ctrl+Z)"
       >
-        Deshacer
+        ↶
       </button>
       <button
         type="button"
         onClick={rehacerFn}
-        disabled={!historial.puedeRehacer}
-        title="Ctrl+Shift+Z"
+        disabled={!puedeRehacer}
+        title="Rehacer (Ctrl+Shift+Z)"
       >
-        Rehacer
+        ↷
       </button>
       <span className="ayuda">
-        R: rotar 90° · Supr: borrar · arrastrar desde la paleta
+        Shift+arrastrar: seleccionar en caja · Ctrl+clic: sumar a selección ·
+        Ctrl+C/V: copiar/pegar · R: rotar · Supr: borrar
       </span>
     </header>
   );

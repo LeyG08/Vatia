@@ -26,7 +26,9 @@ interface EstadoEditor {
   conexiones: Edge[];
   nombreProyecto: string;
   problemasProyecto: string[];
+  paletaVisible: boolean;
   version: number;
+  alternarPaleta: () => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
   onNodesChange: (cambios: NodeChange<Node<NodoData>>[]) => void;
   onEdgesChange: (cambios: EdgeChange[]) => void;
@@ -37,6 +39,8 @@ interface EstadoEditor {
   ) => void;
   rotarSeleccion: () => void;
   eliminarSeleccion: () => void;
+  copiarSeleccion: () => void;
+  pegar: () => void;
   deshacer: () => void;
   rehacer: () => void;
   setNombreProyecto: (nombre: string) => void;
@@ -44,7 +48,19 @@ interface EstadoEditor {
   serializarActual: () => ProyectoJSON;
 }
 
-function proximoId(existentes: { id: string }[], prefijo: string): string {
+interface ContenidoPortapapeles {
+  items: { codigo_iec: string; rotacion: number; x: number; y: number }[];
+  enlaces: {
+    s: number;
+    sh: string | null;
+    t: number;
+    th: string | null;
+  }[];
+}
+
+let portapapeles: ContenidoPortapapeles | null = null;
+
+function nuevoId(existentes: { id: string }[], prefijo: string): string {
   let max = 0;
   for (const e of existentes) {
     const m = e.id.match(new RegExp(`^${prefijo}(\\d+)$`));
@@ -67,13 +83,18 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     conexiones: [],
     nombreProyecto: "proyecto_sin_nombre",
     problemasProyecto: [],
+    paletaVisible: true,
     version: 0,
+
+    alternarPaleta() {
+      set((s) => ({ paletaVisible: !s.paletaVisible }));
+    },
 
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
       if (!simbolo) return;
       const nodo: Node<NodoData> = {
-        id: proximoId(get().nodos, "n"),
+        id: nuevoId(get().nodos, "n"),
         type: "simbolo",
         position: { x, y },
         data: { codigo_iec: codigoIec, rotacion: 0 },
@@ -98,7 +119,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       if (!conexion.source || !conexion.target) return;
       if (conexion.source === conexion.target) return;
       const edge: Edge = {
-        id: proximoId(get().conexiones, "c"),
+        id: nuevoId(get().conexiones, "c"),
         source: conexion.source,
         sourceHandle: conexion.sourceHandle,
         target: conexion.target,
@@ -207,6 +228,80 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             ),
           })),
         undo: () => set({ nodos: snapshotNodos, conexiones: snapshotEdges }),
+      });
+    },
+
+    copiarSeleccion() {
+      const seleccion = get().nodos.filter((n) => n.selected);
+      if (seleccion.length === 0) return;
+      const indice = new Map(seleccion.map((n, i) => [n.id, i] as const));
+      const enlaces: ContenidoPortapapeles["enlaces"] = [];
+      for (const e of get().conexiones) {
+        if (indice.has(e.source) && indice.has(e.target)) {
+          enlaces.push({
+            s: indice.get(e.source)!,
+            sh: e.sourceHandle ?? null,
+            t: indice.get(e.target)!,
+            th: e.targetHandle ?? null,
+          });
+        }
+      }
+      portapapeles = {
+        items: seleccion.map((n) => ({
+          codigo_iec: n.data.codigo_iec,
+          rotacion: n.data.rotacion,
+          x: n.position.x,
+          y: n.position.y,
+        })),
+        enlaces,
+      };
+    },
+
+    pegar() {
+      if (!portapapeles || portapapeles.items.length === 0) return;
+      const snapshotNodos = get().nodos;
+      const snapshotConexiones = get().conexiones;
+
+      const maxSufijo = (existentes: { id: string }[], prefijo: string) => {
+        let max = 0;
+        for (const e of existentes) {
+          const m = e.id.match(new RegExp(`^${prefijo}(\\d+)$`));
+          if (m) max = Math.max(max, Number(m[1]));
+        }
+        return max;
+      };
+      let proximoN = maxSufijo(snapshotNodos, "n");
+      let proximoC = maxSufijo(snapshotConexiones, "c");
+
+      const nuevosNodos: Node<NodoData>[] = portapapeles.items.map((it) => ({
+        id: `n${++proximoN}`,
+        type: "simbolo",
+        position: { x: it.x + 20, y: it.y + 20 },
+        data: { codigo_iec: it.codigo_iec, rotacion: it.rotacion },
+        selected: true,
+      }));
+      const idDe = (i: number) => nuevosNodos[i].id;
+      const nuevasConexiones: Edge[] = portapapeles.enlaces.map((l) => ({
+        id: `c${++proximoC}`,
+        source: idDe(l.s),
+        sourceHandle: l.sh,
+        target: idDe(l.t),
+        targetHandle: l.th,
+        type: "step",
+      }));
+
+      ejecutar({
+        descripcion: "pegar selección",
+        do: () =>
+          set((s) => ({
+            nodos: [
+              ...s.nodos.map((n) => ({ ...n, selected: false })),
+              ...nuevosNodos.map((n) => ({ ...n })),
+            ],
+            conexiones: [...s.conexiones, ...nuevasConexiones.map((e) => ({ ...e }))],
+          })),
+        undo: () =>
+          set({ nodos: snapshotNodos, conexiones: snapshotConexiones }),
       });
     },
 

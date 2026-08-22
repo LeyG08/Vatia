@@ -1,12 +1,18 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ESCALA, type NodoData } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
+import type { SimboloDef } from "../lib/tipos";
 
-const POSICION_POR_ROL = {
-  entrada: Position.Top,
-  salida: Position.Bottom,
-  tierra: Position.Top,
-} as const;
+function posicionBorde(p: { x: number; y: number }, vb: SimboloDef["viewBox"]) {
+  const distancias = [
+    { pos: Position.Top, d: Math.abs(p.y - vb.minY) },
+    { pos: Position.Bottom, d: Math.abs(vb.minY + vb.alto - p.y) },
+    { pos: Position.Left, d: Math.abs(p.x - vb.minX) },
+    { pos: Position.Right, d: Math.abs(vb.minX + vb.ancho - p.x) },
+  ];
+  distancias.sort((a, b) => a.d - b.d);
+  return distancias[0].pos;
+}
 
 function NodoSimbolo({ data }: NodeProps<Node<NodoData>>) {
   const simbolo = obtenerSimbolo(data.codigo_iec);
@@ -38,7 +44,7 @@ function NodoSimbolo({ data }: NodeProps<Node<NodoData>>) {
             key={p.id}
             id={p.id}
             type={p.rol === "salida" ? "source" : "target"}
-            position={POSICION_POR_ROL[p.rol]}
+            position={posicionBorde(p, vb)}
             className={`handle-${p.rol}`}
             style={{
               width: 10,

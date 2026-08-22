@@ -259,3 +259,43 @@ body,
   padding: 0 10px 8px;
   color: #16a34a;
 }
+
+/* ---- Arrastre desde la paleta ---- */
+.fantasma-arrastre {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.25));
+}
+
+.fantasma-arrastre svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+body.arrastrando {
+  user-select: none;
+  cursor: grabbing;
+}
+
+body.arrastrando .paleta-item {
+  opacity: 0.5;
+}
+
+.paleta-item:active {
+  cursor: grabbing;
+}
+
+.paleta-ayuda {
+  font-size: 11px;
+  color: #71717a;
+  margin: 0 0 8px;
+}
+
+.barra-superior button.activo {
+  border-color: var(--acento);
+  color: var(--acento);
+  background: #eff6ff;
+}
