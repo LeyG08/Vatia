@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aparato.schema.json",
+  "title": "Vatia · Atributos de familia aparato",
+  "description": "Brief §4.2. Los campos con x-obligatorio son advertidos por el Checklist AEA (§6): no bloquean el guardado, solo advierten.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "marca": {
+      "type": "string",
+      "description": "Opcional en esta fase: se completa a mano hasta que exista la DB de catálogo."
+    },
+    "modelo": {
+      "type": "string",
+      "x-obligatorio": false
+    },
+    "In_A": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Corriente nominal en amperes.",
+      "x-obligatorio": true
+    },
+    "Icu_kA": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Poder de corte último en kiloamperes.",
+      "x-obligatorio": false
+    },
+    "Ics_kA": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Poder de corte de servicio en kiloamperes.",
+      "x-obligatorio": false
+    },
+    "curva_disparo": {
+      "enum": ["B", "C", "D", "K", "Z", "otra"],
+      "x-obligatorio": false
+    },
+    "tension_aislacion_V": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Tensión de aislamiento asignada Ui, en volts.",
+      "x-obligatorio": false
+    },
+    "norma_fabricacion": {
+      "type": "string",
+      "description": "String libre, ej: IEC 60898-1.",
+      "x-obligatorio": false
+    }
+  }
+}

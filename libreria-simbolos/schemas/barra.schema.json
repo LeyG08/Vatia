@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "barra.schema.json",
+  "title": "Vatia · Atributos de familia barra",
+  "description": "Brief §4.4. Los campos con x-obligatorio son advertidos por el Checklist AEA (§6): no bloquean el guardado.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "material": {
+      "enum": ["Cu", "Al"],
+      "x-obligatorio": true
+    },
+    "perfil": {
+      "enum": ["rigida", "flexible"],
+      "x-obligatorio": false
+    },
+    "seccion_mm2": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-obligatorio": true
+    },
+    "corriente_admisible_A": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Corriente admisible de la barra en amperes.",
+      "x-obligatorio": true
+    }
+  }
+}
