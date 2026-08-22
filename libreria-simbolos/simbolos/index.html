@@ -31,7 +31,7 @@
 </head>
 <body>
 <header class="pagina">
-  <h1>Vatia · Galería de símbolos (10)</h1>
+  <h1>Vatia · Galería de símbolos (8)</h1>
   <p>Revisión manual contra AEA / IEC 60617-11 · puntos en <span style="color:#e11d48">●</span> rojo = puntos_conexion · estado y notas en docs/estado-revision-aea.md</p>
 </header>
 <main>
@@ -58,9 +58,9 @@
       <h2>Interruptor termomagnético 3P+N (unifilar)</h2>
       <dl>
         <dt>Familia</dt><dd>aparato</dd>
-        <dt>Terminales</dt><dd class="mono">OUT.6 · salida · (10, 20)<br>OUT.2 · salida · (-30, 20)<br>OUT.4 · salida · (-10, 20)<br>IN.1 · entrada · (-30, -30)<br>IN.5 · entrada · (10, -30)<br>IN.3 · entrada · (-10, -30)<br>IN.7 · entrada · (30, -30)<br>OUT.8 · salida · (30, 20)</dd>
+        <dt>Terminales</dt><dd class="mono">in · entrada · (0, -30)<br>out · salida · (0, 20)</dd>
         <dt>Versión librería</dt><dd>0.1.0</dd>
-        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:200_fuses_protective_gears/11_circuit_breakers/disjonct-m_3fn.elmt</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/11_circuit_breakers/disjonct-m_1f.elmt (geometría unipolar reutilizada + anotación de polaridades; la versión anterior con los 4 polos repetidos desde disjonct-m_3fn.elmt se descartó por no cumplir la convención unifilar)</dd>
       </dl>
     </article>
     <article class="tarjeta">
@@ -68,13 +68,13 @@
         <span class="codigo">S00112</span>
         <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
       </header>
-      <div class="lienzo"><img src="S00112_contactor_de_potencia_polo_na/simbolo.svg" alt="Contactor de potencia (polo NA)"></div>
-      <h2>Contactor de potencia (polo NA)</h2>
+      <div class="lienzo"><img src="S00112_contactor_de_potencia_bobina_polo_na/simbolo.svg" alt="Contactor de potencia (bobina + polo NA)"></div>
+      <h2>Contactor de potencia (bobina + polo NA)</h2>
       <dl>
         <dt>Familia</dt><dd>aparato</dd>
-        <dt>Terminales</dt><dd class="mono">t1 · entrada · (0, -20)<br>t2 · salida · (0, 20)</dd>
+        <dt>Terminales</dt><dd class="mono">in · entrada · (0, -20)<br>out · salida · (0, 20)</dd>
         <dt>Versión librería</dt><dd>0.1.0</dd>
-        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:310_relays_contactors_contacts/02_contacts_cross_referencing/02_power_contacts/com_puiss1.elmt</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/310_relays_contactors_contacts/02_contacts_cross_referencing/02_power_contacts/com_puiss1.elmt (polo NA) + bobina de mando agregada como dibujo directo IEC enlazada por línea mecánica punteada; los bornes A1/A2 de la bobina no se exponen porque pertenecen al circuito de comando, fuera del unifilar de fuerza</dd>
       </dl>
     </article>
     <article class="tarjeta">
@@ -100,9 +100,9 @@
       <h2>Transformador dos bobinados (unifilar)</h2>
       <dl>
         <dt>Familia</dt><dd>aparato</dd>
-        <dt>Terminales</dt><dd class="mono">t1 · entrada · (-10, -20)<br>t2 · entrada · (10, -20)<br>t3 · salida · (-10, 10)<br>t4 · salida · (10, 10)</dd>
+        <dt>Terminales</dt><dd class="mono">prim · entrada · (0, -20)<br>sec · salida · (0, 20)</dd>
         <dt>Versión librería</dt><dd>0.1.0</dd>
-        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:330_transformers_power_supplies/10_transformers/transformator_1f_2.elmt</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/330_transformers_power_supplies/10_transformers/transformator_1f_2.elmt (simplificado a trazo único por devanado para cumplir la convención unifilar; la geometría original con dos conductores por devanado se descartó)</dd>
       </dl>
     </article>
     <article class="tarjeta">
@@ -110,41 +110,13 @@
         <span class="codigo">S00115</span>
         <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
       </header>
-      <div class="lienzo"><img src="S00115_motor_trifasico/simbolo.svg" alt="Motor trifásico"></div>
-      <h2>Motor trifásico</h2>
+      <div class="lienzo"><img src="S00115_motor_trifasico/simbolo.svg" alt="Motor trifásico (unifilar)"></div>
+      <h2>Motor trifásico (unifilar)</h2>
       <dl>
         <dt>Familia</dt><dd>aparato</dd>
-        <dt>Terminales</dt><dd class="mono">W1 · entrada · (20, -30)<br>U1 · entrada · (-20, -30)<br>PE · tierra · (21, 6)<br>V1 · entrada · (0, -30)</dd>
+        <dt>Terminales</dt><dd class="mono">in · entrada · (0, -20)</dd>
         <dt>Versión librería</dt><dd>0.1.0</dd>
-        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:391_consumers_actuators/10_engines/moteur_tri.elmt</dd>
-      </dl>
-    </article>
-    <article class="tarjeta">
-      <header>
-        <span class="codigo">S00116</span>
-        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
-      </header>
-      <div class="lienzo"><img src="S00116_tomacorriente_2p_t_unifilar/simbolo.svg" alt="Tomacorriente 2P+T (unifilar)"></div>
-      <h2>Tomacorriente 2P+T (unifilar)</h2>
-      <dl>
-        <dt>Familia</dt><dd>aparato</dd>
-        <dt>Terminales</dt><dd class="mono">t1 · entrada · (-6, -15)<br>t2 · entrada · (6, -15)<br>t3 · salida · (0, 17)</dd>
-        <dt>Versión librería</dt><dd>0.1.0</dd>
-        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:140_connectors_plugs/20_socket_outlets/pc_mono.elmt</dd>
-      </dl>
-    </article>
-    <article class="tarjeta">
-      <header>
-        <span class="codigo">S00117</span>
-        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
-      </header>
-      <div class="lienzo"><img src="S00117_lampara_de_filamento/simbolo.svg" alt="Lámpara de filamento"></div>
-      <h2>Lámpara de filamento</h2>
-      <dl>
-        <dt>Familia</dt><dd>aparato</dd>
-        <dt>Terminales</dt><dd class="mono">t1 · salida · (2, 20)<br>t2 · salida · (-2, 20)</dd>
-        <dt>Versión librería</dt><dd>0.1.0</dd>
-        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:391_consumers_actuators/60_lightings/lamp.elmt</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/391_consumers_actuators/10_engines/moteur_tri.elmt (simplificado a círculo M·3~ con trazo único de alimentación conforme IEC 60617; la geometría original con U1/V1/W1/PE separados se descartó por no cumplir la convención unifilar)</dd>
       </dl>
     </article>
     <article class="tarjeta">
