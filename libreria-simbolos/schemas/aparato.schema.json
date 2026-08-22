@@ -36,6 +36,18 @@
       "enum": ["B", "C", "D", "K", "Z", "otra"],
       "x-obligatorio": false
     },
+    "cantidad_polos": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cantidad total de polos que el aparato interrumpe, incluido el neutro cuando lo conmuta. Ej: 1P→1, 2P→2, 3P+N→4. En unifilar esta info vive en la ficha técnica, no en la geometría.",
+      "x-obligatorio": false
+    },
+    "cantidad_fases": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Cantidad de fases del circuito al que corresponde el aparato (uso típico en receptores: motor trifásico→3).",
+      "x-obligatorio": false
+    },
     "tension_aislacion_V": {
       "type": "number",
       "exclusiveMinimum": 0,

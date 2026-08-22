@@ -34,6 +34,11 @@
         }
       }
     },
+    "atributos_base": {
+      "type": "object",
+      "description": "Valores de atributos sugeridos al instanciar el símbolo en un proyecto (puente hasta que exista la DB de catálogo). Ej: cantidad_polos en S00111, cantidad_fases en S00115.",
+      "x-obligatorio": false
+    },
     "version_libreria": {
       "type": "string",
       "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
