@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-13.05 -18.0 26.1 38.0" width="156" height="228">
+  <g fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="0.0" y1="7.0" x2="0.0" y2="16.0"/>
+  <ellipse cx="0.0" cy="0.0" rx="10.05" ry="10.05"/>
+  <line x1="-6.0" y1="-8.0" x2="-6.0" y2="-14.0"/>
+  <ellipse cx="-4.0" cy="-4.0" rx="2.0" ry="2.0"/>
+  <ellipse cx="0.0" cy="5.0" rx="2.0" ry="2.0"/>
+  <line x1="6.0" y1="-8.0" x2="6.0" y2="-14.0"/>
+  <ellipse cx="4.0" cy="-4.0" rx="2.0" ry="2.0"/>
+  <circle class="punto-conexion" cx="-6.0" cy="-15.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="6.0" cy="-15.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="0.0" cy="17.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  </g>
+</svg>

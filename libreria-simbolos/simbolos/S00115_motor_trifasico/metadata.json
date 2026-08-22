@@ -1,0 +1,34 @@
+{
+  "codigo_iec": "S00115",
+  "nombre": "Motor trifásico",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "puntos_conexion": [
+    {
+      "id": "W1",
+      "rol": "entrada",
+      "x": 20.0,
+      "y": -30.0
+    },
+    {
+      "id": "U1",
+      "rol": "entrada",
+      "x": -20.0,
+      "y": -30.0
+    },
+    {
+      "id": "PE",
+      "rol": "tierra",
+      "x": 21.0,
+      "y": 6.0
+    },
+    {
+      "id": "V1",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -30.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:391_consumers_actuators/10_engines/moteur_tri.elmt"
+}
