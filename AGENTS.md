@@ -12,3 +12,24 @@
 - Al finalizar la sesión, abrir un Pull Request hacia main con `gh pr create`,
   incluyendo en la descripción el diff de campos modificados.
 - No mergear el PR. Eso lo hace el usuario manualmente.
+
+## Formato de mensajes de commit
+
+- Primera línea (asunto): máximo ~72 caracteres, formato
+  `tipo(alcance): resumen corto de una sola acción`.
+- Línea en blanco.
+- Cuerpo: lista de qué cambió y por qué, con el detalle que haga falta
+  (por ejemplo, qué símbolos se vieron afectados y la justificación
+  de cada cambio conforme AEA/IEC).
+
+Ejemplo de cómo debería quedar un commit a partir de ahora:
+
+```
+fix(S00110,S00114): unifica termomagnético y ajusta superposición transformador
+
+- S00111 (variante 3P+N) eliminado: la cantidad de polos se define
+  por instancia en cantidad_polos de la ficha técnica, no con
+  símbolos derivados.
+- S00114 pasa de círculos tangentes a superpuestos, conforme IEC 60617.
+- Galería regenerada con 7 símbolos.
+```
