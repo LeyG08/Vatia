@@ -19,6 +19,7 @@ export const PASO_ROTACION = 90;
 export interface NodoData extends Record<string, unknown> {
   codigo_iec: string;
   rotacion: number;
+  rotacionVisual: number;
 }
 
 interface EstadoEditor {
@@ -49,7 +50,13 @@ interface EstadoEditor {
 }
 
 interface ContenidoPortapapeles {
-  items: { codigo_iec: string; rotacion: number; x: number; y: number }[];
+  items: {
+    codigo_iec: string;
+    rotacion: number;
+    rotacionVisual: number;
+    x: number;
+    y: number;
+  }[];
   enlaces: {
     s: number;
     sh: string | null;
@@ -97,7 +104,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         id: nuevoId(get().nodos, "n"),
         type: "simbolo",
         position: { x, y },
-        data: { codigo_iec: codigoIec, rotacion: 0 },
+        data: { codigo_iec: codigoIec, rotacion: 0, rotacionVisual: 0 },
         selected: true,
       };
       ejecutar({
@@ -181,7 +188,9 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const seleccionadas = get().nodos.filter((n) => n.selected);
       if (seleccionadas.length === 0) return;
       const antes = new Map(
-        seleccionadas.map((n) => [n.id, n.data.rotacion] as const),
+        seleccionadas.map(
+          (n) => [n.id, { rotacion: n.data.rotacion, rotacionVisual: n.data.rotacionVisual }] as const,
+        ),
       );
       const despuesRot = PASO_ROTACION;
       ejecutar({
@@ -192,7 +201,12 @@ export const useEditor = create<EstadoEditor>((set, get) => {
               antes.has(n.id)
                 ? {
                     ...n,
-                    data: { ...n.data, rotacion: (antes.get(n.id)! + despuesRot) % 360 },
+                    data: {
+                      ...n.data,
+                      rotacion: (antes.get(n.id)!.rotacion + despuesRot) % 360,
+                      rotacionVisual:
+                        antes.get(n.id)!.rotacionVisual + despuesRot,
+                    },
                   }
                 : n,
             ),
@@ -201,7 +215,14 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           set((s) => ({
             nodos: s.nodos.map((n) =>
               antes.has(n.id)
-                ? { ...n, data: { ...n.data, rotacion: antes.get(n.id)! } }
+                ? {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      rotacion: antes.get(n.id)!.rotacion,
+                      rotacionVisual: antes.get(n.id)!.rotacionVisual,
+                    },
+                  }
                 : n,
             ),
           })),
@@ -250,6 +271,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         items: seleccion.map((n) => ({
           codigo_iec: n.data.codigo_iec,
           rotacion: n.data.rotacion,
+          rotacionVisual: n.data.rotacionVisual,
           x: n.position.x,
           y: n.position.y,
         })),
@@ -277,7 +299,11 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         id: `n${++proximoN}`,
         type: "simbolo",
         position: { x: it.x + 20, y: it.y + 20 },
-        data: { codigo_iec: it.codigo_iec, rotacion: it.rotacion },
+        data: {
+          codigo_iec: it.codigo_iec,
+          rotacion: it.rotacion,
+          rotacionVisual: it.rotacionVisual,
+        },
         selected: true,
       }));
       const idDe = (i: number) => nuevosNodos[i].id;
@@ -332,7 +358,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           id: n.id,
           type: "simbolo",
           position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
-          data: { codigo_iec: n.codigo_iec, rotacion: ((n.rotacion ?? 0) % 360 + 360) % 360 },
+          data: { codigo_iec: n.codigo_iec, rotacion: ((n.rotacion ?? 0) % 360 + 360) % 360, rotacionVisual: ((n.rotacion ?? 0) % 360 + 360) % 360 },
         });
       }
       const idsValidos = new Set(nodos.map((n) => n.id));
