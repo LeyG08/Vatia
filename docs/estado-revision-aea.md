@@ -13,7 +13,7 @@ Estados posibles (`estado_revision` en metadata.json):
 
 | Código | Nombre | Fuente QET (.elmt) | Familia | Estado | Fecha revisión | Notas |
 |--------|--------|--------------------|---------|--------|----------------|-------|
-| S00110 | Interruptor termomagnético 1P (unifilar) | 10_electric/10_allpole/200_fuses_protective_gears/* (piloto) | aparato | pendiente_revision | — | Piloto del pipeline |
+| S00110 | Interruptor termomagnético 1P (unifilar) | 10_electric/10_allpole/200_fuses_protective_gears/11_circuit_breakers/disjonct-m_1f.elmt @ b9e1020 | aparato | pendiente_revision | — | Piloto del pipeline · 7 primitivas · terminales IN.1 (entrada) / OUT.2 (salida) |
 | S00111 | Interruptor termomagnético 3P+N (unifilar) | (pendiente selección) | aparato | pendiente_revision | — | Lote tras aprobación piloto |
 | S00112 | Contactor de potencia (unifilar) | 10_allpole/310_relays_contactors_contacts/* | aparato | pendiente_revision | — | — |
 | S00113 | Fusible (unifilar) | 10_allpole/200_fuses_protective_gears/* | aparato | pendiente_revision | — | — |
