@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vatia · Galería de símbolos — revisión AEA / IEC 60617</title>
+<style>
+  :root { --borde: #e2e8f0; }
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
+  header.pagina { padding: 24px 32px; border-bottom: 1px solid var(--borde); background: #fff; }
+  header.pagina h1 { margin: 0; font-size: 20px; }
+  header.pagina p { margin: 4px 0 0; color: #64748b; font-size: 14px; }
+  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 28px 32px; max-width: 1400px; margin: auto; }
+  .tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 10px; padding: 16px; }
+  .tarjeta header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .codigo { font-family: ui-monospace, monospace; font-weight: 600; }
+  .badge { font-size: 12px; padding: 2px 10px; border-radius: 999px; }
+  .lienzo { height: 220px; display: flex; align-items: center; justify-content: center;
+             background:
+               linear-gradient(to right, #f1f5f9 1px, transparent 1px),
+               linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);
+             background-size: 14px 14px; border: 1px dashed var(--borde); border-radius: 8px; }
+  .lienzo img { max-height: 200px; max-width: 90%; image-rendering: auto; }
+  h2 { font-size: 15px; margin: 12px 0 8px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; margin: 0; }
+  dt { color: #64748b; }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .mono { font-family: ui-monospace, monospace; font-size: 12px; }
+  .fuente { color: #64748b; }
+</style>
+</head>
+<body>
+<header class="pagina">
+  <h1>Vatia · Galería de símbolos (7)</h1>
+  <p>Revisión manual contra AEA / IEC 60617-11 · puntos en <span style="color:#e11d48">●</span> rojo = puntos_conexion · estado y notas en docs/estado-revision-aea.md</p>
+</header>
+<main>
+    <article class="tarjeta">
+      <header>
+        <span class="codigo">S00110</span>
+        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
+      </header>
+      <div class="lienzo"><img src="S00110_interruptor_termomagnetico_unifilar/simbolo.svg" alt="Interruptor termomagnético (unifilar)"></div>
+      <h2>Interruptor termomagnético (unifilar)</h2>
+      <dl>
+        <dt>Familia</dt><dd>aparato</dd>
+        <dt>Terminales</dt><dd class="mono">in · entrada · (0, -30)<br>out · salida · (0, 20)</dd>
+        <dt>Versión librería</dt><dd>0.1.0</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/11_circuit_breakers/disjonct-m_1f.elmt</dd>
+      </dl>
+    </article>
+    <article class="tarjeta">
+      <header>
+        <span class="codigo">S00112</span>
+        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
+      </header>
+      <div class="lienzo"><img src="S00112_contactor_de_potencia_bobina_polo_na/simbolo.svg" alt="Contactor de potencia (bobina + polo NA)"></div>
+      <h2>Contactor de potencia (bobina + polo NA)</h2>
+      <dl>
+        <dt>Familia</dt><dd>aparato</dd>
+        <dt>Terminales</dt><dd class="mono">in · entrada · (0, -20)<br>out · salida · (0, 20)</dd>
+        <dt>Versión librería</dt><dd>0.1.0</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/310_relays_contactors_contacts/02_contacts_cross_referencing/02_power_contacts/com_puiss1.elmt (polo NA) + bobina de mando agregada como dibujo directo IEC enlazada por línea mecánica punteada; los bornes A1/A2 de la bobina no se exponen porque pertenecen al circuito de comando, fuera del unifilar de fuerza</dd>
+      </dl>
+    </article>
+    <article class="tarjeta">
+      <header>
+        <span class="codigo">S00113</span>
+        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
+      </header>
+      <div class="lienzo"><img src="S00113_fusible_1p_unifilar/simbolo.svg" alt="Fusible 1P (unifilar)"></div>
+      <h2>Fusible 1P (unifilar)</h2>
+      <dl>
+        <dt>Familia</dt><dd>aparato</dd>
+        <dt>Terminales</dt><dd class="mono">1 · entrada · (0, -20)<br>2 · salida · (0, 20)</dd>
+        <dt>Versión librería</dt><dd>0.1.0</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:200_fuses_protective_gears/10_fuses/pojistka1p.elmt</dd>
+      </dl>
+    </article>
+    <article class="tarjeta">
+      <header>
+        <span class="codigo">S00114</span>
+        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
+      </header>
+      <div class="lienzo"><img src="S00114_transformador_dos_bobinados_unifilar/simbolo.svg" alt="Transformador dos bobinados (unifilar)"></div>
+      <h2>Transformador dos bobinados (unifilar)</h2>
+      <dl>
+        <dt>Familia</dt><dd>aparato</dd>
+        <dt>Terminales</dt><dd class="mono">prim · entrada · (0, -20)<br>sec · salida · (0, 20)</dd>
+        <dt>Versión librería</dt><dd>0.1.0</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/330_transformers_power_supplies/10_transformers/transformator_1f_2.elmt (simplificado a trazo único por devanado con círculos superpuestos conforme IEC 60617; la geometría original con dos conductores por devanado se descartó)</dd>
+      </dl>
+    </article>
+    <article class="tarjeta">
+      <header>
+        <span class="codigo">S00115</span>
+        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
+      </header>
+      <div class="lienzo"><img src="S00115_motor_trifasico/simbolo.svg" alt="Motor trifásico (unifilar)"></div>
+      <h2>Motor trifásico (unifilar)</h2>
+      <dl>
+        <dt>Familia</dt><dd>aparato</dd>
+        <dt>Terminales</dt><dd class="mono">in · entrada · (0, -20)</dd>
+        <dt>Versión librería</dt><dd>0.1.0</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/391_consumers_actuators/10_engines/moteur_tri.elmt (simplificado a círculo M·3~ con trazo único de alimentación conforme IEC 60617; la geometría original con U1/V1/W1/PE separados se descartó por no cumplir la convención unifilar)</dd>
+      </dl>
+    </article>
+    <article class="tarjeta">
+      <header>
+        <span class="codigo">S00118</span>
+        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
+      </header>
+      <div class="lienzo"><img src="S00118_toma_a_tierra_pe/simbolo.svg" alt="Toma a tierra (PE)"></div>
+      <h2>Toma a tierra (PE)</h2>
+      <dl>
+        <dt>Familia</dt><dd>aparato</dd>
+        <dt>Terminales</dt><dd class="mono">PE · tierra · (0, -11)</dd>
+        <dt>Versión librería</dt><dd>0.1.0</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">qelectrotech/qelectrotech-elements@b9e1020:110_network_supplies/terre.elmt</dd>
+      </dl>
+    </article>
+    <article class="tarjeta">
+      <header>
+        <span class="codigo">S00119</span>
+        <span class="badge" style="color:#b45309;background:#fef3c7">pendiente de revisión</span>
+      </header>
+      <div class="lienzo"><img src="S00119_barra_unifilar/simbolo.svg" alt="Barra (unifilar)"></div>
+      <h2>Barra (unifilar)</h2>
+      <dl>
+        <dt>Familia</dt><dd>barra</dd>
+        <dt>Terminales</dt><dd class="mono">in · entrada · (-26, 0)<br>out · salida · (26, 0)</dd>
+        <dt>Versión librería</dt><dd>0.1.0</dd>
+        <dt>Fuente QET</dt><dd class="mono fuente">dibujo directo conforme IEC 60617 (sin fuente .elmt en la colección unifilar de QET)</dd>
+      </dl>
+    </article>
+</main>
+</body>
+</html>

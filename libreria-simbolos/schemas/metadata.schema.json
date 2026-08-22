@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "metadata.schema.json",
+  "title": "Vatia · metadata.json de un símbolo",
+  "description": "Brief §4.1. Valida cada libreria-simbolos/simbolos/<codigo>_<nombre>/metadata.json generado por scripts/convertir_qet.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "codigo_iec": {
+      "type": "string",
+      "pattern": "^S[0-9]{5}$"
+    },
+    "nombre": {
+      "type": "string",
+      "minLength": 1
+    },
+    "familia_atributos": {
+      "enum": ["aparato", "conductor", "barra"]
+    },
+    "estado_revision": {
+      "enum": ["pendiente_revision", "verificado_aea", "corregido"]
+    },
+    "puntos_conexion": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "rol", "x", "y"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "rol": { "enum": ["entrada", "salida", "tierra", "auxiliar"] },
+          "x": { "type": "number" },
+          "y": { "type": "number" }
+        }
+      }
+    },
+    "atributos_base": {
+      "type": "object",
+      "description": "Valores de atributos sugeridos al instanciar el símbolo en un proyecto (puente hasta que exista la DB de catálogo). Ej: cantidad_polos en S00111, cantidad_fases en S00115.",
+      "x-obligatorio": false
+    },
+    "version_libreria": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "fuente_qet": {
+      "type": "string",
+      "description": "Trazabilidad: ruta relativa del .elmt original dentro de qelectrotech/qelectrotech-elements y commit del clon."
+    }
+  },
+  "required": [
+    "codigo_iec",
+    "nombre",
+    "familia_atributos",
+    "estado_revision",
+    "puntos_conexion",
+    "version_libreria"
+  ]
+}
