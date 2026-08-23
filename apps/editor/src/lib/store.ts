@@ -18,7 +18,13 @@ import {
   type ProyectoJSON,
 } from "./tipos";
 
-export const ESCALA = 2;
+/**
+ * Escala de renderizado: px de canvas por unidad del viewBox del símbolo.
+ * Fija por librería — el tamaño del símbolo no es modificable por el
+ * usuario. Debe mantenerse par y los símbolos pasan el lint de grilla
+ * para ESCALA 2 y 4 (ver scripts/lint_simbolos.py).
+ */
+export const ESCALA = 4;
 export const PASO_ROTACION = 90;
 
 export interface NodoData extends Record<string, unknown> {
