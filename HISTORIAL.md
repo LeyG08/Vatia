@@ -379,12 +379,28 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   de seguridad**: `top: mm(4)` (antes 8,5 mm) para simetría vertical
   respecto de `bottom: mm(4)` de la nota inferior.
 
+**Correcciones de revisión del usuario (6ª vuelta, misma fase):**
+
+- **Rótulo ancho 175,5 mm** (columna final 55→55,5 mm = +2 px):
+  en A4 vertical el ancho útil es 175 mm (700 px) pero el recuadro
+  tiene borde de 2 px centrado en el límite útil → caja de borde 702 px.
+  Con 175 mm el lado izquierdo del rótulo quedaba 2 px por dentro.
+  Ahora el contorno del rótulo funde píxel a píxel con el recuadro en
+  AMBOS vértices inferiores (left:-2 implícito vía ancho + right:-2).
+- **Sangrías diferenciadas en todo el rótulo**:
+  * Etiquetas fijas (izquierda): 4 mm
+  * Valores cargados (izquierda): 6 mm
+  * Textos centrados (denominación, nº plano, pág.): 0 mm
+  Aplicado a `CeldaRotulo` y a las celdas personalizadas (cliente,
+  logo/empresa).
+- **Logo/empresa centrado** con su sangría propia.
+
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
 **Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
-commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac`, `b3f3d4c` + 5ª vuelta)
-esperando aprobación del usuario.
+commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac`, `b3f3d4c`,
+`0748941` + 6ª vuelta) esperando aprobación del usuario.
 
 ---
 

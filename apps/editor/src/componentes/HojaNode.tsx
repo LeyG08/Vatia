@@ -17,13 +17,15 @@ const FUENTE_EXTRA_PX = 2;
 
 /**
  * Geometría del rótulo según IRAM 4508 (figura 1), ajustada a pedido
- * del usuario: ancho total 175 mm con columnas 26 / 20 / 34 / 40 / 55.
+ * del usuario: ancho total 175,5 mm con columnas 26 / 20 / 34 / 40 / 55,5.
  * Filas: 4×10 (responsables) + 12 (escala / nº cliente) + 10
  * (denominación del plano a ancho completo) + 10 (formato / nº plano /
- * paginación) = 72 mm. Contorno fundido con el recuadro; líneas internas
- * finas.
+ * paginación) = 72 mm. Contorno fundido con el recuadro en ambas esquinas
+ * inferiores; líneas internas finas.
+ * El +0,5 mm (2 px) compensa el borde de 2 px del recuadro para que
+ * los ejes de ambas cajas coincidan exactamente en A4 vertical.
  */
-const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 55];
+const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 55.5];
 const ROTULO_FILAS_MM = [10, 10, 10, 10, 12, 10, 10];
 
 /**
@@ -64,6 +66,10 @@ function CeldaRotulo({
   sinAbajo = false,
   children,
 }: CeldaRotuloProps) {
+  // Sangrías: etiquetas 4 mm, valores 6 mm, centrados 0
+  const padLabel = centrado ? 0 : mm(4);
+  const padValue = centrado ? 0 : mm(6);
+
   return (
     <div
       style={{
@@ -71,7 +77,7 @@ function CeldaRotulo({
         gridRow: fila,
         borderRight: sinDerecha ? undefined : "1px solid #111827",
         borderBottom: sinAbajo ? undefined : "1px solid #111827",
-        padding: `${mm(0.7)} ${mm(1.5)}`,
+        padding: `${mm(0.7)} 0`,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -82,7 +88,14 @@ function CeldaRotulo({
       }}
     >
       {etiqueta !== undefined && (
-        <span style={{ fontSize: mm(1.7) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
+        <span
+          style={{
+            fontSize: mm(1.7) + FUENTE_EXTRA_PX,
+            lineHeight: 1.25,
+            paddingLeft: padLabel,
+            paddingRight: mm(1),
+          }}
+        >
           {etiqueta}
         </span>
       )}
@@ -93,6 +106,8 @@ function CeldaRotulo({
             fontWeight: fuerte ? 700 : 500,
             lineHeight: 1.25,
             whiteSpace: "pre-wrap",
+            paddingLeft: padValue,
+            paddingRight: mm(1),
           }}
         >
           {valor === "" ? "\u00a0" : valor}
@@ -169,14 +184,21 @@ function RotuloIram() {
           gridRow: "1 / span 2",
           borderRight: "1px solid #111827",
           borderBottom: "1px solid #111827",
-          padding: `${mm(0.7)} ${mm(1.5)}`,
+          padding: `${mm(0.7)} 0`,
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           gap: mm(0.3),
         }}
       >
-        <span style={{ fontSize: mm(1.7) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
+        <span
+          style={{
+            fontSize: mm(1.7) + FUENTE_EXTRA_PX,
+            lineHeight: 1.25,
+            paddingLeft: mm(4),
+            paddingRight: mm(1),
+          }}
+        >
           Cliente
         </span>
         <span
@@ -184,12 +206,21 @@ function RotuloIram() {
             fontSize: mm(2.4) + FUENTE_EXTRA_PX,
             fontWeight: 700,
             lineHeight: 1.25,
+            paddingLeft: mm(6),
+            paddingRight: mm(1),
           }}
         >
           {rotulo.cliente === "" ? "\u00a0" : rotulo.cliente}
         </span>
         {rotulo.localidad !== "" && (
-          <span style={{ fontSize: mm(1.9) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
+          <span
+            style={{
+              fontSize: mm(1.9) + FUENTE_EXTRA_PX,
+              lineHeight: 1.25,
+              paddingLeft: mm(6),
+              paddingRight: mm(1),
+            }}
+          >
             {rotulo.localidad}
           </span>
         )}
@@ -219,15 +250,24 @@ function RotuloIram() {
           gridColumn: "5",
           gridRow: "1 / span 4",
           borderBottom: "1px solid #111827",
-          padding: `${mm(0.7)} ${mm(1.5)}`,
+          padding: `${mm(0.7)} 0`,
           overflow: "hidden",
           position: "relative",
           display: "flex",
           flexDirection: "column",
           gap: mm(0.5),
+          alignItems: "center",
+          textAlign: "center",
         }}
       >
-        <span style={{ fontSize: mm(1.7) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
+        <span
+          style={{
+            fontSize: mm(1.7) + FUENTE_EXTRA_PX,
+            lineHeight: 1.25,
+            paddingLeft: mm(4),
+            paddingRight: mm(1),
+          }}
+        >
           Empresa / logo
         </span>
         <span
@@ -235,9 +275,10 @@ function RotuloIram() {
             fontSize: mm(3) + FUENTE_EXTRA_PX,
             fontWeight: 700,
             lineHeight: 1.3,
-            textAlign: "center",
             margin: "auto 0",
             wordBreak: "break-word",
+            paddingLeft: mm(6),
+            paddingRight: mm(1),
           }}
         >
           {rotulo.logoTexto || rotulo.empresa || "\u00a0"}
