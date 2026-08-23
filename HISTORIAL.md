@@ -316,11 +316,32 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   (material, clase de aislación, personal apto, IP, barras/conductores,
   reserva futura).
 
+**Correcciones de revisión del usuario (2ª vuelta, misma fase):**
+
+- **Bug de alineo del rótulo resuelto**: el contenedor grid tenía
+  `width/height` exactos a la suma de pistas pero `box-sizing:
+  border-box` con borde de 2 px → las pistas desbordaban 4 px el
+  content box y las líneas internas no cerraban contra el contorno
+  (visible distinto según formato/zoom). Fix: sin width/height fijos,
+  la grilla se dimensiona desde sus pistas (content-box) → cierra
+  siempre, en cualquier hoja.
+- **Notas del gabinete**: subidas otros ~10 px (top pasa de mm(11) a
+  `mm(8.5)`) y ahora se imprimen con **etiqueta fija en negrita**
+  ("Material: …", "Clase de aislación: …", etc.) para que la estructura
+  fija sea visible en el plano; maxWidth ampliado a 105 mm.
+- **Letra del rótulo +2 px** (`FUENTE_EXTRA_PX = 2`) en etiquetas y
+  valores de todas las celdas; la fila final pasa de 8 a 10 mm para
+  que entre la letra más grande (alto total: 72 mm).
+- Limpieza de bordes dobles contra el contorno: celdas del borde
+  derecho/inferior ya no dibujan su línea interna (`sinDerecha` /
+  `sinAbajo` en CeldaRotulo).
+
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
 **Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
-commit `f685a14`) esperando aprobación del usuario.
+commits `f685a14`, `6f8d7d1` + correcciones de revisión) esperando
+aprobación del usuario.
 
 ---
 

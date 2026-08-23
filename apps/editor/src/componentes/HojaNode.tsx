@@ -6,21 +6,25 @@ import {
   MARGEN_RESTO_MM,
   PX_POR_MM,
   dimensionesHoja,
+  type NotasGabineteConfig,
 } from "../lib/tipos";
 import { useEditor } from "../lib/store";
 
 const mm = (v: number) => v * PX_POR_MM;
 
+/** Aumento de letra pedido para el rótulo (~2 px sobre lo calculado) */
+const FUENTE_EXTRA_PX = 2;
+
 /**
  * Geometría del rótulo según IRAM 4508 (figura 1), ajustada a pedido
  * del usuario: ancho total 175 mm con columnas 26 / 20 / 34 / 40 / 55.
  * Filas: 4×10 (responsables) + 12 (escala / nº cliente) + 10
- * (denominación del plano a ancho completo) + 8 (formato / nº plano /
- * paginación) = 70 mm. Contorno igual al recuadro; líneas internas
+ * (denominación del plano a ancho completo) + 10 (formato / nº plano /
+ * paginación) = 72 mm. Contorno igual al recuadro; líneas internas
  * finas.
  */
 const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 55];
-const ROTULO_FILAS_MM = [10, 10, 10, 10, 12, 10, 8];
+const ROTULO_FILAS_MM = [10, 10, 10, 10, 12, 10, 10];
 
 /**
  * Plantilla de hoja: arriba, sobre el recuadro, va el nombre del
@@ -41,6 +45,10 @@ interface CeldaRotuloProps {
   tamano?: number;
   fuerte?: boolean;
   centrado?: boolean;
+  /** No dibuja la línea interna contra el contorno derecho */
+  sinDerecha?: boolean;
+  /** No dibuja la línea interna contra el contorno inferior */
+  sinAbajo?: boolean;
   children?: ReactNode;
 }
 
@@ -52,6 +60,8 @@ function CeldaRotulo({
   tamano = 2.2,
   fuerte = false,
   centrado = false,
+  sinDerecha = false,
+  sinAbajo = false,
   children,
 }: CeldaRotuloProps) {
   return (
@@ -59,8 +69,8 @@ function CeldaRotulo({
       style={{
         gridColumn: col,
         gridRow: fila,
-        borderRight: "1px solid #111827",
-        borderBottom: "1px solid #111827",
+        borderRight: sinDerecha ? undefined : "1px solid #111827",
+        borderBottom: sinAbajo ? undefined : "1px solid #111827",
         padding: `${mm(0.7)} ${mm(1)}`,
         overflow: "hidden",
         display: "flex",
@@ -72,12 +82,14 @@ function CeldaRotulo({
       }}
     >
       {etiqueta !== undefined && (
-        <span style={{ fontSize: mm(1.7), lineHeight: 1.25 }}>{etiqueta}</span>
+        <span style={{ fontSize: mm(1.7) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
+          {etiqueta}
+        </span>
       )}
       {valor !== undefined && (
         <span
           style={{
-            fontSize: mm(tamano),
+            fontSize: mm(tamano) + FUENTE_EXTRA_PX,
             fontWeight: fuerte ? 700 : 500,
             lineHeight: 1.25,
             whiteSpace: "pre-wrap",
@@ -94,8 +106,6 @@ function CeldaRotulo({
 function RotuloIram() {
   const rotulo = useEditor((s) => s.hoja.rotulo);
   const formato = useEditor((s) => s.hoja.formato);
-  const anchoPx = mm(ROTULO_COLUMNAS_MM.reduce((a, b) => a + b, 0));
-  const altoPx = mm(ROTULO_FILAS_MM.reduce((a, b) => a + b, 0));
   const escalaTexto =
     (rotulo.escala.trim() === "" ? "S/E" : rotulo.escala) +
     (rotulo.metodoIso ? ` ${rotulo.metodoIso}` : "");
@@ -104,12 +114,13 @@ function RotuloIram() {
     <div
       style={bloqueStyle({
         // Medio punto (0,5 mm = 2 px) hacia abajo y hacia la derecha:
-        // el contorno del rótulo se funde con el recuadro de la hoja
+        // el contorno del rótulo se funde con el recuadro de la hoja.
+        // Sin width/height fijos: la grilla se dimensiona sola desde
+        // sus pistas (content-box), así las líneas internas cierran
+        // SIEMPRE contra el contorno, sin importar el tamaño de hoja
+        // ni el redondeo de píxeles del zoom.
         right: -2,
         bottom: -2,
-        width: anchoPx,
-        height: altoPx,
-        boxSizing: "border-box",
         border: "2px solid #111827",
         background: "#fff",
         color: "#111827",
@@ -131,10 +142,22 @@ function RotuloIram() {
       {rotulo.responsables.map((r, i) => (
         <Fragment key={`resp${i}`}>
           <CeldaRotulo col="2" fila={`${i + 1}`}>
-            <span style={{ fontSize: mm(1.7), lineHeight: 1.25, color: "#374151" }}>
+            <span
+              style={{
+                fontSize: mm(1.7) + FUENTE_EXTRA_PX,
+                lineHeight: 1.25,
+                color: "#374151",
+              }}
+            >
               {r.rol}
             </span>
-            <span style={{ fontSize: mm(2.2), fontWeight: 500, lineHeight: 1.25 }}>
+            <span
+              style={{
+                fontSize: mm(2.2) + FUENTE_EXTRA_PX,
+                fontWeight: 500,
+                lineHeight: 1.25,
+              }}
+            >
               {r.fecha === "" ? "\u00a0" : r.fecha}
             </span>
           </CeldaRotulo>
@@ -156,12 +179,20 @@ function RotuloIram() {
           gap: mm(0.3),
         }}
       >
-        <span style={{ fontSize: mm(1.7), lineHeight: 1.25 }}>Cliente</span>
-        <span style={{ fontSize: mm(2.4), fontWeight: 700, lineHeight: 1.25 }}>
+        <span style={{ fontSize: mm(1.7) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
+          Cliente
+        </span>
+        <span
+          style={{
+            fontSize: mm(2.4) + FUENTE_EXTRA_PX,
+            fontWeight: 700,
+            lineHeight: 1.25,
+          }}
+        >
           {rotulo.cliente === "" ? "\u00a0" : rotulo.cliente}
         </span>
         {rotulo.localidad !== "" && (
-          <span style={{ fontSize: mm(1.9), lineHeight: 1.25 }}>
+          <span style={{ fontSize: mm(1.9) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
             {rotulo.localidad}
           </span>
         )}
@@ -190,7 +221,6 @@ function RotuloIram() {
         style={{
           gridColumn: "5",
           gridRow: "1 / span 4",
-          borderRight: "1px solid #111827",
           borderBottom: "1px solid #111827",
           padding: `${mm(0.7)} ${mm(1)}`,
           overflow: "hidden",
@@ -200,10 +230,12 @@ function RotuloIram() {
           gap: mm(0.5),
         }}
       >
-        <span style={{ fontSize: mm(1.7), lineHeight: 1.25 }}>Empresa / logo</span>
+        <span style={{ fontSize: mm(1.7) + FUENTE_EXTRA_PX, lineHeight: 1.25 }}>
+          Empresa / logo
+        </span>
         <span
           style={{
-            fontSize: mm(3),
+            fontSize: mm(3) + FUENTE_EXTRA_PX,
             fontWeight: 700,
             lineHeight: 1.3,
             textAlign: "center",
@@ -233,6 +265,7 @@ function RotuloIram() {
         valor={rotulo.numeroPlanoCliente}
         tamano={2.6}
         fuerte
+        sinDerecha
       />
 
       {/* Campo 6 — denominación del plano, a ancho completo */}
@@ -244,10 +277,19 @@ function RotuloIram() {
         tamano={3.2}
         fuerte
         centrado
+        sinDerecha
       />
 
       {/* Campo 5 — formato */}
-      <CeldaRotulo col="1" fila="7" etiqueta="Formato" valor={formato} tamano={2.6} fuerte />
+      <CeldaRotulo
+        col="1"
+        fila="7"
+        etiqueta="Formato"
+        valor={formato}
+        tamano={2.6}
+        fuerte
+        sinAbajo
+      />
 
       {/* Campo 12 — número de plano propio */}
       <CeldaRotulo
@@ -258,6 +300,7 @@ function RotuloIram() {
         tamano={2.8}
         fuerte
         centrado
+        sinAbajo
       />
 
       {/* Campo 13 — paginación */}
@@ -268,10 +311,22 @@ function RotuloIram() {
         valor={rotulo.paginacion}
         tamano={2.4}
         centrado
+        sinDerecha
+        sinAbajo
       />
     </div>
   );
 }
+
+/** Estructura fija de las notas: campo → etiqueta que se imprime */
+const NOTAS_GABINETE_FIJAS: [keyof NotasGabineteConfig, string][] = [
+  ["material", "Material"],
+  ["claseAislacion", "Clase de aislación"],
+  ["personalApto", "Personal apto"],
+  ["gradoProteccion", "Grado de protección IP"],
+  ["barrasOConductores", "Barras/conductores interiores"],
+  ["reservaFutura", "Reserva futura"],
+];
 
 function HojaNode(_props: NodeProps) {
   const hoja = useEditor((s) => s.hoja);
@@ -280,15 +335,11 @@ function HojaNode(_props: NodeProps) {
   const mr = mm(MARGEN_RESTO_MM);
   const textoChico = { fontSize: mm(2.5), lineHeight: 1.45 };
 
-  // Estructura fija de las notas del gabinete, en este orden
-  const notasGabinete = [
-    hoja.notasGabinete.material,
-    hoja.notasGabinete.claseAislacion,
-    hoja.notasGabinete.personalApto,
-    hoja.notasGabinete.gradoProteccion,
-    hoja.notasGabinete.barrasOConductores,
-    hoja.notasGabinete.reservaFutura,
-  ].filter((n) => n.trim() !== "");
+  // Notas con su etiqueta fija; se saltean solo si el campo quedó vacío
+  const notasGabinete = NOTAS_GABINETE_FIJAS.map(([campo, etiqueta]) => ({
+    etiqueta,
+    valor: hoja.notasGabinete[campo],
+  })).filter((n) => n.valor.trim() !== "");
 
   return (
     <div
@@ -313,20 +364,20 @@ function HojaNode(_props: NodeProps) {
           </strong>
         </div>
 
-        {/* Notas constructivas del gabinete (estructura fija), subidas
-         * unos 5 mm para dejar aire bajo el encabezado */}
+        {/* Notas constructivas del gabinete: estructura fija con
+         * etiquetas, bien arriba para dejar aire bajo el encabezado */}
         {notasGabinete.length > 0 && (
           <div
             style={bloqueStyle({
-              top: mm(11),
+              top: mm(8.5),
               left: mm(6),
-              maxWidth: mm(95),
+              maxWidth: mm(105),
               color: "#111827",
             })}
           >
-            {notasGabinete.map((n, i) => (
-              <p key={i} style={{ ...textoChico, margin: 0 }}>
-                {n}
+            {notasGabinete.map((n) => (
+              <p key={n.etiqueta} style={{ ...textoChico, margin: 0 }}>
+                <strong>{n.etiqueta}:</strong> {n.valor}
               </p>
             ))}
           </div>
