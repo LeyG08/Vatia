@@ -159,6 +159,8 @@ export interface DatosSimbolo extends Record<string, unknown> {
   tipo?: "simbolo";
   codigo_iec: string;
   rotacion: number;
+  /** Ficha técnica de la familia aparato (C4); semilla = atributos_base */
+  atributos: Record<string, unknown>;
 }
 
 export interface DatosAlimentador extends Record<string, unknown> {
@@ -202,7 +204,7 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
     codigo_iec: n.data.codigo_iec,
     posicion,
     rotacion: n.data.rotacion,
-    atributos: {},
+    atributos: { ...n.data.atributos },
   };
 }
 
@@ -211,7 +213,10 @@ function rfAConexionProyecto(e: Edge): ConexionProyecto {
     id: e.id,
     desde: `${e.source}.${e.sourceHandle ?? ""}`,
     hasta: `${e.target}.${e.targetHandle ?? ""}`,
-    atributos_conductor: {},
+    atributos_conductor: {
+      ...((e.data?.atributosConductor as Record<string, unknown> | undefined) ??
+        {}),
+    },
   };
 }
 
@@ -278,6 +283,10 @@ function construirEstadoHoja(hojaSer: Hoja): {
         tipo: "simbolo",
         codigo_iec: n.codigo_iec!,
         rotacion: (((n.rotacion ?? 0) % 360) + 360) % 360,
+        atributos: {
+          ...simbolo.metadata.atributos_base,
+          ...(n.atributos ?? {}),
+        },
       },
     });
   }
@@ -322,6 +331,7 @@ function construirEstadoHoja(hojaSer: Hoja): {
       target: tgt,
       targetHandle: tgtH ?? null,
       type: "conexion",
+      data: { atributosConductor: { ...(c.atributos_conductor ?? {}) } },
     });
   }
   return { cfg: fusion.hoja, nodos, conexiones, problemas };
@@ -354,6 +364,16 @@ interface EstadoEditor {
   actualizarDatosAlimentador: (
     id: string,
     patch: Partial<Omit<DatosAlimentador, "tipo">>,
+  ) => void;
+  /** Reemplaza la ficha técnica completa de un símbolo (C4) */
+  actualizarAtributosNodo: (
+    id: string,
+    atributos: Record<string, unknown>,
+  ) => void;
+  /** Reemplaza los atributos del mazo de una conexión (C4) */
+  actualizarAtributosConexion: (
+    id: string,
+    atributos: Record<string, unknown>,
   ) => void;
   onNodesChange: (cambios: NodeChange<Node<NodoData>>[]) => void;
   onEdgesChange: (cambios: EdgeChange[]) => void;
@@ -569,7 +589,12 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
       if (!simbolo) return;
-      const data: DatosSimbolo = { tipo: "simbolo", codigo_iec: codigoIec, rotacion: 0 };
+      const data: DatosSimbolo = {
+        tipo: "simbolo",
+        codigo_iec: codigoIec,
+        rotacion: 0,
+        atributos: { ...simbolo.metadata.atributos_base },
+      };
       const pos = limitarAHoja(x, y, data);
       const nodo: Node<NodoData> = {
         id: nuevoId(get().nodos, "n"),
@@ -634,6 +659,70 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       });
     },
 
+    actualizarAtributosNodo(id, atributos) {
+      const snapshot = get().nodos.find((n) => n.id === id);
+      if (!snapshot || esDatosAlimentador(snapshot.data)) return;
+      const antes = snapshot.data.atributos;
+      if (
+        Object.keys(antes).length === Object.keys(atributos).length &&
+        Object.entries(atributos).every(
+          ([k, v]) => k in antes && antes[k] === v,
+        )
+      )
+        return; // nada cambió → no ensucia el historial
+      ejecutar({
+        descripcion: `editar atributos ${id}`,
+        do: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && !esDatosAlimentador(n.data)
+                ? { ...n, data: { ...n.data, atributos } }
+                : n,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && !esDatosAlimentador(n.data)
+                ? { ...n, data: { ...n.data, atributos: antes } }
+                : n,
+            ),
+          })),
+      });
+    },
+
+    actualizarAtributosConexion(id, atributos) {
+      const snapshot = get().conexiones.find((e) => e.id === id);
+      if (!snapshot) return;
+      const antes = (snapshot.data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
+      if (
+        Object.keys(antes).length === Object.keys(atributos).length &&
+        Object.entries(atributos).every(
+          ([k, v]) => k in antes && antes[k] === v,
+        )
+      )
+        return;
+      ejecutar({
+        descripcion: `editar mazo ${id}`,
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...(e.data ?? {}), atributosConductor: atributos } }
+                : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...(e.data ?? {}), atributosConductor: antes } }
+                : e,
+            ),
+          })),
+      });
+    },
+
     onNodesChange(cambios) {
       set((s) => ({ nodos: applyNodeChanges(cambios, s.nodos) }));
     },
@@ -652,6 +741,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         target: conexion.target,
         targetHandle: conexion.targetHandle,
         type: "conexion",
+        data: { atributosConductor: {} },
       };
       ejecutar({
         descripcion: `conectar ${edge.id}`,
@@ -834,6 +924,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         target: idDe(l.t),
         targetHandle: l.th,
         type: "conexion",
+        data: { atributosConductor: {} },
       }));
 
       ejecutar({
@@ -955,7 +1046,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         const prefijo = n.tipo === "alimentador" ? "a" : "n";
         const nuevoIdStr = `${prefijo}${Date.now().toString(36)}${mapa.size}${Math.floor(Math.random() * 1000)}`;
         mapa.set(n.id, nuevoIdStr);
-        return { ...n, id: nuevoIdStr, atributos: {} };
+        return { ...n, id: nuevoIdStr, atributos: { ...(n.atributos ?? {}) } };
       });
       const conexionesCopiadas: ConexionProyecto[] = orig.conexiones.map(
         (c, i) => {
@@ -965,7 +1056,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             id: `c${Date.now().toString(36)}d${i}`,
             desde: `${mapa.get(src) ?? src}.${srcH ?? ""}`,
             hasta: `${mapa.get(tgt) ?? tgt}.${tgtH ?? ""}`,
-            atributos_conductor: {},
+            atributos_conductor: { ...(c.atributos_conductor ?? {}) },
           };
         },
       );
@@ -1095,7 +1186,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         id: `c${Date.now().toString(36)}m${i}`,
         desde: `${remap.get(e.source)}.`,
         hasta: `${remap.get(e.target)}.`,
-        atributos_conductor: {},
+        atributos_conductor: {
+          ...((e.data?.atributosConductor as Record<string, unknown> | undefined) ??
+            {}),
+        },
       }));
 
       const snapshotNodos = nodos;

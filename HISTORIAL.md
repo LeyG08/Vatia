@@ -600,6 +600,29 @@ para no mostrar el nombre crudo. Verificación verde de nuevo. Lección:
 al extender un enum del schema hay que rastrear sus copias en el
 editor (tipos.ts + validadorMetadata.ts).
 
+**C4 — Panel de atributos conectado al store (implementado, a prueba
+del usuario):**
+- Los atributos ahora VIVEN en el estado React Flow: `DatosSimbolo`
+  gana `atributos` (semilla = `atributos_base` del metadata al crear
+  y también al cargar proyectos viejos, para que `tipo_aparato` esté
+  siempre); las conexiones llevan `data.atributosConductor`. Se
+  corrigieron TODOS los caminos que antes las descartaban con `{}`:
+  rfANodoProyecto/rfAConexionProyecto (serialización), cargar hoja,
+  pegar, duplicarHoja y moverSeleccionAHoja — los atributos viajan con
+  copiar/pegar, duplicado de hoja y movimiento entre hojas.
+- Acciones nuevas `actualizarAtributosNodo` / `actualizarAtributosConexion`
+  con snapshot+undo como el resto de comandos; si el objeto no cambió
+  no ensucian el historial.
+- `PanelAtributos.tsx`: flotante abajo-derecha dentro del lienzo; se
+  muestra con EXACTAMENTE un símbolo seleccionado (usa familia/código
+  del metadata) o una conexión (familia conductor). Con selección
+  múltiple/nula se oculta. Montado en App.tsx.
+- Fix de build: `NODO_HOJA` (nodo lámina) necesitaba `atributos: {}`
+  tras volver obligatorio el campo en DatosSimbolo.
+
+**Verificación:** npm run build ✓ · oxlint ✓ · verificar_alineacion.mjs ✓
+· lint_simbolos.py ✓.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

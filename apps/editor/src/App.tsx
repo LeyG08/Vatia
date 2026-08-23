@@ -11,6 +11,7 @@ import BarraSuperior from "./componentes/BarraSuperior";
 import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
 import PanelHoja from "./componentes/PanelHoja";
+import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
 import NodoSimbolo from "./componentes/NodoSimbolo";
 import AlimentadorNode from "./componentes/AlimentadorNode";
@@ -31,7 +32,7 @@ const NODO_HOJA: Node<NodoData> = {
   id: "hoja",
   type: "hoja",
   position: { x: 0, y: 0 },
-  data: { codigo_iec: "", rotacion: 0 },
+  data: { codigo_iec: "", rotacion: 0, atributos: {} },
   draggable: false,
   selectable: false,
   deletable: false,
@@ -394,12 +395,12 @@ function Editor() {
             </button>
           </div>
         )}
+        <PanelAtributos />
         <ReactFlow
           nodes={nodosMarcados}
           edges={conexiones}
           nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
+          edgeTypes={edgeTypes}          onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
