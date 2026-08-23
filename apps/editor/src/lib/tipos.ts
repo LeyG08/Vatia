@@ -37,9 +37,13 @@ export interface ProblemaCarga {
 
 export interface NodoProyecto {
   id: string;
-  codigo_iec: string;
   posicion: { x: number; y: number };
+  /** "simbolo" por defecto, para compatibilidad con proyectos viejos */
+  tipo?: "simbolo" | "alimentador";
+  codigo_iec?: string;
   rotacion?: number;
+  /** Datos propios cuando tipo = "alimentador" */
+  datos?: Partial<AlimentadorConfig>;
   atributos?: Record<string, unknown>;
 }
 
@@ -100,32 +104,123 @@ export function rectanguloUtil(hoja: HojaConfig): {
 }
 
 /**
- * Encabezado de hoja según los unifilares reales del proyecto (PPS):
- * no hay cajetín IRAM; cada lámina se identifica arriba al centro con
- * el nombre del tablero y de dónde viene su alimentación.
+ * Alimentador "Desde …" que entra al tablero: es un nodo del plano con
+ * un conductor saliente. La referencia se arma combinando libremente
+ * fases / neutro / tierra, o bien declarando una cantidad arbitraria de
+ * conductores (modo "n").
  */
-export interface EncabezadoConfig {
-  /** Nombre del tablero que documenta la hoja, ej. "TS-G1" o "TGBT" */
-  tablero: string;
-  /** Procedencias de alimentación, ej. ["Desde TGBT", "Desde PAT"] */
-  alimentadores: string[];
+export interface AlimentadorConfig {
+  /** Procedencia, ej. "TGBT" o "PAT" (el "Desde" va fijo en el dibujo) */
+  origen: string;
+  /** Tres líneas (trifásico) */
+  fases: boolean;
+  neutro: boolean;
+  tierra: boolean;
+  /**
+   * null = usa la combinación fases/neutro/tierra;
+   * número positivo = cantidad arbitraria de conductores.
+   */
+  cantidadN: number | null;
+}
+
+export function ALIMENTADOR_POR_DEFECTO(): AlimentadorConfig {
+  return { origen: "", fases: true, neutro: true, tierra: true, cantidadN: null };
+}
+
+/** Texto de referencia que acompaña al conductor del alimentador */
+export function etiquetaConductores(a: AlimentadorConfig): string {
+  if (a.cantidadN != null) return `${a.cantidadN} conductores`;
+  const partes: string[] = [];
+  if (a.fases) partes.push("3 líneas");
+  if (a.neutro) partes.push("neutro");
+  if (a.tierra) partes.push("tierra");
+  return partes.length > 0 ? partes.join(" + ") : "—";
+}
+
+/** Una fila de responsables del rótulo (Proyectó / Dibujó / Revisó / Aprobó) */
+export interface ResponsableRotulo {
+  rol: string;
+  fecha: string;
+  nombre: string;
+}
+
+/**
+ * Rótulo normalizado según IRAM 4508 (figura 1). Cubre los campos
+ * mínimos de la norma; se dibuja en el vértice inferior derecho,
+ * pegado al recuadro, con contorno igual a este y líneas internas finas.
+ */
+export interface RotuloConfig {
+  /** Campo 10 — logo / razón social de la empresa */
+  empresa: string;
+  /** Texto que oficia de logo si no hay imagen */
+  logoTexto: string;
+  /** Campo 7 — cliente (+ localidad como subcampo) */
+  cliente: string;
+  localidad: string;
+  /** Campo 6 — denominación de lo representado */
+  denominacion: string;
+  /** Campo 8 — clave o número de lo representado */
+  claveRepresentado: string;
+  /** Campo 9 — nombre del archivo informático */
+  nombreArchivo: string;
+  /** Campo 1 — tolerancias generales */
+  toleranciasGenerales: string;
+  /** Campo 3 — escala; vacío = sin escala ("S/E") */
+  escala: string;
+  /** Identificación del método ISO según la norma: "(E)" o "(A)" */
+  metodoIso: "(E)" | "(A)" | "";
+  /** Campo 2 — responsables con fecha y nombre */
+  responsables: ResponsableRotulo[];
+  /** Campo 12 — número de plano propio */
+  numeroPlano: string;
+  /** Campo 11 — número de plano del cliente */
+  numeroPlanoCliente: string;
+  /** Campo 13 — paginación, ej. "1/3" */
+  paginacion: string;
+}
+
+export function ROTULO_POR_DEFECTO(): RotuloConfig {
+  return {
+    empresa: "",
+    logoTexto: "",
+    cliente: "",
+    localidad: "",
+    denominacion: "",
+    claveRepresentado: "",
+    nombreArchivo: "",
+    toleranciasGenerales: "",
+    escala: "",
+    metodoIso: "(E)",
+    responsables: [
+      { rol: "Proyectó", fecha: "", nombre: "" },
+      { rol: "Dibujó", fecha: "", nombre: "" },
+      { rol: "Revisó", fecha: "", nombre: "" },
+      { rol: "Aprobó", fecha: "", nombre: "" },
+    ],
+    numeroPlano: "",
+    numeroPlanoCliente: "",
+    paginacion: "1/1",
+  };
 }
 
 export interface HojaConfig {
   formato: FormatoHoja;
   orientacion: OrientacionHoja;
-  encabezado: EncabezadoConfig;
+  /** Nombre del tablero documentado; se dibuja arriba, sobre el recuadro */
+  tablero: string;
   /** Notas constructivas del gabinete, una por renglón (arriba a la izquierda) */
   notasGabinete: string[];
   /** Nota de seguridad operativa al pie; vacía si la hoja no la lleva */
   notaSeguridad: string;
+  /** Rótulo IRAM 4508 del vértice inferior derecho */
+  rotulo: RotuloConfig;
 }
 
 export function HOJA_POR_DEFECTO(): HojaConfig {
   return {
     formato: "A3",
     orientacion: "horizontal",
-    encabezado: { tablero: "TGBT", alimentadores: ["Desde PAT"] },
+    tablero: "TGBT",
     notasGabinete: [
       "Gabinete o armazón metálico autoportante",
       "Clase I (puesta a tierra de masas metálicas)",
@@ -135,6 +230,7 @@ export function HOJA_POR_DEFECTO(): HojaConfig {
       "Sin reserva de espacio futuro (0%)",
     ],
     notaSeguridad: "",
+    rotulo: ROTULO_POR_DEFECTO(),
   };
 }
 
