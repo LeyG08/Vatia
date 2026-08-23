@@ -517,6 +517,19 @@ hasta el borde de la LÁMINA y podía invadir el margen. Quedó así:
 
 ---
 
+### FASE 6 — MULTI-HOJA: PR #10 MERGEADO (2026-08-23)
+
+**Decisión:** Aprobado por usuario → mergeado en `main` (`4fdf980`),
+rama `proyecto/multi-hoja-fase6-20260823` eliminada.
+
+**Estado resultante:** proyecto multi-hoja v2 completo — pestañas,
+pilas de deshacer por hoja, viewport por hoja, movimiento entre hojas
+con regla cortar-con-aviso, migración automática de archivos viejos,
+paginación automática del rótulo, recuadro útil como límite duro y
+rótulo/notas como zonas reservadas con rebote.
+
+---
+
 ## Registro de reversiones y cambios de rumbo
 
 | Qué | Cuándo | Motivo | Efecto |
