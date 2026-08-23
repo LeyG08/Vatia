@@ -347,198 +347,6 @@ body.arrastrando .paleta-item {
   border: 2px solid #111827;
 }
 
-/*
- * Rótulo IRAM 4508 (figura 1): grilla de 3 columnas y 5 filas que arma
- * HojaNode con medidas en mm reales. Las líneas internas son bordes
- * explícitos por celda para no duplicar trazos.
- */
-.hoja-rotulo {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: grid;
-  border: 2px solid #111827;
-  background: #fff;
-}
-
-/* Columna izquierda: tolerancias generales (filas 1-4) */
-.rot-tol {
-  grid-column: 1;
-  grid-row: 1 / 5;
-  border-right: 1px solid #111827;
-  border-bottom: 1px solid #111827;
-}
-
-.rot-tol p {
-  margin: 2px 0 0;
-  font-size: 10px;
-  line-height: 1.25;
-  color: #111827;
-  white-space: pre-wrap;
-}
-
-/* Franja inferior izquierda: escala junto al método ISO (E) */
-.rot-escala {
-  grid-column: 1 / 3;
-  grid-row: 5;
-  position: relative;
-  border-right: 1px solid #111827;
-}
-
-.rot-escala strong {
-  font-size: 15px;
-}
-
-.rot-escala em {
-  position: absolute;
-  right: 5px;
-  bottom: 3px;
-  font-style: normal;
-  font-size: 9px;
-  letter-spacing: 0.5px;
-  color: #6b7280;
-}
-
-/* Filas de responsables: rol | fecha | nombre */
-.rot-resp {
-  display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid #111827;
-  overflow: hidden;
-}
-
-.rot-rol {
-  flex: 0 0 28.5%;
-  display: flex;
-  align-items: center;
-  padding: 0 4px;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #374151;
-}
-
-.rot-fecha,
-.rot-nombre {
-  display: flex;
-  align-items: center;
-  padding: 0 4px;
-  font-size: 11px;
-  color: #111827;
-  white-space: nowrap;
-}
-
-.rot-fecha {
-  flex: 0 0 34.5%;
-  border-left: 1px solid #111827;
-}
-
-.rot-nombre {
-  flex: 1;
-  border-left: 1px solid #111827;
-}
-
-/* Columna derecha: pila cliente / denominación / n° plano cliente / fila final */
-.rot-info {
-  grid-column: 3;
-  grid-row: 1 / 6;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid #111827;
-  min-width: 0;
-}
-
-.rot-info > .rot-celda strong {
-  font-size: 13px;
-}
-
-.rot-cliente {
-  border-bottom: 1px solid #111827;
-}
-
-/* Zona central grande: empresa arriba, denominación al centro, archivo abajo */
-.rot-denominacion {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border-bottom: 1px solid #111827;
-  padding: 2px 6px;
-  overflow: hidden;
-}
-
-.rot-denominacion em {
-  font-style: italic;
-  font-size: 11px;
-  color: #374151;
-  line-height: 1.2;
-}
-
-.rot-denominacion strong {
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.rot-denominacion small {
-  position: absolute;
-  right: 5px;
-  bottom: 2px;
-  font-size: 9px;
-  color: #6b7280;
-}
-
-/* Fila final: formato / n° de plano / página */
-.rot-final {
-  display: flex;
-  overflow: hidden;
-}
-
-.rot-final .rot-formato {
-  flex: 0 0 26%;
-}
-
-.rot-final .rot-numero {
-  flex: 1;
-  border-left: 1px solid #111827;
-}
-
-.rot-final .rot-pag {
-  flex: 0 0 20%;
-  border-left: 1px solid #111827;
-}
-
-/* Etiquetas y valores comunes de las celdas */
-.rot-celda {
-  padding: 1px 4px;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.rot-celda span {
-  display: block;
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #6b7280;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.rot-celda strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #111827;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
 /* ---- Panel de configuración de hoja ---- */
 .modal-fondo {
   position: fixed;
@@ -593,12 +401,55 @@ body.arrastrando .paleta-item {
 }
 
 .panel-hoja-campo input,
-.panel-hoja-campo select {
+.panel-hoja-campo select,
+.panel-hoja-campo textarea {
   border: 1px solid var(--borde);
   border-radius: 4px;
   padding: 5px 8px;
   font-size: 13px;
   background: #fff;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.panel-hoja-item {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.panel-hoja-item input {
+  flex: 1;
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  background: #fff;
+  min-width: 0;
+}
+
+.panel-hoja-item button,
+.panel-hoja-agregar {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.panel-hoja-item button {
+  flex: 0 0 auto;
+  width: 28px;
+}
+
+.panel-hoja-item button:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
+.panel-hoja-agregar {
+  margin-top: 6px;
+  padding: 5px 12px;
+  align-self: flex-start;
 }
 
 .orientacion-opciones {
@@ -624,34 +475,6 @@ body.arrastrando .paleta-item {
   margin: 0;
   font-size: 11px;
   color: #71717a;
-}
-
-.panel-hoja-rotulo {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px 12px;
-}
-
-.panel-hoja-responsables {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.panel-hoja-responsable {
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  padding: 6px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.panel-hoja-responsable strong {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #52525b;
 }
 
 .panel-hoja-pie {

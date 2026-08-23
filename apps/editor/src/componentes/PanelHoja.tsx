@@ -1,6 +1,6 @@
 import { useEditor } from "../lib/store";
 import { PX_POR_MM, TAMANIOS_HOJA_MM, dimensionesHoja } from "../lib/tipos";
-import type { FormatoHoja, OrientacionHoja, RotuloConfig } from "../lib/tipos";
+import type { FormatoHoja, OrientacionHoja } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
 
@@ -25,18 +25,6 @@ function Campo({
   );
 }
 
-const RESPONSABLES: Array<{
-  key: "proyecto" | "dibujo" | "revision" | "aprobacion";
-  etiqueta: string;
-  campoNombre: keyof RotuloConfig;
-  campoFecha: keyof RotuloConfig;
-}> = [
-  { key: "proyecto", etiqueta: "Proyectó", campoNombre: "proyectoNombre", campoFecha: "proyectoFecha" },
-  { key: "dibujo", etiqueta: "Dibujó", campoNombre: "dibujoNombre", campoFecha: "dibujoFecha" },
-  { key: "revision", etiqueta: "Revisó", campoNombre: "revisionNombre", campoFecha: "revisionFecha" },
-  { key: "aprobacion", etiqueta: "Aprobó", campoNombre: "aprobacionNombre", campoFecha: "aprobacionFecha" },
-];
-
 function PanelHoja() {
   const abierto = useEditor((s) => s.panelHojaAbierto);
   const alternar = useEditor((s) => s.alternarPanelHoja);
@@ -48,6 +36,12 @@ function PanelHoja() {
   const [mmCorto, mmLargo] = TAMANIOS_HOJA_MM[hoja.formato];
   const mmW = hoja.orientacion === "horizontal" ? mmLargo : mmCorto;
   const mmH = hoja.orientacion === "horizontal" ? mmCorto : mmLargo;
+
+  const setAlimentador = (i: number, v: string) => {
+    const lista = [...hoja.encabezado.alimentadores];
+    lista[i] = v;
+    actualizar({ encabezado: { alimentadores: lista } });
+  };
 
   return (
     <>
@@ -95,77 +89,86 @@ function PanelHoja() {
           </p>
         </div>
 
-        <h3>Rótulo — IRAM 4508</h3>
+        <h3>Encabezado del tablero</h3>
 
-        <div className="panel-hoja-rotulo">
+        <div className="panel-hoja-bloque">
           <Campo
-            etiqueta="Denominación"
-            valor={hoja.rotulo.denominacion}
-            onChange={(v) => actualizar({ rotulo: { denominacion: v } })}
+            etiqueta="Tablero"
+            valor={hoja.encabezado.tablero}
+            onChange={(v) => actualizar({ encabezado: { tablero: v } })}
           />
-          <Campo
-            etiqueta="Empresa (logo o sigla)"
-            valor={hoja.rotulo.empresa}
-            onChange={(v) => actualizar({ rotulo: { empresa: v } })}
-          />
-          <Campo
-            etiqueta="Cliente"
-            valor={hoja.rotulo.cliente}
-            onChange={(v) => actualizar({ rotulo: { cliente: v } })}
-          />
-          <Campo
-            etiqueta="N° de plano"
-            valor={hoja.rotulo.numero}
-            onChange={(v) => actualizar({ rotulo: { numero: v } })}
-          />
-          <Campo
-            etiqueta="N° de plano del cliente"
-            valor={hoja.rotulo.numeroCliente}
-            onChange={(v) => actualizar({ rotulo: { numeroCliente: v } })}
-          />
-          <Campo
-            etiqueta="Escala (método ISO (E))"
-            valor={hoja.rotulo.escala}
-            onChange={(v) => actualizar({ rotulo: { escala: v } })}
-          />
-          <Campo
-            etiqueta="Tolerancias generales"
-            valor={hoja.rotulo.tolerancias}
-            onChange={(v) => actualizar({ rotulo: { tolerancias: v } })}
-          />
-          <Campo
-            etiqueta="Nombre del archivo"
-            valor={hoja.rotulo.archivo}
-            onChange={(v) => actualizar({ rotulo: { archivo: v } })}
-          />
+
+          <div className="panel-hoja-campo">
+            <span>Alimentadores</span>
+            {hoja.encabezado.alimentadores.map((a, i) => (
+              <div key={i} className="panel-hoja-item">
+                <input
+                  value={a}
+                  onChange={(e) => setAlimentador(i, e.target.value)}
+                  placeholder="Desde …"
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    actualizar({
+                      encabezado: {
+                        alimentadores:
+                          hoja.encabezado.alimentadores.filter(
+                            (_, j) => j !== i,
+                          ),
+                      },
+                    })
+                  }
+                  aria-label={`Quitar ${a || "alimentador"}`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="panel-hoja-agregar"
+              onClick={() =>
+                actualizar({
+                  encabezado: {
+                    alimentadores: [...hoja.encabezado.alimentadores, ""],
+                  },
+                })
+              }
+            >
+              + Agregar alimentador
+            </button>
+          </div>
         </div>
 
-        <div className="panel-hoja-responsables">
-          {RESPONSABLES.map(({ etiqueta, campoNombre, campoFecha }) => (
-            <div key={etiqueta} className="panel-hoja-responsable">
-              <strong>{etiqueta}</strong>
-              <Campo
-                etiqueta="Nombre"
-                valor={String(hoja.rotulo[campoNombre])}
-                onChange={(v) =>
-                  actualizar({ rotulo: { [campoNombre]: v } })
-                }
-              />
-              <Campo
-                etiqueta="Fecha"
-                valor={String(hoja.rotulo[campoFecha])}
-                onChange={(v) =>
-                  actualizar({ rotulo: { [campoFecha]: v } })
-                }
-              />
-            </div>
-          ))}
-        </div>
+        <h3>Notas del gabinete</h3>
+
+        <label className="panel-hoja-campo">
+          <span>Una nota por renglón (se dibujan arriba a la izquierda)</span>
+          <textarea
+            rows={6}
+            value={hoja.notasGabinete.join("\n")}
+            onChange={(e) =>
+              actualizar({ notasGabinete: e.target.value.split("\n") })
+            }
+            placeholder={"Gabinete o armazón metálico autoportante\nIP00 …"}
+          />
+        </label>
+
+        <h3>Nota de seguridad operativa</h3>
+
+        <label className="panel-hoja-campo">
+          <span>Texto al pie de la hoja; vacío si la lámina no lo lleva</span>
+          <textarea
+            rows={4}
+            value={hoja.notaSeguridad}
+            onChange={(e) => actualizar({ notaSeguridad: e.target.value })}
+            placeholder="NOTA DE SEGURIDAD OPERATIVA — SECCIONADORES FUSIBLES: …"
+          />
+        </label>
 
         <footer className="panel-hoja-pie">
-          <p>
-            Enmarcado: margen izquierdo 20 mm (archivado), resto 10 mm.
-          </p>
+          <p>Enmarcado: margen izquierdo 25 mm (archivado), resto 10 mm.</p>
           <button type="button" onClick={alternar}>
             Cerrar
           </button>
