@@ -4,45 +4,82 @@ export interface Comando {
   undo: () => void;
 }
 
-const LIMITE = 100;
+interface PilaHoja {
+  deshacer: Comando[];
+  rehacer: Comando[];
+}
 
 export class Historial {
-  private deshacerPila: Comando[] = [];
-  private rehacerPila: Comando[] = [];
+  private pilas = new Map<string, PilaHoja>();
+  private activa = "";
+  private readonly LIMITE = 100;
 
-  ejecutar(cmd: Comando): void {
-    cmd.do();
-    this.deshacerPila.push(cmd);
-    if (this.deshacerPila.length > LIMITE) this.deshacerPila.shift();
-    this.rehacerPila = [];
+  /** Cambia la hoja activa para los próximos deshacer/rehacer/ejecutar */
+  usar(hojaId: string): void {
+    this.activa = hojaId;
+    if (!this.pilas.has(hojaId)) {
+      this.pilas.set(hojaId, { deshacer: [], rehacer: [] });
+    }
   }
 
+  private pila(id = this.activa): PilaHoja {
+    let p = this.pilas.get(id);
+    if (!p) {
+      p = { deshacer: [], rehacer: [] };
+      this.pilas.set(id, p);
+    }
+    return p;
+  }
+
+  /** Ejecuta un comando en la hoja indicada (default: activa) */
+  ejecutar(cmd: Comando, hojaId?: string): void {
+    const target = hojaId ?? this.activa;
+    const p = this.pila(target);
+    cmd.do();
+    p.deshacer.push(cmd);
+    if (p.deshacer.length > this.LIMITE) p.deshacer.shift();
+    p.rehacer = [];
+  }
+
+  /** Deshace el último comando de la hoja ACTIVA */
   deshacer(): Comando | null {
-    const cmd = this.deshacerPila.pop();
+    const p = this.pila();
+    const cmd = p.deshacer.pop();
     if (!cmd) return null;
     cmd.undo();
-    this.rehacerPila.push(cmd);
+    p.rehacer.push(cmd);
     return cmd;
   }
 
+  /** Rehace el último deshecho de la hoja ACTIVA */
   rehacer(): Comando | null {
-    const cmd = this.rehacerPila.pop();
+    const p = this.pila();
+    const cmd = p.rehacer.pop();
     if (!cmd) return null;
     cmd.do();
-    this.deshacerPila.push(cmd);
+    p.deshacer.push(cmd);
     return cmd;
   }
 
-  limpiar(): void {
-    this.deshacerPila = [];
-    this.rehacerPila = [];
+  /** Limpia la pila de una hoja (sin arg = todas) */
+  limpiar(hojaId?: string): void {
+    if (hojaId) {
+      this.pilas.delete(hojaId);
+    } else {
+      this.pilas.clear();
+    }
+  }
+
+  /** Elimina las pilas de una hoja al borrarla del proyecto */
+  eliminarHoja(hojaId: string): void {
+    this.pilas.delete(hojaId);
   }
 
   get puedeDeshacer(): boolean {
-    return this.deshacerPila.length > 0;
+    return this.pila().deshacer.length > 0;
   }
 
   get puedeRehacer(): boolean {
-    return this.rehacerPila.length > 0;
+    return this.pila().rehacer.length > 0;
   }
 }

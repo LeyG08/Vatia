@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { useEditor, historial } from "../lib/store";
-import type { ProyectoJSON } from "../lib/tipos";
 
 function BarraSuperior() {
   const nombre = useEditor((s) => s.nombreProyecto);
@@ -25,7 +24,7 @@ function BarraSuperior() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${proyecto.nombre || "proyecto"}.json`;
+    a.download = `${proyecto.meta.nombre || "proyecto"}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -35,9 +34,15 @@ function BarraSuperior() {
     if (!file) return;
     try {
       const texto = await file.text();
-      const datos = JSON.parse(texto) as ProyectoJSON;
-      if (!Array.isArray(datos.nodos)) throw new Error("falta el array nodos");
-      cargar(datos);
+      // Acepta v0/v1 ({nodos}) y v2 ({hojas}); migrarAProyectoV2 decide
+      const bruto = JSON.parse(texto) as {
+        nodos?: unknown;
+        hojas?: unknown;
+      };
+      if (!Array.isArray(bruto.nodos) && !Array.isArray(bruto.hojas)) {
+        throw new Error("falta el array nodos o hojas");
+      }
+      cargar(texto);
     } catch (err) {
       alert(`No se pudo cargar el proyecto: ${String(err)}`);
     }

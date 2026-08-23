@@ -186,43 +186,91 @@ for (const [desde, hasta] of conexiones) {
   console.log(`  ✓ ${desde} → ${hasta}: ${d}`);
 }
 
-/* ---- 3) serialización como la haría el editor + validación de carga ---- */
-const proyecto = {
-  nombre: "mini_unifilar_prueba",
-  nodos: nodos.map(({ id, codigo, pos }) => ({
-    id,
-    codigo_iec: codigo,
-    posicion: { x: pos.x, y: pos.y },
-    rotacion: 0,
-    atributos: {},
-  })),
-  conexiones: conexiones.map(([desde, hasta], i) => ({
-    id: `c${i + 1}`,
-    desde,
-    hasta,
-    atributos_conductor: {},
-  })),
-  modo_vista: "unifilar_simple",
+/* ---- 4) serialización como la haría el editor (formato v2 multi-hoja) ---- */
+// Réplica de los valores por defecto de tipos.ts (HOJA_POR_DEFECTO)
+const hoy = new Date().toISOString();
+const proyectoV2 = {
+  version: 2,
+  meta: { nombre: "mini_unifilar_prueba", fechaCreacion: hoy, ultimaModificacion: hoy },
+  hojas: [
+    {
+      id: "demo-hoja-0001",
+      nombre: "Hoja 1",
+      formato: "A3",
+      orientacion: "horizontal",
+      tablero: "TGBT",
+      notasGabinete: {
+        material: "",
+        claseAislacion: "",
+        personalApto: "",
+        gradoProteccion: "",
+        barrasOConductores: "",
+        reservaFutura: "",
+      },
+      notaSeguridad: "",
+      rotulo: {
+        empresa: "", logoTexto: "", cliente: "", localidad: "",
+        denominacion: "", claveRepresentado: "", nombreArchivo: "",
+        toleranciasGenerales: "", escala: "", metodoIso: "(E)",
+        responsables: [
+          { rol: "Proyectó", fecha: "", nombre: "" },
+          { rol: "Dibujó", fecha: "", nombre: "" },
+          { rol: "Revisó", fecha: "", nombre: "" },
+          { rol: "Aprobó", fecha: "", nombre: "" },
+        ],
+        numeroPlano: "", numeroPlanoCliente: "", paginacion: "1/1",
+      },
+      nodos: nodos.map(({ id, codigo, pos }) => ({
+        id,
+        codigo_iec: codigo,
+        posicion: { x: pos.x, y: pos.y },
+        rotacion: 0,
+        atributos: {},
+      })),
+      conexiones: conexiones.map(([desde, hasta], i) => ({
+        id: `c${i + 1}`,
+        desde,
+        hasta,
+        atributos_conductor: {},
+      })),
+    },
+  ],
 };
 
-console.log("\n4) Validación del proyecto serializado (como cargarProyecto):");
-for (const n of proyecto.nodos) {
-  verificar(simbolos.has(n.codigo_iec), `nodo ${n.id}: código desconocido ${n.codigo_iec}`);
-  verificar(enGrilla(n.posicion.x) && enGrilla(n.posicion.y), `nodo ${n.id}: posición fuera de grilla`);
-}
-for (const c of proyecto.conexiones) {
-  const [nd, pd] = c.desde.split(".");
-  const [nh, ph] = c.hasta.split(".");
-  const origen = nodos.find((n) => n.id === nd);
-  const destino = nodos.find((n) => n.id === nh);
-  verificar(Boolean(origen?.simbolo.puntos.find((p) => p.id === pd)),
-    `${c.id}: handle origen ${c.desde} inexistente`);
-  verificar(Boolean(destino?.simbolo.puntos.find((p) => p.id === ph)),
-    `${c.id}: handle destino ${c.hasta} inexistente`);
+console.log("\n4) Validación del proyecto serializado (v2, como serializarActual):");
+verificar(proyectoV2.version === 2 && Array.isArray(proyectoV2.hojas),
+  "el proyecto v2 debe tener version=2 y un array hojas");
+for (const hoja of proyectoV2.hojas) {
+  verificar(typeof hoja.id === "string" && hoja.id !== "" && typeof hoja.nombre === "string"
+    && hoja.nombre !== "", `hoja «${hoja.nombre}»: id y nombre obligatorios`);
+  const idsHoja = new Set(hoja.nodos.map((n) => n.id));
+  for (const n of hoja.nodos) {
+    verificar(simbolos.has(n.codigo_iec), `nodo ${n.id}: código desconocido ${n.codigo_iec}`);
+    verificar(enGrilla(n.posicion.x) && enGrilla(n.posicion.y), `nodo ${n.id}: posición fuera de grilla`);
+  }
+  for (const c of hoja.conexiones) {
+    const [nd, pd] = c.desde.split(".");
+    const [nh, ph] = c.hasta.split(".");
+    // Invariante multi-hoja: ambos extremos viven en la MISMA hoja
+    verificar(idsHoja.has(nd) && idsHoja.has(nh),
+      `${c.id}: conexión con extremo fuera de la hoja «${hoja.nombre}»`);
+    const origen = nodos.find((n) => n.id === nd);
+    const destino = nodos.find((n) => n.id === nh);
+    verificar(Boolean(origen?.simbolo.puntos.find((p) => p.id === pd)),
+      `${c.id}: handle origen ${c.desde} inexistente`);
+    verificar(Boolean(destino?.simbolo.puntos.find((p) => p.id === ph)),
+      `${c.id}: handle destino ${c.hasta} inexistente`);
+  }
 }
 
 const rutaSalida = join(RAIZ, "apps", "editor", "ejemplos", "mini-unifilar.json");
-writeFileSync(rutaSalida, JSON.stringify(proyecto, null, 2) + "\n");
+writeFileSync(rutaSalida, JSON.stringify(proyectoV2, null, 2) + "\n");
+
+// El archivo guardado debe re-cargarse tal cual (round-trip v2)
+const releido = JSON.parse(readFileSync(rutaSalida, "utf8"));
+verificar(releido.version === 2 && releido.hojas.length === 1
+  && releido.hojas[0].nodos.length === nodos.length,
+  "round-trip: el JSON guardado no coincide con el proyecto en memoria");
 
 if (fallos > 0) {
   console.error(`\nFALLA: ${fallos} verificaciones incorrectas`);

@@ -11,6 +11,7 @@ import BarraSuperior from "./componentes/BarraSuperior";
 import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
 import PanelHoja from "./componentes/PanelHoja";
+import PestanasHoja from "./componentes/PestanasHoja";
 import NodoSimbolo from "./componentes/NodoSimbolo";
 import AlimentadorNode from "./componentes/AlimentadorNode";
 import HojaNode from "./componentes/HojaNode";
@@ -44,6 +45,11 @@ interface ArrastreEnCurso {
   clienteY: number;
 }
 
+interface ToastMover {
+  mensaje: string;
+  destinoId: string | null;
+}
+
 function Editor() {
   const nodos = useEditor((s) => s.nodos);
   const conexiones = useEditor((s) => s.conexiones);
@@ -61,12 +67,27 @@ function Editor() {
   const pegarFn = useEditor((s) => s.pegar);
   const deshacerFn = useEditor((s) => s.deshacer);
   const rehacerFn = useEditor((s) => s.rehacer);
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+  const guardarViewportFn = useEditor((s) => s.guardarViewport);
+  const agregarHojaFn = useEditor((s) => s.agregarHoja);
+  const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
+  const moverSeleccionAHojaFn = useEditor((s) => s.moverSeleccionAHoja);
+  const cambiarHojaActivaFn = useEditor((s) => s.cambiarHojaActiva);
   const [arrastre, setArrastre] = useState<ArrastreEnCurso | null>(null);
   const arrastreRef = useRef<ArrastreEnCurso | null>(null);
   useEffect(() => {
     arrastreRef.current = arrastre;
   }, [arrastre]);
   const { screenToFlowPosition } = useReactFlow();
+
+  /* Aviso posterior a un movimiento de contenido entre hojas:
+   * ofrece saltar a la hoja destino o cerrar el mensaje */
+  const [toast, setToast] = useState<ToastMover | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 10000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -200,11 +221,26 @@ function Editor() {
   );
 
   // Reencuadra la hoja cuando cambia el formato u orientación
-  const { fitView } = useReactFlow();
+  const { fitView, setViewport } = useReactFlow();
   useEffect(() => {
     const t = window.setTimeout(() => fitView({ padding: 0.12, duration: 150 }), 60);
     return () => window.clearTimeout(t);
   }, [fitView, pxW, pxH]);
+
+  // Cada hoja recuerda su propio encuadre: al cambiar de pestaña se
+  // restaura el viewport guardado (o se reencuadra si nunca hubo uno)
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const { proyecto } = useEditor.getState();
+      const destino = proyecto.hojas.find((h) => h.id === hojaActivaId);
+      if (destino?.viewport) {
+        setViewport(destino.viewport);
+      } else {
+        fitView({ padding: 0.12, duration: 150 });
+      }
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [fitView, setViewport, hojaActivaId]);
 
   // Símbolos que se van del marco útil: hay que pasarlos a otra hoja
   const util = rectanguloUtil(hoja);
@@ -234,14 +270,60 @@ function Editor() {
     [nodosConHoja, idsFuera],
   );
 
+  /** Regla "mover a hoja nueva": crea la hoja, selecciona los símbolos
+   * fuera del marco y ejecuta el movimiento compuesto deshacible */
+  function moverFueraANuevaHoja() {
+    if (idsFuera.size === 0) return;
+    const nuevaId = agregarHojaFn();
+    seleccionarNodosFn([...idsFuera]);
+    const r = moverSeleccionAHojaFn(nuevaId);
+    if (!r) return;
+    const { proyecto } = useEditor.getState();
+    const destino = proyecto.hojas.find((h) => h.id === nuevaId);
+    const cortadas =
+      r.cortadas > 0
+        ? ` — ${r.cortadas} conexión${r.cortadas === 1 ? "" : "es"} cortada${r.cortadas === 1 ? "" : "s"}`
+        : "";
+    setToast({
+      mensaje: `${r.movidos} símbolo${r.movidos === 1 ? "" : "s"} movido${r.movidos === 1 ? "" : "s"} a «${destino?.nombre ?? "nueva hoja"}»${cortadas}`,
+      destinoId: nuevaId,
+    });
+  }
+
   return (
     <div className="cuerpo">
       {paletaVisible && <Paleta onIniciarArrastre={iniciarArrastre} />}
       <div className="lienzo">
         {idsFuera.size > 0 && (
           <div className="aviso-fuera-hoja" role="alert">
-            {idsFuera.size} símbolo{idsFuera.size > 1 ? "s" : ""} fuera del
-            marco útil — pasá el contenido a otra hoja
+            <span>
+              {idsFuera.size} símbolo{idsFuera.size > 1 ? "s" : ""} fuera del
+              marco útil
+            </span>
+            <button type="button" onClick={moverFueraANuevaHoja}>
+              Mover a hoja nueva →
+            </button>
+          </div>
+        )}
+        {toast && (
+          <div className="toast-mover" role="status">
+            <span>{toast.mensaje}</span>
+            {toast.destinoId && (
+              <button
+                type="button"
+                onClick={() => cambiarHojaActivaFn(toast.destinoId as string)}
+              >
+                Ir a la hoja →
+              </button>
+            )}
+            <button
+              type="button"
+              className="cerrar"
+              title="Cerrar aviso"
+              onClick={() => setToast(null)}
+            >
+              ✕
+            </button>
           </div>
         )}
         <ReactFlow
@@ -254,6 +336,7 @@ function Editor() {
           onConnect={onConnect}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
           onNodeDragStart={(_, nodo) => registrarArrastre([nodo.id])}
+          onMoveEnd={(_, vp) => guardarViewportFn(vp)}
           onNodeDragStop={(_, nodo, nodosAfectados) => {
             const despues: Record<string, { x: number; y: number }> = {};
             for (const n of nodosAfectados ?? [nodo]) {
@@ -309,6 +392,7 @@ export default function App() {
     <ReactFlowProvider>
       <div className="app">
         <BarraSuperior />
+        <PestanasHoja />
         <Editor />
       </div>
     </ReactFlowProvider>

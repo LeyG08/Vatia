@@ -269,3 +269,139 @@ export function dimensionesHoja(hoja: HojaConfig): { pxW: number; pxH: number } 
   const decena = (v: number) => Math.round(v / 10) * 10;
   return { pxW: decena(mmW * PX_POR_MM), pxH: decena(mmH * PX_POR_MM) };
 }
+
+/* ==================== MULTI-HOJA (Fase 6) ==================== */
+
+export interface Hoja extends HojaConfig {
+  /** UUID v4 inmutable — identifica la hoja en el proyecto */
+  id: string;
+  /** Texto de la pestaña: "Planta", "Esquema", "Detalle", etc. */
+  nombre: string;
+  /** Símbolos y alimentadores de ESTA hoja (coordenadas locales a la hoja) */
+  nodos: NodoProyecto[];
+  /** Conexiones de ESTA hoja (source/target son ids de nodos de esta hoja) */
+  conexiones: ConexionProyecto[];
+  /** Viewport guardado al cambiar de pestaña */
+  viewport?: { x: number; y: number; zoom: number };
+}
+
+export interface Proyecto {
+  /** Versión del formato de archivo: 2 = multi-hoja */
+  version: 2;
+  meta: {
+    nombre: string;
+    fechaCreacion: string;
+    ultimaModificacion: string;
+  };
+  /** Array ordenado = orden de pestañas (índice 0 = primera) */
+  hojas: Hoja[];
+}
+
+/** Hoja creada a partir de una config base (hereda formato/rótulo/notas) */
+export function hojaNuevaDesde(base: HojaConfig, nombre: string): Hoja {
+  return {
+    ...base,
+    id: crypto.randomUUID(),
+    nombre,
+    nodos: [],
+    conexiones: [],
+    viewport: undefined,
+  };
+}
+
+/** Migra cualquier dato guardado (v0/v1/v2, objeto o JSON string) a v2 */
+export function migrarAProyectoV2(datos: unknown): Proyecto {
+  let parsed: unknown = datos;
+  if (typeof datos === "string") {
+    try {
+      parsed = JSON.parse(datos);
+    } catch {
+      parsed = null;
+    }
+  }
+  if (!parsed || typeof parsed !== "object") parsed = {};
+  const obj = parsed as Record<string, unknown>;
+  const ahora = new Date().toISOString();
+
+  // Ya es v2
+  if (obj.version === 2 && Array.isArray(obj.hojas)) {
+    return parsed as Proyecto;
+  }
+
+  // v1 (ProyectoJSON con hoja + nodos + conexiones sueltos)
+  if ("nodos" in obj && "conexiones" in obj) {
+    const p = parsed as ProyectoJSON;
+    const hojaConfig: HojaConfig = p.hoja ?? HOJA_POR_DEFECTO();
+    const hoja: Hoja = {
+      ...hojaConfig,
+      id: crypto.randomUUID(),
+      nombre: "Hoja 1",
+      nodos: p.nodos ?? [],
+      conexiones: p.conexiones ?? [],
+      viewport: undefined,
+    };
+    return {
+      version: 2,
+      meta: {
+        nombre: p.nombre ?? "Proyecto migrado",
+        fechaCreacion: ahora,
+        ultimaModificacion: ahora,
+      },
+      hojas: [hoja],
+    };
+  }
+
+  // v0 (solo HojaConfig suelta)
+  const hojaConfig = parsed as HojaConfig;
+  const hoja: Hoja = {
+    ...hojaConfig,
+    id: crypto.randomUUID(),
+    nombre: "Hoja 1",
+    nodos: [],
+    conexiones: [],
+    viewport: undefined,
+  };
+  return {
+    version: 2,
+    meta: {
+      nombre: "Proyecto migrado",
+      fechaCreacion: ahora,
+      ultimaModificacion: ahora,
+    },
+    hojas: [hoja],
+  };
+}
+
+/** Serializa a JSON v2 listo para guardar */
+export function serializarProyecto(proyecto: Proyecto): string {
+  return JSON.stringify(
+    {
+      ...proyecto,
+      meta: { ...proyecto.meta, ultimaModificacion: new Date().toISOString() },
+    },
+    null,
+    2,
+  );
+}
+
+/** Paginación mostrada: con una sola hoja se respeta lo cargado a mano;
+ * con varias se calcula "X / Y" según la posición de la hoja */
+export function calcularPaginacion(
+  valorUsuario: string,
+  indice: number,
+  total: number,
+): string {
+  if (total <= 1) return valorUsuario;
+  return `${indice + 1} / ${total}`;
+}
+
+/** Nº de plano mostrado: con varias hojas agrega sufijo -01, -02… */
+export function numeroPlanoConSufijo(
+  base: string,
+  indice: number,
+  total: number,
+): string {
+  if (!base || total <= 1) return base;
+  const sufijo = String(indice + 1).padStart(2, "0");
+  return base.endsWith(`-${sufijo}`) ? base : `${base}-${sufijo}`;
+}

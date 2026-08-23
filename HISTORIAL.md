@@ -427,6 +427,79 @@ usuario.
 
 ---
 
+### FASE 6 — PR #9 MERGEADO (2026-08-23)
+
+**Decisión:** Aprobado por usuario → mergeado en `main` (`a6ee324`).
+
+**Resumen consolidado de la Fase 5 (PR #7 → #9):**
+- Rótulo IRAM 4508 conforme: 174,5 mm × 72 mm, columnas 26/20/34/40/54,5,
+  contorno fundido píxel a píxel con recuadro en cualquier formato.
+- AlimentadorNode con selector de combinación (—/L/LN/LT/LNT/N/T/NT/n)
+  y modo "n conductores"; Handle `salida` para conectar.
+- Notas del gabinete: 6 campos fijos con etiquetas visibles en negrita,
+  posición simétrica 4 mm respecto del recuadro (top/bottom).
+- Alineación global: puntos de la hoja centrados en la grilla de 10 px,
+  dimensiones redondeadas a múltiplos de 10 px, recuadro montado 1 px
+  hacia afuera para que su eje caiga sobre los puntos.
+- Título del alimentador a 16 px; tarjeta ensanchada 172 px.
+- Sangrías en rótulo: etiquetas 1,5 mm, valores 3 mm, centrados 0 mm.
+
+**Próximos pasos:** Fase 6 multi-hoja (entrada siguiente).
+
+---
+
+### FASE 6 — MULTI-HOJA POR PROYECTO (PR #10, EN CURSO) (2026-08-23)
+
+**Alcance aprobado:** cada tablero puede tener varias hojas; cada hoja es
+dueña exclusiva de sus nodos y conexiones (coordenadas locales).
+
+**Decisiones de diseño validadas con el usuario:**
+- Modelo de datos v2: `Proyecto { version:2, meta, hojas: Hoja[] }`;
+  `Hoja { id UUID, nombre, formato, orientacion, rotulo, notasGabinete,
+  notaSeguridad, tablero, nodos[], conexiones[], viewport }`.
+- Migración automática v0/v1 → v2 al cargar (`migrarAProyectoV2`, acepta
+  objeto o string JSON); `alimentadoresLegado` sigue siendo transitorio
+  (nunca se serializa).
+- Deshacer/rehacer con pilas POR HOJA (`historial.usar(id)` al cambiar
+  de pestaña). Regla universal: un comando se registra en la hoja ACTIVA
+  al momento de ejecutarse, sin excepciones.
+- Movimiento entre hojas = regla "cortar con aviso": las conexiones
+  internas viajan, las que cruzan hojas se cortan; TODO el movimiento es
+  UN comando compuesto deshacible en la pila del ORIGEN. Sin cambio
+  automático de pestaña (opción 2): toast con accesos [Ir a la hoja] /
+  cierre; tras saltar de hoja, Ctrl+Z no lo revierte (vive en el origen).
+- `eliminarHoja`: barrido defensivo retenido aunque el invariante
+  (extremos en la misma hoja) hace imposible huérfanos; no se permite
+  borrar la última hoja; al borrar la activa se salta a la vecina.
+- `duplicarHoja` remapea ids de nodos/conexiones para unicidad global.
+
+**Implementación:**
+- `tipos.ts`: Hoja/Proyecto, `hojaNuevaDesde`, `migrarAProyectoV2`,
+  `serializarProyecto`, `calcularPaginacion(valorUsuario, indice, total)`
+  y `numeroPlanoConSufijo(base, indice, total)` — con 1 sola hoja se
+  muestra tal cual cargó el usuario.
+- `historial.ts`: clase con Map<string,PilaHoja>, límite 100 por pila.
+- `store.ts`: estado working = hoja activa + espejo `hoja`; acciones
+  agregar/eliminar/duplicar/renombrar/reordenar/cambiarHojaActiva (con
+  volcado y restauración de viewport), moverSeleccionAHoja (comando
+  compuesto), guardarViewport, cargarProyecto (string|objeto), 
+  serializarActual():Proyecto, seleccionarNodos (sin historial).
+- UI: `PestanasHoja.tsx` (activar/agregar/duplicar/renombrar doble clic/
+  eliminar con confirmación), franja bajo la barra superior; toast verde
+  post-movimiento con [Ir a la hoja]; botón "Mover a hoja nueva" en el
+  aviso de símbolos fuera del marco útil.
+- Rótulo: paginación "X / Y" y nº de plano con sufijo -01/-02… calculados.
+- Viewport por hoja: `onMoveEnd` persiste continuo; al cambiar pestaña se
+  restaura o fitView si nunca hubo encuadre.
+- BarraSuperior: guardar usa `meta.nombre`; abrir acepta v1 y v2.
+- `verificar_alineacion.mjs`: serializa y valida formato v2 (invariante
+  de extremos en la misma hoja incluido) + round-trip del JSON guardado.
+
+**Verificación:** build ✓ · lint ✓ · verificar_alineacion ✓ ·
+lint_simbolos ✓.
+
+---
+
 ## Registro de reversiones y cambios de rumbo
 
 | Qué | Cuándo | Motivo | Efecto |
