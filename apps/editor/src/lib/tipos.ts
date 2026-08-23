@@ -1,5 +1,9 @@
 export type RolConexion = "entrada" | "salida" | "tierra";
-export type FamiliaAtributos = "aparato" | "conductor" | "barra";
+export type FamiliaAtributos =
+  | "aparato"
+  | "conductor"
+  | "barra"
+  | "sin_ficha_tecnica";
 export type EstadoRevision =
   | "pendiente_revision"
   | "verificado_aea"

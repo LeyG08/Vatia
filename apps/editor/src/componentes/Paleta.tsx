@@ -1,6 +1,13 @@
 import { SIMBOLOS, svgLimpio } from "../lib/libreria";
 import { useEditor } from "../lib/store";
-import type { SimboloDef } from "../lib/tipos";
+import type { FamiliaAtributos, SimboloDef } from "../lib/tipos";
+
+const ETIQUETAS_FAMILIA: Record<FamiliaAtributos, string> = {
+  aparato: "Aparatos",
+  conductor: "Conductores",
+  barra: "Barras",
+  sin_ficha_tecnica: "Auxiliares",
+};
 
 function Paleta({
   onIniciarArrastre,
@@ -42,7 +49,7 @@ function Paleta({
 
       {[...grupos.entries()].map(([familia, items]) => (
         <div key={familia} className="paleta-grupo">
-          <h3>{familia}</h3>
+          <h3>{ETIQUETAS_FAMILIA[familia as FamiliaAtributos] ?? familia}</h3>
           {items.map((s) => (
             <button
               key={s.codigo_iec}

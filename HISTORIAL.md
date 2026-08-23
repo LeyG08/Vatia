@@ -589,6 +589,17 @@ Fix durante build: TS infería tipos literales del JSON importado
 cast único `as unknown as EsquemaRaiz`; y baseUrl deprecado en TS6 →
 paths relativos sin baseUrl.
 
+**Bug reportado por el usuario tras C2 ("se rompió el modelo de la
+tierra"):** el editor tiene su PROPIA lista cerrada de familias —
+`FamiliaAtributos` en tipos.ts y `FAMILIAS` en validadorMetadata.ts —
+y al pasar S00118 a `sin_ficha_tecnica` el validador rechazaba su
+metadata y el cargador (libreria.ts) descartaba el símbolo entero con
+problema de nivel error. FIX: agregar la familia nueva en ambos puntos,
+más etiquetas legibles de grupo en la Paleta (Auxiliares/Aparatos/…)
+para no mostrar el nombre crudo. Verificación verde de nuevo. Lección:
+al extender un enum del schema hay que rastrear sus copias en el
+editor (tipos.ts + validadorMetadata.ts).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
