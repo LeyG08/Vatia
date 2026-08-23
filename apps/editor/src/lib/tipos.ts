@@ -76,15 +76,29 @@ export const TAMANIOS_HOJA_MM: Record<FormatoHoja, [number, number]> = {
 export const PX_POR_MM = 4;
 
 /**
- * Rótulo normalizado IRAM 4508: denominación del plano en la franja
- * superior; debajo cliente / número de plano / escala; y en la base los
- * responsables con sus fechas.
+ * Rótulo según IRAM 4508:2008 (figura 1): campos mínimos de datos,
+ * distribuidos en la cuadrícula que arma HojaNode (ancho 175 mm).
+ * El formato de lámina (campo 5) y la paginación (campo 13) salen
+ * automáticos de la configuración de hoja, no se editan acá.
  */
 export interface RotuloConfig {
-  titulo: string;
+  /** Campo 10: logo, sigla o nombre de la empresa propietaria del plano */
+  empresa: string;
+  /** Campo 6: denominación de lo representado */
+  denominacion: string;
+  /** Campo 7: cliente */
   cliente: string;
+  /** Campo 12: número de plano */
   numero: string;
+  /** Campo 11: número de plano del cliente */
+  numeroCliente: string;
+  /** Campo 1: tolerancias generales no indicadas en el plano */
+  tolerancias: string;
+  /** Campo 3: escala del dibujo (se indica junto al método ISO (E)) */
   escala: string;
+  /** Campo 9: nombre del archivo informático */
+  archivo: string;
+  /** Campo 2: fechas y nombres de los responsables */
   proyectoNombre: string;
   proyectoFecha: string;
   dibujoNombre: string;
@@ -96,10 +110,14 @@ export interface RotuloConfig {
 }
 
 export const ROTULO_VACIO: RotuloConfig = {
-  titulo: "",
+  empresa: "",
+  denominacion: "",
   cliente: "",
   numero: "",
+  numeroCliente: "",
+  tolerancias: "",
   escala: "",
+  archivo: "",
   proyectoNombre: "",
   proyectoFecha: "",
   dibujoNombre: "",
