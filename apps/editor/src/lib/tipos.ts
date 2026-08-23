@@ -203,13 +203,45 @@ export function ROTULO_POR_DEFECTO(): RotuloConfig {
   };
 }
 
+/**
+ * Notas constructivas del gabinete, con estructura FIJA: siempre son
+ * estas seis líneas, en este orden (material, clase de aislación,
+ * personal apto, grado de protección IP, barras/conductores interiores
+ * y reserva futura). Se dibujan arriba a la izquierda de la hoja.
+ */
+export interface NotasGabineteConfig {
+  /** Material del gabinete o armazón */
+  material: string;
+  /** Clase de aislación (Clase I / II) */
+  claseAislacion: string;
+  /** Personal apto para operar (BA4/BA5, etc.) */
+  personalApto: string;
+  /** Grado de protección IP según IEC 60529 */
+  gradoProteccion: string;
+  /** Barras principales o conductores dentro del gabinete */
+  barrasOConductores: string;
+  /** Reserva de espacio para el futuro */
+  reservaFutura: string;
+}
+
+export function NOTAS_GABINETE_POR_DEFECTO(): NotasGabineteConfig {
+  return {
+    material: "Gabinete o armazón metálico autoportante",
+    claseAislacion: "Clase I (puesta a tierra de masas metálicas)",
+    personalApto: "Exclusivo para personal BA4 o BA5",
+    gradoProteccion: "IP00 (tablero abierto según IEC 60529)",
+    barrasOConductores: "Sistema de barras principales de cobre desnudo",
+    reservaFutura: "Sin reserva de espacio futuro (0%)",
+  };
+}
+
 export interface HojaConfig {
   formato: FormatoHoja;
   orientacion: OrientacionHoja;
   /** Nombre del tablero documentado; se dibuja arriba, sobre el recuadro */
   tablero: string;
-  /** Notas constructivas del gabinete, una por renglón (arriba a la izquierda) */
-  notasGabinete: string[];
+  /** Notas constructivas del gabinete (estructura fija, arriba a la izquierda) */
+  notasGabinete: NotasGabineteConfig;
   /** Nota de seguridad operativa al pie; vacía si la hoja no la lleva */
   notaSeguridad: string;
   /** Rótulo IRAM 4508 del vértice inferior derecho */
@@ -221,14 +253,7 @@ export function HOJA_POR_DEFECTO(): HojaConfig {
     formato: "A3",
     orientacion: "horizontal",
     tablero: "TGBT",
-    notasGabinete: [
-      "Gabinete o armazón metálico autoportante",
-      "Clase I (puesta a tierra de masas metálicas)",
-      "Exclusivo para personal BA4 o BA5",
-      "IP00 (tablero abierto según IEC 60529)",
-      "Sistema de barras principales de cobre desnudo",
-      "Sin reserva de espacio futuro (0%)",
-    ],
+    notasGabinete: NOTAS_GABINETE_POR_DEFECTO(),
     notaSeguridad: "",
     rotulo: ROTULO_POR_DEFECTO(),
   };
@@ -238,5 +263,9 @@ export function dimensionesHoja(hoja: HojaConfig): { pxW: number; pxH: number } 
   const [corto, largo] = TAMANIOS_HOJA_MM[hoja.formato];
   const [mmW, mmH] =
     hoja.orientacion === "horizontal" ? [largo, corto] : [corto, largo];
-  return { pxW: mmW * PX_POR_MM, pxH: mmH * PX_POR_MM };
+  // Redondeo a múltiplos de 10 px (= grilla de trabajo): así las cuatro
+  // líneas del recuadro caen sobre líneas de la grilla/puntos de la
+  // hoja en cualquier formato (desvío de aspecto < 0,2 %, invisible).
+  const decena = (v: number) => Math.round(v / 10) * 10;
+  return { pxW: decena(mmW * PX_POR_MM), pxH: decena(mmH * PX_POR_MM) };
 }

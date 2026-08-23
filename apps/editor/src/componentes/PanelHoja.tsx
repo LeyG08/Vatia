@@ -113,17 +113,44 @@ function PanelHoja() {
 
         <h3>Notas del gabinete</h3>
 
-        <label className="panel-hoja-campo">
-          <span>Una nota por renglón (se dibujan arriba a la izquierda)</span>
-          <textarea
-            rows={6}
-            value={hoja.notasGabinete.join("\n")}
-            onChange={(e) =>
-              actualizar({ notasGabinete: e.target.value.split("\n") })
-            }
-            placeholder={"Gabinete o armazón metálico autoportante\nIP00 …"}
+        <p className="panel-hoja-dimension">
+          Estructura fija: se dibujan siempre estas seis líneas, en este
+          orden, arriba a la izquierda de la hoja.
+        </p>
+        <div className="panel-hoja-bloque">
+          <Campo
+            etiqueta="Material del gabinete"
+            valor={hoja.notasGabinete.material}
+            onChange={(v) => actualizar({ notasGabinete: { material: v } })}
           />
-        </label>
+          <Campo
+            etiqueta="Clase de aislación"
+            valor={hoja.notasGabinete.claseAislacion}
+            onChange={(v) => actualizar({ notasGabinete: { claseAislacion: v } })}
+          />
+          <Campo
+            etiqueta="Personal apto para operar"
+            valor={hoja.notasGabinete.personalApto}
+            onChange={(v) => actualizar({ notasGabinete: { personalApto: v } })}
+          />
+          <Campo
+            etiqueta="Grado de protección IP"
+            valor={hoja.notasGabinete.gradoProteccion}
+            onChange={(v) => actualizar({ notasGabinete: { gradoProteccion: v } })}
+          />
+          <Campo
+            etiqueta="Barras o conductores interiores"
+            valor={hoja.notasGabinete.barrasOConductores}
+            onChange={(v) =>
+              actualizar({ notasGabinete: { barrasOConductores: v } })
+            }
+          />
+          <Campo
+            etiqueta="Reserva para el futuro"
+            valor={hoja.notasGabinete.reservaFutura}
+            onChange={(v) => actualizar({ notasGabinete: { reservaFutura: v } })}
+          />
+        </div>
 
         <h3>Nota de seguridad operativa</h3>
 

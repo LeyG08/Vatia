@@ -14,11 +14,13 @@ import { obtenerSimbolo } from "./libreria";
 import {
   ALIMENTADOR_POR_DEFECTO,
   HOJA_POR_DEFECTO,
+  NOTAS_GABINETE_POR_DEFECTO,
   ROTULO_POR_DEFECTO,
   rectanguloUtil,
   type AlimentadorConfig,
   type HojaConfig,
   type NodoProyecto,
+  type NotasGabineteConfig,
   type ProyectoJSON,
   type ResponsableRotulo,
   type RotuloConfig,
@@ -98,11 +100,23 @@ function fusionarHoja(
   const base = HOJA_POR_DEFECTO();
   if (!guardada) return { hoja: base, alimentadoresLegado: [] };
   const legada = guardada as HojaLegada;
-  const notas = Array.isArray((guardada as Partial<HojaConfig>).notasGabinete)
-    ? (guardada as Partial<HojaConfig>).notasGabinete!.filter(
-        (n): n is string => typeof n === "string",
-      )
-    : base.notasGabinete;
+  const parcial = guardada as Partial<HojaConfig>;
+  // Proyectos intermedios (F2/F3) guardaban las notas como lista libre
+  // de strings: se descarta y vuelven los defaults de estructura fija.
+  const ngBase = NOTAS_GABINETE_POR_DEFECTO();
+  const ngGuardado = (parcial.notasGabinete ?? {}) as Partial<NotasGabineteConfig>;
+  const textoNg = (v: unknown, fb: string) => (typeof v === "string" ? v : fb);
+  const notasGabinete: NotasGabineteConfig = {
+    material: textoNg(ngGuardado.material, ngBase.material),
+    claseAislacion: textoNg(ngGuardado.claseAislacion, ngBase.claseAislacion),
+    personalApto: textoNg(ngGuardado.personalApto, ngBase.personalApto),
+    gradoProteccion: textoNg(ngGuardado.gradoProteccion, ngBase.gradoProteccion),
+    barrasOConductores: textoNg(
+      ngGuardado.barrasOConductores,
+      ngBase.barrasOConductores,
+    ),
+    reservaFutura: textoNg(ngGuardado.reservaFutura, ngBase.reservaFutura),
+  };
   const alimentadoresLegado: AlimentadorConfig[] = [];
   if (Array.isArray(legada.encabezado?.alimentadores)) {
     for (const a of legada.encabezado.alimentadores) {
@@ -120,13 +134,12 @@ function fusionarHoja(
       : typeof legada.encabezado?.tablero === "string"
         ? legada.encabezado.tablero
         : base.tablero;
-  const parcial = guardada as Partial<HojaConfig>;
   return {
     hoja: {
       formato: parcial.formato ?? base.formato,
       orientacion: parcial.orientacion ?? base.orientacion,
       tablero: tableroGuardado,
-      notasGabinete: notas,
+      notasGabinete,
       notaSeguridad:
         typeof parcial.notaSeguridad === "string"
           ? parcial.notaSeguridad
@@ -170,8 +183,9 @@ interface EstadoEditor {
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
   actualizarHoja: (
-    patch: Partial<Omit<HojaConfig, "rotulo">> & {
+    patch: Partial<Omit<HojaConfig, "rotulo" | "notasGabinete">> & {
       rotulo?: Partial<RotuloConfig>;
+      notasGabinete?: Partial<NotasGabineteConfig>;
     },
   ) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
@@ -244,7 +258,7 @@ export function tamanoWrapperPx(
 }
 
 /** Tamaño fijo de la tarjeta del nodo alimentador (ver estilos.css) */
-export const TAMANO_ALIMENTADOR_PX = { ancho: 150, alto: 100 };
+export const TAMANO_ALIMENTADOR_PX = { ancho: 172, alto: 104 };
 
 export function tamanoNodoPx(data: NodoData): { ancho: number; alto: number } {
   return esDatosAlimentador(data)
@@ -305,6 +319,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         hoja: {
           ...s.hoja,
           ...patch,
+          notasGabinete: {
+            ...s.hoja.notasGabinete,
+            ...(patch.notasGabinete ?? {}),
+          },
           rotulo: { ...s.hoja.rotulo, ...(patch.rotulo ?? {}) },
         },
       }));

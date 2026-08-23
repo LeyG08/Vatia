@@ -52,7 +52,8 @@
 | F1 | Hoja finita como único espacio de trabajo | mergeada (PR #5) | 23/08/2026 ~00:39–00:48 |
 | F2 | Rótulo "según planos reales" (sin cajetín) | SUPERADA por F3 (PR #6) | 23/08/2026 ~01:00–01:08 |
 | F3 | Corrección: rótulo IRAM 4508 conforme + alimentadores conectables | mergeada (PR #7) | 23/08/2026 01:10–01:38 |
-| F4 | HISTORIAL.md + reversión política de merge | PR abierto, espera aprobación | 23/08/2026 (actual) |
+| F4 | HISTORIAL.md + reversión política de merge | mergeada (PR #8) | 23/08/2026 ~02:0x |
+| F5 | Notas de gabinete fijas + ajustes finos del cajetín | PR abierto (#9), espera aprobación | 23/08/2026 (actual) |
 
 Trabajo previo a esta sesión (resumen de referencia): creación del
 editor mínimo (PR #1/#2, noche 22/08 ~20:16–21:12), símbolos IEC con
@@ -243,7 +244,7 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
 
 ---
 
-## Fase 4 — HISTORIAL.md + reversión de la política de merge (EN CURSO)
+## Fase 4 — HISTORIAL.md + reversión de la política de merge (PR #8, MERGEADO)
 
 **Ventana:** 23/08/2026, inmediatamente después de F3.
 
@@ -266,10 +267,163 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   sync de main) y agregada la sección "Historial del desarrollo"
   que obliga a actualizar este archivo en cada interacción.
 - Creado este `HISTORIAL.md`.
-- PR abierto con ambos cambios: **PR #8**
-  (`docs/historial-y-politica-merge-20260823`, commit `3e6e021`) —
-  espera aprobación del usuario (según la política recién restaurada,
-  NO se mergea solo).
+- PR #8 (`docs/historial-y-politica-merge-20260823`, commits `3e6e021`
+  y `59467fe`) → **aprobado explícitamente por el usuario** y mergeado
+  (merge commit `00556bb`). Primera aplicación de la política: el
+  merge se ejecutó solo tras el "Aprobado" del usuario.
+
+---
+
+## Fase 5 — Notas de gabinete fijas + ajustes finos del cajetín (EN CURSO)
+
+**Ventana:** 23/08/2026, inmediatamente después del merge del PR #8.
+
+**Pedido del usuario (correcciones antes de continuar):**
+
+1. Subir unos 5 puntos (≈5 mm) las notas del gabinete.
+2. Dejar ESTRUCTURA FIJA para las notas del gabinete: material del
+   gabinete, clase de aislación, personal apto para operar, grado de
+   protección IP, barras o conductores interiores, y reserva futura.
+3. Mover el rótulo medio punto hacia abajo y hacia la derecha.
+4. Achicar la cuadrícula inferior del rótulo (formato / nº plano /
+   pág.) porque su contenido no es más grande que el tamaño de letra.
+5. Con el espacio liberado y achicando también la banda superior
+   (escala / nº plano cliente), agregar debajo una franja para la
+   **denominación del plano ocupando el ancho completo**.
+
+**Implementación:**
+
+- `tipos.ts`: nueva `NotasGabineteConfig` con los seis campos fijos
+  (material, claseAislacion, personalApto, gradoProteccion,
+  barrasOConductores, reservaFutura) + `NOTAS_GABINETE_POR_DEFECTO()`
+  con los textos estándar de los planos reales; `HojaConfig.notasGabinete`
+  pasa de `string[]` a esta estructura.
+- `store.ts`: `fusionarHoja()` valida campo a campo (los proyectos que
+  guardaban lista libre de strings vuelven a defaults); `actualizarHoja`
+  acepta y fusiona parcialmente `notasGabinete`.
+- `HojaNode.tsx`:
+  - Notas dibujadas desde la estructura fija en orden, subidas de
+    `top: mm(16)` a `top: mm(11)` (−5 mm).
+  - Rótulo desplazado **medio punto** (interpretado 0,5 mm = 2 px)
+    hacia abajo/derecha (`right: −2, bottom: −2`) para fundir su
+    contorno con el recuadro.
+  - Nueva geometría de filas: `[10,10,10,10,12,10,8]` = **70 mm**
+    (antes 4×10+20+19 = 79). Zona derecha de arriba pasa a ser
+    logo/empresa; fila escala/nº-cliente reducida a 12 mm; franja
+    **"Denominación del plano" a ancho completo** de 10 mm; fila final
+    formato/nº-plano/pág. reducida a 8 mm.
+- `PanelHoja.tsx`: textarea libre reemplazado por seis campos fijos
+  (material, clase de aislación, personal apto, IP, barras/conductores,
+  reserva futura).
+
+**Correcciones de revisión del usuario (2ª vuelta, misma fase):**
+
+- **Bug de alineo del rótulo resuelto**: el contenedor grid tenía
+  `width/height` exactos a la suma de pistas pero `box-sizing:
+  border-box` con borde de 2 px → las pistas desbordaban 4 px el
+  content box y las líneas internas no cerraban contra el contorno
+  (visible distinto según formato/zoom). Fix: sin width/height fijos,
+  la grilla se dimensiona desde sus pistas (content-box) → cierra
+  siempre, en cualquier hoja.
+- **Notas del gabinete**: subidas otros ~10 px (top pasa de mm(11) a
+  `mm(8.5)`) y ahora se imprimen con **etiqueta fija en negrita**
+  ("Material: …", "Clase de aislación: …", etc.) para que la estructura
+  fija sea visible en el plano; maxWidth ampliado a 105 mm.
+- **Letra del rótulo +2 px** (`FUENTE_EXTRA_PX = 2`) en etiquetas y
+  valores de todas las celdas; la fila final pasa de 8 a 10 mm para
+  que entre la letra más grande (alto total: 72 mm).
+- Limpieza de bordes dobles contra el contorno: celdas del borde
+  derecho/inferior ya no dibujan su línea interna (`sinDerecha` /
+  `sinAbajo` en CeldaRotulo).
+
+**Correcciones de revisión del usuario (3ª vuelta, misma fase):**
+
+- **Puntos de la hoja alineados a la grilla real**: el puntillado
+  estaba centrado a 5 px de los múltiplos de 10 (por eso recuadro,
+  rótulo y símbolos se veían «corridos» medio punto). Ahora los
+  centros de los puntos caen sobre las líneas de la grilla
+  (`background-position: -5px -5px`).
+- **Recuadro cuadrado con los puntos en cualquier formato**: las
+  dimensiones px de la hoja se redondean a múltiplos de 10 (A4
+  horizontal: 1188→1190; desvío de aspecto < 0,2 %) y el marco se monta
+  1 px hacia afuera para que el eje de su borde de 2 px quede exacto
+  sobre la línea de puntos. El rótulo vuelve a `-2/-2` y sus trazas se
+  funden píxel a píxel con el recuadro.
+- **Título del alimentador a ~16 px** (`.alim-origen`, negrita);
+  tarjeta ensanchada 150→172 px (`TAMANO_ALIMENTADOR_PX`) y textos
+  internos 11→12 px.
+- **Notas del gabinete +2 px** (10→12 px), para lectura cómoda en el
+  papel.
+
+**Correcciones de revisión del usuario (4ª vuelta, misma fase):**
+
+- **Rótulo ancho reducido 1 mm** (175→174 mm; última columna 55→54 mm)
+  para que en A4 vertical (ancho útil 698 px) no desborde el recuadro.
+- **Sangría interna en celdas del rótulo**: padding horizontal 1→1,5 mm
+  (4→6 px) para que el texto respire y no quede pegado a las líneas.
+- **Notas del gabinete adaptativas**: en orientación *vertical* usan
+  columna angosta (80 mm, izquierda) y dejan libre el centro del unifilar;
+  en *horizontal* mantienen 105 mm.
+
+**Correcciones de revisión del usuario (5ª vuelta, misma fase):**
+
+- **Rótulo vuelve a 175 mm** (columna final 54→55 mm): en A4
+  vertical el ancho útil es exactamente 175 mm; con 174 mm quedaba
+  un hueco de 1 mm entre el borde izquierdo del rótulo y el eje del
+  recuadro. Ahora el contorno del rótulo funde píxel a píxel con el
+  borde interno del recuadro en ambos vértices inferiores.
+- **Sangría completa en todas las celdas del rótulo**: padding
+  horizontal 1→1,5 mm también en las celdas personalizadas (cliente,
+  logo/empresa) para que el texto respire uniforme.
+- **Notas del gabinete a la misma distancia del recuadro que la nota
+  de seguridad**: `top: mm(4)` (antes 8,5 mm) para simetría vertical
+  respecto de `bottom: mm(4)` de la nota inferior.
+
+**Correcciones de revisión del usuario (6ª vuelta, misma fase):**
+
+- **Rótulo ancho 175,5 mm** (columna final 55→55,5 mm = +2 px):
+  en A4 vertical el ancho útil es 175 mm (700 px) pero el recuadro
+  tiene borde de 2 px centrado en el límite útil → caja de borde 702 px.
+  Con 175 mm el lado izquierdo del rótulo quedaba 2 px por dentro.
+  Ahora el contorno del rótulo funde píxel a píxel con el recuadro en
+  AMBOS vértices inferiores (left:-2 implícito vía ancho + right:-2).
+- **Sangrías diferenciadas en todo el rótulo**:
+  * Etiquetas fijas (izquierda): 4 mm
+  * Valores cargados (izquierda): 6 mm
+  * Textos centrados (denominación, nº plano, pág.): 0 mm
+  Aplicado a `CeldaRotulo` y a las celdas personalizadas (cliente,
+  logo/empresa).
+- **Logo/empresa centrado** con su sangría propia.
+
+**Correcciones de revisión del usuario (7ª vuelta, misma fase):**
+
+- **Rótulo ancho 174,5 mm** (columna final 55,5→54,5 mm): en A4
+  vertical el recuadro tiene caja de borde 702 px (700 px útil + 2 px
+  borde centrado). El rótulo con content-box necesita pistas de
+  698 px (174,5 mm) para que su borde exterior (pistas + 4 px) mida
+  702 px y funda con `right:-2` en AMBOS vértices. Ahora coincide
+  exacto con el encuadernado.
+- **Sangrías reducidas y diferenciadas**:
+  * Etiquetas fijas (izquierda): 4→**1,5 mm**
+  * Valores a completar (izquierda): 6→**3 mm**
+  * Textos centrados (denominación, nº plano, pág.): **0 mm**
+  Aplicado en `CeldaRotulo` y celdas personalizadas (cliente, logo).
+- **Logo/empresa centrado sin sangría** (justificado central).
+
+**Correcciones de revisión del usuario (8ª vuelta, misma fase):**
+
+- **Sangrías en responsables (proyecto/dibujo/revisó/aprobó)**: ahora
+  usan la misma regla que el resto del rótulo — rol (etiqueta) 1,5 mm,
+  fecha (valor) 3 mm.
+- Rótulo 174,5 mm y sangrías 1,5/3/0 mm confirmados.
+
+**Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
+`node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
+
+**Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
+commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac`, `b3f3d4c`,
+`0748941`, `16f3c9d`, `54dcb9b` + 8ª vuelta) esperando aprobación del
+usuario.
 
 ---
 
@@ -285,8 +439,8 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
 
 ## Estado al cierre de esta entrada
 
-- `main` local = `d383c93` (PR #7 mergeado): editor con hoja finita,
-  cajetín IRAM 4508 conforme, alimentadores conectables.
-- Pendiente: aprobar/mejorar el PR abierto de F4 (AGENTS.md +
-  HISTORIAL.md). Próximos pasos funcionales sugeridos: exportar PDF de
-  la hoja, atributos de conductores en conexiones, más símbolos IEC.
+- `main` local = `00556bb` (PR #8 mergeado): AGENTS.md con política de
+  aprobación previa + HISTORIAL.md activo.
+- Pendiente: aprobar PR #9 (F5: notas fijas + ajustes del cajetín).
+- Próximos pasos funcionales sugeridos: exportar PDF de la hoja,
+  atributos de conductores en conexiones, más símbolos IEC.
