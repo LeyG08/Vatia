@@ -395,12 +395,27 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   logo/empresa).
 - **Logo/empresa centrado** con su sangría propia.
 
+**Correcciones de revisión del usuario (7ª vuelta, misma fase):**
+
+- **Rótulo ancho 174,5 mm** (columna final 55,5→54,5 mm): en A4
+  vertical el recuadro tiene caja de borde 702 px (700 px útil + 2 px
+  borde centrado). El rótulo con content-box necesita pistas de
+  698 px (174,5 mm) para que su borde exterior (pistas + 4 px) mida
+  702 px y funda con `right:-2` en AMBOS vértices. Ahora coincide
+  exacto con el encuadernado.
+- **Sangrías reducidas y diferenciadas**:
+  * Etiquetas fijas (izquierda): 4→**1,5 mm**
+  * Valores a completar (izquierda): 6→**3 mm**
+  * Textos centrados (denominación, nº plano, pág.): **0 mm**
+  Aplicado en `CeldaRotulo` y celdas personalizadas (cliente, logo).
+- **Logo/empresa centrado sin sangría** (justificado central).
+
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
 **Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
 commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac`, `b3f3d4c`,
-`0748941` + 6ª vuelta) esperando aprobación del usuario.
+`0748941`, `16f3c9d` + 7ª vuelta) esperando aprobación del usuario.
 
 ---
 

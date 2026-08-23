@@ -17,15 +17,16 @@ const FUENTE_EXTRA_PX = 2;
 
 /**
  * Geometría del rótulo según IRAM 4508 (figura 1), ajustada a pedido
- * del usuario: ancho total 175,5 mm con columnas 26 / 20 / 34 / 40 / 55,5.
+ * del usuario: ancho total 174,5 mm con columnas 26 / 20 / 34 / 40 / 54,5.
  * Filas: 4×10 (responsables) + 12 (escala / nº cliente) + 10
  * (denominación del plano a ancho completo) + 10 (formato / nº plano /
  * paginación) = 72 mm. Contorno fundido con el recuadro en ambas esquinas
  * inferiores; líneas internas finas.
- * El +0,5 mm (2 px) compensa el borde de 2 px del recuadro para que
- * los ejes de ambas cajas coincidan exactamente en A4 vertical.
+ * El ancho 174,5 mm (698 px pistas) + 4 px de borde = 702 px exterior,
+ * igual a la caja de borde del recuadro en A4 vertical (700 px útil +
+ * 2 px de borde centrado). Con right:-2 ambos vértices funden píxel a píxel.
  */
-const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 55.5];
+const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 54.5];
 const ROTULO_FILAS_MM = [10, 10, 10, 10, 12, 10, 10];
 
 /**
@@ -66,9 +67,9 @@ function CeldaRotulo({
   sinAbajo = false,
   children,
 }: CeldaRotuloProps) {
-  // Sangrías: etiquetas 4 mm, valores 6 mm, centrados 0
-  const padLabel = centrado ? 0 : mm(4);
-  const padValue = centrado ? 0 : mm(6);
+  // Sangrías: etiquetas 1,5 mm, valores 3 mm, centrados 0
+  const padLabel = centrado ? 0 : mm(1.5);
+  const padValue = centrado ? 0 : mm(3);
 
   return (
     <div
@@ -195,7 +196,7 @@ function RotuloIram() {
           style={{
             fontSize: mm(1.7) + FUENTE_EXTRA_PX,
             lineHeight: 1.25,
-            paddingLeft: mm(4),
+            paddingLeft: mm(1.5),
             paddingRight: mm(1),
           }}
         >
@@ -206,7 +207,7 @@ function RotuloIram() {
             fontSize: mm(2.4) + FUENTE_EXTRA_PX,
             fontWeight: 700,
             lineHeight: 1.25,
-            paddingLeft: mm(6),
+            paddingLeft: mm(3),
             paddingRight: mm(1),
           }}
         >
@@ -217,7 +218,7 @@ function RotuloIram() {
             style={{
               fontSize: mm(1.9) + FUENTE_EXTRA_PX,
               lineHeight: 1.25,
-              paddingLeft: mm(6),
+              paddingLeft: mm(3),
               paddingRight: mm(1),
             }}
           >
@@ -264,7 +265,7 @@ function RotuloIram() {
           style={{
             fontSize: mm(1.7) + FUENTE_EXTRA_PX,
             lineHeight: 1.25,
-            paddingLeft: mm(4),
+            paddingLeft: 0,
             paddingRight: mm(1),
           }}
         >
@@ -277,7 +278,7 @@ function RotuloIram() {
             lineHeight: 1.3,
             margin: "auto 0",
             wordBreak: "break-word",
-            paddingLeft: mm(6),
+            paddingLeft: 0,
             paddingRight: mm(1),
           }}
         >
