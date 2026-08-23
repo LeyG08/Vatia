@@ -25,7 +25,7 @@ import {
  * usuario. Debe mantenerse par y los símbolos pasan el lint de grilla
  * para ESCALA 2 y 4 (ver scripts/lint_simbolos.py).
  */
-export const ESCALA = 4;
+export const ESCALA = 2;
 export const PASO_ROTACION = 90;
 
 /**
