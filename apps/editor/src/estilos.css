@@ -304,13 +304,24 @@ body,
   font-size: 12px;
 }
 
-/* ---- Panel de problemas ---- */
-.panel-problemas {
+/* ---- Columna de paneles flotantes inferior izquierda ---- */
+.paneles-flotantes {
   position: absolute;
   left: 10px;
   bottom: 10px;
   z-index: 5;
-  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  max-width: 460px;
+  max-height: 62%;
+  overflow-y: auto;
+}
+
+/* ---- Panel de problemas ---- */
+.panel-problemas {
+  max-width: 440px;
   max-height: 40%;
   overflow-y: auto;
   background: #fff;
@@ -350,6 +361,58 @@ body,
   margin: 0;
   padding: 0 10px 8px;
   color: #16a34a;
+}
+
+/* ---- Checklist AEA (C5): pendientes de ficha técnica, no bloqueante ---- */
+.checklist-aea {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+}
+
+.checklist-aea.pendientes {
+  border-color: #d97706;
+}
+
+.checklist-cabecera {
+  all: unset;
+  display: block;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-weight: 600;
+  color: #92400e;
+  user-select: none;
+}
+
+.checklist-aea ul {
+  margin: 0;
+  padding: 0 10px 8px 26px;
+}
+
+.checklist-aea li {
+  color: #a16207;
+  margin-top: 2px;
+}
+
+/* Botón con el nombre del elemento: clic = seleccionarlo en el plano */
+.checklist-ir {
+  all: unset;
+  cursor: pointer;
+  font-weight: 600;
+  color: #92400e;
+  text-decoration: underline dotted;
+}
+
+.checklist-ir:hover:not(:disabled) {
+  color: #78350f;
+  text-decoration-style: solid;
+}
+
+.checklist-ir:disabled {
+  cursor: default;
+  text-decoration: none;
 }
 
 /* ---- Arrastre desde la paleta ---- */

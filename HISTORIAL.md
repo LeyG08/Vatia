@@ -751,6 +751,21 @@ normativa. Cambios:
   DERECHO de las marcas, centrado en altura, igual que las anotaciones
   de los aparatos.
 
+**C5 — Checklist AEA no bloqueante:**
+- `lib/checklist.ts`: reglas puras. Símbolos aparato/barra → campos
+  x-obligatorio del schema vacíos + x-alguno-obligatorio (potencia kW
+  o HP). Conexiones → validación POR MAZO (nunca por rol): mazo
+  vacío, sección de fase, material/aislación/norma IRAM, coherencia
+  llaves ↔ secciones (neutro/tierra apagados con sección cargada;
+  secciones mayores que la de fase; solo-neutro/solo-tierra exigen su
+  propia sección).
+- `ChecklistAea.tsx`: panel ámbar en la esquina inferior izquierda
+  (columna compartida con PanelProblemas vía .paneles-flotantes),
+  colapsable, con contador; clic en el nombre de un símbolo lo
+  selecciona para corregirlo desde el panel de atributos. NO bloquea
+  ninguna acción.
+- Nota pendiente N°2 de docs/estado-revision-aea.md marcada RESUELTA.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

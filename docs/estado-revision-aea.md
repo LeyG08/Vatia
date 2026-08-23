@@ -75,14 +75,12 @@ Registro de decisiones diferidas para que no se pierdan entre pasos:
    necesitará campos propios `Icu_kA` e `Ics_kA`. Anotado también como
    `$comment` en `aparato.schema.json`. NO reutilizar el subtipo actual.
 
-2. **Checklist AEA para conductores: validar por MAZO, no por rol.** Con
-   C1-bis la conexión representa un mazo completo y `rol` /
-   `color_normalizado` salieron del schema. La vieja regla "conductor
-   sin rol asignado" ya no aplica: al implementar C5, la validación de
-   conexiones debe basarse en los atributos del mazo — ¿tiene
-   `cantidad_conductores`? ¿tiene `seccion_fase_mm2`? ¿tiene
-   `material`/`aislacion`/`norma_iram` cargados? ¿coherencia
-   lleva_neutro/lleva_tierra con las secciones opcionales?
+2. ~~**Checklist AEA para conductores: validar por MAZO, no por rol.**~~
+   **RESUELTO en C5:** `apps/editor/src/lib/checklist.ts` valida las
+   conexiones por los atributos del mazo — cantidad/secciones,
+   material/aislación/norma_iram, y coherencia llaves ↔ secciones
+   (neutro/tierra apagados con sección cargada, secciones mayores que
+   la de fase). Panel `ChecklistAea.tsx`, no bloqueante.
 
 ---
 

@@ -110,10 +110,10 @@ export default function ConexionEdge({
                 )}
                 {tierra && i === fases + (neutro ? 1 : 0) && (
                   <line
-                    x1={bx - wy * 5}
-                    y1={by + wx * 5}
-                    x2={bx + wy * 5}
-                    y2={by - wx * 5}
+                    x1={bx - wy * 3}
+                    y1={by + wx * 3}
+                    x2={bx + wy * 3}
+                    y2={by - wx * 3}
                   />
                 )}
               </g>

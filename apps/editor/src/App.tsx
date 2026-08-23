@@ -10,6 +10,7 @@ import "@xyflow/react/dist/style.css";
 import BarraSuperior from "./componentes/BarraSuperior";
 import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
+import ChecklistAea from "./componentes/ChecklistAea";
 import PanelHoja from "./componentes/PanelHoja";
 import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
@@ -481,7 +482,10 @@ function Editor() {
           fitView
           proOptions={{ hideAttribution: true }}
         />
-        <PanelProblemas />
+        <div className="paneles-flotantes">
+          <ChecklistAea />
+          <PanelProblemas />
+        </div>
         <PanelHoja />
       </div>
       {arrastre && simboloFantasma && (
