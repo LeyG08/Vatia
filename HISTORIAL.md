@@ -782,6 +782,19 @@ normativa. Cambios:
 - Checklist: valida también alimentadores — falta origen + reglas de
   mazo.
 
+**C5c — Conexiones múltiples, notas vacías, alimentador-cable (feedback con proyecto real):**
+- PROYECTO DE PRUEBA: fusible con 3 conexiones desde el MISMO handle
+  apilaba marcas y textos en el corredor compartido. FIX: las
+  conexiones hermanas (mismo origen) escalonan sus marcas + texto a lo
+  largo del recorrido (fracciones 1/(n+1)… n/(n+1) del largo total de
+  cada trayectoria), con fallback al centro del tramo más largo.
+- Notas del gabinete: SIN valores precargados (todo vacío por
+  defecto).
+- Alimentador rediseñado: ya no es un cuadrado, es UN CONDUCTOR
+  VINIENTE — línea horizontal con etiqueta «Desde …» arriba (editable),
+  marcas normadas sobre la línea y notación abajo; enganche a la
+  derecha. TAMANO_ALIMENTADOR_PX ajustado (150×52).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

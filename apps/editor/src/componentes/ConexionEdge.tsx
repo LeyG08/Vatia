@@ -1,4 +1,4 @@
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/react";
 import { rutaOrtogonal } from "../lib/ruta";
 import { lineasMazo } from "../lib/anotaciones";
 
@@ -13,44 +13,98 @@ function puntosDe(d: string): [number, number][] {
   return pts;
 }
 
-/** Segmento más largo del recorrido y dirección de sus marcas */
-interface GeometriaMarcas {
-  mx: number;
-  my: number;
+interface UbicacionMarcas {
+  x: number;
+  y: number;
   ux: number;
   uy: number;
   sep: number;
 }
 
-function geometriaDe(d: string, total: number): GeometriaMarcas | null {
-  if (total < 1) return null;
+/**
+ * Punto sobre la polilínea en la fracción dada de su largo total,
+ * con dirección del tramo y espacio libre para dibujar. Si el tramo
+ * que toca es muy corto, cae al centro del tramo más largo.
+ */
+function ubicarEnTrayectoria(
+  d: string,
+  fraccion: number,
+  cantidad: number,
+): UbicacionMarcas | null {
   const pts = puntosDe(d);
-  let mejor: { x1: number; y1: number; x2: number; y2: number; len: number } | null = null;
-  for (let i = 0; i + 1 < pts.length; i++) {
-    const [x1, y1] = pts[i];
-    const [x2, y2] = pts[i + 1];
-    const len = Math.hypot(x2 - x1, y2 - y1);
-    if (!mejor || len > mejor.len) mejor = { x1, y1, x2, y2, len };
-  }
-  if (!mejor || mejor.len < 30) return null;
+  if (pts.length < 2) return null;
 
-  const ux = (mejor.x2 - mejor.x1) / mejor.len;
-  const uy = (mejor.y2 - mejor.y1) / mejor.len;
+  let total = 0;
+  const largos: number[] = [];
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+    largos.push(l);
+    total += l;
+  }
+  if (total < 40) return null;
+
+  const margen = 22;
+  let s = fraccion * total;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const l = largos[i];
+    if (s > l) {
+      s -= l;
+      continue;
+    }
+    if (l >= margen * 2 + Math.max(cantidad - 1, 0) * 4 + 8) {
+      const [x1, y1] = pts[i];
+      const [x2, y2] = pts[i + 1];
+      const t = Math.min(Math.max(s, margen), l - margen);
+      const len = Math.hypot(x2 - x1, y2 - y1);
+      return {
+        x: x1 + ((x2 - x1) * t) / l,
+        y: y1 + ((y2 - y1) * t) / l,
+        ux: (x2 - x1) / len,
+        uy: (y2 - y1) / len,
+        // Separación adaptativa si el tramo es corto
+        sep: Math.min(SEP_TICKS, Math.max(4, (l - margen * 2) / Math.max(cantidad - 1, 1))),
+      };
+    }
+    // Tramo corto: probá en el centro de este mismo tramo si alcanza,
+    // si no seguís recorriendo
+    if (l >= 36) {
+      const [x1, y1] = pts[i];
+      const [x2, y2] = pts[i + 1];
+      const len = Math.hypot(x2 - x1, y2 - y1);
+      return {
+        x: (x1 + x2) / 2,
+        y: (y1 + y2) / 2,
+        ux: (x2 - x1) / len,
+        uy: (y2 - y1) / len,
+        sep: SEP_TICKS,
+      };
+    }
+    s -= 0; // seguimos con el resto del acumulado
+    break;
+  }
+
+  // Fallback: centro del tramo más largo
+  let mejor = 0;
+  for (let i = 1; i < largos.length; i++) if (largos[i] > largos[mejor]) mejor = i;
+  if (largos[mejor] < 30) return null;
+  const [x1, y1] = pts[mejor];
+  const [x2, y2] = pts[mejor + 1];
+  const len = largos[mejor];
   return {
-    mx: (mejor.x1 + mejor.x2) / 2,
-    my: (mejor.y1 + mejor.y2) / 2,
-    ux,
-    uy,
-    // Separación adaptativa si el segmento es corto
-    sep: Math.min(SEP_TICKS, Math.max(4, (mejor.len - 20) / Math.max(total - 1, 1))),
+    x: (x1 + x2) / 2,
+    y: (y1 + y2) / 2,
+    ux: (x2 - x1) / len,
+    uy: (y2 - y1) / len,
+    sep: SEP_TICKS,
   };
 }
 
 export default function ConexionEdge({
-  sourceX,
-  sourceY,
+  id,
   targetX,
   targetY,
+  sourceX,
+  sourceY,
   sourcePosition,
   targetPosition,
   data,
@@ -71,40 +125,49 @@ export default function ConexionEdge({
   const neutro = m.lleva_neutro === true;
   const tierra = m.lleva_tierra === true;
 
-  // Marcas + anotación comparten la misma geometría (segmento más largo)
+  /* Conexiones hermanas (mismo origen): escalonan sus marcas y textos
+   * a lo largo del recorrido para no apilarse cuando un elemento alimenta
+   * varios circuitos desde el mismo handle. */
+  const todas = useStore((s) => s.edges);
+  const propia = todas.find((e) => e.id === id);
+  const clave = propia
+    ? `${propia.source}|${propia.sourceHandle ?? ""}`
+    : `${id}`;
+  const grupo = todas.filter(
+    (e) => `${e.source}|${e.sourceHandle ?? ""}` === clave,
+  );
+  grupo.sort((a, b) => a.id.localeCompare(b.id));
+  const indice = grupo.findIndex((e) => e.id === id);
+  const fraccion =
+    grupo.length > 1 ? (Math.max(indice, 0) + 1) / (grupo.length + 1) : 0.5;
+
   const totalMarcas = fases + (neutro ? 1 : 0) + (tierra ? 1 : 0);
-  const geo = geometriaDe(d, totalMarcas);
+  const geo = ubicarEnTrayectoria(d, fraccion, totalMarcas);
   const wx = geo ? (geo.ux - geo.uy) / Math.SQRT2 : 0;
   const wy = geo ? (geo.uy + geo.ux) / Math.SQRT2 : 0;
   const h = LARGO_TICK / 2;
-
-  // El texto va AL COSTADO DERECHO de las marcas, centrado en altura,
-  // igual que las anotaciones de los símbolos.
   const halfSpan = geo ? ((totalMarcas - 1) / 2) * geo.sep + h : 0;
+
+  // El texto va AL COSTADO DERECHO de las marcas, centrado en altura
   const labelX = geo
-    ? geo.mx + halfSpan * Math.abs(geo.ux) + h * Math.abs(geo.uy) + 6
+    ? geo.x + halfSpan * Math.abs(geo.ux) + h * Math.abs(geo.uy) + 6
     : (sourceX + targetX) / 2;
-  const labelY = geo ? geo.my : (sourceY + targetY) / 2;
+  const labelY = geo ? geo.y : (sourceY + targetY) / 2;
 
   return (
     <>
       <BaseEdge path={d} {...props} />
-      {geo && (
+      {geo && totalMarcas > 0 && (
         <g stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
           {Array.from({ length: totalMarcas }, (_, i) => {
             const t = (i - (totalMarcas - 1) / 2) * geo.sep;
-            const cx = geo.mx + t * geo.ux;
-            const cy = geo.my + t * geo.uy;
+            const cx = geo.x + t * geo.ux;
+            const cy = geo.y + t * geo.uy;
             const bx = cx + wx * h;
             const by = cy + wy * h;
             return (
               <g key={i}>
-                <line
-                  x1={cx - wx * h}
-                  y1={cy - wy * h}
-                  x2={bx}
-                  y2={by}
-                />
+                <line x1={cx - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
                 {neutro && i === fases && (
                   <circle cx={bx} cy={by} r={2.8} fill="#fdfdfd" />
                 )}

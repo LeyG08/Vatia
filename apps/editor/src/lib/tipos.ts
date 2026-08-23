@@ -232,12 +232,12 @@ export interface NotasGabineteConfig {
 
 export function NOTAS_GABINETE_POR_DEFECTO(): NotasGabineteConfig {
   return {
-    material: "Gabinete o armazón metálico autoportante",
-    claseAislacion: "Clase I (puesta a tierra de masas metálicas)",
-    personalApto: "Exclusivo para personal BA4 o BA5",
-    gradoProteccion: "IP00 (tablero abierto según IEC 60529)",
-    barrasOConductores: "Sistema de barras principales de cobre desnudo",
-    reservaFutura: "Sin reserva de espacio futuro (0%)",
+    material: "",
+    claseAislacion: "",
+    personalApto: "",
+    gradoProteccion: "",
+    barrasOConductores: "",
+    reservaFutura: "",
   };
 }
 
