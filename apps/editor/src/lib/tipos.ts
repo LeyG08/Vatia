@@ -100,69 +100,41 @@ export function rectanguloUtil(hoja: HojaConfig): {
 }
 
 /**
- * Rótulo según IRAM 4508:2008 (figura 1): campos mínimos de datos,
- * distribuidos en la cuadrícula que arma HojaNode (ancho 175 mm).
- * El formato de lámina (campo 5) y la paginación (campo 13) salen
- * automáticos de la configuración de hoja, no se editan acá.
+ * Encabezado de hoja según los unifilares reales del proyecto (PPS):
+ * no hay cajetín IRAM; cada lámina se identifica arriba al centro con
+ * el nombre del tablero y de dónde viene su alimentación.
  */
-export interface RotuloConfig {
-  /** Campo 10: logo, sigla o nombre de la empresa propietaria del plano */
-  empresa: string;
-  /** Campo 6: denominación de lo representado */
-  denominacion: string;
-  /** Campo 7: cliente */
-  cliente: string;
-  /** Campo 12: número de plano */
-  numero: string;
-  /** Campo 11: número de plano del cliente */
-  numeroCliente: string;
-  /** Campo 1: tolerancias generales no indicadas en el plano */
-  tolerancias: string;
-  /** Campo 3: escala del dibujo (se indica junto al método ISO (E)) */
-  escala: string;
-  /** Campo 9: nombre del archivo informático */
-  archivo: string;
-  /** Campo 2: fechas y nombres de los responsables */
-  proyectoNombre: string;
-  proyectoFecha: string;
-  dibujoNombre: string;
-  dibujoFecha: string;
-  revisionNombre: string;
-  revisionFecha: string;
-  aprobacionNombre: string;
-  aprobacionFecha: string;
+export interface EncabezadoConfig {
+  /** Nombre del tablero que documenta la hoja, ej. "TS-G1" o "TGBT" */
+  tablero: string;
+  /** Procedencias de alimentación, ej. ["Desde TGBT", "Desde PAT"] */
+  alimentadores: string[];
 }
-
-export const ROTULO_VACIO: RotuloConfig = {
-  empresa: "",
-  denominacion: "",
-  cliente: "",
-  numero: "",
-  numeroCliente: "",
-  tolerancias: "",
-  escala: "",
-  archivo: "",
-  proyectoNombre: "",
-  proyectoFecha: "",
-  dibujoNombre: "",
-  dibujoFecha: "",
-  revisionNombre: "",
-  revisionFecha: "",
-  aprobacionNombre: "",
-  aprobacionFecha: "",
-};
 
 export interface HojaConfig {
   formato: FormatoHoja;
   orientacion: OrientacionHoja;
-  rotulo: RotuloConfig;
+  encabezado: EncabezadoConfig;
+  /** Notas constructivas del gabinete, una por renglón (arriba a la izquierda) */
+  notasGabinete: string[];
+  /** Nota de seguridad operativa al pie; vacía si la hoja no la lleva */
+  notaSeguridad: string;
 }
 
 export function HOJA_POR_DEFECTO(): HojaConfig {
   return {
     formato: "A3",
     orientacion: "horizontal",
-    rotulo: { ...ROTULO_VACIO },
+    encabezado: { tablero: "TGBT", alimentadores: ["Desde PAT"] },
+    notasGabinete: [
+      "Gabinete o armazón metálico autoportante",
+      "Clase I (puesta a tierra de masas metálicas)",
+      "Exclusivo para personal BA4 o BA5",
+      "IP00 (tablero abierto según IEC 60529)",
+      "Sistema de barras principales de cobre desnudo",
+      "Sin reserva de espacio futuro (0%)",
+    ],
+    notaSeguridad: "",
   };
 }
 

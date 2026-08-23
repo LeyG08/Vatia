@@ -14,10 +14,10 @@ import { obtenerSimbolo } from "./libreria";
 import {
   HOJA_POR_DEFECTO,
   rectanguloUtil,
+  type EncabezadoConfig,
   type HojaConfig,
   type NodoProyecto,
   type ProyectoJSON,
-  type RotuloConfig,
 } from "./tipos";
 
 /**
@@ -31,34 +31,30 @@ export const PASO_ROTACION = 90;
 
 /**
  * Fusiona la hoja guardada con los defaults, tomando solo campos
- * conocidos: los proyectos viejos pueden traer rótulos con otra forma
- * (empresa, ubicación, fecha única) y no deben colarse al estado.
+ * conocidos y validando tipos: los proyectos viejos pueden traer otra
+ * forma de hoja (rótulo IRAM 4508) y no deben colarse al estado.
  */
 function fusionarHoja(guardada?: Partial<HojaConfig> | null): HojaConfig {
   const base = HOJA_POR_DEFECTO();
   if (!guardada) return base;
-  const r = (guardada.rotulo ?? {}) as Partial<Partial<RotuloConfig>>;
+  const enc = (guardada.encabezado ?? {}) as Partial<EncabezadoConfig>;
+  const tablero =
+    typeof enc.tablero === "string" ? enc.tablero : base.encabezado.tablero;
+  const alimentadores = Array.isArray(enc.alimentadores)
+    ? enc.alimentadores.filter((a): a is string => typeof a === "string")
+    : base.encabezado.alimentadores;
+  const notas = Array.isArray(guardada.notasGabinete)
+    ? guardada.notasGabinete.filter((n): n is string => typeof n === "string")
+    : base.notasGabinete;
   return {
     formato: guardada.formato ?? base.formato,
     orientacion: guardada.orientacion ?? base.orientacion,
-    rotulo: {
-      empresa: r.empresa ?? "",
-      denominacion: r.denominacion ?? "",
-      cliente: r.cliente ?? "",
-      numero: r.numero ?? "",
-      numeroCliente: r.numeroCliente ?? "",
-      tolerancias: r.tolerancias ?? "",
-      escala: r.escala ?? "",
-      archivo: r.archivo ?? "",
-      proyectoNombre: r.proyectoNombre ?? "",
-      proyectoFecha: r.proyectoFecha ?? "",
-      dibujoNombre: r.dibujoNombre ?? "",
-      dibujoFecha: r.dibujoFecha ?? "",
-      revisionNombre: r.revisionNombre ?? "",
-      revisionFecha: r.revisionFecha ?? "",
-      aprobacionNombre: r.aprobacionNombre ?? "",
-      aprobacionFecha: r.aprobacionFecha ?? "",
-    },
+    encabezado: { tablero, alimentadores },
+    notasGabinete: notas,
+    notaSeguridad:
+      typeof guardada.notaSeguridad === "string"
+        ? guardada.notaSeguridad
+        : base.notaSeguridad,
   };
 }
 
@@ -79,8 +75,8 @@ interface EstadoEditor {
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
   actualizarHoja: (
-    patch: Partial<Omit<HojaConfig, "rotulo">> & {
-      rotulo?: Partial<HojaConfig["rotulo"]>;
+    patch: Partial<Omit<HojaConfig, "encabezado">> & {
+      encabezado?: Partial<EncabezadoConfig>;
     },
   ) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
@@ -202,7 +198,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         hoja: {
           ...s.hoja,
           ...patch,
-          rotulo: { ...s.hoja.rotulo, ...(patch.rotulo ?? {}) },
+          encabezado: { ...s.hoja.encabezado, ...(patch.encabezado ?? {}) },
         },
       }));
     },
