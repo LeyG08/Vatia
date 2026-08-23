@@ -17,13 +17,13 @@ const FUENTE_EXTRA_PX = 2;
 
 /**
  * Geometría del rótulo según IRAM 4508 (figura 1), ajustada a pedido
- * del usuario: ancho total 174 mm con columnas 26 / 20 / 34 / 40 / 54.
+ * del usuario: ancho total 175 mm con columnas 26 / 20 / 34 / 40 / 55.
  * Filas: 4×10 (responsables) + 12 (escala / nº cliente) + 10
  * (denominación del plano a ancho completo) + 10 (formato / nº plano /
  * paginación) = 72 mm. Contorno fundido con el recuadro; líneas internas
  * finas.
  */
-const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 54];
+const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 55];
 const ROTULO_FILAS_MM = [10, 10, 10, 10, 12, 10, 10];
 
 /**
@@ -169,7 +169,7 @@ function RotuloIram() {
           gridRow: "1 / span 2",
           borderRight: "1px solid #111827",
           borderBottom: "1px solid #111827",
-          padding: `${mm(0.7)} ${mm(1)}`,
+          padding: `${mm(0.7)} ${mm(1.5)}`,
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
@@ -219,7 +219,7 @@ function RotuloIram() {
           gridColumn: "5",
           gridRow: "1 / span 4",
           borderBottom: "1px solid #111827",
-          padding: `${mm(0.7)} ${mm(1)}`,
+          padding: `${mm(0.7)} ${mm(1.5)}`,
           overflow: "hidden",
           position: "relative",
           display: "flex",
@@ -367,14 +367,13 @@ function HojaNode(_props: NodeProps) {
         </div>
 
         {/* Notas constructivas del gabinete: estructura fija con
-         * etiquetas, bien arriba para dejar aire bajo el encabezado.
-         * En vertical (A4 retrato) usan columna angosta a la izquierda
-         * para no invadir el centro del unifilar; en horizontal se
-         * extienden más. */}
+         * etiquetas. Misma distancia del recuadro que la nota de seguridad
+         * inferior (4 mm) para simetría vertical. En vertical usan columna
+         * angosta a la izquierda para no invadir el centro del unifilar. */}
         {notasGabinete.length > 0 && (
           <div
             style={bloqueStyle({
-              top: mm(8.5),
+              top: mm(4),
               left: mm(6),
               maxWidth: hoja.orientacion === "vertical" ? mm(80) : mm(105),
               color: "#111827",

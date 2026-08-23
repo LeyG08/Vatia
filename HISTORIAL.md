@@ -365,12 +365,26 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   columna angosta (80 mm, izquierda) y dejan libre el centro del unifilar;
   en *horizontal* mantienen 105 mm.
 
+**Correcciones de revisión del usuario (5ª vuelta, misma fase):**
+
+- **Rótulo vuelve a 175 mm** (columna final 54→55 mm): en A4
+  vertical el ancho útil es exactamente 175 mm; con 174 mm quedaba
+  un hueco de 1 mm entre el borde izquierdo del rótulo y el eje del
+  recuadro. Ahora el contorno del rótulo funde píxel a píxel con el
+  borde interno del recuadro en ambos vértices inferiores.
+- **Sangría completa en todas las celdas del rótulo**: padding
+  horizontal 1→1,5 mm también en las celdas personalizadas (cliente,
+  logo/empresa) para que el texto respire uniforme.
+- **Notas del gabinete a la misma distancia del recuadro que la nota
+  de seguridad**: `top: mm(4)` (antes 8,5 mm) para simetría vertical
+  respecto de `bottom: mm(4)` de la nota inferior.
+
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
 **Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
-commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac` + 4ª vuelta) esperando
-aprobación del usuario.
+commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac`, `b3f3d4c` + 5ª vuelta)
+esperando aprobación del usuario.
 
 ---
 
