@@ -115,48 +115,71 @@ export function anotacionNodo(
 }
 
 /**
- * Anotación del MAZO sobre la conexión, en DOS líneas al estilo del
- * plano real:
- *   1 x 4 x 25 mm² + 16 mm²      ← notación (según tipo de cable)
- *   Cu/PVC · IRAM 2178           ← material/aislación, y al lado la norma
- *
- * Reglas (acordadas con el usuario):
- * - unipolar   → "F x 1 x S" (conductores sueltos)
- * - multipolar → "1 x n x S" donde n cuenta fases + neutro
- * - neutro/tierra con sección IGUAL a fase no agregan nada extra
- *   (multipolar) o se listan explícitos (unipolar); si difieren se
- *   anexan como "+ X mm²".
+ * Anotación del MAZO sobre la conexión. Reglas (acordadas con el usuario):
+ * - unipolar   → "n x 1 x S"; multipolar → "1 x n x S".
+ * - Si TODOS los conductores comparten la MISMA sección (incluidos
+ *   neutro y tierra) se agrupan en un solo término: "5 x 1 x 16 mm²".
+ * - Si hay secciones distintas, lo diferente se anexa con "+ X mm²"
+ *   (multipolar) o se lista explícito (unipolar).
+ * - Puede haber conexiones SOLO de neutro o solo de tierra: se
+ *   representan igualmente ("1 x 1 x 16 mm²").
  */
 export function lineasMazo(a: Record<string, unknown>): string[] {
   const tieneAlgo =
-    a.cantidad_conductores || a.material || a.aislacion || a.norma_iram;
+    a.cantidad_conductores ||
+    a.lleva_neutro ||
+    a.lleva_tierra ||
+    a.material ||
+    a.aislacion ||
+    a.norma_iram;
   if (!tieneAlgo) return [];
 
   const sf = n(a.seccion_fase_mm2);
   const fases =
     typeof a.cantidad_conductores === "number" ? a.cantidad_conductores : 0;
   const mp = a.tipo_cable === "multipolar";
+  const sN = a.lleva_neutro ? n(a.seccion_neutro_mm2) || sf : "";
+  const sT = a.lleva_tierra ? n(a.seccion_tierra_mm2) || sf : "";
 
-  let principal = "";
-  if (fases > 0 && sf) {
-    principal = mp
-      ? `1 x ${fases + (a.lleva_neutro ? 1 : 0)} x ${sf} mm²`
-      : `${fases} x 1 x ${sf} mm²`;
+  interface Grupo {
+    cant: number;
+    s: string;
   }
+  const grupos: Grupo[] = [];
+  if (fases > 0 && sf) grupos.push({ cant: fases, s: sf });
+  if (sN) grupos.push({ cant: 1, s: sN });
+  if (sT) grupos.push({ cant: 1, s: sT });
+  if (grupos.length === 0) return [];
 
-  const extras: string[] = [];
-  if (a.lleva_neutro && sf) {
-    const sn = n(a.seccion_neutro_mm2);
-    if (!mp) extras.push(`1 x 1 x ${sn || sf} mm²`);
-    else if (sn && sn !== String(sf)) extras.push(`${sn} mm²`);
-  }
-  if (a.lleva_tierra && sf) {
-    const st = n(a.seccion_tierra_mm2);
-    if (!mp) extras.push(`1 x 1 x ${st || sf} mm²`);
-    else extras.push(`${st || sf} mm²`);
-  }
+  const token = (cant: number, s: string) =>
+    mp ? `1 x ${cant} x ${s} mm²` : `${cant} x 1 x ${s} mm²`;
 
-  const linea1 = [principal, ...extras].filter(Boolean).join(" + ");
+  let linea1 = "";
+  const primera = grupos[0].s;
+  if (grupos.every((g) => g.s === primera)) {
+    // Todo con la misma sección: un único término con el TOTAL
+    const total = grupos.reduce((t, g) => t + g.cant, 0);
+    linea1 = token(total, primera);
+  } else {
+    const partes: string[] = [];
+    const gF = grupos.find((g) => g.cant > 1);
+    if (gF) {
+      const nucleos = gF.cant + (sN ? 1 : 0);
+      partes.push(
+        mp
+          ? `1 x ${nucleos} x ${gF.s} mm²`
+          : `${gF.cant} x 1 x ${gF.s} mm²`,
+      );
+      if (sN && !(mp && sN === gF.s)) {
+        partes.push(mp ? `${sN} mm²` : `1 x 1 x ${sN} mm²`);
+      }
+      if (sT) partes.push(mp ? `${sT} mm²` : `1 x 1 x ${sT} mm²`);
+    } else {
+      // Sin fases cargadas: neutro/tierra explícitos uno por uno
+      for (const g of grupos) partes.push(token(g.cant, g.s));
+    }
+    linea1 = partes.join(" + ");
+  }
 
   const matAis = [
     capitalizar(a.material),

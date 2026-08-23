@@ -731,6 +731,19 @@ normativa. Cambios:
   una línea corta perpendicular cerca de su punta. La marca se dibuja
   sobre el segmento más largo del recorrido y sigue las esquinas.
 
+**C4i — Notación agrupada, marcas más visibles (feedback del usuario):**
+- Trazos más GRANDES (15px) y el texto del mazo ahora queda AL COSTADO
+  de las marcas (desplazado perpendicular al tramo), no encima.
+- Si TODOS los conductores comparten la misma sección (fases + neutro
+  + tierra), la notación se agrupa en un solo término: 3F+N+PE de
+  16 mm² unipolares → "5 x 1 x 16 mm²". Con secciones distintas se
+  mantiene el desglose con "+".
+- El texto quiebra hacia abajo si supera ~130px (no queda una línea
+  larguísima).
+- BUG corregido: sin conductores de fase no desaparece la anotación —
+  una conexión SOLO neutro o solo tierra se representa igualmente
+  ("1 x 1 x S mm²").
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

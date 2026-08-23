@@ -897,7 +897,8 @@ body.arrastrando .paleta-item {
   pointer-events: none;
 }
 
-/* Texto del mazo sobre la conexión, sin marco para no invadir */
+/* Texto del mazo sobre la conexión, sin marco para no invadir.
+   Si la línea es muy larga, quiebra hacia abajo (max-width). */
 .anotacion-edge {
   position: absolute;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -907,6 +908,10 @@ body.arrastrando .paleta-item {
   border-radius: 2px;
   color: #71717a;
   pointer-events: none;
+  max-width: 130px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.35;
 }
 
 /* ---- Formulario de conexión (barras + llaves) ---- */
