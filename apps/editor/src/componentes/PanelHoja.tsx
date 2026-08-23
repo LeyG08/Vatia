@@ -99,9 +99,14 @@ function PanelHoja() {
 
         <div className="panel-hoja-rotulo">
           <Campo
-            etiqueta="Denominación del plano"
-            valor={hoja.rotulo.titulo}
-            onChange={(v) => actualizar({ rotulo: { titulo: v } })}
+            etiqueta="Denominación"
+            valor={hoja.rotulo.denominacion}
+            onChange={(v) => actualizar({ rotulo: { denominacion: v } })}
+          />
+          <Campo
+            etiqueta="Empresa (logo o sigla)"
+            valor={hoja.rotulo.empresa}
+            onChange={(v) => actualizar({ rotulo: { empresa: v } })}
           />
           <Campo
             etiqueta="Cliente"
@@ -109,14 +114,29 @@ function PanelHoja() {
             onChange={(v) => actualizar({ rotulo: { cliente: v } })}
           />
           <Campo
-            etiqueta="Plano N°"
+            etiqueta="N° de plano"
             valor={hoja.rotulo.numero}
             onChange={(v) => actualizar({ rotulo: { numero: v } })}
           />
           <Campo
-            etiqueta="Escala"
+            etiqueta="N° de plano del cliente"
+            valor={hoja.rotulo.numeroCliente}
+            onChange={(v) => actualizar({ rotulo: { numeroCliente: v } })}
+          />
+          <Campo
+            etiqueta="Escala (método ISO (E))"
             valor={hoja.rotulo.escala}
             onChange={(v) => actualizar({ rotulo: { escala: v } })}
+          />
+          <Campo
+            etiqueta="Tolerancias generales"
+            valor={hoja.rotulo.tolerancias}
+            onChange={(v) => actualizar({ rotulo: { tolerancias: v } })}
+          />
+          <Campo
+            etiqueta="Nombre del archivo"
+            valor={hoja.rotulo.archivo}
+            onChange={(v) => actualizar({ rotulo: { archivo: v } })}
           />
         </div>
 

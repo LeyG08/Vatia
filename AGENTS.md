@@ -11,7 +11,11 @@
 - Nunca hacer commit directo a main.
 - Al finalizar la sesión, abrir un Pull Request hacia main con `gh pr create`,
   incluyendo en la descripción el diff de campos modificados.
-- No mergear el PR. Eso lo hace el usuario manualmente.
+- Al terminar un cambio verificado (build + lint + scripts en verde),
+  mergear el PR de inmediato con `gh pr merge <n> --merge --delete-branch`
+  y sincronizar main local. La idea es dejar registro continuo del
+  proceso: cada mejora funcional queda mergeada apenas anda, no se
+  acumulan varios cambios sueltos en un mismo PR abierto.
 
 ## Regla de alineación a grilla (símbolos)
 
