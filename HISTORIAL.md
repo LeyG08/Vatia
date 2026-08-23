@@ -805,6 +805,15 @@ normativa. Cambios:
   «Enmarcado: margen izquierdo…», el detalle px/mm y se simplificaron
   etiquetas; tooltip de «Nueva hoja» corto.
 
+**C5e — Alimentador compacto + fecha del rótulo (feedback):**
+- La caja del alimentador ahora abraza al contenido (≈106×92): la
+  notación pasó DEBAJO de la etiqueta «Desde …» y el handle quedó
+  EXACTAMENTE en la punta inferior del cable (posición fija por
+  estilo, no centrado de RF).
+- Fechas del rótulo con MÁSCARA dd/mm/aaaa: solo dígitos, barras
+  automáticas al escribir, placeholder actualizado y borde rojo si lo
+  escrito no es una fecha real (ej.: 32/13/2026).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

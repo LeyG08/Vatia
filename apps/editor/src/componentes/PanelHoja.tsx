@@ -43,6 +43,26 @@ function PanelHoja() {
   const setRotulo = (patch: Partial<typeof rotulo>) =>
     actualizar({ rotulo: patch });
 
+  /* ---- Fechas dd/mm/aaaa (ej.: 10/05/2026) ---- */
+
+  /** Máscara mientras se escribe: solo dígitos, barras automáticas */
+  function enmascararFecha(v: string): string {
+    const d = v.replace(/\D/g, "").slice(0, 8);
+    if (d.length <= 2) return d;
+    if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+    return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+  }
+
+  /** ¿Es una fecha completa y real? */
+  function fechaValida(v: string): boolean {
+    const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return false;
+    const [dd, mm, aaaa] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    if (mm < 1 || mm > 12 || dd < 1) return false;
+    const dias = new Date(aaaa, mm, 0).getDate();
+    return dd <= dias;
+  }
+
   const setResponsable = (i: number, campo: "fecha" | "nombre", v: string) => {
     const lista = rotulo.responsables.map((r, j) =>
       j === i ? { ...r, [campo]: v } : r,
@@ -229,9 +249,15 @@ function PanelHoja() {
                 <Fragment key={r.rol}>
                   <em>{r.rol}</em>
                   <input
-                    placeholder="dd/mm/aa"
+                    inputMode="numeric"
+                    placeholder="dd/mm/aaaa"
                     value={r.fecha}
-                    onChange={(e) => setResponsable(i, "fecha", e.target.value)}
+                    className={
+                      r.fecha !== "" && !fechaValida(r.fecha) ? "invalido" : ""
+                    }
+                    onChange={(e) =>
+                      setResponsable(i, "fecha", enmascararFecha(e.target.value))
+                    }
                   />
                   <input
                     placeholder="Nombre y apellido"

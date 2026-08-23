@@ -7,12 +7,15 @@ const SEP = 8;
 const LARGO = 15;
 const ALTO_LINEA = 88;
 
+/** Posición X del centro del cable dentro del nodo (para el handle) */
+export const ALIM_CABLE_X = 85;
+
 /**
- * Alimentación = CONDUCTOR VINIENTE desde el tablero, en VERTICAL:
- * baja desde arriba con su etiqueta «Desde …» a la izquierda y la
- * notación del mazo al costado derecho (igual que las conexiones),
- * con las mismas marcas normadas (neutro = círculo, tierra = corte).
- * El enganche está en el extremo inferior del cable.
+ * Alimentación = CONDUCTOR VINIENTE desde el tablero, en VERTICAL.
+ * Caja mínima: etiqueta «Desde …» con la notación debajo, y el cable a
+ * la derecha con sus marcas normadas (neutro = círculo, tierra =
+ * corte). El punto de conexión está EXACTAMENTE en la punta inferior
+ * del cable.
  */
 function AlimentadorNode({
   id,
@@ -37,13 +40,22 @@ function AlimentadorNode({
 
   return (
     <div className={`nodo-alimentador${selected ? " sel" : ""}`}>
-      <input
-        className="nodrag alim-origen"
-        value={data.origen}
-        placeholder="Desde…"
-        onChange={(e) => actualizar(id, { origen: e.target.value })}
-        title="Procedencia de la alimentación"
-      />
+      <div className="alim-col">
+        <input
+          className="nodrag alim-origen"
+          value={data.origen}
+          placeholder="Desde…"
+          onChange={(e) => actualizar(id, { origen: e.target.value })}
+          title="Procedencia de la alimentación"
+        />
+        {nota.length > 0 && (
+          <div className="alim-nota">
+            {nota.map((l, i) => (
+              <div key={i}>{l}</div>
+            ))}
+          </div>
+        )}
+      </div>
       <svg className="alim-linea" width={30} height={ALTO_LINEA}>
         <line
           x1={15}
@@ -55,13 +67,12 @@ function AlimentadorNode({
         />
         {total > 0 &&
           Array.from({ length: total }, (_, i) => {
-            const cx = 15;
             const cy = ALTO_LINEA / 2 + (i - (total - 1) / 2) * SEP;
-            const bx = cx + wx * h;
+            const bx = 15 + wx * h;
             const by = cy + wy * h;
             return (
               <g key={i} stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
-                <line x1={cx - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
+                <line x1={15 - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
                 {neutro && i === fases && (
                   <circle cx={bx} cy={by} r={2.6} fill="#fdfdfd" />
                 )}
@@ -77,14 +88,18 @@ function AlimentadorNode({
             );
           })}
       </svg>
-      {nota.length > 0 && (
-        <div className="alim-nota">
-          {nota.map((l, i) => (
-            <div key={i}>{l}</div>
-          ))}
-        </div>
-      )}
-      <Handle type="source" position={Position.Bottom} id="salida" />
+      {/* El punto de conexión va JUSTO en la punta inferior del cable */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="salida"
+        style={{
+          left: ALIM_CABLE_X,
+          top: "auto",
+          bottom: -4,
+          transform: "translateX(-50%)",
+        }}
+      />
     </div>
   );
 }
