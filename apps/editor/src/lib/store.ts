@@ -16,11 +16,16 @@ import {
   HOJA_POR_DEFECTO,
   NOTAS_GABINETE_POR_DEFECTO,
   ROTULO_POR_DEFECTO,
+  hojaNuevaDesde,
+  migrarAProyectoV2,
   rectanguloUtil,
   type AlimentadorConfig,
+  type ConexionProyecto,
+  type Hoja,
   type HojaConfig,
   type NodoProyecto,
   type NotasGabineteConfig,
+  type Proyecto,
   type ProyectoJSON,
   type ResponsableRotulo,
   type RotuloConfig,
@@ -171,13 +176,169 @@ function esDatosAlimentador(d: NodoData): d is DatosAlimentador {
   return d.tipo === "alimentador";
 }
 
+/* ==================== Conversiones RF ↔ proyecto ==================== */
+
+function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
+  const posicion = {
+    x: Math.round(n.position.x),
+    y: Math.round(n.position.y),
+  };
+  if (esDatosAlimentador(n.data)) {
+    return {
+      id: n.id,
+      tipo: "alimentador" as const,
+      posicion,
+      datos: {
+        origen: n.data.origen,
+        fases: n.data.fases,
+        neutro: n.data.neutro,
+        tierra: n.data.tierra,
+        cantidadN: n.data.cantidadN,
+      },
+    };
+  }
+  return {
+    id: n.id,
+    codigo_iec: n.data.codigo_iec,
+    posicion,
+    rotacion: n.data.rotacion,
+    atributos: {},
+  };
+}
+
+function rfAConexionProyecto(e: Edge): ConexionProyecto {
+  return {
+    id: e.id,
+    desde: `${e.source}.${e.sourceHandle ?? ""}`,
+    hasta: `${e.target}.${e.targetHandle ?? ""}`,
+    atributos_conductor: {},
+  };
+}
+
+function nuevoIdEn(existentes: { id: string }[], prefijo: string): string {
+  let max = 0;
+  for (const e of existentes) {
+    const m = e.id.match(new RegExp(`^${prefijo}(\\d+)$`));
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return `${prefijo}${max + 1}`;
+}
+
+/**
+ * Convierte los nodos/conexiones serializados de una hoja al estado de
+ * trabajo de React Flow, validando códigos contra la librería, migrando
+ * alimentadores legados del encabezado y descartando conexiones huérfanas.
+ * Devuelve también la HojaConfig normalizada de esa hoja.
+ */
+function construirEstadoHoja(hojaSer: Hoja): {
+  cfg: HojaConfig;
+  nodos: Node<NodoData>[];
+  conexiones: Edge[];
+  problemas: string[];
+} {
+  const etiqueta = hojaSer.nombre || "Hoja";
+  const fusion = fusionarHoja(hojaSer as Partial<HojaConfig>);
+  const nodos: Node<NodoData>[] = [];
+  const problemas: string[] = [];
+  for (const n of hojaSer.nodos ?? []) {
+    if (n.tipo === "alimentador") {
+      const d = { ...ALIMENTADOR_POR_DEFECTO(), ...(n.datos ?? {}) };
+      nodos.push({
+        id: n.id,
+        type: "alimentador",
+        position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
+        data: {
+          tipo: "alimentador",
+          origen: typeof d.origen === "string" ? d.origen : "",
+          fases: typeof d.fases === "boolean" ? d.fases : true,
+          neutro: typeof d.neutro === "boolean" ? d.neutro : true,
+          tierra: typeof d.tierra === "boolean" ? d.tierra : true,
+          cantidadN:
+            typeof d.cantidadN === "number" &&
+            Number.isFinite(d.cantidadN) &&
+            d.cantidadN > 0
+              ? Math.floor(d.cantidadN)
+              : null,
+        },
+      });
+      continue;
+    }
+    const simbolo = obtenerSimbolo(n.codigo_iec ?? "");
+    if (!simbolo) {
+      problemas.push(
+        `[${etiqueta}] nodo ${n.id}: código ${n.codigo_iec} no existe en la librería — se omite`,
+      );
+      continue;
+    }
+    nodos.push({
+      id: n.id,
+      type: "simbolo",
+      position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
+      data: {
+        tipo: "simbolo",
+        codigo_iec: n.codigo_iec!,
+        rotacion: (((n.rotacion ?? 0) % 360) + 360) % 360,
+      },
+    });
+  }
+  // Migración: encabezado.alimentadores de proyectos viejos → nodos
+  const r = rectanguloUtil(fusion.hoja);
+  for (const a of fusion.alimentadoresLegado) {
+    const datos = { tipo: "alimentador", ...a } as DatosAlimentador;
+    const t = esDatosAlimentador(datos)
+      ? TAMANO_ALIMENTADOR_PX
+      : { ancho: 0, alto: 0 };
+    const snap = (v: number) => Math.round(v / 10) * 10;
+    nodos.push({
+      id: nuevoIdEn(nodos, "a"),
+      type: "alimentador",
+      position: {
+        x: snap(
+          r.x0 +
+            60 +
+            nodos.filter((n) => esDatosAlimentador(n.data)).length *
+              (t.ancho + 20),
+        ),
+        y: snap(r.y0 + 170),
+      },
+      data: { ...datos },
+    });
+  }
+  const idsValidos = new Set(nodos.map((n) => n.id));
+  const conexiones: Edge[] = [];
+  for (const c of hojaSer.conexiones ?? []) {
+    const [src, srcH] = c.desde.split(".");
+    const [tgt, tgtH] = c.hasta.split(".");
+    if (!idsValidos.has(src) || !idsValidos.has(tgt)) {
+      problemas.push(
+        `[${etiqueta}] conexión ${c.id}: extremo inexistente (${src} → ${tgt}) — se omite`,
+      );
+      continue;
+    }
+    conexiones.push({
+      id: c.id,
+      source: src,
+      sourceHandle: srcH ?? null,
+      target: tgt,
+      targetHandle: tgtH ?? null,
+      type: "conexion",
+    });
+  }
+  return { cfg: fusion.hoja, nodos, conexiones, problemas };
+}
+
 interface EstadoEditor {
+  /** Proyecto completo v2 (todas las hojas con su contenido serializado) */
+  proyecto: Proyecto;
+  hojaActivaId: string;
+  /** Estado de trabajo React Flow de la HOJA ACTIVA */
   nodos: Node<NodoData>[];
   conexiones: Edge[];
   nombreProyecto: string;
   problemasProyecto: string[];
   paletaVisible: boolean;
   panelHojaAbierto: boolean;
+  /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
   alternarPaleta: () => void;
@@ -207,9 +368,28 @@ interface EstadoEditor {
   pegar: () => void;
   deshacer: () => void;
   rehacer: () => void;
+  /** Marca como seleccionados SOLO los ids dados (sin historial) */
+  seleccionarNodos: (ids: string[]) => void;
   setNombreProyecto: (nombre: string) => void;
-  cargarProyecto: (proyecto: ProyectoJSON) => void;
-  serializarActual: () => ProyectoJSON;
+  /* ---- Multi-hoja ---- */
+  agregarHoja: () => string;
+  eliminarHoja: (id: string) => void;
+  duplicarHoja: (id: string) => string | null;
+  renombrarHoja: (id: string, nombre: string) => void;
+  reordenarHojas: (desde: number, hacia: number) => void;
+  cambiarHojaActiva: (id: string, viewportActual?: Viewport) => void;
+  moverSeleccionAHoja: (
+    destinoId: string,
+  ) => { movidos: number; cortadas: number } | null;
+  guardarViewport: (vp: Viewport) => void;
+  cargarProyecto: (entrada: ProyectoJSON | Proyecto | string) => void;
+  serializarActual: () => Proyecto;
+}
+
+export interface Viewport {
+  x: number;
+  y: number;
+  zoom: number;
 }
 
 interface ContenidoPortapapeles {
@@ -229,12 +409,12 @@ interface ContenidoPortapapeles {
 let portapapeles: ContenidoPortapapeles | null = null;
 
 function nuevoId(existentes: { id: string }[], prefijo: string): string {
-  let max = 0;
-  for (const e of existentes) {
-    const m = e.id.match(new RegExp(`^${prefijo}(\\d+)$`));
-    if (m) max = Math.max(max, Number(m[1]));
-  }
-  return `${prefijo}${max + 1}`;
+  return nuevoIdEn(existentes, prefijo);
+}
+
+/** Copia profunda de una config de hoja (datos planos JSON-safe) */
+function clonarCfg(cfg: HojaConfig): HojaConfig {
+  return JSON.parse(JSON.stringify(cfg)) as HojaConfig;
 }
 
 const historial = new Historial();
@@ -266,7 +446,39 @@ export function tamanoNodoPx(data: NodoData): { ancho: number; alto: number } {
     : tamanoWrapperPx(data.codigo_iec, data.rotacion);
 }
 
+/** Proyecto vacío inicial con una sola hoja */
+function proyectoInicial(): { proyecto: Proyecto; hojaId: string } {
+  const hoja = hojaNuevaDesde(HOJA_POR_DEFECTO(), "Hoja 1");
+  return {
+    proyecto: {
+      version: 2,
+      meta: {
+        nombre: "proyecto_sin_nombre",
+        fechaCreacion: new Date().toISOString(),
+        ultimaModificacion: new Date().toISOString(),
+      },
+      hojas: [hoja],
+    },
+    hojaId: hoja.id,
+  };
+}
+
+const inicial = proyectoInicial();
+
 export const useEditor = create<EstadoEditor>((set, get) => {
+  /** Vuelca SOLO la config (rótulo/notas/formato) a la entrada activa */
+  function volcarCfgActiva(cfg: HojaConfig): void {
+    const { proyecto, hojaActivaId } = get();
+    set({
+      proyecto: {
+        ...proyecto,
+        hojas: proyecto.hojas.map((h) =>
+          h.id === hojaActivaId ? { ...h, ...clonarCfg(cfg) } : h,
+        ),
+      },
+    });
+  }
+
   function ejecutar(cmd: Comando): void {
     historial.ejecutar(cmd);
     set({ version: get().version + 1 });
@@ -296,14 +508,37 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     };
   }
 
+  /** Guarda el estado de trabajo actual dentro de la entrada de la hoja activa */
+  function volcarActiva(viewport?: Viewport): void {
+    const { proyecto, hojaActivaId, nodos, conexiones, hoja } = get();
+    set({
+      proyecto: {
+        ...proyecto,
+        hojas: proyecto.hojas.map((h) =>
+          h.id === hojaActivaId
+            ? {
+                ...h,
+                ...clonarCfg(hoja),
+                nodos: nodos.map(rfANodoProyecto),
+                conexiones: conexiones.map(rfAConexionProyecto),
+                viewport: viewport ?? h.viewport,
+              }
+            : h,
+        ),
+      },
+    });
+  }
+
   return {
+    proyecto: inicial.proyecto,
+    hojaActivaId: inicial.hojaId,
     nodos: [],
     conexiones: [],
-    nombreProyecto: "proyecto_sin_nombre",
+    nombreProyecto: inicial.proyecto.meta.nombre,
     problemasProyecto: [],
     paletaVisible: true,
     panelHojaAbierto: false,
-    hoja: HOJA_POR_DEFECTO(),
+    hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
 
     alternarPaleta() {
@@ -315,6 +550,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
 
     actualizarHoja(patch) {
+      // Escribe en el espejo Y en la entrada del proyecto (para que el
+      // cambio sobreviva al cambio de pestaña)
       set((s) => ({
         hoja: {
           ...s.hoja,
@@ -326,6 +563,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           rotulo: { ...s.hoja.rotulo, ...(patch.rotulo ?? {}) },
         },
       }));
+      const espejo = get().hoja;
+      volcarCfgActiva(espejo);
     },
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
@@ -620,147 +859,362 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       if (historial.rehacer()) set({ version: get().version + 1 });
     },
 
-    setNombreProyecto(nombre) {
-      set({ nombreProyecto: nombre });
+    seleccionarNodos(ids) {
+      const sel = new Set(ids);
+      set((s) => ({
+        nodos: s.nodos.map((n) =>
+          n.selected === sel.has(n.id)
+            ? n
+            : { ...n, selected: sel.has(n.id) },
+        ),
+      }));
     },
 
-    cargarProyecto(proyecto) {
-      const nodos: Node<NodoData>[] = [];
-      const problemas: string[] = [];
-      for (const n of proyecto.nodos ?? []) {
-        if (n.tipo === "alimentador") {
-          const d = { ...ALIMENTADOR_POR_DEFECTO(), ...(n.datos ?? {}) };
-          nodos.push({
-            id: n.id,
-            type: "alimentador",
-            position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
-            data: {
-              tipo: "alimentador",
-              origen: typeof d.origen === "string" ? d.origen : "",
-              fases: typeof d.fases === "boolean" ? d.fases : true,
-              neutro: typeof d.neutro === "boolean" ? d.neutro : true,
-              tierra: typeof d.tierra === "boolean" ? d.tierra : true,
-              cantidadN:
-                typeof d.cantidadN === "number" &&
-                Number.isFinite(d.cantidadN) &&
-                d.cantidadN > 0
-                  ? Math.floor(d.cantidadN)
-                  : null,
-            },
-          });
-          continue;
-        }
-        const simbolo = obtenerSimbolo(n.codigo_iec ?? "");
-        if (!simbolo) {
-          problemas.push(
-            `nodo ${n.id}: código ${n.codigo_iec} no existe en la librería — se omite`,
-          );
-          continue;
-        }
-        nodos.push({
-          id: n.id,
-          type: "simbolo",
-          position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
-          data: {
-            tipo: "simbolo",
-            codigo_iec: n.codigo_iec!,
-            rotacion: (((n.rotacion ?? 0) % 360) + 360) % 360,
-          },
-        });
+    setNombreProyecto(nombre) {
+      set((s) => ({
+        nombreProyecto: nombre,
+        proyecto: {
+          ...s.proyecto,
+          meta: { ...s.proyecto.meta, nombre },
+        },
+      }));
+    },
+
+    /* ==================== Multi-hoja ==================== */
+
+    agregarHoja() {
+      const { proyecto } = get();
+      // Nombre único "Hoja N"
+      let n = proyecto.hojas.length + 1;
+      const nombres = new Set(proyecto.hojas.map((h) => h.nombre));
+      while (nombres.has(`Hoja ${n}`)) n += 1;
+      const nueva = hojaNuevaDesde(clonarCfg(get().hoja), `Hoja ${n}`);
+      set((s) => ({
+        proyecto: { ...s.proyecto, hojas: [...s.proyecto.hojas, nueva] },
+        version: s.version + 1,
+      }));
+      // NO se cambia la hoja activa (decisión de diseño): el usuario
+      // queda donde está y va a la nueva desde la pestaña.
+      return nueva.id;
+    },
+
+    eliminarHoja(id) {
+      const { proyecto, hojaActivaId } = get();
+      if (proyecto.hojas.length <= 1) return; // nunca sin hojas
+      const indice = proyecto.hojas.findIndex((h) => h.id === id);
+      if (indice === -1) return;
+
+      // Si borramos la activa, primero nos mudamos a una vecina
+      if (id === hojaActivaId) {
+        const vecina =
+          proyecto.hojas[indice + 1] ?? proyecto.hojas[indice - 1];
+        get().cambiarHojaActiva(vecina.id);
       }
-      // Migración: encabezado.alimentadores de proyectos viejos → nodos
-      const fusion = fusionarHoja(proyecto.hoja);
-      for (const a of fusion.alimentadoresLegado) {
-        const r = rectanguloUtil(fusion.hoja);
-        const datos = { tipo: "alimentador", ...a } as DatosAlimentador;
-        const pos = limitarAHoja(
-          r.x0 + 60 + nodos.filter((n) => esDatosAlimentador(n.data)).length *
-            (TAMANO_ALIMENTADOR_PX.ancho + 20),
-          r.y0 + 170,
-          datos,
-        );
-        nodos.push({
-          id: nuevoId(nodos, "a"),
-          type: "alimentador",
-          position: pos,
-          data: { ...datos },
-        });
-      }
-      const idsValidos = new Set(nodos.map((n) => n.id));
-      const conexiones: Edge[] = [];
-      for (const c of proyecto.conexiones ?? []) {
-        const [src, srcH] = c.desde.split(".");
-        const [tgt, tgtH] = c.hasta.split(".");
-        if (!idsValidos.has(src) || !idsValidos.has(tgt)) {
-          problemas.push(
-            `conexión ${c.id}: extremo inexistente (${src} → ${tgt}) — se omite`,
-          );
-          continue;
+
+      set((s) => ({
+        proyecto: {
+          ...s.proyecto,
+          hojas: s.proyecto.hojas.filter((h) => h.id !== id),
+        },
+        version: s.version + 1,
+      }));
+      historial.eliminarHoja(id);
+
+      // Barrido defensivo: ninguna conexión de las hojas restantes debe
+      // apuntar a nodos inexistentes (por invariante no debería pasar)
+      set((s) => ({
+        proyecto: {
+          ...s.proyecto,
+          hojas: s.proyecto.hojas.map((h) => {
+            const ids = new Set(h.nodos.map((n) => n.id));
+            const filtradas = h.conexiones.filter((c) => {
+              const [a] = c.desde.split(".");
+              const [b] = c.hasta.split(".");
+              return ids.has(a) && ids.has(b);
+            });
+            return filtradas.length === h.conexiones.length
+              ? h
+              : { ...h, conexiones: filtradas };
+          }),
+        },
+      }));
+    },
+
+    duplicarHoja(id) {
+      const { proyecto, hojaActivaId } = get();
+      const fuente = proyecto.hojas.find((h) => h.id === id);
+      if (!fuente) return null;
+      // Si duplicamos la activa, volcamos su estado de trabajo primero
+      if (id === hojaActivaId) volcarActiva();
+      const orig = get().proyecto.hojas.find((h) => h.id === id)!;
+
+      // Remapeo de ids para preservar unicidad global (la regla de corte
+      // por pertenencia a hoja depende de que los ids no colisionen)
+      const mapa = new Map<string, string>();
+      const nodosCopiados: NodoProyecto[] = orig.nodos.map((n) => {
+        const prefijo = n.tipo === "alimentador" ? "a" : "n";
+        const nuevoIdStr = `${prefijo}${Date.now().toString(36)}${mapa.size}${Math.floor(Math.random() * 1000)}`;
+        mapa.set(n.id, nuevoIdStr);
+        return { ...n, id: nuevoIdStr, atributos: {} };
+      });
+      const conexionesCopiadas: ConexionProyecto[] = orig.conexiones.map(
+        (c, i) => {
+          const [src, srcH] = c.desde.split(".");
+          const [tgt, tgtH] = c.hasta.split(".");
+          return {
+            id: `c${Date.now().toString(36)}d${i}`,
+            desde: `${mapa.get(src) ?? src}.${srcH ?? ""}`,
+            hasta: `${mapa.get(tgt) ?? tgt}.${tgtH ?? ""}`,
+            atributos_conductor: {},
+          };
+        },
+      );
+
+      const indice = get().proyecto.hojas.findIndex((h) => h.id === id);
+      const nombres = new Set(get().proyecto.hojas.map((h) => h.nombre));
+      let sufijo = 2;
+      while (nombres.has(`${orig.nombre} (${sufijo})`)) sufijo += 1;
+      const copia: Hoja = {
+        ...clonarCfg(orig),
+        id: crypto.randomUUID(),
+        nombre: `${orig.nombre} (${sufijo})`,
+        nodos: nodosCopiados,
+        conexiones: conexionesCopiadas,
+        viewport: orig.viewport ? { ...orig.viewport } : undefined,
+      };
+      const hojas = [...get().proyecto.hojas];
+      hojas.splice(indice + 1, 0, copia);
+      set((s) => ({
+        proyecto: { ...s.proyecto, hojas },
+        version: s.version + 1,
+      }));
+      return copia.id;
+    },
+
+    renombrarHoja(id, nombre) {
+      set((s) => ({
+        proyecto: {
+          ...s.proyecto,
+          hojas: s.proyecto.hojas.map((h) =>
+            h.id === id ? { ...h, nombre } : h,
+          ),
+        },
+        version: s.version + 1,
+      }));
+    },
+
+    reordenarHojas(desde, hacia) {
+      set((s) => {
+        const hojas = [...s.proyecto.hojas];
+        if (
+          desde < 0 ||
+          hacia < 0 ||
+          desde >= hojas.length ||
+          hacia >= hojas.length
+        ) {
+          return {};
         }
-        conexiones.push({
-          id: c.id,
-          source: src,
-          sourceHandle: srcH ?? null,
-          target: tgt,
-          targetHandle: tgtH ?? null,
-          type: "conexion",
-        });
-      }
-      historial.limpiar();
+        const [quitada] = hojas.splice(desde, 1);
+        hojas.splice(hacia, 0, quitada);
+        return {
+          proyecto: { ...s.proyecto, hojas },
+          version: s.version + 1,
+        };
+      });
+    },
+
+    cambiarHojaActiva(id, viewportActual) {
+      const { hojaActivaId, proyecto } = get();
+      if (id === hojaActivaId) return;
+      const destino = proyecto.hojas.find((h) => h.id === id);
+      if (!destino) return;
+      // 1) Volcar el trabajo de la hoja saliente (+ su viewport)
+      volcarActiva(viewportActual);
+      // 2) Cargar el estado de trabajo de la hoja entrante
+      const fuente = get().proyecto.hojas.find((h) => h.id === id)!;
+      const construido = construirEstadoHoja(fuente);
+      historial.usar(id);
       set({
-        nodos,
-        conexiones,
-        nombreProyecto: proyecto.nombre || "proyecto_sin_nombre",
+        hojaActivaId: id,
+        nodos: construido.nodos,
+        conexiones: construido.conexiones,
+        hoja: construido.cfg,
+        version: get().version + 1,
+      });
+    },
+
+    guardarViewport(vp) {
+      const { proyecto, hojaActivaId } = get();
+      set({
+        proyecto: {
+          ...proyecto,
+          hojas: proyecto.hojas.map((h) =>
+            h.id === hojaActivaId ? { ...h, viewport: vp } : h,
+          ),
+        },
+      });
+    },
+
+    /**
+     * Mueve la selección de la hoja activa a otra hoja.
+     * Regla de corte: las conexiones internas viajan; las que cruzan
+     * hojas se cortan (se informan). Todo queda como UN comando compuesto
+     * en la pila de la hoja ORIGEN (donde está mirando el usuario):
+     * Ctrl+Z restaura nodos + conexiones cortadas atómicamente.
+     */
+    moverSeleccionAHoja(destinoId) {
+      const { nodos, conexiones, proyecto, hojaActivaId } = get();
+      if (destinoId === hojaActivaId) return null;
+      const destino = proyecto.hojas.find((h) => h.id === destinoId);
+      if (!destino) return null;
+      const seleccion = nodos.filter((n) => n.selected);
+      if (seleccion.length === 0) return null;
+      const idsSel = new Set(seleccion.map((n) => n.id));
+
+      // Conexiones que viajan (ambos extremos) vs que se cortan (uno)
+      const viajan = conexiones.filter(
+        (e) => idsSel.has(e.source) && idsSel.has(e.target),
+      );
+      const cortadas = conexiones.filter(
+        (e) => idsSel.has(e.source) !== idsSel.has(e.target),
+      );
+
+      // Nuevos ids en el espacio de la hoja destino
+      const remap = new Map<string, string>();
+      for (const n of seleccion) {
+        const prefijo = esDatosAlimentador(n.data) ? "a" : "n";
+        remap.set(
+          n.id,
+          `${prefijo}${Date.now().toString(36)}${remap.size}${Math.floor(Math.random() * 1000)}`,
+        );
+      }
+      const nodosDestino: NodoProyecto[] = seleccion.map(rfANodoProyecto).map(
+        (np, i) => ({ ...np, id: [...remap.values()][i] }),
+      );
+      const connsDestino: ConexionProyecto[] = viajan.map((e, i) => ({
+        id: `c${Date.now().toString(36)}m${i}`,
+        desde: `${remap.get(e.source)}.`,
+        hasta: `${remap.get(e.target)}.`,
+        atributos_conductor: {},
+      }));
+
+      const snapshotNodos = nodos;
+      const snapshotConexiones = conexiones;
+
+      ejecutar({
+        descripcion: `mover ${seleccion.length} símbolos a «${destino.nombre}»`,
+        do: () => {
+          // Origen: fuera selección y sus aristas (viajaron o cortadas)
+          set((s) => ({
+            nodos: s.nodos.filter((n) => !idsSel.has(n.id)),
+            conexiones: s.conexiones.filter(
+              (e) => !idsSel.has(e.source) && !idsSel.has(e.target),
+            ),
+          }));
+          // Destino: llegan nodos y conexiones internas
+          set((s) => ({
+            proyecto: {
+              ...s.proyecto,
+              hojas: s.proyecto.hojas.map((h) =>
+                h.id === destinoId
+                  ? {
+                      ...h,
+                      nodos: [...h.nodos, ...nodosDestino],
+                      conexiones: [...h.conexiones, ...connsDestino],
+                    }
+                  : h,
+              ),
+            },
+          }));
+        },
+        undo: () => {
+          // Restaurar origen tal como estaba…
+          set({ nodos: snapshotNodos, conexiones: snapshotConexiones });
+          // …y quitar de destino lo que había llegado
+          const idsLlegaron = new Set(nodosDestino.map((n) => n.id));
+          const idsConns = new Set(connsDestino.map((c) => c.id));
+          set((s) => ({
+            proyecto: {
+              ...s.proyecto,
+              hojas: s.proyecto.hojas.map((h) =>
+                h.id === destinoId
+                  ? {
+                      ...h,
+                      nodos: h.nodos.filter((n) => !idsLlegaron.has(n.id)),
+                      conexiones: h.conexiones.filter(
+                        (c) => !idsConns.has(c.id),
+                      ),
+                    }
+                  : h,
+              ),
+            },
+          }));
+        },
+      });
+
+      return { movidos: seleccion.length, cortadas: cortadas.length };
+    },
+
+    cargarProyecto(entrada) {
+      const bruto =
+        typeof entrada === "string"
+          ? migrarAProyectoV2(entrada)
+          : ("version" in entrada && entrada.version === 2
+              ? (entrada as Proyecto)
+              : migrarAProyectoV2(entrada));
+
+      const problemas: string[] = [];
+      const hojasNormalizadas: Hoja[] = bruto.hojas.map((h) => {
+        const construida = construirEstadoHoja(h);
+        problemas.push(...construida.problemas);
+        return {
+          ...(h as Hoja),
+          ...construida.cfg,
+          id: h.id || crypto.randomUUID(),
+          nombre: h.nombre || "Hoja",
+          nodos: construida.nodos.map(rfANodoProyecto),
+          conexiones: construida.conexiones.map(rfAConexionProyecto),
+          viewport: h.viewport,
+        };
+      });
+      if (hojasNormalizadas.length === 0) {
+        hojasNormalizadas.push(hojaNuevaDesde(HOJA_POR_DEFECTO(), "Hoja 1"));
+      }
+
+      const proyecto: Proyecto = {
+        version: 2,
+        meta: bruto.meta ?? {
+          nombre: "proyecto_sin_nombre",
+          fechaCreacion: new Date().toISOString(),
+          ultimaModificacion: new Date().toISOString(),
+        },
+        hojas: hojasNormalizadas,
+      };
+
+      const primera = proyecto.hojas[0];
+      const estado = construirEstadoHoja(primera);
+      historial.limpiar(); // limpia TODAS las pilas
+      historial.usar(primera.id);
+      set({
+        proyecto,
+        hojaActivaId: primera.id,
+        nodos: estado.nodos,
+        conexiones: estado.conexiones,
+        nombreProyecto: proyecto.meta.nombre || "proyecto_sin_nombre",
         problemasProyecto: problemas,
-        hoja: fusion.hoja,
+        hoja: estado.cfg,
         version: get().version + 1,
       });
     },
 
     serializarActual() {
-      const { nodos, conexiones, nombreProyecto, hoja } = get();
-      const nodosProyecto: NodoProyecto[] = nodos.map((n) => {
-        const posicion = {
-          x: Math.round(n.position.x),
-          y: Math.round(n.position.y),
-        };
-        if (esDatosAlimentador(n.data)) {
-          return {
-            id: n.id,
-            tipo: "alimentador" as const,
-            posicion,
-            datos: {
-              origen: n.data.origen,
-              fases: n.data.fases,
-              neutro: n.data.neutro,
-              tierra: n.data.tierra,
-              cantidadN: n.data.cantidadN,
-            },
-          };
-        }
-        return {
-          id: n.id,
-          codigo_iec: n.data.codigo_iec,
-          posicion,
-          rotacion: n.data.rotacion,
-          atributos: {},
-        };
-      });
-      const conexionesProyecto = conexiones.map((e) => ({
-        id: e.id,
-        desde: `${e.source}.${e.sourceHandle ?? ""}`,
-        hasta: `${e.target}.${e.targetHandle ?? ""}`,
-        atributos_conductor: {},
-      }));
-      return {
-        nombre: nombreProyecto,
-        nodos: nodosProyecto,
-        conexiones: conexionesProyecto,
-        modo_vista: "unifilar_simple",
-        hoja,
-      };
+      volcarActiva();
+      return get().proyecto;
     },
   };
 });
+
+// La hoja inicial tiene su pila de historial desde el arranque
+historial.usar(inicial.hojaId);
 
 export { historial };

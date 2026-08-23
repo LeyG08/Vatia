@@ -5,7 +5,9 @@ import {
   MARGEN_IZQ_MM,
   MARGEN_RESTO_MM,
   PX_POR_MM,
+  calcularPaginacion,
   dimensionesHoja,
+  numeroPlanoConSufijo,
   type NotasGabineteConfig,
 } from "../lib/tipos";
 import { useEditor } from "../lib/store";
@@ -122,6 +124,22 @@ function CeldaRotulo({
 function RotuloIram() {
   const rotulo = useEditor((s) => s.hoja.rotulo);
   const formato = useEditor((s) => s.hoja.formato);
+  // Paginación y nº de plano calculados sobre el proyecto multi-hoja:
+  // con una sola hoja se muestra tal cual el usuario los cargó
+  const totalHojas = useEditor((s) => s.proyecto.hojas.length);
+  const indiceHoja = useEditor((s) =>
+    s.proyecto.hojas.findIndex((h) => h.id === s.hojaActivaId),
+  );
+  const paginacionMostrada = calcularPaginacion(
+    rotulo.paginacion,
+    indiceHoja,
+    totalHojas,
+  );
+  const numeroPlanoMostrado = numeroPlanoConSufijo(
+    rotulo.numeroPlano,
+    indiceHoja,
+    totalHojas,
+  );
   const escalaTexto =
     (rotulo.escala.trim() === "" ? "S/E" : rotulo.escala) +
     (rotulo.metodoIso ? ` ${rotulo.metodoIso}` : "");
@@ -142,6 +160,7 @@ function RotuloIram() {
         gridTemplateRows: ROTULO_FILAS_MM.map((f) => mm(f)).join("px ") + "px",
       })}
       aria-label="Rótulo IRAM 4508"
+      className="zona-protegida"
     >
       {/* Campo 1 — tolerancias generales (abarca las filas de responsables) */}
       <CeldaRotulo
@@ -334,24 +353,24 @@ function RotuloIram() {
         sinAbajo
       />
 
-      {/* Campo 12 — número de plano propio */}
+      {/* Campo 12 — número de plano propio (con sufijo -1, -2… si hay varias hojas) */}
       <CeldaRotulo
         col="2 / 5"
         fila="7"
         etiqueta="N° de plano"
-        valor={rotulo.numeroPlano}
+        valor={numeroPlanoMostrado}
         tamano={2.8}
         fuerte
         centrado
         sinAbajo
       />
 
-      {/* Campo 13 — paginación */}
+      {/* Campo 13 — paginación automática "X / Y" */}
       <CeldaRotulo
         col="5"
         fila="7"
         etiqueta="Pág."
-        valor={rotulo.paginacion}
+        valor={paginacionMostrada}
         tamano={2.4}
         centrado
         sinDerecha
@@ -418,6 +437,7 @@ function HojaNode(_props: NodeProps) {
          * angosta a la izquierda para no invadir el centro del unifilar. */}
         {notasGabinete.length > 0 && (
           <div
+            className="zona-protegida"
             style={bloqueStyle({
               top: mm(4),
               left: mm(6),
@@ -436,6 +456,7 @@ function HojaNode(_props: NodeProps) {
         {/* Nota de seguridad operativa al pie, a la izquierda del rótulo */}
         {hoja.notaSeguridad.trim() !== "" && (
           <div
+            className="zona-protegida"
             style={bloqueStyle({
               bottom: mm(4),
               left: mm(6),
