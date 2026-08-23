@@ -115,31 +115,57 @@ export function anotacionNodo(
 }
 
 /**
- * Texto del mazo sobre una conexión, al estilo del plano real:
- * "3x1x70+1x1x50mm² · Cu · PVC · 0,6/1kV · IRAM NM 247-3".
- * Sin datos mínimos devuelve vacío (no anota).
+ * Anotación del MAZO sobre la conexión, en DOS líneas al estilo del
+ * plano real:
+ *   1 x 4 x 25 mm² + 16 mm²      ← notación (según tipo de cable)
+ *   Cu/PVC · IRAM 2178           ← material/aislación, y al lado la norma
+ *
+ * Reglas (acordadas con el usuario):
+ * - unipolar   → "F x 1 x S" (conductores sueltos)
+ * - multipolar → "1 x n x S" donde n cuenta fases + neutro
+ * - neutro/tierra con sección IGUAL a fase no agregan nada extra
+ *   (multipolar) o se listan explícitos (unipolar); si difieren se
+ *   anexan como "+ X mm²".
  */
-export function textoMazo(a: Record<string, unknown>): string {
-  const tieneMasoMenos =
-    a.cantidad_conductores || a.material || a.norma_iram || a.aislacion;
-  if (!tieneMasoMenos) return "";
+export function lineasMazo(a: Record<string, unknown>): string[] {
+  const tieneAlgo =
+    a.cantidad_conductores || a.material || a.aislacion || a.norma_iram;
+  if (!tieneAlgo) return [];
 
   const sf = n(a.seccion_fase_mm2);
-  let mazo = "";
-  if (a.cantidad_conductores && sf) {
-    mazo = `${a.cantidad_conductores}x1x${sf}`;
-    if (a.lleva_neutro)
-      mazo += `+1x1x${n(a.seccion_neutro_mm2) || sf}`;
-    if (a.lleva_tierra)
-      mazo += `+1x1x${n(a.seccion_tierra_mm2) || sf}`;
-    mazo += "mm²";
+  const fases =
+    typeof a.cantidad_conductores === "number" ? a.cantidad_conductores : 0;
+  const mp = a.tipo_cable === "multipolar";
+
+  let principal = "";
+  if (fases > 0 && sf) {
+    principal = mp
+      ? `1 x ${fases + (a.lleva_neutro ? 1 : 0)} x ${sf} mm²`
+      : `${fases} x 1 x ${sf} mm²`;
   }
-  const resto = [
+
+  const extras: string[] = [];
+  if (a.lleva_neutro && sf) {
+    const sn = n(a.seccion_neutro_mm2);
+    if (!mp) extras.push(`1 x 1 x ${sn || sf} mm²`);
+    else if (sn && sn !== String(sf)) extras.push(`${sn} mm²`);
+  }
+  if (a.lleva_tierra && sf) {
+    const st = n(a.seccion_tierra_mm2);
+    if (!mp) extras.push(`1 x 1 x ${st || sf} mm²`);
+    else extras.push(`${st || sf} mm²`);
+  }
+
+  const linea1 = [principal, ...extras].filter(Boolean).join(" + ");
+
+  const matAis = [
     capitalizar(a.material),
     capitalizar(a.aislacion),
-    String(a.tension_asignada ?? "").trim(),
+  ].filter(Boolean);
+  const linea2partes = [
+    matAis.length > 0 ? matAis.join("/") : "",
     capitalizar(a.norma_iram),
   ].filter(Boolean);
 
-  return [mazo, ...resto].filter(Boolean).join(" · ");
+  return [linea1, ...linea2partes].filter(Boolean);
 }

@@ -3,6 +3,7 @@ import { useStore } from "@xyflow/react";
 import { useEditor, tamanoNodoPx, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
 import FormularioAtributos from "./FormularioAtributos";
+import FormularioConductor from "./FormularioConductor";
 
 /**
  * Panel de ficha técnica (Fase C4): aparece JUNTO al símbolo o conexión
@@ -115,8 +116,7 @@ export default function PanelAtributos() {
           onChange={(attrs) => actualizarNodo(nodo.id, attrs)}
         />
       ) : (
-        <FormularioAtributos
-          familia="conductor"
+        <FormularioConductor
           atributos={
             (edge!.data?.atributosConductor as Record<string, unknown> | undefined) ??
             {}

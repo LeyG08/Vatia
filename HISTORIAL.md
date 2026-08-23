@@ -685,6 +685,32 @@ actualizó la anotación. La anotación del fusible ahora es:
 `Portafusible Siemens 3NP3` / `500 V · AC-20B` / `250 A gL` /
 `NH00` / `PdCC 125 kA` / `Norma IEC 60269-2`.
 
+**C4f — Formulario de conexión con barras y llaves (feedback del
+usuario):**
+- conductor.schema.json revisado: FUERA tension_asignada (innecesaria)
+  y la variante "vaina" de tipo_cable. tipo_cable queda unipolar |
+  multipolar y DEFINE LA NOTACIÓN: unipolar → "n x 1 x S"
+  (conductores sueltos); multipolar → "1 x n x S" donde n cuenta
+  fases + neutro (ej. del usuario: "1 x 4 x 25 mm² + 16 mm²" =
+  multipolar de 3 fases + neutro con sección distinta).
+- NUEVO FormularioConductor.tsx (el panel ya NO usa el generador
+  genérico para conexiones): stepper con BARRAS inclinadas que
+  representan los conductores de fase (1–3), sección de fase,
+  radios Unipolares/Multipolar, LLAVES on/off para neutro y tierra
+  que al activarse muestran "↳ Sección distinta" opcional
+  (placeholder "= fase"), material/aislación/norma resueltos desde el
+  schema, y VISTA PREVIA en vivo de las dos líneas que irán a la hoja.
+  Tradeoff documentado: este formulario es UI a medida por pedido del
+  usuario; el schema sigue siendo fuente de verdad para validación/C5.
+- lineasMazo() reemplaza a textoMazo(): devuelve DOS líneas — notación
+  del mazo y "Cu/PVC · IRAM 2178" (material/aislación con "/" y al
+  lado la norma). Neutro/tierra con misma sección no agregan sufijo
+  en multipolar; en unipolar se listan explícitos ("+ 1x1x16 mm²").
+  ConexionEdge apila las líneas.
+
+**Verificación:** npm run build ✓ · oxlint ✓ · verificar_alineacion ✓ ·
+lint_simbolos ✓.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
