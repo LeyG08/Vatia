@@ -53,7 +53,9 @@
 | F2 | Rótulo "según planos reales" (sin cajetín) | SUPERADA por F3 (PR #6) | 23/08/2026 ~01:00–01:08 |
 | F3 | Corrección: rótulo IRAM 4508 conforme + alimentadores conectables | mergeada (PR #7) | 23/08/2026 01:10–01:38 |
 | F4 | HISTORIAL.md + reversión política de merge | mergeada (PR #8) | 23/08/2026 ~02:0x |
-| F5 | Notas de gabinete fijas + ajustes finos del cajetín | PR abierto (#9), espera aprobación | 23/08/2026 (actual) |
+| F5 | Notas de gabinete fijas + ajustes finos del cajetín | mergeada (PR #9) | 23/08/2026 ~02:xx |
+| F6 | Multi-hoja v2 (pestañas, undo por hoja, viewport por hoja) | mergeada (PR #10) | 23/08/2026 |
+| FC | Fase C: formularios de atributos técnicos (schemas → panel) | EN CURSO (rama `proyecto/fase-c-atributos-20260823`) | 23/08/2026 |
 
 Trabajo previo a esta sesión (resumen de referencia): creación del
 editor mínimo (PR #1/#2, noche 22/08 ~20:16–21:12), símbolos IEC con
@@ -530,6 +532,65 @@ rótulo/notas como zonas reservadas con rebote.
 
 ---
 
+### FASE C — FORMULARIOS DE ATRIBUTOS TÉCNICOS (2026-08-23)
+
+Rama `proyecto/fase-c-atributos-20260823`. Pasos C1→C6, el usuario
+prueba y aprueba cada uno antes del siguiente.
+
+**C1 — Schemas reestructurados (aprobado por usuario):**
+- `aparato.schema.json`: discriminado por `tipo_aparato` con 5 subtipos
+  (`$defs` + if/then): interruptor_termomagnetico, contactor, fusible,
+  motor_trifasico, transformador; campos cerrados
+  (`additionalProperties:false`) y anotación propia `x-obligatorio`
+  para el Checklist AEA (C5). Ajustes del usuario incorporados:
+  PdCC normalizado en kA (ambos), portafusible y fusible como productos
+  separados, potencia del motor como par kw/hp con auto-cálculo
+  (1 HP = 0,7457 kW) declarado en `x-par-automatico` +
+  `x-alguno-obligatorio`. Icu/Ics quedan NOTA PENDIENTE para un futuro
+  guardamotor_termomagnetico (IEC 60947-2), registrada en
+  `$comment` + docs/estado-revision-aea.md.
+- `conductor.schema.json` (C1-bis): la conexión representa un MAZO
+  ("3x1x70+1x1x50"): cantidad_conductores (fases 1–3),
+  seccion_fase_mm2 obligatoria, neutro/tierra opcionales como boolean
+  lleva_* + sección propia SOLO si difiere de fase. Salieron `rol` y
+  `color_normalizado` (un mazo mezcla roles); consecuencia anotada:
+  la regla futura "conductor sin rol" del checklist C5 ya no aplica,
+  validar por atributos del mazo (nota junto a la de Icu/Ics).
+
+**C2 — Mapeo aplicado (aprobado por usuario):** los 5 aparatos llevan
+`atributos_base: {"tipo_aparato": ...}` en metadata.json (semilla al
+instanciar → el formulario sabe qué schema cargar). S00115 pierde su
+vieja semilla `cantidad_fases:3` (redundante con el símbolo y hoy
+inválida contra el schema cerrado). S00118 (toma a tierra PE) pasa de
+familia "aparato" a NUEVA familia `sin_ficha_tecnica` (nombre elegido
+por el usuario sobre "ninguna": describe qué es, no qué no es;
+extensible a futuros símbolos decorativos). Enum actualizado en
+metadata.schema.json.
+
+**C3 — Generador dinámico de formulario (implementado):**
+- `src/lib/esquemas.ts`: importa los schemas vía alias `@libreria`
+  (ya existía en vite.config.ts; se agregaron resolveJsonModule+paths
+  a tsconfig.app.json) y expone helpers puros: camposDeFamilia()
+  resuelve base_comun+$ref por subtipo, algunoObligatorio(),
+  parAutomatico(), subtiposAparato().
+- `src/componentes/FormularioAtributos.tsx`: renderiza cualquier
+  familia desde el schema (text/number/integer/select/boolean),
+  marca obligatorios con *, muestra aviso de "al menos uno", y aplica
+  auto-conversión kw↔hp leyendo x-par-automatico (sin hardcodear el
+  caso motor). Familia sin_ficha_tecnica → mensaje, sin formulario.
+- Estilos .form-atributos/.campo-atributo en estilos.css.
+- Aún SIN montar: C4 (panel lateral al seleccionar nodo/conexión) lo
+  conecta con el store; recién ahí será probable probarlo en vivo.
+
+**Verificación:** lint_simbolos.py ✓ (7 símbolos, valida metadata vs
+schema nuevo), npm run build ✓, oxlint ✓, verificar_alineacion.mjs ✓.
+Fix durante build: TS infería tipos literales del JSON importado
+(`"tipo_aparato": true` no entraba en Record<string,EsquemaCampo>) →
+cast único `as unknown as EsquemaRaiz`; y baseUrl deprecado en TS6 →
+paths relativos sin baseUrl.
+
+---
+
 ## Registro de reversiones y cambios de rumbo
 
 | Qué | Cuándo | Motivo | Efecto |
@@ -542,8 +603,10 @@ rótulo/notas como zonas reservadas con rebote.
 
 ## Estado al cierre de esta entrada
 
-- `main` local = `00556bb` (PR #8 mergeado): AGENTS.md con política de
-  aprobación previa + HISTORIAL.md activo.
-- Pendiente: aprobar PR #9 (F5: notas fijas + ajustes del cajetín).
-- Próximos pasos funcionales sugeridos: exportar PDF de la hoja,
-  atributos de conductores en conexiones, más símbolos IEC.
+- `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
+- Fase C en curso sobre rama `proyecto/fase-c-atributos-20260823`:
+  C1+C1-bis y C2 aplicadas, C3 implementada (sin montar), falta
+  aprobación de cada paso por el usuario. PR todavía NO abierto.
+- Pendiente: C4 (panel lateral conectado al store) → prueba del
+  usuario → C5 (checklist AEA no bloqueante) → C6 (E2E con valores
+  reales de los PDFs del PPS).

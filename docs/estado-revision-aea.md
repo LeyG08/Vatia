@@ -64,6 +64,28 @@ posterior los retoma:
 
 ---
 
+## Notas pendientes de la Fase C (formularios de atributos)
+
+Registro de decisiones diferidas para que no se pierdan entre pasos:
+
+1. **Icu/Ics del guardamotor futuro.** El subtipo
+   `interruptor_termomagnetico` actual es IEC 60898-1: solo declara
+   `pdcc_kA` (Icn). Cuando la fase de simbología ampliada agregue el
+   subtipo `guardamotor_termomagnetico` (IEC 60947-2), ese schema
+   necesitará campos propios `Icu_kA` e `Ics_kA`. Anotado también como
+   `$comment` en `aparato.schema.json`. NO reutilizar el subtipo actual.
+
+2. **Checklist AEA para conductores: validar por MAZO, no por rol.** Con
+   C1-bis la conexión representa un mazo completo y `rol` /
+   `color_normalizado` salieron del schema. La vieja regla "conductor
+   sin rol asignado" ya no aplica: al implementar C5, la validación de
+   conexiones debe basarse en los atributos del mazo — ¿tiene
+   `cantidad_conductores`? ¿tiene `seccion_fase_mm2`? ¿tiene
+   `material`/`aislacion`/`norma_iram` cargados? ¿coherencia
+   lleva_neutro/lleva_tierra con las secciones opcionales?
+
+---
+
 ## Licencia y atribución
 
 Los símbolos derivan de la colección oficial

@@ -15,7 +15,8 @@
       "minLength": 1
     },
     "familia_atributos": {
-      "enum": ["aparato", "conductor", "barra"]
+      "enum": ["aparato", "conductor", "barra", "sin_ficha_tecnica"],
+      "description": "Familia de atributos técnicos que lleva el símbolo. 'sin_ficha_tecnica' marca símbolos decorativos/auxiliares que no llevan ficha (ej: toma a tierra PE, futuros textos o referencias de plano)."
     },
     "estado_revision": {
       "enum": ["pendiente_revision", "verificado_aea", "corregido"]

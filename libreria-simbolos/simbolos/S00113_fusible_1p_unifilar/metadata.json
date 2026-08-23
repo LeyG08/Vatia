@@ -3,6 +3,7 @@
   "nombre": "Fusible 1P (unifilar)",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "fusible" },
   "puntos_conexion": [
     {
       "id": "1",

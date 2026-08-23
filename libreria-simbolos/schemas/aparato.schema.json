@@ -2,62 +2,122 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "aparato.schema.json",
   "title": "Vatia · Atributos de familia aparato",
-  "description": "Brief §4.2. Los campos con x-obligatorio son advertidos por el Checklist AEA (§6): no bloquean el guardado, solo advierten.",
+  "description": "Fase C. Discriminado por tipo_aparato: cada subtipo define su propio juego de campos cerrado. Los campos con x-obligatorio son advertidos por el Checklist AEA (§C5): no bloquean el guardado, solo advierten.",
+  "$comment": "AJUSTE 2 — Pendiente para la fase de simbología ampliada: el subtipo guardamotor_termomagnetico (IEC 60947-2) requerirá campos propios Icu_kA e Ics_kA. El interruptor_termomagnetico actual es IEC 60898-1 y por eso solo declara pdcc_kA (Icn). No reutilizar este subtipo para guardamotores.",
   "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "marca": {
-      "type": "string",
-      "description": "Opcional en esta fase: se completa a mano hasta que exista la DB de catálogo."
+  "required": ["tipo_aparato"],
+  "properties": {},
+  "allOf": [
+    {
+      "if": { "properties": { "tipo_aparato": { "const": "interruptor_termomagnetico" } }, "required": ["tipo_aparato"] },
+      "then": { "$ref": "#/$defs/interruptor_termomagnetico" }
     },
-    "modelo": {
-      "type": "string",
-      "x-obligatorio": false
+    {
+      "if": { "properties": { "tipo_aparato": { "const": "contactor" } }, "required": ["tipo_aparato"] },
+      "then": { "$ref": "#/$defs/contactor" }
     },
-    "In_A": {
-      "type": "number",
-      "exclusiveMinimum": 0,
-      "description": "Corriente nominal en amperes.",
-      "x-obligatorio": true
+    {
+      "if": { "properties": { "tipo_aparato": { "const": "fusible" } }, "required": ["tipo_aparato"] },
+      "then": { "$ref": "#/$defs/fusible" }
     },
-    "Icu_kA": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Poder de corte último en kiloamperes.",
-      "x-obligatorio": false
+    {
+      "if": { "properties": { "tipo_aparato": { "const": "motor_trifasico" } }, "required": ["tipo_aparato"] },
+      "then": { "$ref": "#/$defs/motor_trifasico" }
     },
-    "Ics_kA": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Poder de corte de servicio en kiloamperes.",
-      "x-obligatorio": false
+    {
+      "if": { "properties": { "tipo_aparato": { "const": "transformador" } }, "required": ["tipo_aparato"] },
+      "then": { "$ref": "#/$defs/transformador" }
+    }
+  ],
+  "$defs": {
+    "base_comun": {
+      "description": "Campos comunes a los cinco subtipos.",
+      "properties": {
+        "tipo_aparato": true,
+        "marca": { "type": "string", "x-obligatorio": false, "description": "Ej: SICA, Siemens, WEG." },
+        "modelo": { "type": "string", "x-obligatorio": false, "description": "Ej: 3TF57, 3VE5200-6CT00." }
+      }
     },
-    "curva_disparo": {
-      "enum": ["B", "C", "D", "K", "Z", "otra"],
-      "x-obligatorio": false
+
+    "interruptor_termomagnetico": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "properties": {
+        "tipo_aparato": { "const": "interruptor_termomagnetico" },
+        "cantidad_polos": { "type": "integer", "minimum": 1, "maximum": 4, "x-obligatorio": true, "description": "Polos que interrumpe, incluido el neutro si lo conmuta. Plano: \"3\", \"4\"." },
+        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Corriente nominal en amperes. Plano: \"50A\"." },
+        "curva_disparo": { "enum": ["B", "C", "D", "K", "Z", "otra"], "x-obligatorio": false, "description": "Plano: \"C\", \"D\"." },
+        "pdcc_kA": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Poder de corte en kiloamperes. El plano lo anota en amperes (\"3000 A\"); se normaliza a kA (3000 A → 3 kA)." },
+        "norma_fabricacion": { "type": "string", "x-obligatorio": true, "description": "Plano: \"IEC 60898-1\"." }
+      }
     },
-    "cantidad_polos": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Cantidad total de polos que el aparato interrumpe, incluido el neutro cuando lo conmuta. Ej: 1P→1, 2P→2, 3P+N→4. En unifilar esta info vive en la ficha técnica, no en la geometría.",
-      "x-obligatorio": false
+
+    "contactor": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "properties": {
+        "tipo_aparato": { "const": "contactor" },
+        "cantidad_polos": { "type": "integer", "minimum": 1, "x-obligatorio": true, "description": "Plano KM1: \"Cantidad de polos: 3 polos\"." },
+        "ue_V": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Tensión de operación en volts. Plano: \"415 [V] CA\"." },
+        "categoria_empleo": { "enum": ["AC-1", "AC-3", "AC-4", "AC-6b", "otra"], "x-obligatorio": false, "description": "Plano: \"(AC3) 475A\", \"(AC6B)\"." },
+        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Corriente nominal a la categoría declarada. Plano: \"475A\"." },
+        "tension_bobina_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Plano: \"220 [V] AC\"." }
+      }
     },
-    "cantidad_fases": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Cantidad de fases del circuito al que corresponde el aparato (uso típico en receptores: motor trifásico→3).",
-      "x-obligatorio": false
+
+    "fusible": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "description": "Portafusible y fusible como dos productos distintos, como en las fichas SF-* del plano.",
+      "properties": {
+        "tipo_aparato": { "const": "fusible" },
+        "portafusible_marca": { "type": "string", "x-obligatorio": false, "description": "Plano: \"Siemens\"." },
+        "portafusible_modelo": { "type": "string", "x-obligatorio": false, "description": "Plano: \"R1288\", \"3NP3\"." },
+        "portafusible_tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Plano: \"500V\", \"1000V\", \"690V\"." },
+        "portafusible_categoria": { "type": "string", "x-obligatorio": false, "description": "Categoría de empleo. Plano: \"AC-20B\", \"AC-23B\"." },
+        "fusible_marca": { "type": "string", "x-obligatorio": false },
+        "fusible_modelo": { "type": "string", "x-obligatorio": false },
+        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Corriente del fusible instalado. Plano: \"250A\", \"4A\"." },
+        "clase_caracteristica": { "enum": ["gG", "gL", "aM", "F", "otra"], "x-obligatorio": true, "description": "Plano: \"gL/gG\", \"F2A\". Se normaliza a una sola clase." },
+        "tamano": { "type": "string", "x-obligatorio": false, "description": "Formato del fusible. Plano: \"NH1 - NH2\", \"8,5x31,5 mm\", \"5x20mm\"." },
+        "pdcc_kA": { "type": "number", "minimum": 0, "x-obligatorio": true, "description": "Poder de corte en kiloamperes. Plano: \"125kA\", \"100\"." },
+        "norma_fabricacion": { "type": "string", "x-obligatorio": false, "description": "Plano: \"IEC 60269-2\", \"IEC 60947-7-3\"." }
+      }
     },
-    "tension_aislacion_V": {
-      "type": "number",
-      "exclusiveMinimum": 0,
-      "description": "Tensión de aislamiento asignada Ui, en volts.",
-      "x-obligatorio": false
+
+    "motor_trifasico": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "x-alguno-obligatorio": ["potencia_kw", "potencia_hp"],
+      "x-par-automatico": {
+        "campos": ["potencia_kw", "potencia_hp"],
+        "factor_hp_a_kw": 0.7457
+      },
+      "properties": {
+        "tipo_aparato": { "const": "motor_trifasico" },
+        "potencia_kw": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Potencia nominal en kW. Alternativa a potencia_hp; el formulario calcula una desde la otra (1 HP = 0,7457 kW)." },
+        "potencia_hp": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Unidad tal como la anota el plano: \"50HP\". Alternativa a potencia_kw." },
+        "tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Tensión nominal trifásica. Plano: red 3×400 Vca." },
+        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false },
+        "rpm": { "type": "integer", "exclusiveMinimum": 0, "x-obligatorio": false }
+      }
     },
-    "norma_fabricacion": {
-      "type": "string",
-      "description": "String libre, ej: IEC 60898-1.",
-      "x-obligatorio": false
+
+    "transformador": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "properties": {
+        "tipo_aparato": { "const": "transformador" },
+        "sn_kva": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Potencia aparente nominal en kVA." },
+        "relacion": { "type": "string", "x-obligatorio": true, "description": "Relación de transformación. Ej: \"13000/400\"." },
+        "grupo_conexion": { "type": "string", "x-obligatorio": false, "description": "Ej: \"Dyn11\"." },
+        "impedancia_pct": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Tensión de cortocircuito uk en %." }
+      }
     }
   }
 }
