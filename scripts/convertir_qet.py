@@ -24,8 +24,12 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lint_simbolos import lintear_carpeta  # noqa: E402
+
 STROKE_DEFAULT = "#000000"
 ARC_STEP_DEG = 2.0
+RETICULA = 5.0  # unidades; * ESCALA del editor da múltiplos de la grilla de 10 px
 
 
 def slug(texto: str) -> str:
@@ -272,6 +276,9 @@ def convertir(elmt_path: Path, codigo: str, familia: str, salida_dir: Path,
     ruta_svg.write_text(svg, encoding="utf-8")
     ruta_meta.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
+    dx, dy = alinear_a_reticula(ruta_svg, metadata["puntos_conexion"])
+    ruta_meta.write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
     return {
         "codigo": codigo,
         "nombre": nombre,
@@ -284,6 +291,67 @@ def convertir(elmt_path: Path, codigo: str, familia: str, salida_dir: Path,
         "viewbox": (vb_x, vb_y, vb_w, vb_h),
         "metadata_data": metadata,
     }
+
+
+def alinear_a_reticula(ruta_svg: Path, terminales: list[dict]) -> tuple[float, float]:
+    """Traslada toda la geometría para que los terminales caigan en la
+    retícula de RETICULA unidades y recentra el viewBox con dimensiones
+    pares y origen múltiplo de 5. Devuelve (dx, dy) aplicados.
+
+    Si los terminales no son congruentes módulo RETICULA entre sí, no hay
+    traslación única posible: se lanza error para que el humano ajuste.
+    """
+    if not terminales:
+        return (0.0, 0.0)
+    dx = round(terminales[0]["x"] / RETICULA) * RETICULA - terminales[0]["x"]
+    dy = round(terminales[0]["y"] / RETICULA) * RETICULA - terminales[0]["y"]
+    for t in terminales[1:]:
+        for eje, delta in (("x", dx), ("y", dy)):
+            if (t[eje] + delta) / RETICULA != round((t[eje] + delta) / RETICULA):
+                raise ValueError(
+                    f'terminales incongruentes en retícula de {RETICULA:g}: '
+                    f'"{t["id"]}" no puede alinearse junto con el primero'
+                )
+
+    arbol = ET.parse(ruta_svg)
+    raiz_svg = arbol.getroot()
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+
+    def shift(v: float, delta: float) -> float:
+        return round(v + delta, 2)
+
+    def trasladar(elem: ET.Element) -> None:
+        for attr in ("x", "y", "x1", "y1", "x2", "y2", "cx", "cy"):
+            if elem.get(attr) is not None:
+                eje = attr[-1]
+                delta = dx if eje == "x" else dy
+                elem.set(attr, f"{shift(float(elem.get(attr)), delta)}")
+        if elem.get("points"):
+            pts = []
+            for par in elem.get("points").split():
+                px, py = (float(v) for v in par.split(","))
+                pts.append(f"{shift(px, dx)},{shift(py, dy)}")
+            elem.set("points", " ".join(pts))
+
+    for elem in raiz_svg.iter():
+        if elem.tag.rsplit("}", 1)[-1] in ("line", "rect", "circle", "ellipse", "polyline", "polygon"):
+            trasladar(elem)
+
+    m = re.search(r'viewBox="([^"]+)"', ruta_svg.read_text(encoding="utf-8"))
+    vx, vy, vw, vh = (float(v) for v in m.group(1).split())
+    vx_nuevo = math.floor((vx + dx) / RETICULA) * RETICULA
+    vy_nuevo = math.floor((vy + dy) / RETICULA) * RETICULA
+    vw_par = int(math.ceil(vw / (2 * RETICULA)) * 2 * RETICULA)
+    vh_par = int(math.ceil(vh / (2 * RETICULA)) * 2 * RETICULA)
+    raiz_svg.set("viewBox", f"{fmt_num(vx_nuevo)} {fmt_num(vy_nuevo)} {vw_par} {vh_par}")
+    raiz_svg.set("width", str(int(vw_par * 6)))
+    raiz_svg.set("height", str(int(vh_par * 6)))
+
+    ET.ElementTree(raiz_svg).write(ruta_svg, encoding="unicode")
+    for t in terminales:
+        t["x"] = shift(t["x"], dx)
+        t["y"] = shift(t["y"], dy)
+    return (dx, dy)
 
 
 def validar_metadata(ruta_meta: Path, schema_path: Path | None) -> list[str]:
@@ -311,6 +379,13 @@ def validar_metadata(ruta_meta: Path, schema_path: Path | None) -> list[str]:
     return errores
 
 
+def escala_desde_store_safe(_salida_dir: Path) -> int:
+    """ESCALA del editor; 2 si no se puede leer (p.ej. salida fuera del repo)."""
+    raiz_repo = Path(__file__).resolve().parent.parent
+    from lint_simbolos import escala_desde_store
+    return escala_desde_store(raiz_repo) or 2
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elmt", required=True, type=Path)
@@ -328,6 +403,7 @@ def main() -> int:
                           args.repo_raiz, args.commit_qet, args.version_libreria, args.nombre_es)
 
     errores = validar_metadata(resultado["metadata"], args.schema)
+    errores += lintear_carpeta(resultado["carpeta"], escala_desde_store_safe(args.salida_dir))
 
     vx, vy, vw, vh = resultado["viewbox"]
     print(f'OK {resultado["codigo"]} · {resultado["nombre"]}')

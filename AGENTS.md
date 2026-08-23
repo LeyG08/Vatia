@@ -13,6 +13,22 @@
   incluyendo en la descripción el diff de campos modificados.
 - No mergear el PR. Eso lo hace el usuario manualmente.
 
+## Regla de alineación a grilla (símbolos)
+
+- Todo símbolo de `libreria-simbolos/simbolos/` debe pasar
+  `python scripts/lint_simbolos.py` ANTES de commitear. El hook
+  pre-commit lo corre automáticamente cuando el commit toca la librería
+  activa y bloquea si falla.
+- El lint exige: viewBox con ancho/alto enteros pares; cada
+  `puntos_conexion.x/y` tal que coordenada × ESCALA sea múltiplo de 10;
+  y lo mismo para las coordenadas relativas al origen del viewBox
+  (es lo que determina dónde cae el handle en el canvas del editor).
+- En la práctica: mantener todos los puntos de conexión y orígenes de
+  viewBox en múltiplos de 5 unidades. Al dibujar a mano, elegir viewBox
+  con origen múltiplo de 5; `convertir_qet.py` ya alinea solo la salida
+  (traslada geometría y recentra el viewBox) y falla si los terminales
+  de origen son incongruentes entre sí.
+
 ## Formato de mensajes de commit
 
 - Primera línea (asunto): máximo ~72 caracteres, formato
