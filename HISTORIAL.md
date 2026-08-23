@@ -319,7 +319,8 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
-**Estado:** PR abierto esperando aprobación del usuario.
+**Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
+commit `f685a14`) esperando aprobación del usuario.
 
 ---
 
