@@ -498,6 +498,18 @@ dueña exclusiva de sus nodos y conexiones (coordenadas locales).
 **Verificación:** build ✓ · lint ✓ · verificar_alineacion ✓ ·
 lint_simbolos ✓.
 
+**Ajuste tras prueba del usuario (mismo PR #10):** el arrastre llegaba
+hasta el borde de la LÁMINA y podía invadir el margen (notas/rótulo).
+Ahora:
+- `nodeExtent` = rectángulo útil IRAM (`rectanguloUtil`): límite duro
+  del recuadro, no de la lámina; `NODO_HOJA` exento con extent propio.
+- Rótulo, notas del gabinete y nota de seguridad marcados
+  `zona-protegida`: al soltar un símbolo encima, VUELVE a su posición
+  previa (rebote) + toast explicativo; rects medidos en coords de flujo
+  al iniciar cada arrastre (siguen a la hoja activa y su zoom).
+- "Mover a hoja nueva" queda como rescate para: achicar formato u
+  orientación, cargar proyectos que no entran en la hoja actual.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
