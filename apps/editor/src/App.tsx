@@ -5,7 +5,6 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
-  useUpdateNodeInternals,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -46,23 +45,6 @@ function Editor() {
     arrastreRef.current = arrastre;
   }, [arrastre]);
   const { screenToFlowPosition } = useReactFlow();
-  const updateNodeInternals = useUpdateNodeInternals();
-
-  const rotacionesPrevias = useRef<Map<string, number>>(new Map());
-  useEffect(() => {
-    const cambiados: string[] = [];
-    for (const n of nodos) {
-      const previa = rotacionesPrevias.current.get(n.id);
-      if (previa !== undefined && previa !== n.data.rotacionVisual) {
-        cambiados.push(n.id);
-      }
-      rotacionesPrevias.current.set(n.id, n.data.rotacionVisual);
-    }
-    for (const id of [...rotacionesPrevias.current.keys()]) {
-      if (!nodos.some((n) => n.id === id)) rotacionesPrevias.current.delete(id);
-    }
-    if (cambiados.length > 0) updateNodeInternals(cambiados);
-  }, [nodos, updateNodeInternals]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

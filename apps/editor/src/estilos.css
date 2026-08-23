@@ -159,11 +159,8 @@ body,
   position: relative;
 }
 
-.nodo-simbolo-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.08s ease-out;
+.simbolo-svg {
+  position: absolute;
 }
 
 .simbolo-svg,

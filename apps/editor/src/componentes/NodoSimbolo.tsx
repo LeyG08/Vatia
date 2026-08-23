@@ -3,15 +3,67 @@ import { ESCALA, type NodoData } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
 import type { SimboloDef } from "../lib/tipos";
 
-function posicionBorde(p: { x: number; y: number }, vb: SimboloDef["viewBox"]) {
+const DIRECCIONES = [
+  Position.Top,
+  Position.Right,
+  Position.Bottom,
+  Position.Left,
+];
+
+function direccionBase(p: { x: number; y: number }, vb: SimboloDef["viewBox"]) {
   const distancias = [
-    { pos: Position.Top, d: Math.abs(p.y - vb.minY) },
-    { pos: Position.Bottom, d: Math.abs(vb.minY + vb.alto - p.y) },
-    { pos: Position.Left, d: Math.abs(p.x - vb.minX) },
-    { pos: Position.Right, d: Math.abs(vb.minX + vb.ancho - p.x) },
+    { i: 0, d: Math.abs(p.y - vb.minY) },
+    { i: 1, d: Math.abs(vb.minX + vb.ancho - p.x) },
+    { i: 2, d: Math.abs(vb.minY + vb.alto - p.y) },
+    { i: 3, d: Math.abs(p.x - vb.minX) },
   ];
   distancias.sort((a, b) => a.d - b.d);
-  return distancias[0].pos;
+  return distancias[0].i;
+}
+
+interface PuntoRotado {
+  x: number;
+  y: number;
+  cajaAncho: number;
+  cajaAlto: number;
+  direccion: Position;
+}
+
+function rotarPunto(
+  p: { x: number; y: number },
+  vb: SimboloDef["viewBox"],
+  rotacion: number,
+): PuntoRotado {
+  const x = p.x - vb.minX;
+  const y = p.y - vb.minY;
+  const giro = (((rotacion % 360) + 360) % 360) / 90;
+  let rx = x;
+  let ry = y;
+  let ancho = vb.ancho;
+  let alto = vb.alto;
+
+  if (giro === 1) {
+    rx = vb.alto - y;
+    ry = x;
+    ancho = vb.alto;
+    alto = vb.ancho;
+  } else if (giro === 2) {
+    rx = vb.ancho - x;
+    ry = vb.alto - y;
+  } else if (giro === 3) {
+    rx = y;
+    ry = vb.ancho - x;
+    ancho = vb.alto;
+    alto = vb.ancho;
+  }
+
+  return {
+    x: rx,
+    y: ry,
+    cajaAncho: ancho,
+    cajaAlto: alto,
+    direccion: DIRECCIONES[(direccionBase(p, vb) + giro) % 4],
+  };
 }
 
 function NodoSimbolo({ data }: NodeProps<Node<NodoData>>) {
@@ -22,8 +74,17 @@ function NodoSimbolo({ data }: NodeProps<Node<NodoData>>) {
   }
 
   const vb = simbolo.viewBox;
-  const anchoPx = Math.max(1, Math.round(vb.ancho * ESCALA));
-  const altoPx = Math.max(1, Math.round(vb.alto * ESCALA));
+  const rotacion = ((data.rotacion % 360) + 360) % 360;
+  const puntos = simbolo.metadata.puntos_conexion.map((p) => ({
+    punto: p,
+    r: rotarPunto(p, vb, rotacion),
+  }));
+  const caja = puntos[0]?.r ?? {
+    cajaAncho: vb.ancho,
+    cajaAlto: vb.alto,
+  };
+  const anchoPx = Math.max(1, Math.round(caja.cajaAncho * ESCALA));
+  const altoPx = Math.max(1, Math.round(caja.cajaAlto * ESCALA));
 
   return (
     <div
@@ -32,34 +93,36 @@ function NodoSimbolo({ data }: NodeProps<Node<NodoData>>) {
       title={simbolo.metadata.nombre}
     >
       <div
-        className="nodo-simbolo-inner"
-        style={{ transform: `rotate(${data.rotacion}deg)` }}
-      >
-        <div
-          className="simbolo-svg"
-          dangerouslySetInnerHTML={{ __html: svgLimpio(simbolo.svgRaw) }}
+        className="simbolo-svg"
+        style={{
+          width: Math.max(1, Math.round(vb.ancho * ESCALA)),
+          height: Math.max(1, Math.round(vb.alto * ESCALA)),
+          left: "50%",
+          top: "50%",
+          transform: `translate(-50%, -50%) rotate(${rotacion}deg)`,
+        }}
+        dangerouslySetInnerHTML={{ __html: svgLimpio(simbolo.svgRaw) }}
+      />
+      {puntos.map(({ punto, r }) => (
+        <Handle
+          key={punto.id}
+          id={punto.id}
+          type={punto.rol === "salida" ? "source" : "target"}
+          position={r.direccion}
+          className={`handle-${punto.rol}`}
+          style={{
+            width: 10,
+            height: 10,
+            border: "1.5px solid rgba(37, 99, 235, 0.55)",
+            borderRadius: "50%",
+            background: "transparent",
+            pointerEvents: "all",
+            left: `${(r.x / r.cajaAncho) * 100}%`,
+            top: `${(r.y / r.cajaAlto) * 100}%`,
+            transform: "translate(-50%, -50%)",
+          }}
         />
-        {simbolo.metadata.puntos_conexion.map((p) => (
-          <Handle
-            key={p.id}
-            id={p.id}
-            type={p.rol === "salida" ? "source" : "target"}
-            position={posicionBorde(p, vb)}
-            className={`handle-${p.rol}`}
-            style={{
-              width: 10,
-              height: 10,
-              border: "1.5px solid rgba(37, 99, 235, 0.55)",
-              borderRadius: "50%",
-              background: "transparent",
-              pointerEvents: "all",
-              left: `${((p.x - vb.minX) / vb.ancho) * 100}%`,
-              top: `${((p.y - vb.minY) / vb.alto) * 100}%`,
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
