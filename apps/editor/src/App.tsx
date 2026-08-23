@@ -94,42 +94,6 @@ function Editor() {
     return () => window.clearTimeout(t);
   }, [toast]);
 
-  /* Zonas reservadas (rótulo IRAM y notas): un símbolo no puede soltarse
-   * encima. Los rects se miden en coords de flujo al iniciar el arrastre,
-   * así siguen al rótulo/notas reales de la hoja activa. */
-  const zonasRef = useRef<
-    { x0: number; y0: number; x1: number; y1: number }[]
-  >([]);
-  const preArrastreRef = useRef<Map<string, { x: number; y: number }>>(
-    new Map(),
-  );
-
-  function capturarZonas() {
-    const zonas: typeof zonasRef.current = [];
-    document
-      .querySelectorAll<HTMLElement>(".hoja .zona-protegida")
-      .forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (r.width === 0 || r.height === 0) return;
-        const a = screenToFlowPosition({ x: r.left, y: r.top });
-        const b = screenToFlowPosition({ x: r.right, y: r.bottom });
-        zonas.push({ x0: a.x, y0: a.y, x1: b.x, y1: b.y });
-      });
-    zonasRef.current = zonas;
-  }
-
-  function invadeZonaReservada(
-    x: number,
-    y: number,
-    data: NodoData,
-  ): boolean {
-    const t = tamanoNodoPx(data);
-    return zonasRef.current.some(
-      (z) =>
-        x < z.x1 && x + t.ancho > z.x0 && y < z.y1 && y + t.alto > z.y0,
-    );
-  }
-
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (
@@ -378,46 +342,17 @@ function Editor() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
-          onNodeDragStart={(_, nodo) => {
-            registrarArrastre([nodo.id]);
-            capturarZonas();
-            preArrastreRef.current = new Map(
-              useEditor.getState().nodos.map((n) => [
-                n.id,
-                { ...n.position },
-              ]),
-            );
-          }}
+          onNodeDragStart={(_, nodo) => registrarArrastre([nodo.id])}
           onMoveEnd={(_, vp) => guardarViewportFn(vp)}
           onNodeDragStop={(_, nodo, nodosAfectados) => {
-            let revertidos = 0;
             const despues: Record<string, { x: number; y: number }> = {};
             for (const n of nodosAfectados ?? [nodo]) {
-              const previa = preArrastreRef.current.get(n.id);
-              if (
-                previa &&
-                invadeZonaReservada(
-                  Math.round(n.position.x),
-                  Math.round(n.position.y),
-                  n.data,
-                )
-              ) {
-                despues[n.id] = previa;
-                revertidos += 1;
-              } else {
-                despues[n.id] = {
-                  x: Math.round(n.position.x),
-                  y: Math.round(n.position.y),
-                };
-              }
+              despues[n.id] = {
+                x: Math.round(n.position.x),
+                y: Math.round(n.position.y),
+              };
             }
             confirmarArrastre(despues);
-            if (revertidos > 0) {
-              setToast({
-                mensaje: `Rótulo y notas son zonas reservadas: ${revertidos} símbolo${revertidos === 1 ? "" : "s"} volvió${revertidos === 1 ? "" : "ron"} a su lugar`,
-                destinoId: null,
-              });
-            }
           }}
           snapToGrid
           snapGrid={[10, 10]}

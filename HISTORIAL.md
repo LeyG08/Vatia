@@ -499,14 +499,12 @@ dueña exclusiva de sus nodos y conexiones (coordenadas locales).
 lint_simbolos ✓.
 
 **Ajuste tras prueba del usuario (mismo PR #10):** el arrastre llegaba
-hasta el borde de la LÁMINA y podía invadir el margen (notas/rótulo).
-Ahora:
+hasta el borde de la LÁMINA y podía invadir el margen. Quedó así:
 - `nodeExtent` = rectángulo útil IRAM (`rectanguloUtil`): límite duro
   del recuadro, no de la lámina; `NODO_HOJA` exento con extent propio.
-- Rótulo, notas del gabinete y nota de seguridad marcados
-  `zona-protegida`: al soltar un símbolo encima, VUELVE a su posición
-  previa (rebote) + toast explicativo; rects medidos en coords de flujo
-  al iniciar cada arrastre (siguen a la hoja activa y su zoom).
+- Sobre el rótulo y las notas SÍ se permite superponer símbolos
+  (decisión explícita del usuario): se probó un rebote con zonas
+  protegidas y se revirtió en el mismo PR antes de mergear.
 - "Mover a hoja nueva" queda como rescate para: achicar formato u
   orientación, cargar proyectos que no entran en la hoja actual.
 

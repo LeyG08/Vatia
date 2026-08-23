@@ -160,8 +160,7 @@ function RotuloIram() {
         gridTemplateRows: ROTULO_FILAS_MM.map((f) => mm(f)).join("px ") + "px",
       })}
       aria-label="Rótulo IRAM 4508"
-      className="zona-protegida"
-    >
+          >
       {/* Campo 1 — tolerancias generales (abarca las filas de responsables) */}
       <CeldaRotulo
         col="1"
@@ -437,8 +436,7 @@ function HojaNode(_props: NodeProps) {
          * angosta a la izquierda para no invadir el centro del unifilar. */}
         {notasGabinete.length > 0 && (
           <div
-            className="zona-protegida"
-            style={bloqueStyle({
+                        style={bloqueStyle({
               top: mm(4),
               left: mm(6),
               maxWidth: hoja.orientacion === "vertical" ? mm(80) : mm(105),
@@ -456,8 +454,7 @@ function HojaNode(_props: NodeProps) {
         {/* Nota de seguridad operativa al pie, a la izquierda del rótulo */}
         {hoja.notaSeguridad.trim() !== "" && (
           <div
-            className="zona-protegida"
-            style={bloqueStyle({
+                        style={bloqueStyle({
               bottom: mm(4),
               left: mm(6),
               maxWidth: mm(120),
