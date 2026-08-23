@@ -12,13 +12,18 @@ import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
 import PanelHoja from "./componentes/PanelHoja";
 import NodoSimbolo from "./componentes/NodoSimbolo";
+import AlimentadorNode from "./componentes/AlimentadorNode";
 import HojaNode from "./componentes/HojaNode";
 import ConexionEdge from "./componentes/ConexionEdge";
-import { ESCALA, useEditor, tamanoWrapperPx, type NodoData } from "./lib/store";
+import { ESCALA, useEditor, tamanoNodoPx, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
 import { dimensionesHoja, rectanguloUtil } from "./lib/tipos";
 
-const nodeTypes = { simbolo: NodoSimbolo, hoja: HojaNode } as const;
+const nodeTypes = {
+  simbolo: NodoSimbolo,
+  alimentador: AlimentadorNode,
+  hoja: HojaNode,
+} as const;
 const edgeTypes = { conexion: ConexionEdge } as const;
 
 const NODO_HOJA: Node<NodoData> = {
@@ -206,7 +211,7 @@ function Editor() {
   const idsFuera = useMemo(() => {
     const ids = new Set<string>();
     for (const n of nodos) {
-      const t = tamanoWrapperPx(n.data.codigo_iec, n.data.rotacion);
+      const t = tamanoNodoPx(n.data);
       if (
         n.position.x < util.x0 ||
         n.position.y < util.y0 ||

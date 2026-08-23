@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { useEditor } from "../lib/store";
 import { PX_POR_MM, TAMANIOS_HOJA_MM, dimensionesHoja } from "../lib/tipos";
 import type { FormatoHoja, OrientacionHoja } from "../lib/tipos";
@@ -8,10 +9,12 @@ function Campo({
   etiqueta,
   valor,
   onChange,
+  placeholder,
 }: {
   etiqueta: string;
   valor: string;
   onChange: (v: string) => void;
+  placeholder?: string;
 }) {
   return (
     <label className="panel-hoja-campo">
@@ -19,7 +22,7 @@ function Campo({
       <input
         value={valor}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="—"
+        placeholder={placeholder ?? "—"}
       />
     </label>
   );
@@ -36,11 +39,16 @@ function PanelHoja() {
   const [mmCorto, mmLargo] = TAMANIOS_HOJA_MM[hoja.formato];
   const mmW = hoja.orientacion === "horizontal" ? mmLargo : mmCorto;
   const mmH = hoja.orientacion === "horizontal" ? mmCorto : mmLargo;
+  const rotulo = hoja.rotulo;
 
-  const setAlimentador = (i: number, v: string) => {
-    const lista = [...hoja.encabezado.alimentadores];
-    lista[i] = v;
-    actualizar({ encabezado: { alimentadores: lista } });
+  const setRotulo = (patch: Partial<typeof rotulo>) =>
+    actualizar({ rotulo: patch });
+
+  const setResponsable = (i: number, campo: "fecha" | "nombre", v: string) => {
+    const lista = rotulo.responsables.map((r, j) =>
+      j === i ? { ...r, [campo]: v } : r,
+    );
+    setRotulo({ responsables: lista });
   };
 
   return (
@@ -94,51 +102,13 @@ function PanelHoja() {
         <div className="panel-hoja-bloque">
           <Campo
             etiqueta="Tablero"
-            valor={hoja.encabezado.tablero}
-            onChange={(v) => actualizar({ encabezado: { tablero: v } })}
+            valor={hoja.tablero}
+            onChange={(v) => actualizar({ tablero: v })}
           />
-
-          <div className="panel-hoja-campo">
-            <span>Alimentadores</span>
-            {hoja.encabezado.alimentadores.map((a, i) => (
-              <div key={i} className="panel-hoja-item">
-                <input
-                  value={a}
-                  onChange={(e) => setAlimentador(i, e.target.value)}
-                  placeholder="Desde …"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    actualizar({
-                      encabezado: {
-                        alimentadores:
-                          hoja.encabezado.alimentadores.filter(
-                            (_, j) => j !== i,
-                          ),
-                      },
-                    })
-                  }
-                  aria-label={`Quitar ${a || "alimentador"}`}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              className="panel-hoja-agregar"
-              onClick={() =>
-                actualizar({
-                  encabezado: {
-                    alimentadores: [...hoja.encabezado.alimentadores, ""],
-                  },
-                })
-              }
-            >
-              + Agregar alimentador
-            </button>
-          </div>
+          <p className="panel-hoja-dimension">
+            Los alimentadores «Desde …» se agregan desde la paleta y quedan
+            como nodos conectables sobre la hoja.
+          </p>
         </div>
 
         <h3>Notas del gabinete</h3>
@@ -166,6 +136,116 @@ function PanelHoja() {
             placeholder="NOTA DE SEGURIDAD OPERATIVA — SECCIONADORES FUSIBLES: …"
           />
         </label>
+
+        <h3>Rótulo IRAM 4508</h3>
+
+        <div className="panel-hoja-bloque">
+          <Campo
+            etiqueta="Empresa"
+            valor={rotulo.empresa}
+            onChange={(v) => setRotulo({ empresa: v })}
+          />
+          <Campo
+            etiqueta="Texto del logo (si no hay imagen)"
+            valor={rotulo.logoTexto}
+            onChange={(v) => setRotulo({ logoTexto: v })}
+          />
+          <Campo
+            etiqueta="Cliente"
+            valor={rotulo.cliente}
+            onChange={(v) => setRotulo({ cliente: v })}
+          />
+          <Campo
+            etiqueta="Localidad"
+            valor={rotulo.localidad}
+            onChange={(v) => setRotulo({ localidad: v })}
+          />
+          <Campo
+            etiqueta="Denominación de lo representado"
+            valor={rotulo.denominacion}
+            onChange={(v) => setRotulo({ denominacion: v })}
+          />
+          <Campo
+            etiqueta="Clave o número de lo representado"
+            valor={rotulo.claveRepresentado}
+            onChange={(v) => setRotulo({ claveRepresentado: v })}
+          />
+          <Campo
+            etiqueta="Nombre del archivo informático"
+            valor={rotulo.nombreArchivo}
+            onChange={(v) => setRotulo({ nombreArchivo: v })}
+          />
+          <Campo
+            etiqueta="Tolerancias generales"
+            valor={rotulo.toleranciasGenerales}
+            onChange={(v) => setRotulo({ toleranciasGenerales: v })}
+            placeholder="±0,5 ISO 2768-mK"
+          />
+
+          <div className="panel-hoja-dos-col">
+            <Campo
+              etiqueta="Escala (vacío = S/E)"
+              valor={rotulo.escala}
+              onChange={(v) => setRotulo({ escala: v })}
+              placeholder="1:50"
+            />
+            <label className="panel-hoja-campo">
+              <span>Método ISO</span>
+              <select
+                value={rotulo.metodoIso}
+                onChange={(e) =>
+                  setRotulo({
+                    metodoIso: e.target.value as "(E)" | "(A)" | "",
+                  })
+                }
+              >
+                <option value="(E)">(E)</option>
+                <option value="(A)">(A)</option>
+                <option value="">Sin método</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="panel-hoja-campo">
+            <span>Responsables (fecha — nombre)</span>
+            <div className="panel-hoja-resp">
+              {rotulo.responsables.map((r, i) => (
+                <Fragment key={r.rol}>
+                  <em>{r.rol}</em>
+                  <input
+                    placeholder="dd/mm/aa"
+                    value={r.fecha}
+                    onChange={(e) => setResponsable(i, "fecha", e.target.value)}
+                  />
+                  <input
+                    placeholder="Nombre y apellido"
+                    value={r.nombre}
+                    onChange={(e) => setResponsable(i, "nombre", e.target.value)}
+                  />
+                </Fragment>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel-hoja-dos-col">
+            <Campo
+              etiqueta="N° de plano"
+              valor={rotulo.numeroPlano}
+              onChange={(v) => setRotulo({ numeroPlano: v })}
+            />
+            <Campo
+              etiqueta="N° de plano del cliente"
+              valor={rotulo.numeroPlanoCliente}
+              onChange={(v) => setRotulo({ numeroPlanoCliente: v })}
+            />
+          </div>
+          <Campo
+            etiqueta="Paginación"
+            valor={rotulo.paginacion}
+            onChange={(v) => setRotulo({ paginacion: v })}
+            placeholder="1/1"
+          />
+        </div>
 
         <footer className="panel-hoja-pie">
           <p>Enmarcado: margen izquierdo 25 mm (archivado), resto 10 mm.</p>

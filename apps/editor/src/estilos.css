@@ -503,3 +503,115 @@ body.arrastrando .paleta-item {
   border-color: var(--acento);
   color: var(--acento);
 }
+
+/* Dos campos por fila dentro del panel de hoja */
+.panel-hoja-dos-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Tabla de responsables del rótulo (rol | fecha | nombre) */
+.panel-hoja-resp {
+  display: grid;
+  grid-template-columns: auto 90px 1fr;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.panel-hoja-resp em {
+  font-style: normal;
+  color: #52525b;
+}
+
+.panel-hoja-resp input {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+/* ---- Nodo alimentador «Desde …» ---- */
+.nodo-alimentador {
+  width: 150px;
+  box-sizing: border-box;
+  background: #fff;
+  border: 2px solid #111827;
+  border-radius: 6px;
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #111827;
+}
+
+.nodo-alimentador.sel {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.alim-fila {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.alim-desde {
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.nodo-alimentador input,
+.nodo-alimentador select {
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 11px;
+  background: #fff;
+  min-width: 0;
+  font-family: inherit;
+  color: inherit;
+}
+
+.alim-origen {
+  flex: 1;
+}
+
+.alim-combo {
+  width: 100%;
+}
+
+.alim-n {
+  justify-content: space-between;
+  color: #52525b;
+}
+
+.alim-n input {
+  width: 44px;
+}
+
+.alim-tag {
+  font-size: 10px;
+  color: #52525b;
+  text-align: center;
+  border-top: 1px dashed #d4d4d8;
+  padding-top: 3px;
+}
+
+.nodo-alimentador .react-flow__handle {
+  background: #111827;
+  width: 9px;
+  height: 9px;
+  border: none;
+}
+
+/* Botón de alimentador en la paleta */
+.paleta-alim {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}

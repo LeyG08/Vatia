@@ -12,12 +12,16 @@ import {
 import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
 import {
+  ALIMENTADOR_POR_DEFECTO,
   HOJA_POR_DEFECTO,
+  ROTULO_POR_DEFECTO,
   rectanguloUtil,
-  type EncabezadoConfig,
+  type AlimentadorConfig,
   type HojaConfig,
   type NodoProyecto,
   type ProyectoJSON,
+  type ResponsableRotulo,
+  type RotuloConfig,
 } from "./tipos";
 
 /**
@@ -30,37 +34,128 @@ export const ESCALA = 2;
 export const PASO_ROTACION = 90;
 
 /**
- * Fusiona la hoja guardada con los defaults, tomando solo campos
- * conocidos y validando tipos: los proyectos viejos pueden traer otra
- * forma de hoja (rótulo IRAM 4508) y no deben colarse al estado.
+ * Fusiona el rótulo guardado con los defaults, tomando solo campos
+ * conocidos y validando tipos: los proyectos viejos no deben colar
+ * basura al estado.
  */
-function fusionarHoja(guardada?: Partial<HojaConfig> | null): HojaConfig {
-  const base = HOJA_POR_DEFECTO();
-  if (!guardada) return base;
-  const enc = (guardada.encabezado ?? {}) as Partial<EncabezadoConfig>;
-  const tablero =
-    typeof enc.tablero === "string" ? enc.tablero : base.encabezado.tablero;
-  const alimentadores = Array.isArray(enc.alimentadores)
-    ? enc.alimentadores.filter((a): a is string => typeof a === "string")
-    : base.encabezado.alimentadores;
-  const notas = Array.isArray(guardada.notasGabinete)
-    ? guardada.notasGabinete.filter((n): n is string => typeof n === "string")
-    : base.notasGabinete;
+function fusionarRotulo(guardado?: Partial<RotuloConfig> | null): RotuloConfig {
+  const base = ROTULO_POR_DEFECTO();
+  if (!guardado) return base;
+  const texto = (v: unknown, fb: string) =>
+    typeof v === "string" ? v : fb;
+  const guardadas = Array.isArray(guardado.responsables)
+    ? guardado.responsables
+    : [];
+  const responsables: ResponsableRotulo[] = base.responsables.map((r, i) => {
+    const g = guardadas[i] as Partial<ResponsableRotulo> | undefined;
+    if (!g) return r;
+    return {
+      rol: texto(g.rol, r.rol),
+      fecha: texto(g.fecha, ""),
+      nombre: texto(g.nombre, ""),
+    };
+  });
+  const metodo =
+    guardado.metodoIso === "(E)" ||
+    guardado.metodoIso === "(A)" ||
+    guardado.metodoIso === ""
+      ? guardado.metodoIso
+      : base.metodoIso;
   return {
-    formato: guardada.formato ?? base.formato,
-    orientacion: guardada.orientacion ?? base.orientacion,
-    encabezado: { tablero, alimentadores },
-    notasGabinete: notas,
-    notaSeguridad:
-      typeof guardada.notaSeguridad === "string"
-        ? guardada.notaSeguridad
-        : base.notaSeguridad,
+    empresa: texto(guardado.empresa, base.empresa),
+    logoTexto: texto(guardado.logoTexto, base.logoTexto),
+    cliente: texto(guardado.cliente, base.cliente),
+    localidad: texto(guardado.localidad, base.localidad),
+    denominacion: texto(guardado.denominacion, base.denominacion),
+    claveRepresentado: texto(guardado.claveRepresentado, base.claveRepresentado),
+    nombreArchivo: texto(guardado.nombreArchivo, base.nombreArchivo),
+    toleranciasGenerales: texto(
+      guardado.toleranciasGenerales,
+      base.toleranciasGenerales,
+    ),
+    escala: texto(guardado.escala, base.escala),
+    metodoIso: metodo,
+    responsables,
+    numeroPlano: texto(guardado.numeroPlano, base.numeroPlano),
+    numeroPlanoCliente: texto(guardado.numeroPlanoCliente, base.numeroPlanoCliente),
+    paginacion: texto(guardado.paginacion, base.paginacion),
   };
 }
 
-export interface NodoData extends Record<string, unknown> {
+/** Forma que podían tener hojas de versiones anteriores del editor */
+interface HojaLegada {
+  encabezado?: { tablero?: unknown; alimentadores?: unknown };
+}
+
+/**
+ * Fusiona la hoja guardada con los defaults. Además devuelve los
+ * alimentadores "encabezado.alimentadores" de proyectos de la etapa
+ * anterior (textos fijos del encabezado): se migran a nodos.
+ */
+function fusionarHoja(
+  guardada?: Partial<HojaConfig> | HojaLegada | null,
+): { hoja: HojaConfig; alimentadoresLegado: AlimentadorConfig[] } {
+  const base = HOJA_POR_DEFECTO();
+  if (!guardada) return { hoja: base, alimentadoresLegado: [] };
+  const legada = guardada as HojaLegada;
+  const notas = Array.isArray((guardada as Partial<HojaConfig>).notasGabinete)
+    ? (guardada as Partial<HojaConfig>).notasGabinete!.filter(
+        (n): n is string => typeof n === "string",
+      )
+    : base.notasGabinete;
+  const alimentadoresLegado: AlimentadorConfig[] = [];
+  if (Array.isArray(legada.encabezado?.alimentadores)) {
+    for (const a of legada.encabezado.alimentadores) {
+      if (typeof a === "string" && a.trim() !== "") {
+        alimentadoresLegado.push({
+          ...ALIMENTADOR_POR_DEFECTO(),
+          origen: a.replace(/^Desde\s+/i, "").trim(),
+        });
+      }
+    }
+  }
+  const tableroGuardado =
+    typeof (guardada as Partial<HojaConfig>).tablero === "string"
+      ? (guardada as Partial<HojaConfig>).tablero!
+      : typeof legada.encabezado?.tablero === "string"
+        ? legada.encabezado.tablero
+        : base.tablero;
+  const parcial = guardada as Partial<HojaConfig>;
+  return {
+    hoja: {
+      formato: parcial.formato ?? base.formato,
+      orientacion: parcial.orientacion ?? base.orientacion,
+      tablero: tableroGuardado,
+      notasGabinete: notas,
+      notaSeguridad:
+        typeof parcial.notaSeguridad === "string"
+          ? parcial.notaSeguridad
+          : base.notaSeguridad,
+      rotulo: fusionarRotulo(parcial.rotulo),
+    },
+    alimentadoresLegado,
+  };
+}
+
+export interface DatosSimbolo extends Record<string, unknown> {
+  tipo?: "simbolo";
   codigo_iec: string;
   rotacion: number;
+}
+
+export interface DatosAlimentador extends Record<string, unknown> {
+  tipo: "alimentador";
+  origen: string;
+  fases: boolean;
+  neutro: boolean;
+  tierra: boolean;
+  cantidadN: number | null;
+}
+
+export type NodoData = DatosSimbolo | DatosAlimentador;
+
+function esDatosAlimentador(d: NodoData): d is DatosAlimentador {
+  return d.tipo === "alimentador";
 }
 
 interface EstadoEditor {
@@ -75,11 +170,16 @@ interface EstadoEditor {
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
   actualizarHoja: (
-    patch: Partial<Omit<HojaConfig, "encabezado">> & {
-      encabezado?: Partial<EncabezadoConfig>;
+    patch: Partial<Omit<HojaConfig, "rotulo">> & {
+      rotulo?: Partial<RotuloConfig>;
     },
   ) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
+  agregarAlimentador: (x?: number, y?: number) => void;
+  actualizarDatosAlimentador: (
+    id: string,
+    patch: Partial<Omit<DatosAlimentador, "tipo">>,
+  ) => void;
   onNodesChange: (cambios: NodeChange<Node<NodoData>>[]) => void;
   onEdgesChange: (cambios: EdgeChange[]) => void;
   onConnect: (conexion: Connection) => void;
@@ -100,8 +200,7 @@ interface EstadoEditor {
 
 interface ContenidoPortapapeles {
   items: {
-    codigo_iec: string;
-    rotacion: number;
+    datos: NodoData;
     x: number;
     y: number;
   }[];
@@ -144,6 +243,15 @@ export function tamanoWrapperPx(
   };
 }
 
+/** Tamaño fijo de la tarjeta del nodo alimentador (ver estilos.css) */
+export const TAMANO_ALIMENTADOR_PX = { ancho: 150, alto: 100 };
+
+export function tamanoNodoPx(data: NodoData): { ancho: number; alto: number } {
+  return esDatosAlimentador(data)
+    ? { ...TAMANO_ALIMENTADOR_PX }
+    : tamanoWrapperPx(data.codigo_iec, data.rotacion);
+}
+
 export const useEditor = create<EstadoEditor>((set, get) => {
   function ejecutar(cmd: Comando): void {
     historial.ejecutar(cmd);
@@ -159,11 +267,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
   function limitarAHoja(
     x: number,
     y: number,
-    codigo: string,
-    rotacion: number,
+    data: NodoData,
   ): { x: number; y: number } {
     const r = rectanguloUtil(get().hoja);
-    const t = tamanoWrapperPx(codigo, rotacion);
+    const t = tamanoNodoPx(data);
     const loX = Math.ceil(r.x0 / 10) * 10;
     const loY = Math.ceil(r.y0 / 10) * 10;
     const hiX = Math.max(loX, Math.floor((r.x1 - t.ancho) / 10) * 10);
@@ -198,25 +305,75 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         hoja: {
           ...s.hoja,
           ...patch,
-          encabezado: { ...s.hoja.encabezado, ...(patch.encabezado ?? {}) },
+          rotulo: { ...s.hoja.rotulo, ...(patch.rotulo ?? {}) },
         },
       }));
     },
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
       if (!simbolo) return;
-      const pos = limitarAHoja(x, y, codigoIec, 0);
+      const data: DatosSimbolo = { tipo: "simbolo", codigo_iec: codigoIec, rotacion: 0 };
+      const pos = limitarAHoja(x, y, data);
       const nodo: Node<NodoData> = {
         id: nuevoId(get().nodos, "n"),
         type: "simbolo",
         position: pos,
-        data: { codigo_iec: codigoIec, rotacion: 0 },
+        data,
         selected: true,
       };
       ejecutar({
         descripcion: `agregar ${codigoIec}`,
         do: () => set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), nodo] })),
         undo: () => set((s) => ({ nodos: s.nodos.filter((n) => n.id !== nodo.id) })),
+      });
+    },
+
+    agregarAlimentador(x, y) {
+      const r = rectanguloUtil(get().hoja);
+      const existentes = get().nodos.filter((n) => esDatosAlimentador(n.data)).length;
+      const data: DatosAlimentador = {
+        tipo: "alimentador",
+        ...ALIMENTADOR_POR_DEFECTO(),
+      };
+      // Debajo del bloque de notas del gabinete para no taparlo
+      const pos = limitarAHoja(
+        x ?? r.x0 + 60 + existentes * (TAMANO_ALIMENTADOR_PX.ancho + 20),
+        y ?? r.y0 + 170,
+        data,
+      );
+      const nodo: Node<NodoData> = {
+        id: nuevoId(get().nodos, "a"),
+        type: "alimentador",
+        position: pos,
+        data,
+        selected: true,
+      };
+      ejecutar({
+        descripcion: "agregar alimentador",
+        do: () => set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), nodo] })),
+        undo: () => set((s) => ({ nodos: s.nodos.filter((n) => n.id !== nodo.id) })),
+      });
+    },
+
+    actualizarDatosAlimentador(id, patch) {
+      const snapshot = get().nodos.find((n) => n.id === id);
+      if (!snapshot || !esDatosAlimentador(snapshot.data)) return;
+      ejecutar({
+        descripcion: `editar alimentador ${id}`,
+        do: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && esDatosAlimentador(n.data)
+                ? { ...n, data: { ...n.data, ...patch } }
+                : n,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id ? { ...n, data: snapshot.data } : n,
+            ),
+          })),
       });
     },
 
@@ -274,12 +431,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       for (const id of ids) {
         const n = get().nodos.find((m) => m.id === id);
         if (!n) continue;
-        enHoja[id] = limitarAHoja(
-          despues[id].x,
-          despues[id].y,
-          n.data.codigo_iec,
-          n.data.rotacion,
-        );
+        enHoja[id] = limitarAHoja(despues[id].x, despues[id].y, n.data);
       }
       ejecutar({
         descripcion: "mover nodos",
@@ -303,10 +455,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
 
     rotarSeleccion() {
-      const seleccionadas = get().nodos.filter((n) => n.selected);
+      // Solo los símbolos rotan; los alimentadores son tarjetas fijas
+      const seleccionadas = get().nodos.filter(
+        (n) => n.selected && !esDatosAlimentador(n.data),
+      );
       if (seleccionadas.length === 0) return;
       const antes = new Map(
-        seleccionadas.map((n) => [n.id, n.data.rotacion] as const),
+        seleccionadas.map((n) => [n.id, (n.data as DatosSimbolo).rotacion] as const),
       );
       const despuesRot = PASO_ROTACION;
       ejecutar({
@@ -379,8 +534,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       }
       portapapeles = {
         items: seleccion.map((n) => ({
-          codigo_iec: n.data.codigo_iec,
-          rotacion: n.data.rotacion,
+          datos: { ...n.data },
           x: n.position.x,
           y: n.position.y,
         })),
@@ -404,19 +558,17 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       let proximoN = maxSufijo(snapshotNodos, "n");
       let proximoC = maxSufijo(snapshotConexiones, "c");
 
-      const nuevosNodos: Node<NodoData>[] = portapapeles.items.map((it) => {
-        const pos = limitarAHoja(it.x + 20, it.y + 20, it.codigo_iec, it.rotacion);
-        return {
+      const nuevosNodos: Node<NodoData>[] = [];
+      for (const it of portapapeles.items) {
+        const pos = limitarAHoja(it.x + 20, it.y + 20, it.datos);
+        nuevosNodos.push({
           id: `n${++proximoN}`,
-          type: "simbolo",
+          type: esDatosAlimentador(it.datos) ? "alimentador" : "simbolo",
           position: pos,
-          data: {
-            codigo_iec: it.codigo_iec,
-            rotacion: it.rotacion,
-          },
+          data: { ...it.datos },
           selected: true,
-        };
-      });
+        });
+      }
       const idDe = (i: number) => nuevosNodos[i].id;
       const nuevasConexiones: Edge[] = portapapeles.enlaces.map((l) => ({
         id: `c${++proximoC}`,
@@ -458,7 +610,29 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const nodos: Node<NodoData>[] = [];
       const problemas: string[] = [];
       for (const n of proyecto.nodos ?? []) {
-        const simbolo = obtenerSimbolo(n.codigo_iec);
+        if (n.tipo === "alimentador") {
+          const d = { ...ALIMENTADOR_POR_DEFECTO(), ...(n.datos ?? {}) };
+          nodos.push({
+            id: n.id,
+            type: "alimentador",
+            position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
+            data: {
+              tipo: "alimentador",
+              origen: typeof d.origen === "string" ? d.origen : "",
+              fases: typeof d.fases === "boolean" ? d.fases : true,
+              neutro: typeof d.neutro === "boolean" ? d.neutro : true,
+              tierra: typeof d.tierra === "boolean" ? d.tierra : true,
+              cantidadN:
+                typeof d.cantidadN === "number" &&
+                Number.isFinite(d.cantidadN) &&
+                d.cantidadN > 0
+                  ? Math.floor(d.cantidadN)
+                  : null,
+            },
+          });
+          continue;
+        }
+        const simbolo = obtenerSimbolo(n.codigo_iec ?? "");
         if (!simbolo) {
           problemas.push(
             `nodo ${n.id}: código ${n.codigo_iec} no existe en la librería — se omite`,
@@ -470,9 +644,28 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           type: "simbolo",
           position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
           data: {
-            codigo_iec: n.codigo_iec,
+            tipo: "simbolo",
+            codigo_iec: n.codigo_iec!,
             rotacion: (((n.rotacion ?? 0) % 360) + 360) % 360,
           },
+        });
+      }
+      // Migración: encabezado.alimentadores de proyectos viejos → nodos
+      const fusion = fusionarHoja(proyecto.hoja);
+      for (const a of fusion.alimentadoresLegado) {
+        const r = rectanguloUtil(fusion.hoja);
+        const datos = { tipo: "alimentador", ...a } as DatosAlimentador;
+        const pos = limitarAHoja(
+          r.x0 + 60 + nodos.filter((n) => esDatosAlimentador(n.data)).length *
+            (TAMANO_ALIMENTADOR_PX.ancho + 20),
+          r.y0 + 170,
+          datos,
+        );
+        nodos.push({
+          id: nuevoId(nodos, "a"),
+          type: "alimentador",
+          position: pos,
+          data: { ...datos },
         });
       }
       const idsValidos = new Set(nodos.map((n) => n.id));
@@ -501,20 +694,40 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         conexiones,
         nombreProyecto: proyecto.nombre || "proyecto_sin_nombre",
         problemasProyecto: problemas,
-        hoja: fusionarHoja(proyecto.hoja),
+        hoja: fusion.hoja,
         version: get().version + 1,
       });
     },
 
     serializarActual() {
       const { nodos, conexiones, nombreProyecto, hoja } = get();
-      const nodosProyecto: NodoProyecto[] = nodos.map((n) => ({
-        id: n.id,
-        codigo_iec: n.data.codigo_iec,
-        posicion: { x: Math.round(n.position.x), y: Math.round(n.position.y) },
-        rotacion: n.data.rotacion,
-        atributos: {},
-      }));
+      const nodosProyecto: NodoProyecto[] = nodos.map((n) => {
+        const posicion = {
+          x: Math.round(n.position.x),
+          y: Math.round(n.position.y),
+        };
+        if (esDatosAlimentador(n.data)) {
+          return {
+            id: n.id,
+            tipo: "alimentador" as const,
+            posicion,
+            datos: {
+              origen: n.data.origen,
+              fases: n.data.fases,
+              neutro: n.data.neutro,
+              tierra: n.data.tierra,
+              cantidadN: n.data.cantidadN,
+            },
+          };
+        }
+        return {
+          id: n.id,
+          codigo_iec: n.data.codigo_iec,
+          posicion,
+          rotacion: n.data.rotacion,
+          atributos: {},
+        };
+      });
       const conexionesProyecto = conexiones.map((e) => ({
         id: e.id,
         desde: `${e.source}.${e.sourceHandle ?? ""}`,

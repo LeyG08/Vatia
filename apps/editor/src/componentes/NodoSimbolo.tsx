@@ -1,5 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { ESCALA, type NodoData } from "../lib/store";
+import { ESCALA, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
 import type { SimboloDef } from "../lib/tipos";
 
@@ -66,7 +66,7 @@ function rotarPunto(
   };
 }
 
-function NodoSimbolo({ data }: NodeProps<Node<NodoData>>) {
+function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
   const simbolo = obtenerSimbolo(data.codigo_iec);
 
   if (!simbolo) {
