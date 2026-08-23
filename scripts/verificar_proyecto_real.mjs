@@ -23,12 +23,25 @@ const proyecto = JSON.parse(
 const schemaAparato = JSON.parse(
   readFileSync(join(raiz, "libreria-simbolos/schemas/aparato.schema.json"), "utf8"),
 );
-
-/* ---- códigos de la librería ---- */
-const dirSimbolos = join(raiz, "libreria-simbolos/simbolos");
-const codigosLibreria = new Set(
-  readdirSync(dirSimbolos).map((c) => c.split("_")[0]),
+const schemaCarga = JSON.parse(
+  readFileSync(join(raiz, "libreria-simbolos/schemas/carga.schema.json"), "utf8"),
 );
+
+/* ---- códigos y familia por símbolo (desde cada metadata.json) ---- */
+const dirSimbolos = join(raiz, "libreria-simbolos/simbolos");
+const METAS = new Map(); // codigo → { familia }
+for (const carpeta of readdirSync(dirSimbolos)) {
+  const codigo = carpeta.split("_")[0];
+  try {
+    const meta = JSON.parse(
+      readFileSync(join(dirSimbolos, carpeta, "metadata.json"), "utf8"),
+    );
+    METAS.set(codigo, meta);
+  } catch {
+    /* carpeta sin metadata: se reporta al usarla */
+  }
+}
+const codigosLibreria = new Set(METAS.keys());
 
 /* ---- espejo de lib/esquemas.ts: resolución if/then por tipo_aparato ---- */
 function subtipoDeAparato(tipo) {
@@ -55,6 +68,16 @@ function reglasDeFamiliaAparato(attrs) {
   return { obligatorios, alguno };
 }
 
+/** Familias sin subtipos (carga, barra, …): campos x-obligatorio de raíz */
+function reglasDeRaiz(schema) {
+  return {
+    obligatorios: Object.entries(schema.properties ?? {})
+      .filter(([, d]) => d && d["x-obligatorio"] === true)
+      .map(([n]) => n),
+    alguno: [],
+  };
+}
+
 /* ---- espejo de lib/checklist.ts ---- */
 const vacio = (v) =>
   v === undefined || v === null || v === "" ||
@@ -67,13 +90,21 @@ function humanizar(nombre) {
   return t.replace(/^./, (c) => c.toUpperCase());
 }
 
-function problemasFichaAparato(attrs) {
-  if (vacio(attrs.tipo_aparato)) {
-    return ["Elegí el tipo de aparato en el formulario."];
+function problemasFicha(familia, attrs) {
+  if (familia === "sin_ficha_tecnica") return [];
+  let reglas;
+  if (familia === "aparato") {
+    if (vacio(attrs.tipo_aparato)) {
+      return ["Elegí el tipo de aparato en el formulario."];
+    }
+    reglas = reglasDeFamiliaAparato(attrs);
+  } else if (familia === "carga") {
+    reglas = reglasDeRaiz(schemaCarga);
+  } else {
+    return []; // barra/conductor: el mazo se valida por conexión
   }
+  if (!reglas) return ["tipo_aparato desconocido"];
   const msj = [];
-  const reglas = reglasDeFamiliaAparato(attrs);
-  if (!reglas) return [`tipo_aparato desconocido: ${attrs.tipo_aparato}`];
   for (const campo of reglas.obligatorios) {
     if (vacio(attrs[campo])) msj.push(`Falta ${humanizar(campo)}.`);
   }
@@ -139,19 +170,15 @@ for (const n of hoja.nodos) {
     continue;
   }
   const attrs = n.atributos ?? {};
+  const familia = METAS.get(n.codigo_iec)?.familia_atributos;
   const marcaModelo = [attrs.marca, attrs.modelo].filter(Boolean).join(" ");
   const etiqueta = `${n.id} (${n.codigo_iec})${marcaModelo ? ` · ${marcaModelo}` : ""}`;
   nombres.set(n.id, `${n.codigo_iec}${marcaModelo ? ` ${marcaModelo}` : ""}`);
-  if (attrs.tipo_aparato !== undefined || Object.keys(attrs).length > 0) {
-    // familia aparato: solo los que declaran ficha
-    const msj = attrs.tipo_aparato ? problemasFichaAparato(attrs) : [];
-    totalPendientes += msj.length;
-    console.log(msj.length === 0
-      ? `  ✓ ${etiqueta}`
-      : `  ✗ ${etiqueta}\n      - ${msj.join("\n      - ")}`);
-  } else {
-    console.log(`  ✓ ${etiqueta} · sin ficha técnica`);
-  }
+  const msj = problemasFicha(familia, attrs);
+  totalPendientes += msj.length;
+  console.log(msj.length === 0
+    ? `  ✓ ${etiqueta}`
+    : `  ✗ ${etiqueta}\n      - ${msj.join("\n      - ")}`);
 }
 
 for (const c of hoja.conexiones) {

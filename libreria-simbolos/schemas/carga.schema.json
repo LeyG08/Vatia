@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carga.schema.json",
+  "title": "Vatia · Atributos de familia carga",
+  "description": "Fase C7. Destino de circuito dibujado como FLECHA apuntando hacia abajo (IUG/TUG/ACU/seccional). El bloque de texto debajo de la flecha replica el plano real: código de circuito (o tablero destino), tipo, potencia aparente [VA], corriente [A] y designación. La composición del mazo (fases/neutro/tierra + secciones) vive en la CONEXIÓN que llega a la flecha, no acá.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "codigo_circuito": {
+      "type": "string",
+      "x-obligatorio": true,
+      "description": "Número o clave del circuito en el tablero. Plano: \"C1\", \"C15\". Si la flecha apunta a un tablero seccional: \"TS-Pell1_y_Molino1\"."
+    },
+    "tipo_carga": {
+      "enum": ["IUG", "TUG", "ACU", "seccional", "otra"],
+      "x-obligatorio": true,
+      "description": "IUG = iluminación uso general; TUG = tomacorriente uso general; ACU = aire acondicionado/usos especiales; seccional = alimentación a otro tablero."
+    },
+    "potencia_va": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-obligatorio": false,
+      "description": "Potencia aparente instalada. Plano: \"20 [VA]\", \"2200[VA]\"."
+    },
+    "corriente_a": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-obligatorio": false,
+      "description": "Corriente prevista. Plano: \"0,08 [A]\", \"10[A]\"."
+    },
+    "descripcion": {
+      "type": "string",
+      "x-obligatorio": false,
+      "description": "Designación del destino. Plano: \"Luces Tablero\", \"Tomacorrientes\", \"CNC VF3\"."
+    }
+  }
+}

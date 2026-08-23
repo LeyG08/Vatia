@@ -1,0 +1,17 @@
+{
+  "codigo_iec": "S00120",
+  "nombre": "Carga de circuito (unifilar)",
+  "familia_atributos": "carga",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": {},
+  "puntos_conexion": [
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -10.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_qet": "autoria manual Vatia · flecha de destino de circuito (IUG/TUG/ACU/seccional) según planos PPS"
+}

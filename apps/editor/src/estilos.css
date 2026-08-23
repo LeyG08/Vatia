@@ -970,6 +970,15 @@ body.arrastrando .paleta-item {
   pointer-events: none;
 }
 
+/* La CARGA (flecha de destino de circuito) lleva el bloque DEBAJO,
+   como en los planos reales: C1 / IUG / VA / A / designación */
+.anotacion-carga {
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
 /* Texto del mazo sobre la conexión, sin marco para no invadir.
    Si la línea es muy larga, quiebra hacia abajo (max-width). */
 .anotacion-edge {

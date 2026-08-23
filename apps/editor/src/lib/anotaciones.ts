@@ -103,6 +103,21 @@ function anotacionBarra(a: Record<string, unknown>): string[] {
   return l;
 }
 
+/**
+ * Bloque DEBAJO de la flecha de destino de circuito (§C7), en el orden
+ * del plano real: código / tipo / potencia aparente / corriente /
+ * designación. Solo líneas con valor.
+ */
+function anotacionCarga(a: Record<string, unknown>): string[] {
+  const l: string[] = [];
+  if (a.codigo_circuito) l.push(String(a.codigo_circuito));
+  if (a.tipo_carga) l.push(String(a.tipo_carga));
+  if (n(a.potencia_va)) l.push(`${n(a.potencia_va)} VA`);
+  if (n(a.corriente_a)) l.push(`${n(a.corriente_a)} A`);
+  if (a.descripcion) l.push(capitalizar(a.descripcion));
+  return l;
+}
+
 /** Líneas de anotación bajo un símbolo, como en los planos reales */
 export function anotacionNodo(
   familia: FamiliaAtributos,
@@ -111,6 +126,7 @@ export function anotacionNodo(
   const a = (data.atributos ?? {}) as Record<string, unknown>;
   if (familia === "aparato") return anotacionAparato(a);
   if (familia === "barra") return anotacionBarra(a);
+  if (familia === "carga") return anotacionCarga(a);
   return [];
 }
 

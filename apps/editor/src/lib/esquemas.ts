@@ -1,11 +1,13 @@
 import brutoAparato from "../../../../libreria-simbolos/schemas/aparato.schema.json";
 import brutoConductor from "../../../../libreria-simbolos/schemas/conductor.schema.json";
 import brutoBarra from "../../../../libreria-simbolos/schemas/barra.schema.json";
+import brutoCarga from "../../../../libreria-simbolos/schemas/carga.schema.json";
 
 export type FamiliaAtributos =
   | "aparato"
   | "conductor"
   | "barra"
+  | "carga"
   | "sin_ficha_tecnica";
 
 type EsquemaCampo = {
@@ -39,6 +41,7 @@ type EsquemaRaiz = {
 const schemaAparato = brutoAparato as unknown as EsquemaRaiz;
 const schemaConductor = brutoConductor as unknown as EsquemaRaiz;
 const schemaBarra = brutoBarra as unknown as EsquemaRaiz;
+const schemaCarga = brutoCarga as unknown as EsquemaRaiz;
 
 export interface CampoDescriptor {
   nombre: string;
@@ -58,6 +61,7 @@ const DEFS_POR_FAMILIA: Record<
   aparato: schemaAparato,
   conductor: schemaConductor,
   barra: schemaBarra,
+  carga: schemaCarga,
 };
 
 function resolverRef(raiz: EsquemaRaiz, ref: string): EsquemaDef {

@@ -855,6 +855,24 @@ cero. La verificación del demo da idéntica.
   flags. Ahora los atributos serializados mandan; el sembrado es solo
   red de seguridad.
 
+**C7 — Símbolo de carga / destino de circuito (flecha):**
+- Nuevo `S00120_carga_circuito_unifilar`: flecha abierta apuntando
+  hacia ABAJO, entrada arriba, terminal en grilla (verificado ×2/×4).
+- Nueva familia de atributos **carga** (`carga.schema.json`):
+  codigo_circuito* ("C1", "C15" o "TS-Pell1"), tipo_carga*
+  (IUG/TUG/ACU/seccional/otra), potencia_va, corriente_a,
+  descripcion. Alta en metadata.schema, validadorMetadata, tipos,
+  esquemas y paleta (grupo "Cargas"); checklist y formulario
+  funcionan solos por ser schema-driven.
+- El bloque de texto va DEBAJO de la flecha (`.anotacion-carga`),
+  en el orden del plano: código / tipo / VA / A / designación.
+- Ejemplo PPS reconstruido con la topología real DENTRO del área
+  útil A3: TGBT → SF-Peli1-Moli → barra seccional (Cu 3x30x10)
+  → TM SICA 63A → KM1 3TF57 → Molino 50HP; PE colgando del mazo;
+  cargas flecha reales C1·IUG·Luces Tablero, C2.2·TUG·Tomacorrientes,
+  C15·ACU·CNC VF3. Verificador ahora resuelve la familia desde el
+  metadata de cada símbolo → cero pendientes ✓.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

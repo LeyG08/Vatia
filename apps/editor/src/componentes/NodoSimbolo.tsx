@@ -86,6 +86,7 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
   };
   const anchoPx = Math.max(1, Math.round(caja.cajaAncho * ESCALA));
   const altoPx = Math.max(1, Math.round(caja.cajaAlto * ESCALA));
+  const esCarga = simbolo.metadata.familia_atributos === "carga";
   const lineas = anotacionNodo(simbolo.metadata.familia_atributos, data);
 
   return (
@@ -126,7 +127,9 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
         />
       ))}
       {lineas.length > 0 && (
-        <div className="anotacion-nodo">
+        <div
+          className={`anotacion-nodo${esCarga ? " anotacion-carga" : ""}`}
+        >
           {lineas.map((l, i) => (
             <div key={i}>{l}</div>
           ))}

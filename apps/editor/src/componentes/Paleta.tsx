@@ -6,6 +6,7 @@ const ETIQUETAS_FAMILIA: Record<FamiliaAtributos, string> = {
   aparato: "Aparatos",
   conductor: "Conductores",
   barra: "Barras",
+  carga: "Cargas",
   sin_ficha_tecnica: "Auxiliares",
 };
 

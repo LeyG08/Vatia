@@ -3,6 +3,7 @@ export type FamiliaAtributos =
   | "aparato"
   | "conductor"
   | "barra"
+  | "carga"
   | "sin_ficha_tecnica";
 export type EstadoRevision =
   | "pendiente_revision"
