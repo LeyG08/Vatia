@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@xyflow/react";
-import { useEditor, tamanoNodoPx, type DatosSimbolo } from "../lib/store";
+import {
+  useEditor,
+  tamanoNodoPx,
+  type DatosAlimentador,
+  type DatosSimbolo,
+} from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
 import FormularioAtributos from "./FormularioAtributos";
 import FormularioConductor from "./FormularioConductor";
@@ -15,10 +20,13 @@ export default function PanelAtributos() {
   const conexiones = useEditor((s) => s.conexiones);
   const actualizarNodo = useEditor((s) => s.actualizarAtributosNodo);
   const actualizarConexion = useEditor((s) => s.actualizarAtributosConexion);
+  const actualizarAlimentador = useEditor((s) => s.actualizarDatosAlimentador);
   // [tx, ty, zoom] del viewport, para anclar el panel junto al elemento
   const transform = useStore((s) => s.transform);
 
-  const simbolosSel = nodos.filter((n) => n.selected && n.type === "simbolo");
+  const simbolosSel = nodos.filter(
+    (n) => n.selected && (n.type === "simbolo" || n.type === "alimentador"),
+  );
   const conexionesSel = conexiones.filter((e) => e.selected);
 
   const nodo =
@@ -67,6 +75,9 @@ export default function PanelAtributos() {
 
   const tituloNodo = (() => {
     if (!nodo) return null;
+    if ((nodo.data as DatosAlimentador).tipo === "alimentador") {
+      return { nombre: "Alimentación", codigo: "Desde dónde viene" };
+    }
     const data = nodo.data as DatosSimbolo;
     const def = obtenerSimbolo(data.codigo_iec);
     return { nombre: def?.metadata.nombre ?? data.codigo_iec, codigo: data.codigo_iec };
@@ -107,14 +118,40 @@ export default function PanelAtributos() {
         )}
       </h3>
       {nodo ? (
-        <FormularioAtributos
-          familia={
-            obtenerSimbolo((nodo.data as DatosSimbolo).codigo_iec)?.metadata
-              .familia_atributos ?? "sin_ficha_tecnica"
-          }
-          atributos={(nodo.data as DatosSimbolo).atributos}
-          onChange={(attrs) => actualizarNodo(nodo.id, attrs)}
-        />
+        (nodo.data as DatosAlimentador).tipo === "alimentador" ? (
+          <FormularioConductor
+            atributos={
+              (nodo.data as DatosAlimentador).atributos ?? {}
+            }
+            onChange={(attrs) =>
+              actualizarAlimentador(nodo.id, { atributos: attrs })
+            }
+            encabezado={
+              <label className="campo-atributo">
+                <span>
+                  Desde<em className="obligatorio">*</em>
+                </span>
+                <input
+                  type="text"
+                  placeholder="TGBT"
+                  value={(nodo.data as DatosAlimentador).origen}
+                  onChange={(e) =>
+                    actualizarAlimentador(nodo.id, { origen: e.target.value })
+                  }
+                />
+              </label>
+            }
+          />
+        ) : (
+          <FormularioAtributos
+            familia={
+              obtenerSimbolo((nodo.data as DatosSimbolo).codigo_iec)?.metadata
+                .familia_atributos ?? "sin_ficha_tecnica"
+            }
+            atributos={(nodo.data as DatosSimbolo).atributos}
+            onChange={(attrs) => actualizarNodo(nodo.id, attrs)}
+          />
+        )
       ) : (
         <FormularioConductor
           atributos={

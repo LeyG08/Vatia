@@ -766,6 +766,22 @@ normativa. Cambios:
   ninguna acción.
 - Nota pendiente N°2 de docs/estado-revision-aea.md marcada RESUELTA.
 
+**C5b — Alimentador con la MISMA forma que las conexiones (feedback):**
+- El panel ya no dice "Checklist AEA": ahora es «Faltan completar
+  campos obligatorios (N)» / «✓ Campos obligatorios completos».
+- El alimentador adopta el lenguaje visual y de formulario de las
+  conexiones: mismo formulario (stepper de conductores, tipo
+  unipolar/multipolar, llaves N/PE con sección distinta, material/
+  aislación/norma, vista previa) con un campo extra ARRIBA: «Desde»
+  (de dónde viene). En la hoja: caja "Desde X" + las mismas marcas
+  oblicuas (círculo = neutro, corte = tierra) + notación al costado.
+  Los combos viejos ("3 líneas + neutro", modo n…) quedaron afuera.
+- DatosAlimentador lleva `atributos` (schema conductor); los proyectos
+  viejos se siembran desde fases/neutro/tierra/cantidadN. Serializa en
+  datos.atributos.
+- Checklist: valida también alimentadores — falta origen + reglas de
+  mazo.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

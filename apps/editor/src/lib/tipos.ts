@@ -125,6 +125,8 @@ export interface AlimentadorConfig {
    * número positivo = cantidad arbitraria de conductores.
    */
   cantidadN: number | null;
+  /** Ficha del mazo (schema conductor); siembra desde los campos de arriba */
+  atributos?: Record<string, unknown>;
 }
 
 export function ALIMENTADOR_POR_DEFECTO(): AlimentadorConfig {

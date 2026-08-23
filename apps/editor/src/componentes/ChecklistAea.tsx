@@ -26,8 +26,10 @@ function ChecklistAea() {
         className="checklist-cabecera"
         onClick={() => setAbierto((a) => !a)}
       >
-        {abierto ? "▾" : "▸"} Checklist AEA{" "}
-        {total > 0 ? `(${total})` : "✓ sin pendientes"}
+        {abierto ? "▾" : "▸"}{" "}
+        {total > 0
+          ? `Faltan completar campos obligatorios (${total})`
+          : "✓ Campos obligatorios completos"}
       </button>
       {abierto &&
         (total === 0 ? (

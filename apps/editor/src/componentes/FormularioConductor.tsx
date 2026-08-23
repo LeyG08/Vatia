@@ -5,6 +5,8 @@ import { camposDeFamilia } from "../lib/esquemas";
 interface Props {
   atributos: Record<string, unknown>;
   onChange: (nuevosAtributos: Record<string, unknown>) => void;
+  /** Campo extra arriba del cuerpo (ej.: "Desde dónde viene" del alimentador) */
+  encabezado?: React.ReactNode;
 }
 
 function poner(
@@ -47,7 +49,7 @@ function Llave({
  * unipolar/multipolar y vista previa de la notación del plano.
  * El resto de campos (material, aislación, norma) usa el render común.
  */
-export default function FormularioConductor({ atributos, onChange }: Props) {
+export default function FormularioConductor({ atributos, onChange, encabezado }: Props) {
   const fases =
     typeof atributos.cantidad_conductores === "number"
       ? atributos.cantidad_conductores
@@ -71,6 +73,8 @@ export default function FormularioConductor({ atributos, onChange }: Props) {
 
   return (
     <div className="form-atributos fc">
+      {encabezado}
+
       {/* ---- Conductores de fase: número con stepper ---- */}
       <div className="campo-atributo">
         <span>

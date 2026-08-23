@@ -151,7 +151,23 @@ export function armarChecklist(
 
   for (const n of nodos) {
     const data = n.data as NodoData;
-    if (data.tipo === "alimentador") continue;
+    if (data.tipo === "alimentador") {
+      // La alimentación se trata como un mazo más + su origen
+      const msj: string[] = [];
+      if (typeof data.origen !== "string" || data.origen.trim() === "") {
+        msj.push("Falta el origen (desde dónde viene).");
+      }
+      msj.push(...problemasMazo(data.atributos ?? {}));
+      if (msj.length > 0) {
+        salida.push({
+          id: n.id,
+          esConexion: false,
+          etiqueta: nombresPorId.get(n.id) ?? n.id,
+          mensajes: msj,
+        });
+      }
+      continue;
+    }
     const familia = obtenerSimbolo(data.codigo_iec)?.metadata
       .familia_atributos as FamiliaAtributos | undefined;
     if (!familia) continue;

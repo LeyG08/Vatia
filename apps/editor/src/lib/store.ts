@@ -170,6 +170,30 @@ export interface DatosAlimentador extends Record<string, unknown> {
   neutro: boolean;
   tierra: boolean;
   cantidadN: number | null;
+  /**
+   * Ficha del mazo de alimentación (C5): MISMO schema que la conexión.
+   * Los campos legados (fases/neutro/tierra/cantidadN) se mantienen por
+   * compatibilidad y siembran estos atributos al cargar proyectos viejos.
+   */
+  atributos?: Record<string, unknown>;
+}
+
+/** Siembra la ficha nueva desde los campos legados (o la existente) */
+function atributosAlimentador(
+  d: Partial<DatosAlimentador>,
+): Record<string, unknown> {
+  if (d.atributos && typeof d.atributos === "object") return { ...d.atributos };
+  const a: Record<string, unknown> = {};
+  const fases =
+    typeof d.cantidadN === "number" && d.cantidadN > 0
+      ? d.cantidadN
+      : d.fases
+        ? 3
+        : 0;
+  if (fases > 0) a.cantidad_conductores = fases;
+  if (d.neutro) a.lleva_neutro = true;
+  if (d.tierra) a.lleva_tierra = true;
+  return a;
 }
 
 export type NodoData = DatosSimbolo | DatosAlimentador;
@@ -196,6 +220,7 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
         neutro: n.data.neutro,
         tierra: n.data.tierra,
         cantidadN: n.data.cantidadN,
+        atributos: atributosAlimentador(n.data),
       },
     };
   }
@@ -264,6 +289,9 @@ function construirEstadoHoja(hojaSer: Hoja): {
             d.cantidadN > 0
               ? Math.floor(d.cantidadN)
               : null,
+          atributos: atributosAlimentador(
+            d as Partial<DatosAlimentador>,
+          ),
         },
       });
       continue;
@@ -310,7 +338,10 @@ function construirEstadoHoja(hojaSer: Hoja): {
         ),
         y: snap(r.y0 + 170),
       },
-      data: { ...datos },
+      data: {
+        ...datos,
+        atributos: atributosAlimentador(datos as Partial<DatosAlimentador>),
+      },
     });
   }
   const idsValidos = new Set(nodos.map((n) => n.id));
@@ -617,6 +648,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         tipo: "alimentador",
         ...ALIMENTADOR_POR_DEFECTO(),
       };
+      // Semilla coherente con los valores por defecto (3F+N+PE)
+      data.atributos = atributosAlimentador(data);
       // Debajo del bloque de notas del gabinete para no taparlo
       const pos = limitarAHoja(
         x ?? r.x0 + 60 + existentes * (TAMANO_ALIMENTADOR_PX.ancho + 20),

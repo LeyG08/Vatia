@@ -798,25 +798,27 @@ body.arrastrando .paleta-item {
   font-weight: 700;
 }
 
-.alim-combo {
-  width: 100%;
-}
-
-.alim-n {
-  justify-content: space-between;
-  color: #52525b;
-}
-
-.alim-n input {
-  width: 44px;
-}
-
+.alim-combo,
+.alim-n,
 .alim-tag {
-  font-size: 10px;
-  color: #52525b;
-  text-align: center;
+  /* Reemplazados por el mazo visual (C5b): marcas + notación */
+  display: none;
+}
+
+/* Mazo del alimentador: mismas marcas que las conexiones + notación */
+.alim-mazo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   border-top: 1px dashed #d4d4d8;
-  padding-top: 3px;
+  padding-top: 4px;
+}
+
+.alim-nota {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  color: #71717a;
+  line-height: 1.35;
 }
 
 .nodo-alimentador .react-flow__handle {
