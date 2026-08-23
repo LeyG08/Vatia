@@ -266,9 +266,10 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   sync de main) y agregada la sección "Historial del desarrollo"
   que obliga a actualizar este archivo en cada interacción.
 - Creado este `HISTORIAL.md`.
-- PR abierto con ambos cambios: **pendiente de numeración/aprobación
-  del usuario** (según la política recién restaurada, NO se mergea
-  solo).
+- PR abierto con ambos cambios: **PR #8**
+  (`docs/historial-y-politica-merge-20260823`, commit `3e6e021`) —
+  espera aprobación del usuario (según la política recién restaurada,
+  NO se mergea solo).
 
 ---
 
