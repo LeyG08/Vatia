@@ -1,6 +1,6 @@
 import { useEditor } from "../lib/store";
 import { PX_POR_MM, TAMANIOS_HOJA_MM, dimensionesHoja } from "../lib/tipos";
-import type { FormatoHoja, OrientacionHoja } from "../lib/tipos";
+import type { FormatoHoja, OrientacionHoja, RotuloConfig } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
 
@@ -24,6 +24,18 @@ function Campo({
     </label>
   );
 }
+
+const RESPONSABLES: Array<{
+  key: "proyecto" | "dibujo" | "revision" | "aprobacion";
+  etiqueta: string;
+  campoNombre: keyof RotuloConfig;
+  campoFecha: keyof RotuloConfig;
+}> = [
+  { key: "proyecto", etiqueta: "Proyectó", campoNombre: "proyectoNombre", campoFecha: "proyectoFecha" },
+  { key: "dibujo", etiqueta: "Dibujó", campoNombre: "dibujoNombre", campoFecha: "dibujoFecha" },
+  { key: "revision", etiqueta: "Revisó", campoNombre: "revisionNombre", campoFecha: "revisionFecha" },
+  { key: "aprobacion", etiqueta: "Aprobó", campoNombre: "aprobacionNombre", campoFecha: "aprobacionFecha" },
+];
 
 function PanelHoja() {
   const abierto = useEditor((s) => s.panelHojaAbierto);
@@ -83,22 +95,18 @@ function PanelHoja() {
           </p>
         </div>
 
-        <h3>Rótulo</h3>
+        <h3>Rótulo — IRAM 4508</h3>
+
         <div className="panel-hoja-rotulo">
           <Campo
-            etiqueta="Empresa"
-            valor={hoja.rotulo.empresa}
-            onChange={(v) => actualizar({ rotulo: { empresa: v } })}
+            etiqueta="Denominación del plano"
+            valor={hoja.rotulo.titulo}
+            onChange={(v) => actualizar({ rotulo: { titulo: v } })}
           />
           <Campo
-            etiqueta="Proyecto"
-            valor={hoja.rotulo.proyecto}
-            onChange={(v) => actualizar({ rotulo: { proyecto: v } })}
-          />
-          <Campo
-            etiqueta="Ubicación"
-            valor={hoja.rotulo.ubicacion}
-            onChange={(v) => actualizar({ rotulo: { ubicacion: v } })}
+            etiqueta="Cliente"
+            valor={hoja.rotulo.cliente}
+            onChange={(v) => actualizar({ rotulo: { cliente: v } })}
           />
           <Campo
             etiqueta="Plano N°"
@@ -110,21 +118,28 @@ function PanelHoja() {
             valor={hoja.rotulo.escala}
             onChange={(v) => actualizar({ rotulo: { escala: v } })}
           />
-          <Campo
-            etiqueta="Fecha"
-            valor={hoja.rotulo.fecha}
-            onChange={(v) => actualizar({ rotulo: { fecha: v } })}
-          />
-          <Campo
-            etiqueta="Dibujó"
-            valor={hoja.rotulo.dibujo}
-            onChange={(v) => actualizar({ rotulo: { dibujo: v } })}
-          />
-          <Campo
-            etiqueta="Revisión"
-            valor={hoja.rotulo.revision}
-            onChange={(v) => actualizar({ rotulo: { revision: v } })}
-          />
+        </div>
+
+        <div className="panel-hoja-responsables">
+          {RESPONSABLES.map(({ etiqueta, campoNombre, campoFecha }) => (
+            <div key={etiqueta} className="panel-hoja-responsable">
+              <strong>{etiqueta}</strong>
+              <Campo
+                etiqueta="Nombre"
+                valor={String(hoja.rotulo[campoNombre])}
+                onChange={(v) =>
+                  actualizar({ rotulo: { [campoNombre]: v } })
+                }
+              />
+              <Campo
+                etiqueta="Fecha"
+                valor={String(hoja.rotulo[campoFecha])}
+                onChange={(v) =>
+                  actualizar({ rotulo: { [campoFecha]: v } })
+                }
+              />
+            </div>
+          ))}
         </div>
 
         <footer className="panel-hoja-pie">

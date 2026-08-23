@@ -16,6 +16,7 @@ import {
   type HojaConfig,
   type NodoProyecto,
   type ProyectoJSON,
+  type RotuloConfig,
 } from "./tipos";
 
 /**
@@ -26,6 +27,35 @@ import {
  */
 export const ESCALA = 4;
 export const PASO_ROTACION = 90;
+
+/**
+ * Fusiona la hoja guardada con los defaults, tomando solo campos
+ * conocidos: los proyectos viejos pueden traer rótulos con otra forma
+ * (empresa, ubicación, fecha única) y no deben colarse al estado.
+ */
+function fusionarHoja(guardada?: Partial<HojaConfig> | null): HojaConfig {
+  const base = HOJA_POR_DEFECTO();
+  if (!guardada) return base;
+  const r = (guardada.rotulo ?? {}) as Partial<Partial<RotuloConfig>>;
+  return {
+    formato: guardada.formato ?? base.formato,
+    orientacion: guardada.orientacion ?? base.orientacion,
+    rotulo: {
+      titulo: r.titulo ?? "",
+      cliente: r.cliente ?? "",
+      numero: r.numero ?? "",
+      escala: r.escala ?? "",
+      proyectoNombre: r.proyectoNombre ?? "",
+      proyectoFecha: r.proyectoFecha ?? "",
+      dibujoNombre: r.dibujoNombre ?? "",
+      dibujoFecha: r.dibujoFecha ?? "",
+      revisionNombre: r.revisionNombre ?? "",
+      revisionFecha: r.revisionFecha ?? "",
+      aprobacionNombre: r.aprobacionNombre ?? "",
+      aprobacionFecha: r.aprobacionFecha ?? "",
+    },
+  };
+}
 
 export interface NodoData extends Record<string, unknown> {
   codigo_iec: string;
@@ -412,7 +442,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         conexiones,
         nombreProyecto: proyecto.nombre || "proyecto_sin_nombre",
         problemasProyecto: problemas,
-        hoja: { ...HOJA_POR_DEFECTO(), ...(proyecto.hoja ?? {}) },
+        hoja: fusionarHoja(proyecto.hoja),
         version: get().version + 1,
       });
     },

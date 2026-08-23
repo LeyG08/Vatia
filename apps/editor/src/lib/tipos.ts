@@ -75,16 +75,40 @@ export const TAMANIOS_HOJA_MM: Record<FormatoHoja, [number, number]> = {
 /** Escala de dibujo en pantalla: 4 px por mm de hoja real */
 export const PX_POR_MM = 4;
 
+/**
+ * Rótulo normalizado IRAM 4508: denominación del plano en la franja
+ * superior; debajo cliente / número de plano / escala; y en la base los
+ * responsables con sus fechas.
+ */
 export interface RotuloConfig {
-  empresa: string;
-  proyecto: string;
-  ubicacion: string;
+  titulo: string;
+  cliente: string;
   numero: string;
   escala: string;
-  fecha: string;
-  dibujo: string;
-  revision: string;
+  proyectoNombre: string;
+  proyectoFecha: string;
+  dibujoNombre: string;
+  dibujoFecha: string;
+  revisionNombre: string;
+  revisionFecha: string;
+  aprobacionNombre: string;
+  aprobacionFecha: string;
 }
+
+export const ROTULO_VACIO: RotuloConfig = {
+  titulo: "",
+  cliente: "",
+  numero: "",
+  escala: "",
+  proyectoNombre: "",
+  proyectoFecha: "",
+  dibujoNombre: "",
+  dibujoFecha: "",
+  revisionNombre: "",
+  revisionFecha: "",
+  aprobacionNombre: "",
+  aprobacionFecha: "",
+};
 
 export interface HojaConfig {
   formato: FormatoHoja;
@@ -96,16 +120,7 @@ export function HOJA_POR_DEFECTO(): HojaConfig {
   return {
     formato: "A3",
     orientacion: "horizontal",
-    rotulo: {
-      empresa: "",
-      proyecto: "",
-      ubicacion: "",
-      numero: "",
-      escala: "",
-      fecha: new Date().toISOString().slice(0, 10),
-      dibujo: "",
-      revision: "",
-    },
+    rotulo: { ...ROTULO_VACIO },
   };
 }
 
