@@ -12,13 +12,15 @@ import { useEditor } from "../lib/store";
 const mm = (v: number) => v * PX_POR_MM;
 
 /**
- * Geometría del rótulo según IRAM 4508 (figura 1), reconstruida de la
- * norma: ancho total 175 mm con columnas 26 / 20 / 34 / 40 / 55 y alto
- * 79 mm con filas 4×10 + 20 + 19. Contorno igual al recuadro; líneas
- * internas finas.
+ * Geometría del rótulo según IRAM 4508 (figura 1), ajustada a pedido
+ * del usuario: ancho total 175 mm con columnas 26 / 20 / 34 / 40 / 55.
+ * Filas: 4×10 (responsables) + 12 (escala / nº cliente) + 10
+ * (denominación del plano a ancho completo) + 8 (formato / nº plano /
+ * paginación) = 70 mm. Contorno igual al recuadro; líneas internas
+ * finas.
  */
 const ROTULO_COLUMNAS_MM = [26, 20, 34, 40, 55];
-const ROTULO_FILAS_MM = [10, 10, 10, 10, 20, 19];
+const ROTULO_FILAS_MM = [10, 10, 10, 10, 12, 10, 8];
 
 /**
  * Plantilla de hoja: arriba, sobre el recuadro, va el nombre del
@@ -101,8 +103,10 @@ function RotuloIram() {
   return (
     <div
       style={bloqueStyle({
-        right: 0,
-        bottom: 0,
+        // Medio punto (0,5 mm = 2 px) hacia abajo y hacia la derecha:
+        // el contorno del rótulo se funde con el recuadro de la hoja
+        right: -2,
+        bottom: -2,
         width: anchoPx,
         height: altoPx,
         boxSizing: "border-box",
@@ -181,7 +185,7 @@ function RotuloIram() {
         tamano={2}
       />
 
-      {/* Campo 6 — denominación de lo representado + campo 10 logo */}
+      {/* Campo 10 — logo / empresa (zona derecha de las filas de arriba) */}
       <div
         style={{
           gridColumn: "5",
@@ -196,24 +200,18 @@ function RotuloIram() {
           gap: mm(0.5),
         }}
       >
-        <span style={{ fontSize: mm(1.7), lineHeight: 1.25 }}>
-          Denominación de lo representado
-        </span>
-        {(rotulo.empresa !== "" || rotulo.logoTexto !== "") && (
-          <span style={{ fontSize: mm(2), fontWeight: 600, lineHeight: 1.25 }}>
-            {rotulo.logoTexto || rotulo.empresa}
-          </span>
-        )}
+        <span style={{ fontSize: mm(1.7), lineHeight: 1.25 }}>Empresa / logo</span>
         <span
           style={{
-            fontSize: mm(3.4),
+            fontSize: mm(3),
             fontWeight: 700,
             lineHeight: 1.3,
             textAlign: "center",
             margin: "auto 0",
+            wordBreak: "break-word",
           }}
         >
-          {rotulo.denominacion === "" ? "\u00a0" : rotulo.denominacion}
+          {rotulo.logoTexto || rotulo.empresa || "\u00a0"}
         </span>
       </div>
 
@@ -237,16 +235,27 @@ function RotuloIram() {
         fuerte
       />
 
+      {/* Campo 6 — denominación del plano, a ancho completo */}
+      <CeldaRotulo
+        col="1 / 6"
+        fila="6"
+        etiqueta="Denominación del plano"
+        valor={rotulo.denominacion}
+        tamano={3.2}
+        fuerte
+        centrado
+      />
+
       {/* Campo 5 — formato */}
-      <CeldaRotulo col="1" fila="6" etiqueta="Formato" valor={formato} tamano={2.6} fuerte />
+      <CeldaRotulo col="1" fila="7" etiqueta="Formato" valor={formato} tamano={2.6} fuerte />
 
       {/* Campo 12 — número de plano propio */}
       <CeldaRotulo
         col="2 / 5"
-        fila="6"
+        fila="7"
         etiqueta="N° de plano"
         valor={rotulo.numeroPlano}
-        tamano={3}
+        tamano={2.8}
         fuerte
         centrado
       />
@@ -254,10 +263,10 @@ function RotuloIram() {
       {/* Campo 13 — paginación */}
       <CeldaRotulo
         col="5"
-        fila="6"
+        fila="7"
         etiqueta="Pág."
         valor={rotulo.paginacion}
-        tamano={2.6}
+        tamano={2.4}
         centrado
       />
     </div>
@@ -270,6 +279,16 @@ function HojaNode(_props: NodeProps) {
   const mi = mm(MARGEN_IZQ_MM);
   const mr = mm(MARGEN_RESTO_MM);
   const textoChico = { fontSize: mm(2.5), lineHeight: 1.45 };
+
+  // Estructura fija de las notas del gabinete, en este orden
+  const notasGabinete = [
+    hoja.notasGabinete.material,
+    hoja.notasGabinete.claseAislacion,
+    hoja.notasGabinete.personalApto,
+    hoja.notasGabinete.gradoProteccion,
+    hoja.notasGabinete.barrasOConductores,
+    hoja.notasGabinete.reservaFutura,
+  ].filter((n) => n.trim() !== "");
 
   return (
     <div
@@ -294,17 +313,18 @@ function HojaNode(_props: NodeProps) {
           </strong>
         </div>
 
-        {/* Notas constructivas del gabinete, una por renglón */}
-        {hoja.notasGabinete.length > 0 && (
+        {/* Notas constructivas del gabinete (estructura fija), subidas
+         * unos 5 mm para dejar aire bajo el encabezado */}
+        {notasGabinete.length > 0 && (
           <div
             style={bloqueStyle({
-              top: mm(16),
+              top: mm(11),
               left: mm(6),
               maxWidth: mm(95),
               color: "#111827",
             })}
           >
-            {hoja.notasGabinete.map((n, i) => (
+            {notasGabinete.map((n, i) => (
               <p key={i} style={{ ...textoChico, margin: 0 }}>
                 {n}
               </p>

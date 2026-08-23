@@ -52,7 +52,8 @@
 | F1 | Hoja finita como único espacio de trabajo | mergeada (PR #5) | 23/08/2026 ~00:39–00:48 |
 | F2 | Rótulo "según planos reales" (sin cajetín) | SUPERADA por F3 (PR #6) | 23/08/2026 ~01:00–01:08 |
 | F3 | Corrección: rótulo IRAM 4508 conforme + alimentadores conectables | mergeada (PR #7) | 23/08/2026 01:10–01:38 |
-| F4 | HISTORIAL.md + reversión política de merge | PR abierto, espera aprobación | 23/08/2026 (actual) |
+| F4 | HISTORIAL.md + reversión política de merge | mergeada (PR #8) | 23/08/2026 ~02:0x |
+| F5 | Notas de gabinete fijas + ajustes finos del cajetín | PR abierto (#9), espera aprobación | 23/08/2026 (actual) |
 
 Trabajo previo a esta sesión (resumen de referencia): creación del
 editor mínimo (PR #1/#2, noche 22/08 ~20:16–21:12), símbolos IEC con
@@ -243,7 +244,7 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
 
 ---
 
-## Fase 4 — HISTORIAL.md + reversión de la política de merge (EN CURSO)
+## Fase 4 — HISTORIAL.md + reversión de la política de merge (PR #8, MERGEADO)
 
 **Ventana:** 23/08/2026, inmediatamente después de F3.
 
@@ -266,10 +267,59 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   sync de main) y agregada la sección "Historial del desarrollo"
   que obliga a actualizar este archivo en cada interacción.
 - Creado este `HISTORIAL.md`.
-- PR abierto con ambos cambios: **PR #8**
-  (`docs/historial-y-politica-merge-20260823`, commit `3e6e021`) —
-  espera aprobación del usuario (según la política recién restaurada,
-  NO se mergea solo).
+- PR #8 (`docs/historial-y-politica-merge-20260823`, commits `3e6e021`
+  y `59467fe`) → **aprobado explícitamente por el usuario** y mergeado
+  (merge commit `00556bb`). Primera aplicación de la política: el
+  merge se ejecutó solo tras el "Aprobado" del usuario.
+
+---
+
+## Fase 5 — Notas de gabinete fijas + ajustes finos del cajetín (EN CURSO)
+
+**Ventana:** 23/08/2026, inmediatamente después del merge del PR #8.
+
+**Pedido del usuario (correcciones antes de continuar):**
+
+1. Subir unos 5 puntos (≈5 mm) las notas del gabinete.
+2. Dejar ESTRUCTURA FIJA para las notas del gabinete: material del
+   gabinete, clase de aislación, personal apto para operar, grado de
+   protección IP, barras o conductores interiores, y reserva futura.
+3. Mover el rótulo medio punto hacia abajo y hacia la derecha.
+4. Achicar la cuadrícula inferior del rótulo (formato / nº plano /
+   pág.) porque su contenido no es más grande que el tamaño de letra.
+5. Con el espacio liberado y achicando también la banda superior
+   (escala / nº plano cliente), agregar debajo una franja para la
+   **denominación del plano ocupando el ancho completo**.
+
+**Implementación:**
+
+- `tipos.ts`: nueva `NotasGabineteConfig` con los seis campos fijos
+  (material, claseAislacion, personalApto, gradoProteccion,
+  barrasOConductores, reservaFutura) + `NOTAS_GABINETE_POR_DEFECTO()`
+  con los textos estándar de los planos reales; `HojaConfig.notasGabinete`
+  pasa de `string[]` a esta estructura.
+- `store.ts`: `fusionarHoja()` valida campo a campo (los proyectos que
+  guardaban lista libre de strings vuelven a defaults); `actualizarHoja`
+  acepta y fusiona parcialmente `notasGabinete`.
+- `HojaNode.tsx`:
+  - Notas dibujadas desde la estructura fija en orden, subidas de
+    `top: mm(16)` a `top: mm(11)` (−5 mm).
+  - Rótulo desplazado **medio punto** (interpretado 0,5 mm = 2 px)
+    hacia abajo/derecha (`right: −2, bottom: −2`) para fundir su
+    contorno con el recuadro.
+  - Nueva geometría de filas: `[10,10,10,10,12,10,8]` = **70 mm**
+    (antes 4×10+20+19 = 79). Zona derecha de arriba pasa a ser
+    logo/empresa; fila escala/nº-cliente reducida a 12 mm; franja
+    **"Denominación del plano" a ancho completo** de 10 mm; fila final
+    formato/nº-plano/pág. reducida a 8 mm.
+- `PanelHoja.tsx`: textarea libre reemplazado por seis campos fijos
+  (material, clase de aislación, personal apto, IP, barras/conductores,
+  reserva futura).
+
+**Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
+`node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
+
+**Estado:** PR abierto esperando aprobación del usuario.
 
 ---
 
@@ -285,8 +335,8 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
 
 ## Estado al cierre de esta entrada
 
-- `main` local = `d383c93` (PR #7 mergeado): editor con hoja finita,
-  cajetín IRAM 4508 conforme, alimentadores conectables.
-- Pendiente: aprobar/mejorar el PR abierto de F4 (AGENTS.md +
-  HISTORIAL.md). Próximos pasos funcionales sugeridos: exportar PDF de
-  la hoja, atributos de conductores en conexiones, más símbolos IEC.
+- `main` local = `00556bb` (PR #8 mergeado): AGENTS.md con política de
+  aprobación previa + HISTORIAL.md activo.
+- Pendiente: aprobar PR #9 (F5: notas fijas + ajustes del cajetín).
+- Próximos pasos funcionales sugeridos: exportar PDF de la hoja,
+  atributos de conductores en conexiones, más símbolos IEC.
