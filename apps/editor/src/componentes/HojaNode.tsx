@@ -160,6 +160,8 @@ function RotuloIram() {
                 fontSize: mm(1.7) + FUENTE_EXTRA_PX,
                 lineHeight: 1.25,
                 color: "#374151",
+                paddingLeft: mm(1.5),
+                paddingRight: mm(1),
               }}
             >
               {r.rol}
@@ -169,6 +171,8 @@ function RotuloIram() {
                 fontSize: mm(2.2) + FUENTE_EXTRA_PX,
                 fontWeight: 500,
                 lineHeight: 1.25,
+                paddingLeft: mm(3),
+                paddingRight: mm(1),
               }}
             >
               {r.fecha === "" ? "\u00a0" : r.fecha}

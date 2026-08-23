@@ -410,12 +410,20 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   Aplicado en `CeldaRotulo` y celdas personalizadas (cliente, logo).
 - **Logo/empresa centrado sin sangría** (justificado central).
 
+**Correcciones de revisión del usuario (8ª vuelta, misma fase):**
+
+- **Sangrías en responsables (proyecto/dibujo/revisó/aprobó)**: ahora
+  usan la misma regla que el resto del rótulo — rol (etiqueta) 1,5 mm,
+  fecha (valor) 3 mm.
+- Rótulo 174,5 mm y sangrías 1,5/3/0 mm confirmados.
+
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
 **Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
 commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac`, `b3f3d4c`,
-`0748941`, `16f3c9d` + 7ª vuelta) esperando aprobación del usuario.
+`0748941`, `16f3c9d`, `54dcb9b` + 8ª vuelta) esperando aprobación del
+usuario.
 
 ---
 
