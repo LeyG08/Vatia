@@ -336,11 +336,30 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
   derecho/inferior ya no dibujan su línea interna (`sinDerecha` /
   `sinAbajo` en CeldaRotulo).
 
+**Correcciones de revisión del usuario (3ª vuelta, misma fase):**
+
+- **Puntos de la hoja alineados a la grilla real**: el puntillado
+  estaba centrado a 5 px de los múltiplos de 10 (por eso recuadro,
+  rótulo y símbolos se veían «corridos» medio punto). Ahora los
+  centros de los puntos caen sobre las líneas de la grilla
+  (`background-position: -5px -5px`).
+- **Recuadro cuadrado con los puntos en cualquier formato**: las
+  dimensiones px de la hoja se redondean a múltiplos de 10 (A4
+  horizontal: 1188→1190; desvío de aspecto < 0,2 %) y el marco se monta
+  1 px hacia afuera para que el eje de su borde de 2 px quede exacto
+  sobre la línea de puntos. El rótulo vuelve a `-2/-2` y sus trazas se
+  funden píxel a píxel con el recuadro.
+- **Título del alimentador a ~16 px** (`.alim-origen`, negrita);
+  tarjeta ensanchada 150→172 px (`TAMANO_ALIMENTADOR_PX`) y textos
+  internos 11→12 px.
+- **Notas del gabinete +2 px** (10→12 px), para lectura cómoda en el
+  papel.
+
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
 **Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
-commits `f685a14`, `6f8d7d1` + correcciones de revisión) esperando
+commits `f685a14`, `6f8d7d1`, `4cca487` + 3ª vuelta) esperando
 aprobación del usuario.
 
 ---

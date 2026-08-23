@@ -258,7 +258,7 @@ export function tamanoWrapperPx(
 }
 
 /** Tamaño fijo de la tarjeta del nodo alimentador (ver estilos.css) */
-export const TAMANO_ALIMENTADOR_PX = { ancho: 150, alto: 100 };
+export const TAMANO_ALIMENTADOR_PX = { ancho: 172, alto: 104 };
 
 export function tamanoNodoPx(data: NodoData): { ancho: number; alto: number } {
   return esDatosAlimentador(data)

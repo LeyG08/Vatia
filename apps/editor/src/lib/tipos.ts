@@ -263,5 +263,9 @@ export function dimensionesHoja(hoja: HojaConfig): { pxW: number; pxH: number } 
   const [corto, largo] = TAMANIOS_HOJA_MM[hoja.formato];
   const [mmW, mmH] =
     hoja.orientacion === "horizontal" ? [largo, corto] : [corto, largo];
-  return { pxW: mmW * PX_POR_MM, pxH: mmH * PX_POR_MM };
+  // Redondeo a múltiplos de 10 px (= grilla de trabajo): así las cuatro
+  // líneas del recuadro caen sobre líneas de la grilla/puntos de la
+  // hoja en cualquier formato (desvío de aspecto < 0,2 %, invisible).
+  const decena = (v: number) => Math.round(v / 10) * 10;
+  return { pxW: decena(mmW * PX_POR_MM), pxH: decena(mmH * PX_POR_MM) };
 }

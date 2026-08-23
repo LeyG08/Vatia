@@ -113,12 +113,9 @@ function RotuloIram() {
   return (
     <div
       style={bloqueStyle({
-        // Medio punto (0,5 mm = 2 px) hacia abajo y hacia la derecha:
-        // el contorno del rótulo se funde con el recuadro de la hoja.
-        // Sin width/height fijos: la grilla se dimensiona sola desde
-        // sus pistas (content-box), así las líneas internas cierran
-        // SIEMPRE contra el contorno, sin importar el tamaño de hoja
-        // ni el redondeo de píxeles del zoom.
+        // Contorno del rótulo fundido con el recuadro: el corrimiento
+        // de 2 px hacia afuera hace coincidir ambas trazas píxel a
+        // píxel, sobre las líneas de puntos de la grilla.
         right: -2,
         bottom: -2,
         border: "2px solid #111827",
@@ -334,6 +331,9 @@ function HojaNode(_props: NodeProps) {
   const mi = mm(MARGEN_IZQ_MM);
   const mr = mm(MARGEN_RESTO_MM);
   const textoChico = { fontSize: mm(2.5), lineHeight: 1.45 };
+  // Notas del gabinete con +2 px sobre el texto chico, para lectura
+  // cómoda en el papel impreso
+  const textoNotasGabinete = { fontSize: mm(2.5) + 2, lineHeight: 1.45 };
 
   // Notas con su etiqueta fija; se saltean solo si el campo quedó vacío
   const notasGabinete = NOTAS_GABINETE_FIJAS.map(([campo, etiqueta]) => ({
@@ -347,7 +347,9 @@ function HojaNode(_props: NodeProps) {
       style={{ width: pxW, height: pxH }}
       aria-label="Hoja de plano"
     >
-      <div className="hoja-marco" style={{ inset: mr, left: mi }}>
+      {/* Recuadro montado 1 px hacia afuera de las líneas de grilla:
+       * con borde de 2 px, su eje queda EXACTO sobre los puntos */}
+      <div className="hoja-marco" style={{ inset: mr - 1, left: mi - 1 }}>
         {/* Encabezado del tablero: sobre el recuadro, arriba al centro */}
         <div
           style={bloqueStyle({
@@ -376,7 +378,7 @@ function HojaNode(_props: NodeProps) {
             })}
           >
             {notasGabinete.map((n) => (
-              <p key={n.etiqueta} style={{ ...textoChico, margin: 0 }}>
+              <p key={n.etiqueta} style={{ ...textoNotasGabinete, margin: 0 }}>
                 <strong>{n.etiqueta}:</strong> {n.valor}
               </p>
             ))}
