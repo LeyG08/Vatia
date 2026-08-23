@@ -1,11 +1,12 @@
 import type { CSSProperties } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { PX_POR_MM, dimensionesHoja } from "../lib/tipos";
+import {
+  MARGEN_IZQ_MM,
+  MARGEN_RESTO_MM,
+  PX_POR_MM,
+  dimensionesHoja,
+} from "../lib/tipos";
 import { useEditor } from "../lib/store";
-
-/** Márgenes del enmarcado en mm (izquierda mayor para archivado) */
-const MARGEN_IZQ_MM = 20;
-const MARGEN_RESTO_MM = 10;
 
 /**
  * Rótulo IRAM 4508:2008 (figura 1): ancho total 175 mm y tres columnas.

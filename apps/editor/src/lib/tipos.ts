@@ -75,6 +75,30 @@ export const TAMANIOS_HOJA_MM: Record<FormatoHoja, [number, number]> = {
 /** Escala de dibujo en pantalla: 4 px por mm de hoja real */
 export const PX_POR_MM = 4;
 
+/** Márgenes del enmarcado en mm según IRAM 4504 (izquierda mayor para archivado) */
+export const MARGEN_IZQ_MM = 25;
+export const MARGEN_RESTO_MM = 10;
+
+/**
+ * Rectángulo útil de trabajo dentro del enmarcado, en px de canvas.
+ * Todo símbolo debe vivir acá: la hoja es un espacio finito, si algo
+ * no entra corresponde pasar a otra lámina.
+ */
+export function rectanguloUtil(hoja: HojaConfig): {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+} {
+  const { pxW, pxH } = dimensionesHoja(hoja);
+  return {
+    x0: MARGEN_IZQ_MM * PX_POR_MM,
+    y0: MARGEN_RESTO_MM * PX_POR_MM,
+    x1: pxW - MARGEN_RESTO_MM * PX_POR_MM,
+    y1: pxH - MARGEN_RESTO_MM * PX_POR_MM,
+  };
+}
+
 /**
  * Rótulo según IRAM 4508:2008 (figura 1): campos mínimos de datos,
  * distribuidos en la cuadrícula que arma HojaNode (ancho 175 mm).
