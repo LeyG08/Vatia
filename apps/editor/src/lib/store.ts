@@ -11,7 +11,12 @@ import {
 } from "@xyflow/react";
 import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
-import type { NodoProyecto, ProyectoJSON } from "./tipos";
+import {
+  HOJA_POR_DEFECTO,
+  type HojaConfig,
+  type NodoProyecto,
+  type ProyectoJSON,
+} from "./tipos";
 
 export const ESCALA = 2;
 export const PASO_ROTACION = 90;
@@ -27,8 +32,16 @@ interface EstadoEditor {
   nombreProyecto: string;
   problemasProyecto: string[];
   paletaVisible: boolean;
+  panelHojaAbierto: boolean;
+  hoja: HojaConfig;
   version: number;
   alternarPaleta: () => void;
+  alternarPanelHoja: () => void;
+  actualizarHoja: (
+    patch: Partial<Omit<HojaConfig, "rotulo">> & {
+      rotulo?: Partial<HojaConfig["rotulo"]>;
+    },
+  ) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
   onNodesChange: (cambios: NodeChange<Node<NodoData>>[]) => void;
   onEdgesChange: (cambios: EdgeChange[]) => void;
@@ -89,12 +102,27 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     nombreProyecto: "proyecto_sin_nombre",
     problemasProyecto: [],
     paletaVisible: true,
+    panelHojaAbierto: false,
+    hoja: HOJA_POR_DEFECTO(),
     version: 0,
 
     alternarPaleta() {
       set((s) => ({ paletaVisible: !s.paletaVisible }));
     },
 
+    alternarPanelHoja() {
+      set((s) => ({ panelHojaAbierto: !s.panelHojaAbierto }));
+    },
+
+    actualizarHoja(patch) {
+      set((s) => ({
+        hoja: {
+          ...s.hoja,
+          ...patch,
+          rotulo: { ...s.hoja.rotulo, ...(patch.rotulo ?? {}) },
+        },
+      }));
+    },
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
       if (!simbolo) return;
@@ -129,7 +157,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         sourceHandle: conexion.sourceHandle,
         target: conexion.target,
         targetHandle: conexion.targetHandle,
-        type: "step",
+        type: "conexion",
       };
       ejecutar({
         descripcion: `conectar ${edge.id}`,
@@ -301,7 +329,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         sourceHandle: l.sh,
         target: idDe(l.t),
         targetHandle: l.th,
-        type: "step",
+        type: "conexion",
       }));
 
       ejecutar({
@@ -369,7 +397,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           sourceHandle: srcH ?? null,
           target: tgt,
           targetHandle: tgtH ?? null,
-          type: "step",
+          type: "conexion",
         });
       }
       historial.limpiar();
@@ -378,12 +406,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         conexiones,
         nombreProyecto: proyecto.nombre || "proyecto_sin_nombre",
         problemasProyecto: problemas,
+        hoja: { ...HOJA_POR_DEFECTO(), ...(proyecto.hoja ?? {}) },
         version: get().version + 1,
       });
     },
 
     serializarActual() {
-      const { nodos, conexiones, nombreProyecto } = get();
+      const { nodos, conexiones, nombreProyecto, hoja } = get();
       const nodosProyecto: NodoProyecto[] = nodos.map((n) => ({
         id: n.id,
         codigo_iec: n.data.codigo_iec,
@@ -402,6 +431,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         nodos: nodosProyecto,
         conexiones: conexionesProyecto,
         modo_vista: "unifilar_simple",
+        hoja,
       };
     },
   };

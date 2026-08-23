@@ -11,6 +11,7 @@ function BarraSuperior() {
   const rehacerFn = useEditor((s) => s.rehacer);
   const alternarPaleta = useEditor((s) => s.alternarPaleta);
   const paletaVisible = useEditor((s) => s.paletaVisible);
+  const alternarHoja = useEditor((s) => s.alternarPanelHoja);
   const version = useEditor((s) => s.version);
   const puedeDeshacer = version >= 0 && historial.puedeDeshacer;
   const puedeRehacer = version >= 0 && historial.puedeRehacer;
@@ -54,6 +55,13 @@ function BarraSuperior() {
       >
         ☰ Símbolos
       </button>
+      <button
+        type="button"
+        onClick={() => alternarHoja()}
+        title="Configuración de hoja (formato, orientación, rótulo)"
+      >
+        📐 Hoja…
+      </button>
       <input
         className="nombre-proyecto"
         value={nombre}
@@ -95,8 +103,8 @@ function BarraSuperior() {
         ↷
       </button>
       <span className="ayuda">
-        Shift+arrastrar: seleccionar en caja · Ctrl+clic: sumar a selección ·
-        Ctrl+C/V: copiar/pegar · R: rotar · Supr: borrar
+        Arrastrar con rueda: desplazar · Clic izq. y arrastrar: seleccionar ·
+        Ctrl+clic: sumar · Ctrl+C/V: copiar/pegar · R: rotar · Supr: borrar
       </span>
     </header>
   );
