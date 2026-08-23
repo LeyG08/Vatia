@@ -3,7 +3,7 @@ import { rutaOrtogonal } from "../lib/ruta";
 import { lineasMazo } from "../lib/anotaciones";
 
 /** Marcas de conductor según IEC 60617: trazos oblicuos a ~45°, juntos */
-const SEP_TICKS = 6;
+const SEP_TICKS = 8;
 const LARGO_TICK = 15;
 
 function puntosDe(d: string): [number, number][] {
@@ -78,6 +78,14 @@ export default function ConexionEdge({
   const wy = geo ? (geo.uy + geo.ux) / Math.SQRT2 : 0;
   const h = LARGO_TICK / 2;
 
+  // El texto va AL COSTADO DERECHO de las marcas, centrado en altura,
+  // igual que las anotaciones de los símbolos.
+  const halfSpan = geo ? ((totalMarcas - 1) / 2) * geo.sep + h : 0;
+  const labelX = geo
+    ? geo.mx + halfSpan * Math.abs(geo.ux) + h * Math.abs(geo.uy) + 6
+    : (sourceX + targetX) / 2;
+  const labelY = geo ? geo.my : (sourceY + targetY) / 2;
+
   return (
     <>
       <BaseEdge path={d} {...props} />
@@ -118,7 +126,7 @@ export default function ConexionEdge({
           <div
             className="anotacion-edge"
             style={{
-              transform: `translate(-50%, -50%) translate(${geo ? geo.mx + geo.uy * (h + 10) : (sourceX + targetX) / 2}px, ${geo ? geo.my - geo.ux * (h + 10) : (sourceY + targetY) / 2}px)`,
+              transform: `translate(0, -50%) translate(${labelX}px, ${labelY}px)`,
             }}
           >
             {lineas.map((l, i) => (

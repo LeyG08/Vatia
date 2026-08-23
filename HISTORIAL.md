@@ -744,6 +744,13 @@ normativa. Cambios:
   una conexión SOLO neutro o solo tierra se representa igualmente
   ("1 x 1 x S mm²").
 
+**C4j — Ajuste fino de marcas y texto (feedback del usuario):**
+- Separación entre marcas sube a 8px: el corte de la TIERRA se veía
+  apretado contra las marcas vecinas.
+- El texto del mazo ya NO flota sobre la conexión: queda AL COSTADO
+  DERECHO de las marcas, centrado en altura, igual que las anotaciones
+  de los aparatos.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

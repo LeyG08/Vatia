@@ -910,7 +910,7 @@ body.arrastrando .paleta-item {
   pointer-events: none;
   max-width: 130px;
   white-space: normal;
-  text-align: center;
+  text-align: left;
   line-height: 1.35;
 }
 
