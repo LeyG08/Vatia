@@ -11,11 +11,28 @@
 - Nunca hacer commit directo a main.
 - Al finalizar la sesión, abrir un Pull Request hacia main con `gh pr create`,
   incluyendo en la descripción el diff de campos modificados.
-- Al terminar un cambio verificado (build + lint + scripts en verde),
-  mergear el PR de inmediato con `gh pr merge <n> --merge --delete-branch`
-  y sincronizar main local. La idea es dejar registro continuo del
-  proceso: cada mejora funcional queda mergeada apenas anda, no se
-  acumulan varios cambios sueltos en un mismo PR abierto.
+- NO mergear el PR por cuenta propia, ni siquiera con build/lint/scripts
+  en verde: mostrar el resultado al usuario y esperar su aprobación.
+  Solo mergear cuando el usuario lo ordene de forma explícita
+  ("aprobado", "mergeá el PR N", etc.), usando
+  `gh pr merge <n> --merge --delete-branch` y sincronizando main local
+  después. En ese caso, dejar el PR abierto como registro pendiente.
+
+## Historial del desarrollo (HISTORIAL.md)
+
+- El archivo `HISTORIAL.md` en la raíz registra cronológicamente todo
+  el trabajo del proyecto, organizado en fases (F0, F1, F2, ...) con
+  fecha y hora de cada cambio.
+- ACTUALIZARLO EN CADA INTERACCIÓN donde se haga algo: cambios nuevos,
+  modificaciones sobre lo anterior, cosas deshechas o revertidas,
+  decisiones del usuario, verificaciones corridas y PRs abiertos o
+  mergeados (número, hash, hora).
+- Si algo queda deshecho o cambia de rumbo, registrar la reversión sin
+  borrar el registro original: el historial es un apéndice cronológico,
+  no una reescritura.
+- Debe poder usarse para retomar contexto rápido y para consultar a
+  otras IA: incluir horas, archivos tocados, cómo se hizo y qué
+  verificaciones pasaron.
 
 ## Regla de alineación a grilla (símbolos)
 
