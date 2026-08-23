@@ -711,6 +711,16 @@ usuario):**
 **Verificación:** npm run build ✓ · oxlint ✓ · verificar_alineacion ✓ ·
 lint_simbolos ✓.
 
+**C4g — Marcas de conductor SOBRE la conexión (feedback del usuario):**
+las barras no iban en el formulario sino en la propia conexión según
+normativa. Cambios:
+- FormularioConductor: el stepper pasa a mostrar solo el NÚMERO
+  (− 3 +), sin barras.
+- ConexionEdge: dibuja TRAZOS OBLICUOS cruzando la línea — uno por
+  conductor de línea (fases) — centrados en el segmento más largo del
+  recorrido ortogonal (IEC 60617, single-line). Se recalculan con el
+  path, así siguen las esquinas al mover los símbolos.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

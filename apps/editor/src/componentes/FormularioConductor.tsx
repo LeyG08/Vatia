@@ -71,7 +71,7 @@ export default function FormularioConductor({ atributos, onChange }: Props) {
 
   return (
     <div className="form-atributos fc">
-      {/* ---- Conductores de fase: barras ---- */}
+      {/* ---- Conductores de fase: número con stepper ---- */}
       <div className="campo-atributo">
         <span>
           Conductores<em className="obligatorio">*</em>
@@ -86,12 +86,7 @@ export default function FormularioConductor({ atributos, onChange }: Props) {
           >
             −
           </button>
-          <div className="fc-barras" title="Conductores de fase">
-            {Array.from({ length: fases }, (_, i) => (
-              <span key={i} className="fc-barra" />
-            ))}
-            {fases === 0 && <span className="fc-sin">—</span>}
-          </div>
+          <span className="fc-numero">{fases || "—"}</span>
           <button
             type="button"
             className="fc-paso"

@@ -934,27 +934,12 @@ body.arrastrando .paleta-item {
   cursor: default;
 }
 
-.fc-barras {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 7px;
-  min-height: 22px;
-}
-
-/* Cada barra = un conductor de fase (marca de plano) */
-.fc-barra {
-  width: 3px;
-  height: 18px;
-  background: #2563eb;
-  transform: skewX(-18deg);
-  border-radius: 1px;
-}
-
-.fc-sin {
-  color: #a1a1aa;
-  font-size: 11px;
+.fc-numero {
+  min-width: 26px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #18181b;
 }
 
 .fc-tipos {
