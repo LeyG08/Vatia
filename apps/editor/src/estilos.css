@@ -1,0 +1,305 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+  --borde: #d4d4d8;
+  --fondo-panel: #fafafa;
+  --acento: #2563eb;
+  --error: #dc2626;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---- Barra superior ---- */
+.barra-superior {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--borde);
+  background: var(--fondo-panel);
+  flex-wrap: wrap;
+}
+
+.marca {
+  color: var(--acento);
+  letter-spacing: 0.5px;
+}
+
+.nombre-proyecto {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 4px 8px;
+  width: 220px;
+  background: #fff;
+}
+
+.barra-superior button {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.barra-superior button:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.barra-superior button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.separador {
+  width: 1px;
+  align-self: stretch;
+  background: var(--borde);
+  margin: 0 4px;
+}
+
+.ayuda {
+  margin-left: auto;
+  color: #71717a;
+  font-size: 12px;
+}
+
+/* ---- Cuerpo ---- */
+.cuerpo {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- Paleta ---- */
+.paleta {
+  width: 230px;
+  border-right: 1px solid var(--borde);
+  background: var(--fondo-panel);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.paleta h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #52525b;
+  margin: 4px 0 8px;
+}
+
+.paleta-grupo h3 {
+  font-size: 12px;
+  color: #71717a;
+  margin: 10px 0 4px;
+  border-bottom: 1px dashed var(--borde);
+  padding-bottom: 2px;
+}
+
+.paleta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px;
+  margin-bottom: 4px;
+  cursor: grab;
+  text-align: left;
+}
+
+.paleta-item:hover {
+  border-color: var(--acento);
+}
+
+.paleta-thumb {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.paleta-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.paleta-nombre {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+/* ---- Lienzo ---- */
+.lienzo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.nodo-simbolo {
+  position: relative;
+}
+
+.simbolo-svg {
+  position: absolute;
+}
+
+.simbolo-svg,
+.simbolo-svg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.simbolo-svg .punto-conexion {
+  pointer-events: all;
+}
+
+.handle-entrada,
+.handle-salida,
+.handle-tierra {
+  z-index: 3;
+}
+
+.handle-entrada:hover::after,
+.handle-salida:hover::after,
+.handle-tierra:hover::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.25);
+}
+
+/* Selección de nodos */
+.react-flow__node-simbolo.selected .nodo-simbolo::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px dashed var(--acento);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* Selección de conexiones */
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke: var(--acento);
+}
+
+.nodo-faltante {
+  border: 2px dashed var(--error);
+  color: var(--error);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  font-size: 12px;
+}
+
+/* ---- Panel de problemas ---- */
+.panel-problemas {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 5;
+  max-width: 420px;
+  max-height: 40%;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+}
+
+.panel-problemas.con-errores {
+  border-color: var(--error);
+}
+
+.panel-problemas-cabecera {
+  all: unset;
+  display: block;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.panel-problemas ul {
+  margin: 0;
+  padding: 0 10px 8px 26px;
+}
+
+.panel-problemas li.error {
+  color: var(--error);
+}
+
+.panel-problemas li.aviso {
+  color: #a16207;
+}
+
+.sin-problemas {
+  margin: 0;
+  padding: 0 10px 8px;
+  color: #16a34a;
+}
+
+/* ---- Arrastre desde la paleta ---- */
+.fantasma-arrastre {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.25));
+}
+
+.fantasma-arrastre svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+body.arrastrando {
+  user-select: none;
+  cursor: grabbing;
+}
+
+body.arrastrando .paleta-item {
+  opacity: 0.5;
+}
+
+.paleta-item:active {
+  cursor: grabbing;
+}
+
+.paleta-ayuda {
+  font-size: 11px;
+  color: #71717a;
+  margin: 0 0 8px;
+}
+
+.barra-superior button.activo {
+  border-color: var(--acento);
+  color: var(--acento);
+  background: #eff6ff;
+}
