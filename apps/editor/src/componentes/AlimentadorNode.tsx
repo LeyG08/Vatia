@@ -46,10 +46,11 @@ function AlimentadorNode({
   return (
     <div className={`nodo-alimentador${selected ? " sel" : ""}`}>
       <div className="alim-col">
+        <span className="alim-desde">Desde</span>
         <input
           className="nodrag alim-origen"
           value={data.origen}
-          placeholder="Desde…"
+          placeholder="TGBT"
           onChange={(e) => actualizar(id, { origen: e.target.value })}
           title="Procedencia de la alimentación"
         />

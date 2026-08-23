@@ -838,6 +838,23 @@ cero. La verificación del demo da idéntica.
   conexión (clicable para seleccionarlo), y debajo, como subtareas
   sangradas, cada cosa que falta.
 
+**C6 — Proyecto de prueba con valores REALES del PPS:**
+- «Desde» ahora es texto fijo en el alimentador (el campo editable es
+  solo la procedencia; placeholder "TGBT").
+- `ejemplos/proyecto-real-pps.json`: cadena TGBT → SF-Peli1-Moli
+  (fusible Siemens R1288, 250 A gG NH1-NH2 125 kA IEC 60269-2) →
+  Q-TMyPET3 (TM SICA 3P 63 A curva C 3 kA) → KM1 (contactor Siemens
+  3TF57 415 V AC-3 475 A bobina 220 V) → Molino del fondo 50 HP
+  400 V, con mazos reales (3x1x240+120 IRAM 2178; 3x1x25+16;
+  3x1x10+6 IRAM NM 247-3; PE 16 mm²) y rama PAT → Q-LuzTablero
+  (BAW 1P 10 A C 1,5 kA).
+- Nuevo `scripts/verificar_proyecto_real.mjs`: replica las reglas del
+  checklist sobre el JSON (schema-driven) → cero pendientes ✓.
+- FIX ida-y-vuelta del alimentador: al cargar y al serializar se PISABA
+  el mazo real (data.atributos editado en el panel) con el sembrado por
+  flags. Ahora los atributos serializados mandan; el sembrado es solo
+  red de seguridad.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

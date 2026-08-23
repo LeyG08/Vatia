@@ -214,14 +214,19 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
       id: n.id,
       tipo: "alimentador" as const,
       posicion,
-      datos: {
-        origen: n.data.origen,
-        fases: n.data.fases,
-        neutro: n.data.neutro,
-        tierra: n.data.tierra,
-        cantidadN: n.data.cantidadN,
-        atributos: atributosAlimentador(n.data),
-      },
+        datos: {
+          origen: n.data.origen,
+          fases: n.data.fases,
+          neutro: n.data.neutro,
+          tierra: n.data.tierra,
+          cantidadN: n.data.cantidadN,
+          // El mazo REAL (editado en el panel) manda; el sembrado por
+          // flags es solo red de seguridad si quedó vacío
+          atributos:
+            n.data.atributos && Object.keys(n.data.atributos).length > 0
+              ? { ...n.data.atributos }
+              : atributosAlimentador(n.data),
+        },
     };
   }
   return {
@@ -289,9 +294,10 @@ function construirEstadoHoja(hojaSer: Hoja): {
             d.cantidadN > 0
               ? Math.floor(d.cantidadN)
               : null,
-          atributos: atributosAlimentador(
-            d as Partial<DatosAlimentador>,
-          ),
+          atributos:
+            n.atributos && Object.keys(n.atributos).length > 0
+              ? { ...n.atributos }
+              : atributosAlimentador(d as Partial<DatosAlimentador>),
         },
       });
       continue;

@@ -794,7 +794,15 @@ body.arrastrando .paleta-item {
   padding-top: 6px;
 }
 
-/* Etiqueta «Desde»: texto del plano, editable al hacer clic */
+/* Etiqueta «Desde»: fija, seguida del origen editable */
+.alim-desde {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  text-align: right;
+  line-height: 1.2;
+}
+
 .alim-origen {
   border: none;
   background: transparent;
