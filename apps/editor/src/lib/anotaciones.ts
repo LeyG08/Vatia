@@ -11,71 +11,99 @@ function n(v: unknown): string {
   return typeof v === "number" && Number.isFinite(v) ? String(v) : "";
 }
 
+/** PdCC guardado en kA (schema); el plano lo anota en amperes */
+function pdccEnA(v: unknown): string {
+  if (typeof v !== "number" || !Number.isFinite(v)) return "";
+  return v < 10 ? `${Math.round(v * 1000)} A` : `${v} kA`;
+}
+
 /**
- * Solo lo ESENCIAL del plano: lo demás (marca, modelo, norma, poder de
- * corte, categoría…) es dato normalizado/de catálogo y no se repite
- * sobre la hoja. Una línea corta por aparato.
+ * TODOS los datos cargados, una línea por característica, al estilo de
+ * la ficha del plano real:
+ *   3P x 10A
+ *   Curva C
+ *   PdCC 3000 A
+ *   Norma IEC 60898-1
+ * Solo se muestran los campos con valor.
  */
 function anotacionAparato(a: Record<string, unknown>): string[] {
+  const l: string[] = [];
+  const mm = [capitalizar(a.marca), capitalizar(a.modelo)]
+    .filter(Boolean)
+    .join(" ");
+  if (mm) l.push(mm);
+
   switch (a.tipo_aparato) {
     case "interruptor_termomagnetico": {
-      const partes = [
-        a.cantidad_polos != null ? `${a.cantidad_polos}P` : "",
-        n(a.in_a) ? `${n(a.in_a)}A` : "",
-        a.curva_disparo && a.curva_disparo !== "otra"
-          ? String(a.curva_disparo)
-          : "",
-      ].filter(Boolean);
-      return partes.length > 0 ? [partes.join(" · ")] : [];
+      if (a.cantidad_polos != null && n(a.in_a))
+        l.push(`${a.cantidad_polos}P x ${n(a.in_a)} A`);
+      else if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
+      else if (n(a.in_a)) l.push(`${n(a.in_a)} A`);
+      if (a.curva_disparo && a.curva_disparo !== "otra")
+        l.push(`Curva ${a.curva_disparo}`);
+      const pdcc = pdccEnA(a.pdcc_kA);
+      if (pdcc) l.push(`PdCC ${pdcc}`);
+      if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
+      break;
     }
     case "contactor": {
-      const partes = [
-        a.cantidad_polos != null ? `${a.cantidad_polos}P` : "",
-        n(a.in_a) ? `${n(a.in_a)}A` : "",
-        a.categoria_empleo === "AC-1" ||
-        a.categoria_empleo === "AC-3" ||
-        a.categoria_empleo === "AC-4"
-          ? String(a.categoria_empleo)
-          : "",
-      ].filter(Boolean);
-      return partes.length > 0 ? [partes.join(" · ")] : [];
+      if (a.cantidad_polos != null && n(a.in_a))
+        l.push(`${a.cantidad_polos}P x ${n(a.in_a)} A`);
+      if (a.categoria_empleo) l.push(`Categoría ${a.categoria_empleo}`);
+      if (n(a.ue_V)) l.push(`Ue ${n(a.ue_V)} V`);
+      if (n(a.tension_bobina_v)) l.push(`Bobina ${n(a.tension_bobina_v)} V`);
+      break;
     }
     case "fusible": {
-      const partes = [
-        n(a.in_a) ? `${n(a.in_a)}A` : "",
-        capitalizar(a.clase_caracteristica),
-        capitalizar(a.tamano),
+      const porta = [
+        capitalizar(a.portafusible_marca),
+        capitalizar(a.portafusible_modelo),
+      ]
+        .filter(Boolean)
+        .join(" ");
+      if (porta) l.push(`Portafusible ${porta}`);
+      const portaDatos = [
+        n(a.portafusible_tension_v) ? `${n(a.portafusible_tension_v)} V` : "",
+        capitalizar(a.portafusible_categoria),
       ].filter(Boolean);
-      return partes.length > 0 ? [partes.join(" · ")] : [];
+      if (portaDatos.length > 0) l.push(portaDatos.join(" · "));
+      const f = [
+        n(a.in_a) ? `${n(a.in_a)} A` : "",
+        capitalizar(a.clase_caracteristica),
+      ].filter(Boolean);
+      if (f.length > 0) l.push(f.join(" "));
+      if (a.tamano) l.push(capitalizar(a.tamano));
+      const pdcc = pdccEnA(a.pdcc_kA);
+      if (pdcc) l.push(`PdCC ${pdcc}`);
+      if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
+      break;
     }
     case "motor_trifasico": {
-      const potencia = n(a.potencia_hp)
-        ? `${n(a.potencia_hp)}HP`
-        : n(a.potencia_kw)
-          ? `${n(a.potencia_kw)}kW`
-          : "";
-      const partes = [potencia, n(a.tension_v) ? `${n(a.tension_v)}V` : ""]
-        .filter(Boolean);
-      return partes.length > 0 ? [partes.join(" · ")] : [];
+      if (n(a.potencia_hp)) l.push(`${n(a.potencia_hp)} HP`);
+      else if (n(a.potencia_kw)) l.push(`${n(a.potencia_kw)} kW`);
+      if (n(a.tension_v)) l.push(`${n(a.tension_v)} V`);
+      if (n(a.in_a)) l.push(`In ${n(a.in_a)} A`);
+      if (n(a.rpm)) l.push(`${n(a.rpm)} rpm`);
+      break;
     }
     case "transformador": {
-      const partes = [
-        n(a.sn_kva) ? `${n(a.sn_kva)}kVA` : "",
-        capitalizar(a.relacion),
-      ].filter(Boolean);
-      return partes.length > 0 ? [partes.join(" · ")] : [];
+      if (n(a.sn_kva)) l.push(`${n(a.sn_kva)} kVA`);
+      if (a.relacion) l.push(capitalizar(a.relacion));
+      if (a.grupo_conexion) l.push(capitalizar(a.grupo_conexion));
+      if (n(a.impedancia_pct)) l.push(`uk ${n(a.impedancia_pct)} %`);
+      break;
     }
   }
-  return [];
+  return l;
 }
 
 function anotacionBarra(a: Record<string, unknown>): string[] {
-  const partes = [
-    capitalizar(a.material),
-    n(a.seccion_mm2) ? `${n(a.seccion_mm2)}mm²` : "",
-    n(a.corriente_admisible_A) ? `${n(a.corriente_admisible_A)}A` : "",
-  ].filter(Boolean);
-  return partes.length > 0 ? [partes.join(" · ")] : [];
+  const l: string[] = [];
+  if (a.material) l.push(capitalizar(a.material));
+  if (a.perfil) l.push(capitalizar(a.perfil));
+  if (n(a.seccion_mm2)) l.push(`${n(a.seccion_mm2)} mm²`);
+  if (n(a.corriente_admisible_A)) l.push(`${n(a.corriente_admisible_A)} A`);
+  return l;
 }
 
 /** Líneas de anotación bajo un símbolo, como en los planos reales */

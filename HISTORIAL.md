@@ -666,6 +666,15 @@ están normalizadas" (no se repiten en el plano). Cambios:
   poderes de corte, bobina, portafusible, rpm y grupo de conexión:
   quedan SOLO en la ficha del panel (y en el JSON), no en la hoja.
 
+**C4d — Anotación completa apilada (feedback del usuario):** "todos
+los datos cargados deben aparecer uno abajo del otro" (revierte el
+criterio mínimo de C4c). La anotación al costado del símbolo lista
+ahora CADA campo con valor en su propia línea, con etiqueta:
+`3P x 10A` / `Curva C` / `PdCC 3000 A` / `Norma IEC 60898-1`, etc.
+El PdCC (guardado en kA) se muestra en amperes cuando es < 10 kA,
+como lo anota el plano. Fusible muestra bloque Portafusible + fusible.
+Barra apila material/perfil/sección/corriente.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
