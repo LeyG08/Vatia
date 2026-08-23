@@ -820,6 +820,16 @@ Ahora se ancla con coordenadas EXACTAS al extremo de la línea
 (CABLE_X=86, PUNTA_Y=91 dentro del nodo), sin depender del centrado
 de React Flow.
 
+**C5g — Conexiones despegadas de los handles (feedback):**
+CAUSA RAÍZ encontrada: rutaOrtogonal snapeaba TAMBIÉN los extremos
+(sx,sy,tx,ty) a la grilla de 10px, pero los terminales de los
+símbolos viven en múltiplos de ESCALA=4px → el snap movía el fin del
+cable hasta 4-6px fuera del círculo del handle (se veía suelto).
+FIX: extremos EXACTOS sin snap; el snap solo aplica a quiebres
+intermedios, con guardas para que el quiebre caiga dentro del tramo
+útil (si no, punto medio real) y descarte de segmentos de longitud
+cero. La verificación del demo da idéntica.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
