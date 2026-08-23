@@ -1,6 +1,7 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ESCALA, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
+import { anotacionNodo } from "../lib/anotaciones";
 import type { SimboloDef } from "../lib/tipos";
 
 const DIRECCIONES = [
@@ -85,6 +86,7 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
   };
   const anchoPx = Math.max(1, Math.round(caja.cajaAncho * ESCALA));
   const altoPx = Math.max(1, Math.round(caja.cajaAlto * ESCALA));
+  const lineas = anotacionNodo(simbolo.metadata.familia_atributos, data);
 
   return (
     <div
@@ -123,6 +125,13 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
           }}
         />
       ))}
+      {lineas.length > 0 && (
+        <div className="anotacion-nodo">
+          {lineas.map((l, i) => (
+            <div key={i}>{l}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

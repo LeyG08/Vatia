@@ -1,5 +1,6 @@
-import { BaseEdge, type EdgeProps } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { rutaOrtogonal } from "../lib/ruta";
+import { textoMazo } from "../lib/anotaciones";
 
 export default function ConexionEdge({
   sourceX,
@@ -8,6 +9,7 @@ export default function ConexionEdge({
   targetY,
   sourcePosition,
   targetPosition,
+  data,
   ...props
 }: EdgeProps) {
   const d = rutaOrtogonal(
@@ -18,5 +20,25 @@ export default function ConexionEdge({
     targetY,
     String(targetPosition),
   );
-  return <BaseEdge path={d} {...props} />;
+  const texto = textoMazo(
+    (data?.atributosConductor as Record<string, unknown> | undefined) ?? {},
+  );
+
+  return (
+    <>
+      <BaseEdge path={d} {...props} />
+      {texto && (
+        <EdgeLabelRenderer>
+          <div
+            className="anotacion-edge"
+            style={{
+              transform: `translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px, ${(sourceY + targetY) / 2}px)`,
+            }}
+          >
+            {texto}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
 }

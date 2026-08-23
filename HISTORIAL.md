@@ -634,6 +634,26 @@ además levantando un dev server efímero: HTTP 200 y resolución a
 /@fs/ correcta para los tres schemas. Lección: en este repo, rutas
 relativas para salir de apps/editor; no confiar en el alias en dev.
 
+**C4b — Ajustes por prueba del usuario (panel + anotaciones en hoja):**
+- Quejas: el panel estaba clavado en la esquina y con tamaño malo, y
+  "si los datos no salen en la hoja están al pedo". Cambios:
+  1. `PanelAtributos` ahora se ANCLA junto al elemento seleccionado
+     (a la derecha del símbolo, usando transform del viewport), es más
+     ancho (300px) y se ARRASTRA desde su encabezado (pointer capture;
+     el arrastre se resetea al cambiar de selección).
+  2. Los atributos se DIBUJAN EN LA HOJA: `lib/anotaciones.ts`
+     formatea líneas al estilo de los planos reales por subtipo (ej.
+     "Siemens 3TF57 / 3P 475A AC-3 / Bobina 220V"; mazo:
+     "3x1x70+1x1x50mm² · Cu · PVC · 0,6/1kV · IRAM NM 247-3").
+     NodoSimbolo las muestra bajo el símbolo (fuera de la caja, sin
+     afectar clamp/zonas); ConexionEdge usa EdgeLabelRenderer para el
+     texto sobre la línea. Sin datos mínimos → no anota.
+  3. Estética de plano: todo texto generado arranca con MAYÚSCULA
+     (`capitalizar()` aplicado a marca/modelo/norma/tamaño/clase/etc.
+     solo en el render; los datos guardados no se mutan).
+
+**Verificación:** npm run build ✓ · oxlint ✓.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
