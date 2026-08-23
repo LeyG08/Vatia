@@ -623,6 +623,17 @@ del usuario):**
 **Verificación:** npm run build ✓ · oxlint ✓ · verificar_alineacion.mjs ✓
 · lint_simbolos.py ✓.
 
+**Bug reportado por el usuario al probar C4 en dev:** Vite 8
+(rolldown) NO resolvió el alias `@libreria/schemas/*.json` en el
+servidor de desarrollo (import-analysis "Failed to resolve import"),
+aunque `vite build` sí lo empaquetaba. FIX: esquemas.ts pasó a imports
+relativos `../../../../libreria-simbolos/schemas/*.json` — la MISMA
+convención que ya usaba libreria.ts con import.meta.glob — y se sacó
+el mapeo `paths` del tsconfig (quedó solo resolveJsonModule). Verificado
+además levantando un dev server efímero: HTTP 200 y resolución a
+/@fs/ correcta para los tres schemas. Lección: en este repo, rutas
+relativas para salir de apps/editor; no confiar en el alias en dev.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

@@ -7,9 +7,6 @@
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
     "resolveJsonModule": true,
-    "paths": {
-      "@libreria/*": ["../../libreria-simbolos/*"]
-    },
     "skipLibCheck": true,
 
     /* Bundler mode */

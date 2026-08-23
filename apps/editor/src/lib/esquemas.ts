@@ -1,6 +1,6 @@
-import brutoAparato from "@libreria/schemas/aparato.schema.json";
-import brutoConductor from "@libreria/schemas/conductor.schema.json";
-import brutoBarra from "@libreria/schemas/barra.schema.json";
+import brutoAparato from "../../../../libreria-simbolos/schemas/aparato.schema.json";
+import brutoConductor from "../../../../libreria-simbolos/schemas/conductor.schema.json";
+import brutoBarra from "../../../../libreria-simbolos/schemas/barra.schema.json";
 
 export type FamiliaAtributos =
   | "aparato"
