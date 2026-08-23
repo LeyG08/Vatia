@@ -55,6 +55,26 @@ interface ToastMover {
   destinoId: string | null;
 }
 
+interface ZonaRect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/** Un símbolo con bbox en (x,y) invade alguna zona reservada */
+function invadeZona(
+  zonas: ZonaRect[],
+  x: number,
+  y: number,
+  data: NodoData,
+): boolean {
+  const t = tamanoNodoPx(data);
+  return zonas.some(
+    (z) => x < z.x1 && x + t.ancho > z.x0 && y < z.y1 && y + t.alto > z.y0,
+  );
+}
+
 function Editor() {
   const nodos = useEditor((s) => s.nodos);
   const conexiones = useEditor((s) => s.conexiones);
@@ -93,6 +113,29 @@ function Editor() {
     const t = window.setTimeout(() => setToast(null), 10000);
     return () => window.clearTimeout(t);
   }, [toast]);
+
+  /* Zonas reservadas (rótulo IRAM, notas del gabinete y nota de
+   * seguridad): ningún símbolo puede QUEDAR encima. Los rects se miden
+   * en coords de flujo justo antes de validar, así siguen a la hoja
+   * activa con su zoom real. */
+  const zonasRef = useRef<ZonaRect[]>([]);
+  const preArrastreRef = useRef<Map<string, { x: number; y: number }>>(
+    new Map(),
+  );
+
+  const capturarZonas = useCallback(function capturarZonas(): ZonaRect[] {
+    const zonas: ZonaRect[] = [];
+    document
+      .querySelectorAll<HTMLElement>(".hoja .zona-protegida")
+      .forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return;
+        const a = screenToFlowPosition({ x: r.left, y: r.top });
+        const b = screenToFlowPosition({ x: r.right, y: r.bottom });
+        zonas.push({ x0: a.x, y0: a.y, x1: b.x, y1: b.y });
+      });
+    return zonas;
+  }, [screenToFlowPosition]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -168,6 +211,19 @@ function Editor() {
       const offsetXEje = (eje - vb.minX) * ESCALA;
       const x = Math.round((flujo.x - offsetXEje) / 10) * 10;
       const y = Math.round(flujo.y / 10) * 10;
+      // La colocación desde la paleta respeta las mismas zonas reservadas
+      const datosPrueba = {
+        codigo_iec: actual.codigo,
+        rotacion: 0,
+      } as NodoData;
+      if (invadeZona(capturarZonas(), x, y, datosPrueba)) {
+        setToast({
+          mensaje:
+            "Ahí están el rótulo y las notas: soltalo dentro del recuadro",
+          destinoId: null,
+        });
+        return;
+      }
       agregarSimbolo(actual.codigo, x, y);
     }
 
@@ -178,7 +234,12 @@ function Editor() {
       window.removeEventListener("mouseup", soltar);
       document.body.classList.remove("arrastrando");
     };
-  }, [agregarSimbolo, arrastre, screenToFlowPosition]);
+  }, [
+    agregarSimbolo,
+    arrastre,
+    capturarZonas,
+    screenToFlowPosition,
+  ]);
 
   const iniciarArrastre = useCallback(
     (codigo: string, e: React.MouseEvent) => {
@@ -342,17 +403,63 @@ function Editor() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
-          onNodeDragStart={(_, nodo) => registrarArrastre([nodo.id])}
+          onNodeDragStart={(_, nodo) => {
+            registrarArrastre([nodo.id]);
+            zonasRef.current = capturarZonas();
+            preArrastreRef.current = new Map(
+              useEditor.getState().nodos.map((n) => [
+                n.id,
+                { ...n.position },
+              ]),
+            );
+          }}
           onMoveEnd={(_, vp) => guardarViewportFn(vp)}
           onNodeDragStop={(_, nodo, nodosAfectados) => {
+            const afectados = nodosAfectados ?? [nodo];
+            let revertidos = 0;
+            const reversiones: {
+              id: string;
+              type: "position";
+              position: { x: number; y: number };
+              dragging: boolean;
+            }[] = [];
             const despues: Record<string, { x: number; y: number }> = {};
-            for (const n of nodosAfectados ?? [nodo]) {
-              despues[n.id] = {
-                x: Math.round(n.position.x),
-                y: Math.round(n.position.y),
-              };
+            for (const n of afectados) {
+              const rx = Math.round(n.position.x);
+              const ry = Math.round(n.position.y);
+              const previa = preArrastreRef.current.get(n.id);
+              if (
+                previa &&
+                invadeZona(
+                  zonasRef.current,
+                  rx,
+                  ry,
+                  n.data,
+                )
+              ) {
+                /* FIX rebote: revertir DIRECTO por onNodesChange.
+                 * No depende de confirmarArrastre, que hace return sin
+                 * ejecutar cuando la posición final coincide con el
+                 * snapshot inicial (exactamente el caso del rebote). */
+                reversiones.push({
+                  id: n.id,
+                  type: "position",
+                  position: previa,
+                  dragging: false,
+                });
+                revertidos += 1;
+              } else {
+                despues[n.id] = { x: rx, y: ry };
+              }
             }
+            if (reversiones.length > 0) onNodesChange(reversiones);
             confirmarArrastre(despues);
+            if (revertidos > 0) {
+              setToast({
+                mensaje: `Rótulo y notas están reservados: ${revertidos} símbolo${revertidos === 1 ? "" : "s"} volvió${revertidos === 1 ? "" : "ron"} a su lugar`,
+                destinoId: null,
+              });
+            }
           }}
           snapToGrid
           snapGrid={[10, 10]}

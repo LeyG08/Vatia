@@ -502,9 +502,16 @@ lint_simbolos ✓.
 hasta el borde de la LÁMINA y podía invadir el margen. Quedó así:
 - `nodeExtent` = rectángulo útil IRAM (`rectanguloUtil`): límite duro
   del recuadro, no de la lámina; `NODO_HOJA` exento con extent propio.
-- Sobre el rótulo y las notas SÍ se permite superponer símbolos
-  (decisión explícita del usuario): se probó un rebote con zonas
-  protegidas y se revirtió en el mismo PR antes de mergear.
+- Rótulo, notas del gabinete y nota de seguridad son ZONAS RESERVADAS
+  (decisión explícita del usuario tras probar): un símbolo no puede
+  quedar encima. Al soltarlo ahí REBOTA a su posición previa + toast.
+- CAUSA RAÍZ del rebote fallido (primera versión): `confirmarArrastre`
+  hace `return` sin ejecutar cuando la posición final coincide con el
+  snapshot inicial — exactamente el caso del rebote. FIX: la reversión
+  se aplica DIRECTO vía `onNodesChange` (cambios type:"position") sin
+  depender del guard; los válidos siguen por el comando normal.
+- La colocación desde la PALETA también valida las zonas: si el drop
+  cae sobre rótulo/notas se rechaza con toast (no se crea el nodo).
 - "Mover a hoja nueva" queda como rescate para: achicar formato u
   orientación, cargar proyectos que no entran en la hoja actual.
 
