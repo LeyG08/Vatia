@@ -1,0 +1,98 @@
+{
+  "nombre": "mini_unifilar_prueba",
+  "nodos": [
+    {
+      "id": "Q1",
+      "codigo_iec": "S00110",
+      "posicion": {
+        "x": 400,
+        "y": 40
+      },
+      "rotacion": 0,
+      "atributos": {}
+    },
+    {
+      "id": "K1",
+      "codigo_iec": "S00112",
+      "posicion": {
+        "x": 400,
+        "y": 360
+      },
+      "rotacion": 0,
+      "atributos": {}
+    },
+    {
+      "id": "F1",
+      "codigo_iec": "S00113",
+      "posicion": {
+        "x": 400,
+        "y": 720
+      },
+      "rotacion": 0,
+      "atributos": {}
+    },
+    {
+      "id": "PE",
+      "codigo_iec": "S00118",
+      "posicion": {
+        "x": 160,
+        "y": 900
+      },
+      "rotacion": 0,
+      "atributos": {}
+    },
+    {
+      "id": "X1",
+      "codigo_iec": "S00119",
+      "posicion": {
+        "x": 260,
+        "y": 1120
+      },
+      "rotacion": 0,
+      "atributos": {}
+    },
+    {
+      "id": "M1",
+      "codigo_iec": "S00115",
+      "posicion": {
+        "x": 760,
+        "y": 1040
+      },
+      "rotacion": 0,
+      "atributos": {}
+    }
+  ],
+  "conexiones": [
+    {
+      "id": "c1",
+      "desde": "Q1.out",
+      "hasta": "K1.in",
+      "atributos_conductor": {}
+    },
+    {
+      "id": "c2",
+      "desde": "K1.out",
+      "hasta": "F1.1",
+      "atributos_conductor": {}
+    },
+    {
+      "id": "c3",
+      "desde": "F1.2",
+      "hasta": "X1.in",
+      "atributos_conductor": {}
+    },
+    {
+      "id": "c4",
+      "desde": "X1.out",
+      "hasta": "M1.in",
+      "atributos_conductor": {}
+    },
+    {
+      "id": "c5",
+      "desde": "K1.in",
+      "hasta": "PE.PE",
+      "atributos_conductor": {}
+    }
+  ],
+  "modo_vista": "unifilar_simple"
+}

@@ -1,21 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import BarraSuperior from "./componentes/BarraSuperior";
 import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
+import PanelHoja from "./componentes/PanelHoja";
 import NodoSimbolo from "./componentes/NodoSimbolo";
-import { ESCALA, useEditor } from "./lib/store";
+import HojaNode from "./componentes/HojaNode";
+import ConexionEdge from "./componentes/ConexionEdge";
+import { ESCALA, useEditor, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
 
-const nodeTypes = { simbolo: NodoSimbolo } as const;
+const nodeTypes = { simbolo: NodoSimbolo, hoja: HojaNode } as const;
+const edgeTypes = { conexion: ConexionEdge } as const;
+
+const NODO_HOJA: Node<NodoData> = {
+  id: "hoja",
+  type: "hoja",
+  position: { x: 0, y: 0 },
+  data: { codigo_iec: "", rotacion: 0 },
+  draggable: false,
+  selectable: false,
+  deletable: false,
+  connectable: false,
+  style: { zIndex: -1 } as React.CSSProperties,
+};
 
 interface ArrastreEnCurso {
   codigo: string;
@@ -149,18 +166,24 @@ function Editor() {
       (eje - simboloFantasma.viewBox.minX) * ESCALA;
   }
 
+  const nodosConHoja = useMemo<Node<NodoData>[]>(
+    () => [NODO_HOJA, ...nodos],
+    [nodos],
+  );
+
   return (
     <div className="cuerpo">
       {paletaVisible && <Paleta onIniciarArrastre={iniciarArrastre} />}
       <div className="lienzo">
         <ReactFlow
-          nodes={nodos}
+          nodes={nodosConHoja}
           edges={conexiones}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          isValidConnection={(c) => c.source !== c.target}
+          isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
           onNodeDragStart={(_, nodo) => registrarArrastre([nodo.id])}
           onNodeDragStop={(_, nodo, nodosAfectados) => {
             const despues: Record<string, { x: number; y: number }> = {};
@@ -175,10 +198,12 @@ function Editor() {
           snapToGrid
           snapGrid={[10, 10]}
           deleteKeyCode={[]}
-          selectionKeyCode="Shift"
+          panOnDrag={[1]}
+          selectionOnDrag
           multiSelectionKeyCode="Control"
+          zoomOnDoubleClick={false}
           defaultEdgeOptions={{
-            type: "step",
+            type: "conexion",
             style: { strokeWidth: 1.5, stroke: "#1e293b" },
           }}
           connectionRadius={12}
@@ -188,6 +213,7 @@ function Editor() {
           <Background variant={BackgroundVariant.Dots} gap={10} size={1} />
         </ReactFlow>
         <PanelProblemas />
+        <PanelHoja />
       </div>
       {arrastre && simboloFantasma && (
         <div

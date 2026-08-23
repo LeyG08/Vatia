@@ -4,8 +4,8 @@
   "familia_atributos": "barra",
   "estado_revision": "pendiente_revision",
   "puntos_conexion": [
-    { "id": "in", "rol": "entrada", "x": -26.0, "y": 0.0 },
-    { "id": "out", "rol": "salida", "x": 26.0, "y": 0.0 }
+    { "id": "in", "rol": "entrada", "x": -25.0, "y": 0.0 },
+    { "id": "out", "rol": "salida", "x": 25.0, "y": 0.0 }
   ],
   "version_libreria": "0.1.0",
   "fuente_qet": "dibujo directo conforme IEC 60617 (sin fuente .elmt en la colección unifilar de QET)"

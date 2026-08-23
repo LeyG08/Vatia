@@ -303,3 +303,253 @@ body.arrastrando .paleta-item {
   color: var(--acento);
   background: #eff6ff;
 }
+
+/* ---- Hoja de plano ---- */
+.hoja {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+}
+
+.hoja-marco {
+  position: absolute;
+  border: 2px solid #111827;
+}
+
+.hoja-rotulo {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #111827;
+  border-top: 1px solid #111827;
+  background: #fff;
+}
+
+/* Franja superior IRAM: denominación del plano */
+.rotulo-titulo {
+  padding: 2px 6px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.rotulo-titulo strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+/* Fila media: cliente / número / escala */
+.rotulo-fila-media {
+  display: flex;
+}
+
+.rotulo-fila-media .rotulo-cliente {
+  flex: 2.2 1 0;
+}
+
+.rotulo-fila-media .rotulo-numero {
+  flex: 1.3 1 0;
+}
+
+.rotulo-fila-media .rotulo-escala {
+  flex: 0.9 1 0;
+}
+
+/* Fila inferior: responsables, una celda por rol */
+.rotulo-responsables {
+  display: flex;
+}
+
+.rotulo-responsables .rotulo-celda {
+  flex: 1 1 0;
+}
+
+.rotulo-celda {
+  border-top: 1px solid #111827;
+  padding: 2px 5px;
+  overflow: hidden;
+}
+
+.rotulo-titulo + .rotulo-fila-media .rotulo-celda,
+.rotulo-responsables .rotulo-celda {
+  border-left: 1px solid #111827;
+}
+
+.rotulo-fila-media .rotulo-celda:first-child,
+.rotulo-responsables .rotulo-celda:first-child {
+  border-left: none;
+}
+
+.rotulo-celda span {
+  display: block;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.rotulo-celda strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.rotulo-celda em {
+  display: block;
+  font-style: normal;
+  font-size: 9px;
+  color: #374151;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* ---- Panel de configuración de hoja ---- */
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 90;
+}
+
+.panel-hoja {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  width: min(520px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  padding: 16px 20px;
+}
+
+.panel-hoja h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.panel-hoja h3 {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  color: #52525b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.panel-hoja-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-hoja-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.panel-hoja-campo span {
+  color: #52525b;
+}
+
+.panel-hoja-campo input,
+.panel-hoja-campo select {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.orientacion-opciones {
+  display: flex;
+  gap: 6px;
+}
+
+.orientacion-opciones button {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.orientacion-opciones button.activo {
+  border-color: var(--acento);
+  color: var(--acento);
+  background: #eff6ff;
+}
+
+.panel-hoja-dimension {
+  margin: 0;
+  font-size: 11px;
+  color: #71717a;
+}
+
+.panel-hoja-rotulo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+}
+
+.panel-hoja-responsables {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.panel-hoja-responsable {
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panel-hoja-responsable strong {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #52525b;
+}
+
+.panel-hoja-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.panel-hoja-pie p {
+  margin: 0;
+  font-size: 11px;
+  color: #71717a;
+}
+
+.panel-hoja-pie button {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  padding: 6px 18px;
+  cursor: pointer;
+}
+
+.panel-hoja-pie button:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
