@@ -55,10 +55,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       break;
     }
     case "fusible": {
-      const porta = [
-        capitalizar(a.portafusible_marca),
-        capitalizar(a.portafusible_modelo),
-      ]
+      const porta = [capitalizar(a.marca), capitalizar(a.modelo)]
         .filter(Boolean)
         .join(" ");
       if (porta) l.push(`Portafusible ${porta}`);

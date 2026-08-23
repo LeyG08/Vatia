@@ -675,6 +675,16 @@ El PdCC (guardado en kA) se muestra en amperes cuando es < 10 kA,
 como lo anota el plano. Fusible muestra bloque Portafusible + fusible.
 Barra apila material/perfil/sección/corriente.
 
+**C4e — Fusible sin marca/modelo duplicados (feedback del usuario):**
+había TRIPLE par marca/modelo: el de base_comun, portafusible_marca/
+modelo y fusible_marca/fusible_modelo. Decisión: los marca/modelo de
+base_comun son del PORTAFUSIBLE (el dispositivo dibujado); el cartucho
+fusible lleva solo In/clase/tamaño/PdCC/norma. Se eliminaron los 4
+campos duplicados del schema (queda $comment con la decisión) y se
+actualizó la anotación. La anotación del fusible ahora es:
+`Portafusible Siemens 3NP3` / `500 V · AC-20B` / `250 A gL` /
+`NH00` / `PdCC 125 kA` / `Norma IEC 60269-2`.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
