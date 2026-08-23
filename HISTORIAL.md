@@ -654,6 +654,18 @@ relativas para salir de apps/editor; no confiar en el alias en dev.
 
 **Verificación:** npm run build ✓ · oxlint ✓.
 
+**C4c — Refinamiento de anotaciones (feedback del usuario):** el texto
+debía ir AL COSTADO del elemento y no invadir, y "muchas características
+están normalizadas" (no se repiten en el plano). Cambios:
+- Anotación del símbolo pasa al costado derecho (centrada en Y), gris,
+  sin halo ni marco; la del mazo pierde el borde.
+- El texto se reduce a lo ESENCIAL por subtipo: TM "3P · 50A · C",
+  contactor "3P · 475A · AC-3", fusible "63A · gL · NH00",
+  motor "50HP · 400V", transformador "25kVA · 13000/400",
+  barra "Cu · 120mm² · 500A". Salieron marca/modelo, normas IEC,
+  poderes de corte, bobina, portafusible, rpm y grupo de conexión:
+  quedan SOLO en la ficha del panel (y en el JSON), no en la hoja.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
