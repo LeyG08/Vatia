@@ -13,6 +13,7 @@ import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
 import {
   HOJA_POR_DEFECTO,
+  rectanguloUtil,
   type HojaConfig,
   type NodoProyecto,
   type ProyectoJSON,
@@ -130,10 +131,52 @@ function nuevoId(existentes: { id: string }[], prefijo: string): string {
 const historial = new Historial();
 let arrastreEnCurso: Record<string, { x: number; y: number }> | null = null;
 
+/** Tamaño del wrapper de un símbolo en px, igualando la caja de NodoSimbolo */
+export function tamanoWrapperPx(
+  codigo: string,
+  rotacion: number,
+): { ancho: number; alto: number } {
+  const s = obtenerSimbolo(codigo);
+  if (!s) return { ancho: 0, alto: 0 };
+  const giro = (((rotacion % 360) + 360) % 360) / 90;
+  const swap = giro === 1 || giro === 3;
+  const anchoU = swap ? s.viewBox.alto : s.viewBox.ancho;
+  const altoU = swap ? s.viewBox.ancho : s.viewBox.alto;
+  return {
+    ancho: Math.max(1, Math.round(anchoU * ESCALA)),
+    alto: Math.max(1, Math.round(altoU * ESCALA)),
+  };
+}
+
 export const useEditor = create<EstadoEditor>((set, get) => {
   function ejecutar(cmd: Comando): void {
     historial.ejecutar(cmd);
     set({ version: get().version + 1 });
+  }
+
+  /**
+   * La hoja es un espacio finito: encierra la posición dentro del marco
+   * útil, snapeando a la grilla y sin dejar que el cuerpo del símbolo se
+   * pase del borde derecho/inferior. Si algo no entra, corresponde otra
+   * hoja.
+   */
+  function limitarAHoja(
+    x: number,
+    y: number,
+    codigo: string,
+    rotacion: number,
+  ): { x: number; y: number } {
+    const r = rectanguloUtil(get().hoja);
+    const t = tamanoWrapperPx(codigo, rotacion);
+    const loX = Math.ceil(r.x0 / 10) * 10;
+    const loY = Math.ceil(r.y0 / 10) * 10;
+    const hiX = Math.max(loX, Math.floor((r.x1 - t.ancho) / 10) * 10);
+    const hiY = Math.max(loY, Math.floor((r.y1 - t.alto) / 10) * 10);
+    const snap = (v: number) => Math.round(v / 10) * 10;
+    return {
+      x: Math.min(Math.max(snap(x), loX), hiX),
+      y: Math.min(Math.max(snap(y), loY), hiY),
+    };
   }
 
   return {
@@ -166,10 +209,11 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
       if (!simbolo) return;
+      const pos = limitarAHoja(x, y, codigoIec, 0);
       const nodo: Node<NodoData> = {
         id: nuevoId(get().nodos, "n"),
         type: "simbolo",
-        position: { x, y },
+        position: pos,
         data: { codigo_iec: codigoIec, rotacion: 0 },
         selected: true,
       };
@@ -229,13 +273,25 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             snapshotAntes[id].y !== despues[id].y),
       );
       if (ids.length === 0) return;
+      // Encierra cada nodo movido dentro del marco útil de la hoja
+      const enHoja: Record<string, { x: number; y: number }> = {};
+      for (const id of ids) {
+        const n = get().nodos.find((m) => m.id === id);
+        if (!n) continue;
+        enHoja[id] = limitarAHoja(
+          despues[id].x,
+          despues[id].y,
+          n.data.codigo_iec,
+          n.data.rotacion,
+        );
+      }
       ejecutar({
         descripcion: "mover nodos",
         do: () =>
           set((s) => ({
             nodos: s.nodos.map((n) =>
-              despues[n.id]
-                ? { ...n, position: { ...despues[n.id] } }
+              enHoja[n.id]
+                ? { ...n, position: { ...enHoja[n.id] } }
                 : n,
             ),
           })),
@@ -352,16 +408,19 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       let proximoN = maxSufijo(snapshotNodos, "n");
       let proximoC = maxSufijo(snapshotConexiones, "c");
 
-      const nuevosNodos: Node<NodoData>[] = portapapeles.items.map((it) => ({
-        id: `n${++proximoN}`,
-        type: "simbolo",
-        position: { x: it.x + 20, y: it.y + 20 },
-        data: {
-          codigo_iec: it.codigo_iec,
-          rotacion: it.rotacion,
-        },
-        selected: true,
-      }));
+      const nuevosNodos: Node<NodoData>[] = portapapeles.items.map((it) => {
+        const pos = limitarAHoja(it.x + 20, it.y + 20, it.codigo_iec, it.rotacion);
+        return {
+          id: `n${++proximoN}`,
+          type: "simbolo",
+          position: pos,
+          data: {
+            codigo_iec: it.codigo_iec,
+            rotacion: it.rotacion,
+          },
+          selected: true,
+        };
+      });
       const idDe = (i: number) => nuevosNodos[i].id;
       const nuevasConexiones: Edge[] = portapapeles.enlaces.map((l) => ({
         id: `c${++proximoC}`,
