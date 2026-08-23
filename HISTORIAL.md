@@ -355,11 +355,21 @@ serializar/cargar) · `python scripts/lint_simbolos.py` ✓.
 - **Notas del gabinete +2 px** (10→12 px), para lectura cómoda en el
   papel.
 
+**Correcciones de revisión del usuario (4ª vuelta, misma fase):**
+
+- **Rótulo ancho reducido 1 mm** (175→174 mm; última columna 55→54 mm)
+  para que en A4 vertical (ancho útil 698 px) no desborde el recuadro.
+- **Sangría interna en celdas del rótulo**: padding horizontal 1→1,5 mm
+  (4→6 px) para que el texto respire y no quede pegado a las líneas.
+- **Notas del gabinete adaptativas**: en orientación *vertical* usan
+  columna angosta (80 mm, izquierda) y dejan libre el centro del unifilar;
+  en *horizontal* mantienen 105 mm.
+
 **Verificación:** `npm run build` ✓ · `npm run lint` ✓ ·
 `node scripts/verificar_alineacion.mjs` ✓ · `python scripts/lint_simbolos.py` ✓.
 
 **Estado:** PR #9 abierto (`proyecto/notas-fijas-cajetin-v3-20260823`,
-commits `f685a14`, `6f8d7d1`, `4cca487` + 3ª vuelta) esperando
+commits `f685a14`, `6f8d7d1`, `4cca487`, `d9babac` + 4ª vuelta) esperando
 aprobación del usuario.
 
 ---
