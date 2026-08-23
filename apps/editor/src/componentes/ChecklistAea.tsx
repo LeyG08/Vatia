@@ -35,32 +35,31 @@ function ChecklistAea() {
         (total === 0 ? (
           <p className="sin-problemas">Todas las fichas técnicas completas.</p>
         ) : (
-          <ul>
-            {problemas.map((p) =>
-              p.mensajes.map((m, i) => (
-                <li key={`${p.id}-${i}`}>
-                  {i === 0 && (
-                    <button
-                      type="button"
-                      className="checklist-ir"
-                      disabled={p.esConexion}
-                      title={
-                        p.esConexion
-                          ? "Seleccioná la conexión en el plano"
-                          : "Seleccionar en el plano"
-                      }
-                      onClick={() => {
-                        if (!p.esConexion) seleccionarNodosFn([p.id]);
-                      }}
-                    >
-                      {p.etiqueta}
-                    </button>
-                  )}
-                  {i === 0 ? " — " : ""}
-                  {m}
-                </li>
-              )),
-            )}
+          <ul className="checklist-elementos">
+            {problemas.map((p) => (
+              <li key={p.id} className="checklist-elemento">
+                <button
+                  type="button"
+                  className="checklist-ir"
+                  disabled={p.esConexion}
+                  title={
+                    p.esConexion
+                      ? "Seleccioná la conexión en el plano"
+                      : "Seleccionar en el plano"
+                  }
+                  onClick={() => {
+                    if (!p.esConexion) seleccionarNodosFn([p.id]);
+                  }}
+                >
+                  {p.etiqueta}
+                </button>
+                <ul>
+                  {p.mensajes.map((m, i) => (
+                    <li key={i}>{m}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
           </ul>
         ))}
     </section>

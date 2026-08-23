@@ -830,6 +830,14 @@ intermedios, con guardas para que el quiebre caiga dentro del tramo
 útil (si no, punto medio real) y descarte de segmentos de longitud
 cero. La verificación del demo da idéntica.
 
+**C5h — Cable del alimentador en grilla + checklist jerárquico (feedback):**
+- El cable ahora cae a x=80 dentro del nodo (múltiplo de la grilla de
+  10px): alineado verticalmente con un símbolo, la conexión sale RECTA
+  sin desvíos. Caja ajustada a ≈100×92.
+- El checklist agrupa por ELEMENTO: ítem principal = el símbolo o
+  conexión (clicable para seleccionarlo), y debajo, como subtareas
+  sangradas, cada cosa que falta.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

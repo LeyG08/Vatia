@@ -388,12 +388,22 @@ body,
 
 .checklist-aea ul {
   margin: 0;
-  padding: 0 10px 8px 26px;
+  padding: 0 10px 8px 12px;
 }
 
-.checklist-aea li {
-  color: #a16207;
-  margin-top: 2px;
+/* Elemento con pendientes (ítem principal, clicable) */
+.checklist-elemento {
+  margin-top: 4px;
+}
+
+/* Subtareas: lo que falta de ese elemento */
+.checklist-elemento > ul {
+  margin: 2px 0 0;
+  padding-left: 14px;
+}
+
+.checklist-elemento > ul li {
+  font-size: 11px;
 }
 
 /* Botón con el nombre del elemento: clic = seleccionarlo en el plano */
@@ -765,7 +775,7 @@ body.arrastrando .paleta-item {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 6px;
+  gap: 4px;
   font-size: 12px;
   color: #111827;
 }
@@ -780,7 +790,7 @@ body.arrastrando .paleta-item {
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
-  width: 62px;
+  width: 58px;
   padding-top: 6px;
 }
 

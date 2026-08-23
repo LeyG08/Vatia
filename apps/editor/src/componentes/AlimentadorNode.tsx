@@ -8,8 +8,10 @@ const LARGO = 15;
 const ALTO_LINEA = 88;
 
 /* Posición EXACTA de la punta del cable dentro del nodo:
-   borde(1) + padding(2) + etiqueta(62) + gap(6) + centro del svg(15) */
-const CABLE_X = 86;
+   borde(1) + padding(2) + etiqueta(58) + gap(4) + centro del svg(15)
+   = 80 → MÚLTIPLO DE LA GRILLA: alineado con los símbolos, la
+   conexión vertical sale recta sin desvíos. */
+const CABLE_X = 80;
 /* borde(1) + padding(2) + largo de la línea (88) */
 const PUNTA_Y = 91;
 
