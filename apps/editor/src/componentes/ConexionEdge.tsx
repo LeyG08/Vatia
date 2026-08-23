@@ -2,8 +2,8 @@ import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { rutaOrtogonal } from "../lib/ruta";
 import { lineasMazo } from "../lib/anotaciones";
 
-/** Marcas de conductor según IEC 60617: un trazo oblicuo por línea */
-const ESPACIO_TICKS = 9;
+/** Marcas de conductor según IEC 60617: trazos oblicuos a ~45°, juntos */
+const SEP_TICKS = 6;
 const LARGO_TICK = 12;
 
 function puntosDe(d: string): [number, number][] {
@@ -14,11 +14,24 @@ function puntosDe(d: string): [number, number][] {
 }
 
 /**
- * Trazos oblicuos cruzando la conexión, centrados en su segmento más
- * largo: uno por conductor de línea (fases), como en el plano real.
+ * Marcas sobre la conexión, en el orden normado: fases, luego neutro
+ * (trazo con CÍRCULO en su punta), luego tierra (trazo CORTADO por una
+ * línea corta). Inclinadas ~45° respecto de la línea y agrupadas al
+ * centro del segmento más largo del recorrido.
  */
-function TicksConductores({ d, cantidad }: { d: string; cantidad: number }) {
-  if (cantidad < 1) return null;
+function MarcasConductores({
+  d,
+  fases,
+  neutro,
+  tierra,
+}: {
+  d: string;
+  fases: number;
+  neutro: boolean;
+  tierra: boolean;
+}) {
+  const total = fases + (neutro ? 1 : 0) + (tierra ? 1 : 0);
+  if (total < 1) return null;
   const pts = puntosDe(d);
   let mejor: { x1: number; y1: number; x2: number; y2: number; len: number } | null = null;
   for (let i = 0; i + 1 < pts.length; i++) {
@@ -31,26 +44,40 @@ function TicksConductores({ d, cantidad }: { d: string; cantidad: number }) {
 
   const ux = (mejor.x2 - mejor.x1) / mejor.len;
   const uy = (mejor.y2 - mejor.y1) / mejor.len;
-  const px = -uy;
-  const py = ux;
+  // Dirección del trazo: la línea girada 45°
+  const wx = (ux - uy) / Math.SQRT2;
+  const wy = (uy + ux) / Math.SQRT2;
+  const h = LARGO_TICK / 2;
   const mx = (mejor.x1 + mejor.x2) / 2;
   const my = (mejor.y1 + mejor.y2) / 2;
-  const h = LARGO_TICK / 2;
+  // Separación adaptativa si el segmento es corto
+  const sep = Math.min(SEP_TICKS, Math.max(4, (mejor.len - 20) / Math.max(total - 1, 1)));
 
   return (
-    <g stroke="#334155" strokeWidth={1.3} strokeLinecap="round">
-      {Array.from({ length: cantidad }, (_, i) => {
-        const t = (i - (cantidad - 1) / 2) * ESPACIO_TICKS;
+    <g stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
+      {Array.from({ length: total }, (_, i) => {
+        const t = (i - (total - 1) / 2) * sep;
         const cx = mx + t * ux;
         const cy = my + t * uy;
+        const ax = cx - wx * h;
+        const ay = cy - wy * h;
+        const bx = cx + wx * h;
+        const by = cy + wy * h;
         return (
-          <line
-            key={i}
-            x1={cx - px * h}
-            y1={cy - py * h}
-            x2={cx + px * h}
-            y2={cy + py * h}
-          />
+          <g key={i}>
+            <line x1={ax} y1={ay} x2={bx} y2={by} />
+            {neutro && i === fases && (
+              <circle cx={bx} cy={by} r={2.4} fill="#fdfdfd" />
+            )}
+            {tierra && i === fases + (neutro ? 1 : 0) && (
+              <line
+                x1={bx - wy * 4}
+                y1={by + wx * 4}
+                x2={bx + wy * 4}
+                y2={by - wx * 4}
+              />
+            )}
+          </g>
         );
       })}
     </g>
@@ -84,11 +111,17 @@ export default function ConexionEdge({
     typeof (data.atributosConductor as Record<string, unknown>).cantidad_conductores === "number"
       ? ((data.atributosConductor as Record<string, unknown>).cantidad_conductores as number)
       : 0;
+  const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
 
   return (
     <>
       <BaseEdge path={d} {...props} />
-      <TicksConductores d={d} cantidad={fases} />
+      <MarcasConductores
+        d={d}
+        fases={fases}
+        neutro={m.lleva_neutro === true}
+        tierra={m.lleva_tierra === true}
+      />
       {lineas.length > 0 && (
         <EdgeLabelRenderer>
           <div

@@ -9,9 +9,9 @@
   "required": ["cantidad_conductores"],
   "properties": {
     "cantidad_conductores": {
-      "type": "integer", "minimum": 1, "maximum": 3,
+      "type": "integer", "minimum": 1,
       "x-obligatorio": true,
-      "description": "Conductores DE FASE del mazo (las barras de la UI)."
+      "description": "Conductores DE FASE del mazo (las marcas oblicuas sobre la conexión). Sin límite superior."
     },
     "tipo_cable": {
       "enum": ["unipolar", "multipolar"],

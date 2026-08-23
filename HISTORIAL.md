@@ -721,6 +721,16 @@ normativa. Cambios:
   recorrido ortogonal (IEC 60617, single-line). Se recalculan con el
   path, así siguen las esquinas al mover los símbolos.
 
+**C4h — Marcas normadas completas (feedback del usuario):**
+- SIN límite de fases (schema deja de tener maximum:3; el stepper ya
+  no topea).
+- Trazos inclinados ~45° respecto de la línea y MÁS JUNTOS (separación
+  6px, adaptativa si el tramo es corto), según IEC 60617.
+- Marcas distintivas en el orden fases → neutro → tierra: el neutro es
+  un trazo con CÍRCULO en su punta; la tierra, un trazo CORTADO por
+  una línea corta perpendicular cerca de su punta. La marca se dibuja
+  sobre el segmento más largo del recorrido y sigue las esquinas.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

@@ -90,8 +90,7 @@ export default function FormularioConductor({ atributos, onChange }: Props) {
           <button
             type="button"
             className="fc-paso"
-            disabled={fases >= 3}
-            onClick={() => onChange(poner(atributos, "cantidad_conductores", Math.min(3, fases + 1)))}
+            onClick={() => onChange(poner(atributos, "cantidad_conductores", fases + 1))}
             title="Agregar conductor de fase"
           >
             +
