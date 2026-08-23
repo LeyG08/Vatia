@@ -814,6 +814,12 @@ normativa. Cambios:
   automáticas al escribir, placeholder actualizado y borde rojo si lo
   escrito no es una fecha real (ej.: 32/13/2026).
 
+**C5f — Handle unido a la punta del cable (feedback):**
+el nodo de conexión del alimentador quedaba despegado del dibujo.
+Ahora se ancla con coordenadas EXACTAS al extremo de la línea
+(CABLE_X=86, PUNTA_Y=91 dentro del nodo), sin depender del centrado
+de React Flow.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

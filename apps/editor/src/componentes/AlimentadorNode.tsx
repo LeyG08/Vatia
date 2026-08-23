@@ -7,8 +7,11 @@ const SEP = 8;
 const LARGO = 15;
 const ALTO_LINEA = 88;
 
-/** Posición X del centro del cable dentro del nodo (para el handle) */
-export const ALIM_CABLE_X = 85;
+/* Posición EXACTA de la punta del cable dentro del nodo:
+   borde(1) + padding(2) + etiqueta(62) + gap(6) + centro del svg(15) */
+const CABLE_X = 86;
+/* borde(1) + padding(2) + largo de la línea (88) */
+const PUNTA_Y = 91;
 
 /**
  * Alimentación = CONDUCTOR VINIENTE desde el tablero, en VERTICAL.
@@ -94,10 +97,10 @@ function AlimentadorNode({
         position={Position.Bottom}
         id="salida"
         style={{
-          left: ALIM_CABLE_X,
-          top: "auto",
-          bottom: -4,
-          transform: "translateX(-50%)",
+          left: CABLE_X,
+          top: PUNTA_Y,
+          bottom: "auto",
+          transform: "translate(-50%, -50%)",
         }}
       />
     </div>
