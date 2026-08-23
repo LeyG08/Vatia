@@ -37,14 +37,10 @@ function Paleta({
           type="button"
           className="paleta-item paleta-alim"
           onClick={() => agregarAlimentador()}
-          title="Agrega un alimentador «Desde …» arriba del marco, con nodo de salida para conectar a los aparatos"
+          title="Agrega un conductor viniente desde el tablero"
         >
           <span className="paleta-nombre">+ Alimentador «Desde …»</span>
         </button>
-        <p className="paleta-ayuda">
-          Se agrega junto al encabezado; elegí la referencia del conductor
-          (líneas / neutro / tierra o cantidad n) en su menú desplegable.
-        </p>
       </div>
 
       {[...grupos.entries()].map(([familia, items]) => (

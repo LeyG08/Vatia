@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { useEditor } from "../lib/store";
-import { PX_POR_MM, TAMANIOS_HOJA_MM, dimensionesHoja } from "../lib/tipos";
+import { TAMANIOS_HOJA_MM } from "../lib/tipos";
 import type { FormatoHoja, OrientacionHoja } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
@@ -35,7 +35,6 @@ function PanelHoja() {
   const actualizar = useEditor((s) => s.actualizarHoja);
 
   if (!abierto) return null;
-  const { pxW, pxH } = dimensionesHoja(hoja);
   const [mmCorto, mmLargo] = TAMANIOS_HOJA_MM[hoja.formato];
   const mmW = hoja.orientacion === "horizontal" ? mmLargo : mmCorto;
   const mmH = hoja.orientacion === "horizontal" ? mmCorto : mmLargo;
@@ -91,9 +90,7 @@ function PanelHoja() {
           </div>
 
           <p className="panel-hoja-dimension">
-            Hoja: {mmW} × {mmH} mm → {(pxW / PX_POR_MM).toFixed(0)}×
-            {(pxH / PX_POR_MM).toFixed(0)} mm en pantalla a{" "}
-            {PX_POR_MM} px/mm.
+            Hoja: {mmW} × {mmH} mm.
           </p>
         </div>
 
@@ -105,18 +102,10 @@ function PanelHoja() {
             valor={hoja.tablero}
             onChange={(v) => actualizar({ tablero: v })}
           />
-          <p className="panel-hoja-dimension">
-            Los alimentadores «Desde …» se agregan desde la paleta y quedan
-            como nodos conectables sobre la hoja.
-          </p>
         </div>
 
         <h3>Notas del gabinete</h3>
 
-        <p className="panel-hoja-dimension">
-          Estructura fija: se dibujan siempre estas seis líneas, en este
-          orden, arriba a la izquierda de la hoja.
-        </p>
         <div className="panel-hoja-bloque">
           <Campo
             etiqueta="Material del gabinete"
@@ -155,7 +144,7 @@ function PanelHoja() {
         <h3>Nota de seguridad operativa</h3>
 
         <label className="panel-hoja-campo">
-          <span>Texto al pie de la hoja; vacío si la lámina no lo lleva</span>
+          <span>Texto al pie de la hoja</span>
           <textarea
             rows={4}
             value={hoja.notaSeguridad}
@@ -275,7 +264,6 @@ function PanelHoja() {
         </div>
 
         <footer className="panel-hoja-pie">
-          <p>Enmarcado: margen izquierdo 25 mm (archivado), resto 10 mm.</p>
           <button type="button" onClick={alternar}>
             Cerrar
           </button>

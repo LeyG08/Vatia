@@ -747,18 +747,19 @@ body.arrastrando .paleta-item {
   min-width: 0;
 }
 
-/* ---- Nodo alimentador: conductor viniente «Desde …» ---- */
+/* ---- Nodo alimentador: conductor viniente «Desde …» (vertical) ---- */
 .nodo-alimentador {
-  width: 150px;
+  width: 200px;
+  min-height: 92px;
   box-sizing: border-box;
   background: transparent;
   border: 1px dashed transparent;
   border-radius: 4px;
-  padding: 2px 0 0;
+  padding: 2px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: #111827;
 }
@@ -768,14 +769,8 @@ body.arrastrando .paleta-item {
   border-color: #93c5fd;
 }
 
-.alim-fila {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-/* Etiqueta «Desde»: texto del plano, editable al hacer clic */
+/* Etiqueta «Desde»: texto del plano, editable al hacer clic.
+   Queda a la IZQUIERDA del cable. */
 .alim-origen {
   border: none;
   background: transparent;
@@ -783,8 +778,8 @@ body.arrastrando .paleta-item {
   font-size: 13px;
   font-weight: 700;
   color: #111827;
-  width: 100%;
-  text-align: left;
+  width: 62px;
+  text-align: right;
   outline: none;
 }
 
@@ -805,17 +800,20 @@ body.arrastrando .paleta-item {
   color: inherit;
 }
 
-/* El cable entra horizontal; las marcas van sobre la línea */
+/* El cable baja vertical; las marcas van sobre la línea */
 .alim-linea {
-  width: 100%;
+  flex: 0 0 auto;
   line-height: 0;
 }
 
+/* Notación del mazo al costado derecho, centrada en altura,
+   igual que las anotaciones de las conexiones */
 .alim-nota {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
   color: #71717a;
   line-height: 1.35;
+  max-width: 100px;
 }
 
 .nodo-alimentador .react-flow__handle {

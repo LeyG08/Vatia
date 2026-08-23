@@ -795,6 +795,16 @@ normativa. Cambios:
   marcas normadas sobre la línea y notación abajo; enganche a la
   derecha. TAMANO_ALIMENTADOR_PX ajustado (150×52).
 
+**C5d — Alimentador vertical + limpieza de textos (feedback):**
+- Alimentador girado: ahora es un cable VERTICAL que baja desde
+  arriba — «Desde …» a la izquierda del cable, marcas normadas sobre
+  la línea, notación a la derecha, enganche en el extremo inferior.
+- Textos descriptivos de más ELIMINADOS: párrafo de ayuda del
+  alimentador en la paleta; en Configuración de hoja quitaron los
+  avisos «Los alimentadores se agregan…», «Estructura fija…»,
+  «Enmarcado: margen izquierdo…», el detalle px/mm y se simplificaron
+  etiquetas; tooltip de «Nueva hoja» corto.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
