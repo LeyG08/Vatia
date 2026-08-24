@@ -1,11 +1,15 @@
-/* Arnés E2E de conexiones (C14): abre el editor, carga un proyecto de
- * prueba, verifica que TODO extremo de cable caiga EXACTO sobre su
- * handle (gap < 2,5 px), conecta desde abajo con el mouse, cruza
- * elementos por encima/debajo de la barra y vuelve a cruzarlos.
+/* Arnés E2E de conexiones (C14, ampliado en C19): abre el editor,
+ * carga un proyecto de prueba, verifica que TODO extremo de cable
+ * caiga EXACTO sobre su handle (gap < 2,5 px), conecta desde abajo con
+ * el mouse, cruza elementos por encima/debajo de la barra, vuelve a
+ * cruzarlos, RECONECTA una punta arrastrándola a otro handle de la
+ * barra y comprueba que ESCRIBIR en «Desde» del alimentador NO mueva
+ * ni un píxel el símbolo.
  *
  * Uso:  npm run build && npm run preview &  → luego  npm run e2e
  * (requiere `npx playwright install chromium` una sola vez).
- * ARCHIVO apunta a un proyecto de muestra; ajustalo si hace falta. */
+ * Sale con código 1 si algo falla (gaps, sin paths, reconexión mala,
+ * símbolo corrido). */
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 
@@ -15,7 +19,16 @@ const ARCHIVO =
   fileURLToPath(
     new URL("../ejemplos/regresion-barra.json", import.meta.url),
   );
+const CON_ALIMENTADOR = fileURLToPath(
+  new URL("../ejemplos/regresion-alimentador.json", import.meta.url),
+);
 const UMBRAL = 2.5;
+
+let fallos = 0;
+function marcarFalla(msj) {
+  fallos++;
+  console.log(`  ✗ ${msj}`);
+}
 
 async function medir(page) {
   return page.evaluate(() => {
@@ -64,7 +77,7 @@ async function medir(page) {
 
 function resumen(etiqueta, r) {
   if (r.vacio) {
-    console.log(`[${etiqueta}] SIN PATHS (barra/conexiones perdidas?)`);
+    marcarFalla(`[${etiqueta}] SIN PATHS (barra/conexiones perdidas?)`);
     return;
   }
   const malas = r.filas.filter((f) => f.gap > UMBRAL);
@@ -74,6 +87,7 @@ function resumen(etiqueta, r) {
         ? "GAP: " + malas.map((f) => `${f.edge}/${f.ext}=${f.gap}`).join(", ")
         : "ok"),
   );
+  if (malas.length) fallos += malas.length;
 }
 
 const browser = await chromium.launch();
@@ -134,4 +148,79 @@ await arrastrar("n5", 0, -170); // abajo → arriba
 await arrastrar("n5", 0, 170);  // arriba → abajo (viceversa)
 await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
 
+/* C19: RECONEXIÓN de punta — arrastro el updater target de c4 desde
+ * su handle actual (390b) hasta otro de la misma barra (410b). El
+ * updater queda DEBAJO del nodo de la barra (las capas de RF ponen
+ * los nodos encima), así que el mousedown se despacha DIRECTO al
+ * elemento; el arrastre y la suelta son eventos reales de mouse. */
+{
+  const upd = page.locator(
+    '.react-flow__edge[data-id="c4"] .react-flow__edgeupdater-target',
+  );
+  const bbU = await upd.boundingBox().catch(() => null);
+  const bbH = await page
+    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="410b"]')
+    .boundingBox();
+  if (!bbU || !bbH) {
+    marcarFalla("no encontré el updater target de c4 o el handle 410b");
+  } else {
+    const ux = bbU.x + bbU.width / 2;
+    const uy = bbU.y + bbU.height / 2;
+    const hx = bbH.x + bbH.width / 2;
+    const hy = bbH.y + bbH.height / 2;
+    await upd.dispatchEvent("mousedown", {
+      clientX: ux,
+      clientY: uy,
+      button: 0,
+      buttons: 1,
+      bubbles: true,
+      cancelable: true,
+    });
+    await page.mouse.move(ux, uy);
+    for (let i = 1; i <= 10; i++)
+      await page.mouse.move(ux + ((hx - ux) * i) / 10, uy + ((hy - uy) * i) / 10);
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    const r = await medir(page);
+    resumen("punta de c4 reconectada 390b→410b", r);
+    // El slot tiene DOS handles superpuestos (410a fuente / 410b
+    // destino): cualquiera de los dos cuenta — es el mismo punto.
+    const fila = r.filas?.find((f) => f.edge === "c4" && f.ext === "fin");
+    if (!fila || !fila.hacia.startsWith("n1.410")) {
+      marcarFalla(
+        `la punta de c4 quedó en ${fila?.hacia ?? "?"} (esperaba n1.410a/b)`,
+      );
+    }
+  }
+}
+
+/* C19: ESCRIBIR en «Desde» NO mueve el símbolo — proyecto con
+ * alimentador, mido su handle en pantalla, tipeo un texto largo y
+ * vuelvo a medir: tiene que quedar idéntico (antes el input crecía
+ * con el texto y empujaba todo). */
+await page.setInputFiles('input[type="file"]', CON_ALIMENTADOR);
+await page.waitForSelector(".nodo-alimentador", { timeout: 10000 });
+await page.waitForTimeout(400);
+{
+  const h = page.locator(".nodo-alimentador .react-flow__handle");
+  const antes = await h.boundingBox();
+  await page.click(".alim-origen");
+  await page.keyboard.type("Tablero TS-G1");
+  await page.waitForTimeout(250);
+  const despues = await h.boundingBox();
+  const d = Math.hypot(
+    despues.x + despues.width / 2 - (antes.x + antes.width / 2),
+    despues.y + despues.height / 2 - (antes.y + antes.height / 2),
+  );
+  console.log(`[escribiendo en Desde] desplazamiento del handle=${d.toFixed(2)} px`);
+  if (d > 0.5) marcarFalla("el alimentador se movió al escribir");
+  resumen("alimentador tras escribir", await medir(page));
+}
+
 await browser.close();
+if (fallos > 0) {
+  console.log(`E2E FALLÓ: ${fallos} problema(s)`);
+  process.exitCode = 1;
+} else {
+  console.log("E2E OK");
+}

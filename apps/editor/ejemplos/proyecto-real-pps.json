@@ -222,7 +222,7 @@
         {
           "id": "e2",
           "desde": "F1.2",
-          "hasta": "B1.p120a",
+          "hasta": "B1.120b",
           "atributos_conductor": {
             "cantidad_conductores": 3,
             "tipo_cable": "unipolar",
@@ -237,7 +237,7 @@
         },
         {
           "id": "e3",
-          "desde": "B1.p320b",
+          "desde": "B1.320a",
           "hasta": "Q1.1",
           "atributos_conductor": {
             "cantidad_conductores": 3,
@@ -284,7 +284,7 @@
         },
         {
           "id": "e6",
-          "desde": "B1.p40b",
+          "desde": "B1.40a",
           "hasta": "PE.PE",
           "atributos_conductor": {
             "cantidad_conductores": 0,
@@ -299,7 +299,7 @@
         },
         {
           "id": "e7",
-          "desde": "B1.p460b",
+          "desde": "B1.460a",
           "hasta": "CA1.in",
           "atributos_conductor": {
             "cantidad_conductores": 1,
@@ -314,7 +314,7 @@
         },
         {
           "id": "e8",
-          "desde": "B1.p540b",
+          "desde": "B1.540a",
           "hasta": "CA2.in",
           "atributos_conductor": {
             "cantidad_conductores": 1,
@@ -329,7 +329,7 @@
         },
         {
           "id": "e9",
-          "desde": "B1.p600b",
+          "desde": "B1.600a",
           "hasta": "CA3.in",
           "atributos_conductor": {
             "cantidad_conductores": 3,

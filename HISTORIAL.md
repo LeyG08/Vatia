@@ -1146,6 +1146,31 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   se mueve — E2E verificado.
 - Suites: build/lint OK; E2E Playwright OK.
 
+**C19 — arnés E2E ampliado + bug latente de nombres de handles:**
+- El arnés `e2e/conexiones.mjs` ahora FALLA de verdad (exit 1) cuando
+  algo va mal, y sumó dos escenarios de regresión para lo pedido en
+  C17:
+  · RECONEXIÓN de punta: arrastra el updater target de c4 desde 390b
+    hasta 410b (misma barra) y verifica que el extremo caiga EXACTO en
+    el nuevo slot. Detalle técnico: los updaters de React Flow quedan
+    por DEBAJO del nodo en el z-order, así que el mousedown se
+    despacha sintético directo al elemento y el arrastre/suelta son
+    mouse real.
+  · ESCRIBIR no mueve el alimentador: carga un fixture dedicado
+    (`ejemplos/regresion-alimentador.json`: alimentador + barra +
+    conexión), tipea «Tablero TS-G1» en «Desde» y mide el handle:
+    desplazamiento 0.00 px.
+- BUG LATENTE corregido de paso: los handles de barra se llaman
+  «130a/130b» (sin «p»), y el sufijo importa — «a» es SOURCE y «b» es
+  TARGET; React Flow descarta EN SILENCIO toda conexión cuyo lado no
+  coincida. El ejemplo `proyecto-real-pps.json` traía los nombres
+  viejos con «p» Y los lados invertidos ⇒ al abrirlo en el editor NO
+  se dibujaba ninguna conexión a la barra. Reescribí sus extremos con
+  el formato actual (hacia la barra = b, desde la barra = a); el
+  verificador sigue dando OK con los nuevos nombres.
+- Suites: alineación, lint de símbolos y verificador OK; E2E completo
+  OK (11 escenarios + reconexión + alimentador).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1162,7 +1187,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C18 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C19 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1213,6 +1238,10 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     puntas de cable con imán generoso (connectionRadius 30).
   · C18: texto del alimentador justificado hacia el cable (derecha,
     por estar a su izquierda).
+  · C19: arnés E2E con fallo real + escenarios de reconexión de punta
+    y de «escribir no mueve»; corregido bug latente de nombres/sentido
+    de handles de barra en proyecto-real-pps.json (no dibujaba nada al
+    abrirlo).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).
