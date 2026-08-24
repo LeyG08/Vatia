@@ -837,10 +837,12 @@ body.arrastrando .paleta-item {
 .alim-col {
   display: flex;
   flex-direction: column;
-  /* C13: todo alineado por la IZQUIERDA (Desde / caja / cable) y la
-   * columna crece con el contenido: el borde punteado del nodo la
-   * abraza siempre. El handle viaja con el svg → nada se desafina. */
-  align-items: flex-start;
+  /* C18: el texto vive a la IZQUIERDA del cable → se justifica a la
+   * DERECHA, remachado contra el cable (regla del usuario: si está de
+   * un lado, justifica hacia el elemento; viceversa si algún día el
+   * texto pasa al otro lado). El handle viaja con el svg → nada se
+   * desafina. */
+  align-items: flex-end;
   gap: 2px;
   width: auto;
   min-width: 58px;
@@ -852,7 +854,7 @@ body.arrastrando .paleta-item {
   font-size: 13px;
   font-weight: 700;
   color: #111827;
-  text-align: left;
+  text-align: right;
   line-height: 1.2;
   user-select: none;
 }
@@ -864,7 +866,7 @@ body.arrastrando .paleta-item {
   font-size: 13px;
   font-weight: 700;
   color: #111827;
-  text-align: left;
+  text-align: right;
   outline: none;
   /* C17: ancho FIJO — si creciera con el texto, la columna empuja el
    * cable y el símbolo «se corre» mientras uno escribe. El texto largo
@@ -882,14 +884,14 @@ body.arrastrando .paleta-item {
   position: relative;
 }
 
-/* Notación del cable apilada bajo el origen (C15). Decorativa:
- * no seleccionable ni clickeable (no roba el arrastre). */
+/* Notación del cable apilada bajo el origen (C15), justificada hacia
+ * el cable (C18). Decorativa: no seleccionable ni clickeable. */
 .alim-nota {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
   color: #71717a;
   line-height: 1.35;
-  text-align: left;
+  text-align: right;
   white-space: nowrap;
   user-select: none;
   pointer-events: none;

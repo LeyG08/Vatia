@@ -1137,6 +1137,15 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 - Suites: build/lint OK; alineación, lint de símbolos y verificador
   OK; E2E Playwright OK.
 
+**C18 — justificación del texto del alimentador hacia el cable:**
+- El texto vive a la IZQUIERDA del cable ⇒ se justifica a la DERECHA
+  (regla del usuario: si está de un lado, remacha contra el elemento;
+  viceversa si pasara al otro). «Desde», el origen y la nota apilada
+  terminan ahora flush contra el cable en vez de dejar borde ragged.
+  Cambio solo CSS (align-items/text-align); la geometría del handle no
+  se mueve — E2E verificado.
+- Suites: build/lint OK; E2E Playwright OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1153,7 +1162,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C17 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C18 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1202,6 +1211,8 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   · C17: input «Desde» de ancho fijo (el alimentador no se corre al
     escribir); selección evidente en símbolos/alimentador/barra/cable;
     puntas de cable con imán generoso (connectionRadius 30).
+  · C18: texto del alimentador justificado hacia el cable (derecha,
+    por estar a su izquierda).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).
