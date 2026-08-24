@@ -171,7 +171,9 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
 
       {/* Motor trifásico: si falta In de placa, ofrecé una ESTIMACIÓN
           explícita (η y cos φ por defecto si no están cargados). El
-          botón completa el campo una vez; nunca pisa un valor real. */}
+          botón completa el campo Y TAMBIÉN deja cargados los valores
+          supuestos de η/cosφ (C11: el plano documenta qué se asumió);
+          nunca pisa un valor real ya existente. */}
       {familia === "aparato" &&
         atributos.tipo_aparato === "motor_trifasico" &&
         atributos.in_a == null &&
@@ -186,12 +188,18 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
             typeof atributos.factor_potencia === "number" && atributos.factor_potencia > 0
               ? atributos.factor_potencia
               : 0.85;
+          const usarEstimacion = () => {
+            const nuevos: Record<string, unknown> = { ...atributos, in_a: est };
+            if (atributos.eficiencia_pct == null) nuevos.eficiencia_pct = ef;
+            if (atributos.factor_potencia == null) nuevos.factor_potencia = cos;
+            onChange(nuevos);
+          };
           return (
             <div className="estimacion-in">
               <span title="Estimación desde potencia de eje + η + cosφ + tensión; no reemplaza el dato de placa">
                 In ≈ {est} A (estimado, η={ef}% · cosφ={cos})
               </span>
-              <button type="button" onClick={() => actualizar("in_a", est)}>
+              <button type="button" onClick={usarEstimacion}>
                 usar
               </button>
             </div>

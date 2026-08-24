@@ -1,5 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import {
   BARRA_GEO,
   useEditor,
@@ -76,46 +76,49 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
     return DIRECCIONES[(base + giro) % 4];
   }
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.stopPropagation();
-      e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-      refDrag.current = { x0: e.clientX, y0: e.clientY, largo0: largoPx };
-      estirar(id, largoPx, "inicio");
-    },
-    [id, largoPx, estirar],
-  );
+  /** Drag de estiramiento, reutilizado por los DOS extremos (C11):
+   * desde la derecha crece el extremo derecho; desde la izquierda se
+   * corre la posición para mantener fijo el extremo derecho. */
+  function gripHandlers(origen: "der" | "izq") {
+    return {
+      onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        refDrag.current = { x0: e.clientX, y0: e.clientY, largo0: largoPx };
+        estirar(id, largoPx, "inicio", origen);
+      },
+      onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+        const d = refDrag.current;
+        if (!d) return;
+        // Delta de pantalla → delta sobre el eje LOCAL de la barra
+        const dx = e.clientX - d.x0;
+        const dy = e.clientY - d.y0;
+        const deltaLocal =
+          giro === 0 ? dx : giro === 1 ? dy : giro === 2 ? -dx : -dy;
+        const pedido =
+          origen === "der" ? d.largo0 + deltaLocal : d.largo0 - deltaLocal;
+        estirar(id, pedido, "moviendo", origen);
+      },
+      onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
+        const d = refDrag.current;
+        if (!d) return;
+        const dx = e.clientX - d.x0;
+        const dy = e.clientY - d.y0;
+        const deltaLocal =
+          giro === 0 ? dx : giro === 1 ? dy : giro === 2 ? -dx : -dy;
+        refDrag.current = null;
+        const pedido =
+          origen === "der" ? d.largo0 + deltaLocal : d.largo0 - deltaLocal;
+        const final =
+          Math.round(pedido / GRILLA_PX) * GRILLA_PX;
+        estirar(id, final, "fin", origen);
+      },
+    };
+  }
 
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const d = refDrag.current;
-      if (!d) return;
-      // Delta de pantalla → delta sobre el eje LOCAL de la barra
-      const dx = e.clientX - d.x0;
-      const dy = e.clientY - d.y0;
-      const deltaLocal =
-        giro === 0 ? dx : giro === 1 ? dy : giro === 2 ? -dx : -dy;
-      estirar(id, d.largo0 + deltaLocal, "moviendo");
-    },
-    [id, giro, estirar],
-  );
-
-  const onPointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      const d = refDrag.current;
-      if (!d) return;
-      const dx = e.clientX - d.x0;
-      const dy = e.clientY - d.y0;
-      const deltaLocal =
-        giro === 0 ? dx : giro === 1 ? dy : giro === 2 ? -dx : -dy;
-      refDrag.current = null;
-      const final =
-        Math.round((d.largo0 + deltaLocal) / GRILLA_PX) * GRILLA_PX;
-      estirar(id, final, "fin");
-    },
-    [id, giro, estirar],
-  );
+  const gripDerecho = gripHandlers("der");
+  const gripIzquierdo = gripHandlers("izq");
 
   // Puntos de conexión cada grilla a lo largo del eje local
   const cantidad = largoPx / GRILLA_PX; // pasos de 10 px
@@ -181,13 +184,17 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
           </span>
         );
       })}
-      {/* Tirador de estiramiento en el extremo derecho */}
+      {/* Tiradores de estiramiento en AMBOS extremos (C11) */}
+      <div
+        className="barra-grip barra-grip-izq nodrag"
+        style={proyectar(BARRA_GEO.padX - 6, BARRA_GEO.centroY)}
+        {...gripIzquierdo}
+        title="Arrastrá para alargar por el extremo izquierdo"
+      />
       <div
         className="barra-grip nodrag"
         style={proyectar(anchoLocal - BARRA_GEO.padX + 6, BARRA_GEO.centroY)}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
+        {...gripDerecho}
         title="Arrastrá para alargar la barra"
       />
       {ficha.length > 0 && (

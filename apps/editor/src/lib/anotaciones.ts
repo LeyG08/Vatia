@@ -96,11 +96,13 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
 
 /**
  * Ficha de la BARRA en el formato del plano real (C8), en UNA línea:
- * "3x30x10mm · Cu · IRAM 2181-1 · 500 A". Se dibuja en el extremo
- * izquierdo, por encima de la barra.
+ * "3x30x10mm · Cu · IRAM 2181-1 · 500 A". Si la línea representa un
+ * CONJUNTO de barras (una por fase, C11) se antepone "Juego de
+ * barras". Se dibuja en el extremo izquierdo, por encima de la barra.
  */
 export function anotacionBarra(a: Record<string, unknown>): string[] {
   const partes = [
+    a.es_conjunto === true ? "Juego de barras" : "",
     typeof a.dimensiones === "string" ? a.dimensiones : "",
     capitalizar(a.material),
     capitalizar(a.norma_iram),

@@ -87,6 +87,7 @@ function Editor() {
   const onNodesChange = useEditor((s) => s.onNodesChange);
   const onEdgesChange = useEditor((s) => s.onEdgesChange);
   const onConnect = useEditor((s) => s.onConnect);
+  const reconectar = useEditor((s) => s.reconectarConexion);
   const agregarSimbolo = useEditor((s) => s.agregarSimbolo);
   const registrarArrastre = useEditor((s) => s.registrarArrastre);
   const confirmarArrastre = useEditor((s) => s.confirmarArrastre);
@@ -406,6 +407,10 @@ function Editor() {
           edgeTypes={edgeTypes}          onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onReconnect={(edgeViejo, conexionNueva) =>
+            reconectar(edgeViejo.id, conexionNueva)
+          }
+          edgesReconnectable={true}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
           onNodeDragStart={(_, nodo) => {
             registrarArrastre([nodo.id]);

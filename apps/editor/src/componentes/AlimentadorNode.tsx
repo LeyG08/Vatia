@@ -53,13 +53,13 @@ function AlimentadorNode({
           placeholder="TGBT"
           onChange={(e) => actualizar(id, { origen: e.target.value })}
           title="Procedencia de la alimentación"
+          style={{ width: `${Math.max(6, data.origen.length + 1)}ch` }}
         />
         {nota.length > 0 && (
-          <div className="alim-nota">
-            {nota.map((l, i) => (
-              <div key={i}>{l}</div>
-            ))}
-          </div>
+          /* C11 del usuario: la especificación del mazo (varias
+           * secciones fase/neutro/tierra) va TODA en una sola línea,
+           * sin bajar hacia abajo ni cortarse. */
+          <div className="alim-nota">{nota.join(" · ")}</div>
         )}
       </div>
       <svg className="alim-linea" width={30} height={ALTO_LINEA}>

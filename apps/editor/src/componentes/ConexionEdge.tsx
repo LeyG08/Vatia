@@ -125,15 +125,22 @@ export default function ConexionEdge({
    * por encima o mal unido. Derivamos SIEMPRE la dirección del lado
    * donde está el otro extremo → entrada perpendicular y limpia. */
   const nodos = useStore((s) => s.nodes);
+  const datosDeBarra = (
+    nodeId: string | null | undefined,
+  ): DatosBarra | null => {
+    const n = nodos.find((x) => x.id === nodeId);
+    if (!n || n.type !== "barra") return null;
+    return n.data as DatosBarra;
+  };
   const dirSegunBarra = (
     nodeId: string | null | undefined,
     propio: { x: number; y: number },
     otro: { x: number; y: number },
     original: Position,
   ): Position => {
-    const n = nodos.find((x) => x.id === nodeId);
-    if (!n || n.type !== "barra") return original;
-    const rot = (((n.data as DatosBarra).rotacion ?? 0) % 180 + 180) % 180;
+    const barra = datosDeBarra(nodeId);
+    if (!barra) return original;
+    const rot = (((barra.rotacion ?? 0) % 180) + 180) % 180;
     return rot !== 0
       ? otro.x <= propio.x
         ? Position.Left
@@ -142,15 +149,35 @@ export default function ConexionEdge({
         ? Position.Top
         : Position.Bottom;
   };
+  /* Y además el extremo del cable se RECORRE a la superficie visible
+   * del eje (≈3 px hacia el otro extremo), así el conductor SIEMPRE
+   * remata sobre la barra: no puede cruzarla ni asomar del lado de
+   * arriba como si la conexión viniera de allí. */
+  const MITAD_EJE = 3;
+  const sobreSuperficie = (
+    nodeId: string | null | undefined,
+    propio: { x: number; y: number },
+    otro: { x: number; y: number },
+  ): { x: number; y: number } => {
+    const barra = datosDeBarra(nodeId);
+    if (!barra) return propio;
+    const rot = (((barra.rotacion ?? 0) % 180) + 180) % 180;
+    return rot !== 0
+      ? { x: propio.x + (otro.x <= propio.x ? -MITAD_EJE : MITAD_EJE), y: propio.y }
+      : { x: propio.x, y: propio.y + (otro.y <= propio.y ? -MITAD_EJE : MITAD_EJE) };
+  };
+
+  const ini = sobreSuperficie(source, { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
+  const fin = sobreSuperficie(target, { x: targetX, y: targetY }, { x: sourceX, y: sourceY });
 
   const d = rutaOrtogonal(
-    sourceX,
-    sourceY,
+    ini.x,
+    ini.y,
     String(
       dirSegunBarra(source, { x: sourceX, y: sourceY }, { x: targetX, y: targetY }, sourcePosition),
     ),
-    targetX,
-    targetY,
+    fin.x,
+    fin.y,
     String(
       dirSegunBarra(target, { x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition),
     ),

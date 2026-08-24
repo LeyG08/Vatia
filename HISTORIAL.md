@@ -951,6 +951,34 @@ barras para hacer la distribución". Rediseño completo de S00119:
 - Ejemplo PPS: CA1 Ku=0,9→16 VA útil · CA2.2 Ku=0,5→1100 VA útil ·
   CA3 ACU trifásica Ku=0,85 (sin corriente de placa todavía).
 
+**C11 — Reconexión de cables, estiramiento por ambos extremos, conjunto de barras, textos libres y remate del cable sobre el eje:**
+- FIX persistente "la conexión con la barra se ve como hecha desde
+  arriba": ahora el extremo del cable que cae en una barra se RECORRE
+  a la SUPERFICIE visible del eje (±3 px hacia el otro extremo) además
+  de forzar la entrada perpendicular → el conductor remata SIEMPRE
+  sobre la barra; no puede cruzarla ni asomar del lado contrario.
+- Reconexión de conexiones (pedido del usuario): se pueden AGARRAR
+  las puntas de un cable ya hecho y soltarlas en otro handle
+  (ReactFlow onReconnect + edgesReconnectable). Nuevo store.
+  reconectarConexion: conserva el mazo cargado y queda en el
+  historial como un paso undo/redo. Soltar donde mismo no genera
+  paso.
+- Barra estirable desde los DOS extremos: tirador izquierdo nuevo;
+  al estirar por la izquierda la posición corre sobre el eje local
+  (según giro) para mantener fijo el extremo derecho. Undo en un
+  solo paso restaura largo Y posición.
+- es_conjunto (barra.schema.json): marca si la línea representa el
+  JUEGO de barras por fase dibujado como una sola línea; la ficha
+  antepone "Juego de barras ·". Ejemplo B1 marcado como conjunto.
+- Alimentador: especificación del mazo (varias secciones fase/
+  neutro/tierra) va TODA EN UNA SOLA LÍNEA ("3 x 1 x 25 mm² + … ·
+  Cu/PVC · IRAM NM 247-3") sin bajar hacia abajo; columna y campo
+  «Desde» crecen lo necesario — una palabra larguísima ya no se
+  corta.
+- Motor: aceptar la estimación de In TAMBIÉN carga los valores
+  supuestos de η (%) y cos φ usados en el cálculo, para que el plano
+  documente qué se asumió.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -967,7 +995,7 @@ barras para hacer la distribución". Rediseño completo de S00119:
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C10 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C11 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -989,6 +1017,10 @@ barras para hacer la distribución". Rediseño completo de S00119:
     Ku de utilización con potencia_utilizacion_va guardada para el
     futuro agregador de tablero (Ks); unión perpendicular
     cable-barra.
+  · C11: reconexión de puntas del cable; barra estirable por ambos
+    extremos; es_conjunto (juego de barras); mazo del alimentador en
+    una línea y textos sin recortes; remate del cable sobre la
+    superficie del eje.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

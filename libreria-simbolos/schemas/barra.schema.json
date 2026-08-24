@@ -12,6 +12,10 @@
       "x-obligatorio": true,
       "description": "Dimensiones del perfil de la barra (alto x ancho x espesor en mm). Plano: \"3x30x10mm\", \"3x50x5mm\"."
     },
+    "es_conjunto": {
+      "type": "boolean",
+      "description": "C11: true si la línea representa el CONJUNTO / juego de barras (una por fase R-S-T dibujadas como una sola línea); false o ausente = barra única. En el plano se anota como \"Juego de barras\" delante de las dimensiones."
+    },
     "material": {
       "enum": ["Cu", "Al"],
       "x-obligatorio": true,

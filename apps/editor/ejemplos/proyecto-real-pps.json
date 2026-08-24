@@ -52,6 +52,7 @@
           "datos": { "largoPx": 620 },
           "atributos": {
             "dimensiones": "3 x 30 x 10 mm",
+            "es_conjunto": true,
             "material": "Cu",
             "norma_iram": "IRAM 2181-1",
             "corriente_admisible_A": 500

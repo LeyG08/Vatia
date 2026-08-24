@@ -240,7 +240,10 @@ function esDatosBarra(d: NodoData): d is DatosBarra {
 }
 
 /** Snapshot por nodo durante el drag de estiramiento de barras (C8) */
-const snapshotsEstiro = new Map<string, NodoData>();
+const snapshotsEstiro = new Map<
+  string,
+  { data: DatosBarra; posicion: { x: number; y: number } }
+>();
 
 /* ==================== Conversiones RF ↔ proyecto ==================== */
 
@@ -484,14 +487,17 @@ interface EstadoEditor {
     patch: Partial<Omit<DatosBarra, "tipo">>,
   ) => void;
   /**
-   * Estiramiento de la barra con drag. "inicio"/"moviendo" aplican el
-   * cambio en vivo SIN historial; "fin" consolida un único paso de
-   * undo/redo con el estado previo al gesto.
+   * Estiramiento de la barra con drag desde CUALQUIERA de sus dos
+   * extremos (C11): "der" mantiene fijo el extremo izquierdo, "izq"
+   * el derecho (corriendo la posición para compensar). "inicio"/
+   * "moviendo" aplican en vivo SIN historial; "fin" consolida un
+   * único paso de undo/redo con el estado previo al gesto.
    */
   estirarBarra: (
     id: string,
     largoPx: number,
     fase: "inicio" | "moviendo" | "fin",
+    origen?: "der" | "izq",
   ) => void;
   /** Reemplaza la ficha técnica completa de un símbolo (C4) */
   actualizarAtributosNodo: (
@@ -506,6 +512,9 @@ interface EstadoEditor {
   onNodesChange: (cambios: NodeChange<Node<NodoData>>[]) => void;
   onEdgesChange: (cambios: EdgeChange[]) => void;
   onConnect: (conexion: Connection) => void;
+  /** Reancla los dos extremos de una conexión existente (C11): agarrá
+   * la punta del cable y soltala en otro handle sin perder el mazo. */
+  reconectarConexion: (id: string, conexion: Connection) => void;
   registrarArrastre: (ids: string[]) => void;
   confirmarArrastre: (
     despues: Record<string, { x: number; y: number }>,
@@ -846,33 +855,49 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       });
     },
 
-    estirarBarra(id, largoPx, fase) {
+    estirarBarra(id, largoPx, fase, origen = "der") {
       const normalizar = (v: number): number =>
         Math.min(
           2000,
           Math.max(40, Math.round(v / GRILLA_PX) * GRILLA_PX),
         );
+      /** Largo+posición coherentes: estirando desde el extremo IZQ el
+       * extremo derecho queda fijo (la posición corre sobre el eje
+       * local según el giro). */
+      const aplicar = (largo: number) => {
+        const base = snapshotsEstiro.get(id);
+        set((s) => ({
+          nodos: s.nodos.map((n) => {
+            if (!(n.id === id && esDatosBarra(n.data))) return n;
+            let posicion = n.position;
+            if (origen === "izq" && base) {
+              const giro =
+                ((((n.data.rotacion % 360) + 360) % 360) / 90) | 0;
+              const ux = giro === 0 ? 1 : giro === 2 ? -1 : 0;
+              const uy = giro === 1 ? 1 : giro === 3 ? -1 : 0;
+              const delta = base.data.largoPx - largo;
+              posicion = {
+                x: base.posicion.x + ux * delta,
+                y: base.posicion.y + uy * delta,
+              };
+            }
+            return { ...n, data: { ...n.data, largoPx: largo }, position: posicion };
+          }),
+        }));
+      };
+
       if (fase === "inicio") {
         const nodo = get().nodos.find((n) => n.id === id);
         if (!nodo || !esDatosBarra(nodo.data)) return;
-        snapshotsEstiro.set(id, nodo.data);
-        set((s) => ({
-          nodos: s.nodos.map((n) =>
-            n.id === id && esDatosBarra(n.data)
-              ? { ...n, data: { ...n.data, largoPx: normalizar(largoPx) } }
-              : n,
-          ),
-        }));
+        snapshotsEstiro.set(id, {
+          data: nodo.data,
+          posicion: { ...nodo.position },
+        });
+        aplicar(normalizar(largoPx));
         return;
       }
       if (fase === "moviendo") {
-        set((s) => ({
-          nodos: s.nodos.map((n) =>
-            n.id === id && esDatosBarra(n.data)
-              ? { ...n, data: { ...n.data, largoPx: normalizar(largoPx) } }
-              : n,
-          ),
-        }));
+        aplicar(normalizar(largoPx));
         return;
       }
       // fin: un solo paso de historial con el estado previo al gesto
@@ -883,21 +908,38 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const valorFinal =
         nodoFinal && esDatosBarra(nodoFinal.data)
           ? nodoFinal.data.largoPx
-          : largoPx;
+          : normalizar(largoPx);
+      let posicionFinal = antes.posicion;
+      if (origen === "izq") {
+        const giro = ((((antes.data.rotacion % 360) + 360) % 360) / 90) | 0;
+        const ux = giro === 0 ? 1 : giro === 2 ? -1 : 0;
+        const uy = giro === 1 ? 1 : giro === 3 ? -1 : 0;
+        const delta = antes.data.largoPx - valorFinal;
+        posicionFinal = {
+          x: antes.posicion.x + ux * delta,
+          y: antes.posicion.y + uy * delta,
+        };
+      }
       ejecutar({
         descripcion: `estirar barra ${id}`,
         do: () =>
           set((s) => ({
             nodos: s.nodos.map((n) =>
               n.id === id && esDatosBarra(n.data)
-                ? { ...n, data: { ...n.data, largoPx: valorFinal } }
+                ? {
+                    ...n,
+                    data: { ...n.data, largoPx: valorFinal },
+                    posicion: posicionFinal,
+                  }
                 : n,
             ),
           })),
         undo: () =>
           set((s) => ({
             nodos: s.nodos.map((n) =>
-              n.id === id ? { ...n, data: antes } : n,
+              n.id === id
+                ? { ...n, data: antes.data, position: antes.posicion }
+                : n,
             ),
           })),
       });
@@ -993,6 +1035,48 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         undo: () =>
           set((s) => ({
             conexiones: s.conexiones.filter((e) => e.id !== edge.id),
+          })),
+      });
+    },
+
+    reconectarConexion(id, conexion) {
+      if (!conexion.source || !conexion.target) return;
+      const antes = get().conexiones.find((e) => e.id === id);
+      if (!antes) return;
+      const despues = {
+        source: conexion.source,
+        sourceHandle: conexion.sourceHandle ?? null,
+        target: conexion.target,
+        targetHandle: conexion.targetHandle ?? null,
+      };
+      if (
+        antes.source === despues.source &&
+        antes.target === despues.target &&
+        (antes.sourceHandle ?? null) === despues.sourceHandle &&
+        (antes.targetHandle ?? null) === despues.targetHandle
+      )
+        return; // soltó donde mismo: nada que hacer
+      ejecutar({
+        descripcion: `reconectar ${id}`,
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id ? { ...e, ...despues } : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? {
+                    ...e,
+                    source: antes.source,
+                    sourceHandle: antes.sourceHandle,
+                    target: antes.target,
+                    targetHandle: antes.targetHandle,
+                  }
+                : e,
+            ),
           })),
       });
     },

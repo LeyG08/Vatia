@@ -790,8 +790,11 @@ body.arrastrando .paleta-item {
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
-  width: 58px;
-  padding-top: 6px;
+  /* C11: la columna crece con el texto — nada se corta aunque «Desde»
+   * tenga una palabra larguísima o el mazo especifique varias
+   * secciones. */
+  width: auto;
+  min-width: 58px;
 }
 
 /* Etiqueta «Desde»: fija, seguida del origen editable */
@@ -820,13 +823,15 @@ body.arrastrando .paleta-item {
   font-weight: 400;
 }
 
-/* Notación del mazo bajo la etiqueta, alineada al cable */
+/* Notación del mazo bajo la etiqueta, alineada al cable.
+   C11: UNA sola línea, sin quiebres (el contenedor ya no limita). */
 .alim-nota {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
   color: #71717a;
   line-height: 1.35;
   text-align: right;
+  white-space: nowrap;
 }
 
 .nodo-alimentador .react-flow__handle {
@@ -1023,6 +1028,10 @@ body.arrastrando .paleta-item {
 
 .barra-grip:hover {
   background: #2563eb;
+}
+
+.barra-grip-izq {
+  cursor: w-resize;
 }
 
 /* Ficha de la barra: extremo IZQUIERDO, por ENCIMA */
