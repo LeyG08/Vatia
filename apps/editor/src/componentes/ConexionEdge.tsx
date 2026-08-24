@@ -119,49 +119,41 @@ export default function ConexionEdge({
   data,
   ...props
 }: EdgeProps) {
-  /* En las BARRAS cada punto sirve para conectar desde cualquiera de
-   * sus lados, así que la dirección declarada del handle no garantiza
-   * nada: si el cable llega del lado contrario, el ruteo lo hace pasar
-   * por encima o mal unido. Derivamos SIEMPRE la dirección del lado
-   * donde está el otro extremo → entrada perpendicular y limpia. */
-  const nodos = useStore((s) => s.nodes);
-  const datosDeBarra = (
-    nodeId: string | null | undefined,
-  ): DatosBarra | null => {
-    const n = nodos.find((x) => x.id === nodeId);
-    if (!n || n.type !== "barra") return null;
-    return n.data as DatosBarra;
-  };
-  const dirSegunBarra = (
-    nodeId: string | null | undefined,
+  /* Dirección EFECTIVA de cualquier extremo (C12): se conserva el EJE
+   * declarado del handle (vertical u horizontal) pero la POLARIDAD se
+   * deriva de dónde está realmente el otro extremo. Así, si movés un
+   * elemento al lado opuesto de la barra (o de cualquier otro nodo),
+   * el cable se reorienta sin hacer "S" ni entrar del lado incorrecto
+   * — antes solo corregíamos el lado de la barra y el OTRO extremo
+   * tiraba del cable con su dirección vieja. */
+  const dirEfectiva = (
     propio: { x: number; y: number },
     otro: { x: number; y: number },
     original: Position,
   ): Position => {
-    const barra = datosDeBarra(nodeId);
-    if (!barra) return original;
-    const rot = (((barra.rotacion ?? 0) % 180) + 180) % 180;
-    return rot !== 0
-      ? otro.x <= propio.x
-        ? Position.Left
-        : Position.Right
-      : otro.y <= propio.y
+    const vertical =
+      original === Position.Top || original === Position.Bottom;
+    return vertical
+      ? otro.y <= propio.y
         ? Position.Top
-        : Position.Bottom;
+        : Position.Bottom
+      : otro.x <= propio.x
+        ? Position.Left
+        : Position.Right;
   };
-  /* Y además el extremo del cable se RECORRE a la superficie visible
-   * del eje (≈3 px hacia el otro extremo), así el conductor SIEMPRE
-   * remata sobre la barra: no puede cruzarla ni asomar del lado de
-   * arriba como si la conexión viniera de allí. */
+  /* En las barras además el extremo del cable se RECORRE a la
+   * superficie visible del eje (≈3 px hacia el otro extremo): el
+   * conductor SIEMPRE remata sobre la barra, sin cruzarla. */
+  const nodos = useStore((s) => s.nodes);
   const MITAD_EJE = 3;
   const sobreSuperficie = (
     nodeId: string | null | undefined,
     propio: { x: number; y: number },
     otro: { x: number; y: number },
   ): { x: number; y: number } => {
-    const barra = datosDeBarra(nodeId);
-    if (!barra) return propio;
-    const rot = (((barra.rotacion ?? 0) % 180) + 180) % 180;
+    const n = nodos.find((x) => x.id === nodeId);
+    if (!n || n.type !== "barra") return propio;
+    const rot = ((((n.data as DatosBarra).rotacion ?? 0) % 180) + 180) % 180;
     return rot !== 0
       ? { x: propio.x + (otro.x <= propio.x ? -MITAD_EJE : MITAD_EJE), y: propio.y }
       : { x: propio.x, y: propio.y + (otro.y <= propio.y ? -MITAD_EJE : MITAD_EJE) };
@@ -173,14 +165,10 @@ export default function ConexionEdge({
   const d = rutaOrtogonal(
     ini.x,
     ini.y,
-    String(
-      dirSegunBarra(source, { x: sourceX, y: sourceY }, { x: targetX, y: targetY }, sourcePosition),
-    ),
+    String(dirEfectiva({ x: sourceX, y: sourceY }, { x: targetX, y: targetY }, sourcePosition)),
     fin.x,
     fin.y,
-    String(
-      dirSegunBarra(target, { x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition),
-    ),
+    String(dirEfectiva({ x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition)),
   );
   const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
   const lineas = lineasMazo(m);

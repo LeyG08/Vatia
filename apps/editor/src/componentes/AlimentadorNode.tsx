@@ -53,14 +53,18 @@ function AlimentadorNode({
           placeholder="TGBT"
           onChange={(e) => actualizar(id, { origen: e.target.value })}
           title="Procedencia de la alimentación"
-          style={{ width: `${Math.max(6, data.origen.length + 1)}ch` }}
+          /* C12: la caja crece hacia la IZQUIERDA (margen negativo que
+           * compensa el ancho extra) — el layout no se mueve y el
+           * cable queda SIEMPRE unido a su punta. */
+          style={{
+            width: `${Math.max(6, data.origen.length + 1)}ch`,
+            marginLeft: `${Math.min(0, 6 - Math.max(6, data.origen.length + 1))}ch`,
+          }}
         />
-        {nota.length > 0 && (
-          /* C11 del usuario: la especificación del mazo (varias
-           * secciones fase/neutro/tierra) va TODA en una sola línea,
-           * sin bajar hacia abajo ni cortarse. */
-          <div className="alim-nota">{nota.join(" · ")}</div>
-        )}
+        {/* C11/C12: especificación del mazo en UNA sola línea; es
+         * absoluto respecto de la columna → puede crecer hacia la
+         * izquierda lo que quiera SIN empujar la simbología. */}
+        {nota.length > 0 && <div className="alim-nota">{nota.join(" · ")}</div>}
       </div>
       <svg className="alim-linea" width={30} height={ALTO_LINEA}>
         <line

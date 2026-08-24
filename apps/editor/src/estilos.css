@@ -790,11 +790,12 @@ body.arrastrando .paleta-item {
   flex-direction: column;
   align-items: stretch;
   gap: 2px;
-  /* C11: la columna crece con el texto — nada se corta aunque «Desde»
-   * tenga una palabra larguísima o el mazo especifique varias
-   * secciones. */
-  width: auto;
-  min-width: 58px;
+  /* C12: ancho FIJO de nuevo. El texto largo (origen larguísimo o
+   * especificación de varias secciones) crece hacia la izquierda
+   * FUERA del flujo — nunca empuja el cable ni desafina la punta. */
+  width: 58px;
+  position: relative;
+  padding-top: 6px;
 }
 
 /* Etiqueta «Desde»: fija, seguida del origen editable */
@@ -823,9 +824,13 @@ body.arrastrando .paleta-item {
   font-weight: 400;
 }
 
-/* Notación del mazo bajo la etiqueta, alineada al cable.
-   C11: UNA sola línea, sin quiebres (el contenedor ya no limita). */
+/* Notación del mazo: UNA sola línea, anclada al borde derecho de la
+   columna y creciendo hacia la IZQUIERDA (position:absolute → no
+   participa del layout: jamás corre la simbología de la acometida). */
 .alim-nota {
+  position: absolute;
+  top: calc(100% + 1px);
+  right: 0;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
   color: #71717a;

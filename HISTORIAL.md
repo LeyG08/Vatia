@@ -979,6 +979,28 @@ barras para hacer la distribución". Rediseño completo de S00119:
   supuestos de η (%) y cos φ usados en el cálculo, para que el plano
   documente qué se asumió.
 
+**C12 — Reorientación completa del cable al cruzar lados + alimentador que no desafina:**
+- Reporte del usuario: uniendo un elemento desde abajo de la barra
+  y MOVIÉNDOLO arriba, en ciertas combinaciones el cable seguía
+  entrando mal. Causa: C10/C11 corregían solo el lado del extremo
+  de la BARRA; el OTRO extremo tiraba con su dirección declarada
+  vieja (ej.: una entrada que mira arriba, con la barra pasando a
+  quedar debajo) y generaba una "S".
+- FIX general (ConexionEdge): la dirección EFECTIVA de TODO extremo
+  conserva el eje declarado (vertical/horizontal) pero deriva la
+  POLARIDAD de la geometría real (¿el otro extremo quedó arriba o
+  abajo / a izquierda o derecha?). En cables bien puestos no cambia
+  nada; al cruzar lados se reorienta solo, sin "S". El recorte a la
+  superficie del eje de las barras sigue vigente.
+- Reporte del usuario: con textos largos, el alimentador corría su
+  simbología y quedaba desunida del nodo (la columna crecía y
+  empujaba el cable SVG fuera de su punta).
+- FIX (AlimentadorNode): columna de ancho FIJO otra vez; el campo
+  «Desde» largo crece hacia la IZQUIERDA con margen negativo
+  compensado (el layout no se entera) y la especificación del mazo
+  es position:absolute anclada al borde derecho — una sola línea que
+  se extiende afuera sin empujar JAMÁS la simbología.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -995,7 +1017,7 @@ barras para hacer la distribución". Rediseño completo de S00119:
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C11 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C12 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1021,6 +1043,10 @@ barras para hacer la distribución". Rediseño completo de S00119:
     extremos; es_conjunto (juego de barras); mazo del alimentador en
     una línea y textos sin recortes; remate del cable sobre la
     superficie del eje.
+  · C12: reorientación automática del cable en TODOS los extremos al
+    cruzar un elemento de lado (adiós "S" contra la barra);
+    alimentador con columna fija y textos creciendo hacia afuera sin
+    desafinar la simbología.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).
