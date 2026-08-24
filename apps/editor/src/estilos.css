@@ -269,6 +269,40 @@ body,
   z-index: 3;
 }
 
+/* C13b: React Flow ancla el cable al BORDE del handle medido (con
+   mínimo de 5×5 px de su hoja base ⇒ ~2,5 px de aire). Los handles
+   de ancla EXACTA miden 0×0 reales y dibujan su punto con ::before;
+   los pseudo-elementos no se miden pero sí reciben el mouse.
+   Doble clase para ganarle a .react-flow__handle sin depender del
+   orden de importación de estilos. */
+.react-flow__handle.handle-barra,
+.react-flow__handle.handle-entrada,
+.react-flow__handle.handle-salida,
+.react-flow__handle.handle-tierra,
+.nodo-alimentador .react-flow__handle.react-flow__handle {
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  border: none;
+}
+
+/* C13b: anillo visible del terminal — el Handle mide 0×0 (ver
+   NodoSimbolo) para que el cable llegue al CENTRO exacto. */
+.handle-entrada::before,
+.handle-salida::before,
+.handle-tierra::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid rgba(37, 99, 235, 0.55);
+}
+
 .handle-entrada:hover::after,
 .handle-salida:hover::after,
 .handle-tierra:hover::after {
@@ -842,11 +876,22 @@ body.arrastrando .paleta-item {
   pointer-events: none;
 }
 
+/* C13b: punto de conexión del alimentador — Handle 0×0 (ancla al
+   centro exacto de la punta) + punto visible en ::before. */
 .nodo-alimentador .react-flow__handle {
-  background: #111827;
+  background: transparent;
+  border: none;
+}
+
+.nodo-alimentador .react-flow__handle::before {
+  content: "";
+  position: absolute;
+  left: -4.5px;
+  top: -4.5px;
   width: 9px;
   height: 9px;
-  border: none;
+  border-radius: 50%;
+  background: #111827;
 }
 
 /* Botón de alimentador en la paleta */
@@ -1075,6 +1120,22 @@ body.arrastrando .paleta-item {
 .handle-barra {
   opacity: 0;
   transition: opacity 0.12s ease;
+}
+
+/* C13b: puntito visible del handle de barra — el Handle real mide
+   0×0 para que el cable ancle al centro exacto del eje (los pseudo-
+   elementos no afectan la medición de React Flow pero SÍ reciben el
+   mouse a nombre del elemento). */
+.handle-barra::before {
+  content: "";
+  position: absolute;
+  left: -4.5px;
+  top: -4.5px;
+  width: 9px;
+  height: 9px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid rgba(37, 99, 235, 0.55);
 }
 
 .nodo-barra:hover .handle-barra,

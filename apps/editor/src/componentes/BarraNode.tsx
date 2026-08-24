@@ -15,15 +15,16 @@ const DIRECCIONES = [
   Position.Left,
 ] as const;
 
-/** Estilo común de los puntos de conexión de la barra */
+/** Estilo común de los puntos de conexión de la barra.
+ * C13b: el Handle mide 0×0 — React Flow ancla el cable al BORDE del
+ * handle medido, así que con tamaño real dejaba ~4,5 px de aire hasta
+ * el centro. El puntito visible va en ::before (no se mide). */
 const ESTILO_HANDLE = {
-  width: 9,
-  height: 9,
-  border: "1.5px solid rgba(37, 99, 235, 0.55)",
-  borderRadius: "50%",
+  width: 0,
+  height: 0,
+  border: "none",
   background: "transparent",
   pointerEvents: "all" as const,
-  transform: "translate(-50%, -50%)",
 };
 
 /**

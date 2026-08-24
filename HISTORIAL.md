@@ -1031,6 +1031,39 @@ nunca se ve desunido:**
   el borde del svg, no en la punta). Ahora el handle vive DENTRO del
   contenedor del cable y viaja pegado a él aunque crezcan los textos.
 
+**C14 — LA causa raíz de los "cables desunidos" (dos bugs reales,
+encontrados reproduciendo el archivo del usuario con navegador
+automatizado):**
+- El usuario reportó que el bug "volvió" y aportó su proyecto JSON.
+- HALLAZGO 1 (crítico): ABRIR un proyecto guardado PERDÍA la barra y
+  TODAS sus conexiones. `construirEstadoHoja` resolvía el símbolo de
+  la librería ANTES de llegar a la rama «barra», pero las barras
+  nativas no llevan `codigo_iec` en el archivo ⇒ `obtenerSimbolo("")`
+  fallaba y el nodo se descartaba; sin él, las 4 conexiones quedaban
+  huérfanas y también se descartaban. FIX: el chequeo por `tipo ===
+  "barra"` va PRIMERO (queda además el fallback por S00119 para
+  migrar proyectos viejos). Guardar→abrir ya es ida-y-vuelta exacta.
+- HALLAZGO 2 (el hueco visible): React Flow NO ancla los cables al
+  centro del handle sino al BORDE del rectángulo medido, y su hoja
+  base impone mínimo 5×5 px ⇒ ~2,5–5 px de aire entre la punta del
+  cable y la barra/símbolo SIEMPRE (antes lo maquillaba a medias el
+  recorte de −3 px descartado en C13). FIX: handles de ancla EXACTA
+  de 0×0 (`min-width/height:0`, doble clase para ganarle al CSS de
+  RF sin depender del orden de importación) y el punto visible como
+  `::before` (no se mide, pero recibe el mouse). Medido tras el fix:
+  **d = 0.00 px exacto en todos los extremos**.
+- REGRESIÓN PERMANENTE: arnés E2E con Playwright
+  (`apps/editor/e2e/conexiones.mjs` + `npm run e2e`) sobre un FIXTURE
+  con el archivo exacto del usuario (`ejemplos/regresion-barra.json`).
+  Mide el gap de todo extremo de cable contra su handle al cargar,
+  al conectar desde abajo con el mouse, al CRUZAR elementos por
+  encima/debajo de la barra (durante y después del arrastre) y al
+  volver a cruzarlos. Umbral 2,5 px; falla si no hay paths (la
+  primera corrida dio un «ok» falso porque el loader había tirado
+  todo — lección incorporada).
+- Suites: build/lint OK; verificador de proyecto real, alineación y
+  lint de símbolos OK; E2E OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1047,7 +1080,7 @@ nunca se ve desunido:**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C13 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C14 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1082,6 +1115,10 @@ nunca se ve desunido:**
     predeterminado; alimentador arrastrable desde la paleta; textos
     alineados a la izquierda y no seleccionables; extremos del cable
     rematando sobre el centro del eje (nunca se ven desunidos).
+  · C14: cargar un proyecto guardado ya NO pierde la barra ni sus
+    conexiones; cables anclados al centro EXACTO de cada handle (adiós
+    aire de 2,5–5 px); arnés E2E Playwright con el caso del usuario
+    como fixture de regresión (`npm run e2e`).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

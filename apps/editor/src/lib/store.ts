@@ -355,17 +355,15 @@ function construirEstadoHoja(hojaSer: Hoja): {
       });
       continue;
     }
-    const simbolo = obtenerSimbolo(n.codigo_iec ?? "");
-    if (!simbolo) {
-      problemas.push(
-        `[${etiqueta}] nodo ${n.id}: código ${n.codigo_iec} no existe en la librería — se omite`,
-      );
-      continue;
-    }
-    // BARRA (C8): los proyectos viejos traían S00119 como símbolo
-    // genérico; migra a nodo barra preservando la geometría exacta
-    // de sus extremos (pad 10 px, centro y=20, largo 100 por defecto)
+    // BARRA (C13b): PRIMERO por tipo — las barras nativas no llevan
+    // codigo_iec en el archivo (rfANodoProyecto no lo escribe), así que
+    // resolver el símbolo antes acá las descartaba JUNTO con todas sus
+    // conexiones al reabrir un proyecto guardado. El chequeo por código
+    // queda para migrar proyectos viejos que traían S00119 como
+    // símbolo genérico.
     if (n.tipo === "barra" || n.codigo_iec === BARRA_CODIGO) {
+      const simboloBarra =
+        obtenerSimbolo(n.codigo_iec ?? "") ?? obtenerSimbolo(BARRA_CODIGO);
       nodos.push({
         id: n.id,
         type: "barra",
@@ -381,11 +379,18 @@ function construirEstadoHoja(hojaSer: Hoja): {
               ? Math.round(n.datos.largoPx / GRILLA_PX) * GRILLA_PX
               : LARGO_BARRA_DEFECTO_PX,
           atributos: {
-            ...simbolo.metadata.atributos_base,
+            ...(simboloBarra?.metadata.atributos_base ?? {}),
             ...(n.atributos ?? {}),
           },
         },
       });
+      continue;
+    }
+    const simbolo = obtenerSimbolo(n.codigo_iec ?? "");
+    if (!simbolo) {
+      problemas.push(
+        `[${etiqueta}] nodo ${n.id}: código ${n.codigo_iec} no existe en la librería — se omite`,
+      );
       continue;
     }
     nodos.push({

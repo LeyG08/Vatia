@@ -114,15 +114,16 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
           position={r.direccion}
           className={`handle-${punto.rol}`}
           style={{
-            width: 10,
-            height: 10,
-            border: "1.5px solid rgba(37, 99, 235, 0.55)",
-            borderRadius: "50%",
+            /* C13b: 0×0 — RF ancla al borde del handle; con tamaño
+             * real quedaban ~5 px de aire. El anillo visible es el
+             * ::before de la clase. */
+            width: 0,
+            height: 0,
+            border: "none",
             background: "transparent",
             pointerEvents: "all",
             left: `${(r.x / r.cajaAncho) * 100}%`,
             top: `${(r.y / r.cajaAlto) * 100}%`,
-            transform: "translate(-50%, -50%)",
           }}
         />
       ))}
