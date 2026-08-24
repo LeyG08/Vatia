@@ -6,7 +6,7 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import { rutaOrtogonal } from "../lib/ruta";
-import { lineasMazo } from "../lib/anotaciones";
+import { lineasCable } from "../lib/anotaciones";
 
 /** Marcas de conductor según IEC 60617: trazos oblicuos a ~45°, juntos */
 const SEP_TICKS = 8;
@@ -153,7 +153,7 @@ export default function ConexionEdge({
     String(dirEfectiva({ x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition)),
   );
   const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
-  const lineas = lineasMazo(m);
+    const lineas = lineasCable(m);
   const fases =
     typeof m.cantidad_conductores === "number" ? m.cantidad_conductores : 0;
   const neutro = m.lleva_neutro === true;

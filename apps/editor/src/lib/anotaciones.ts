@@ -184,7 +184,8 @@ export function anotacionNodo(
 }
 
 /**
- * Anotación del MAZO sobre la conexión. Reglas (acordadas con el usuario):
+ * Anotación del CABLE sobre la conexión. Reglas (acordadas con el
+ * usuario):
  * - unipolar   → "n x 1 x S"; multipolar → "1 x n x S".
  * - Los conductores se agrupan POR SECCIÓN con su cantidad real
  *   (C15): el neutro y la tierra ya no se cuelgan de la sección de
@@ -196,7 +197,7 @@ export function anotacionNodo(
  *   representan igualmente ("1 x 1 x 16 mm²").
  * - Orden del bloque: SECCIONES / material-aislación / norma IRAM.
  */
-export function lineasMazo(a: Record<string, unknown>): string[] {
+export function lineasCable(a: Record<string, unknown>): string[] {
   const tieneAlgo =
     a.cantidad_conductores ||
     a.lleva_neutro ||

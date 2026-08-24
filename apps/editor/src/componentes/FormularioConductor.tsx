@@ -1,4 +1,4 @@
-import { lineasMazo } from "../lib/anotaciones";
+import { lineasCable } from "../lib/anotaciones";
 import type { CampoDescriptor } from "../lib/esquemas";
 import { camposDeFamilia } from "../lib/esquemas";
 
@@ -69,7 +69,7 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
     (c: CampoDescriptor) => !manejados.has(c.nombre),
   );
 
-  const preview = lineasMazo(atributos);
+  const preview = lineasCable(atributos);
 
   return (
     <div className="form-atributos fc">

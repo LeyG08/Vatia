@@ -172,7 +172,7 @@ export interface DatosAlimentador extends Record<string, unknown> {
   tierra: boolean;
   cantidadN: number | null;
   /**
-   * Ficha del mazo de alimentación (C5): MISMO schema que la conexión.
+   * Ficha del cable de alimentación (C5): MISMO schema que la conexión.
    * Los campos legados (fases/neutro/tierra/cantidadN) se mantienen por
    * compatibilidad y siembran estos atributos al cargar proyectos viejos.
    */
@@ -263,7 +263,7 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
         neutro: n.data.neutro,
         tierra: n.data.tierra,
         cantidadN: n.data.cantidadN,
-        // El mazo REAL (editado en el panel) manda; el sembrado por
+        // El cable REAL (editado en el panel) manda; el sembrado por
         // flags es solo red de seguridad si quedó vacío
         atributos:
           n.data.atributos && Object.keys(n.data.atributos).length > 0
@@ -509,7 +509,7 @@ interface EstadoEditor {
     id: string,
     atributos: Record<string, unknown>,
   ) => void;
-  /** Reemplaza los atributos del mazo de una conexión (C4) */
+  /** Reemplaza los atributos del cable de una conexión (C4) */
   actualizarAtributosConexion: (
     id: string,
     atributos: Record<string, unknown>,
@@ -518,7 +518,7 @@ interface EstadoEditor {
   onEdgesChange: (cambios: EdgeChange[]) => void;
   onConnect: (conexion: Connection) => void;
   /** Reancla los dos extremos de una conexión existente (C11): agarrá
-   * la punta del cable y soltala en otro handle sin perder el mazo. */
+   * la punta del cable y soltala en otro handle sin perder el cable. */
   reconectarConexion: (id: string, conexion: Connection) => void;
   registrarArrastre: (ids: string[]) => void;
   confirmarArrastre: (
@@ -994,7 +994,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       )
         return;
       ejecutar({
-        descripcion: `editar mazo ${id}`,
+        descripcion: `editar cable ${id}`,
         do: () =>
           set((s) => ({
             conexiones: s.conexiones.map((e) =>

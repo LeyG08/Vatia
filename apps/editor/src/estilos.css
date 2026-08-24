@@ -822,7 +822,7 @@ body.arrastrando .paleta-item {
 .alim-col {
   display: flex;
   flex-direction: column;
-  /* C13: todo alineado por la IZQUIERDA (Desde / caja / mazo) y la
+  /* C13: todo alineado por la IZQUIERDA (Desde / caja / cable) y la
    * columna crece con el contenido: el borde punteado del nodo la
    * abraza siempre. El handle viaja con el svg → nada se desafina. */
   align-items: flex-start;
@@ -863,7 +863,7 @@ body.arrastrando .paleta-item {
   position: relative;
 }
 
-/* Notación del mazo: UNA sola línea bajo el origen. Decorativa:
+/* Notación del cable apilada bajo el origen (C15). Decorativa:
  * no seleccionable ni clickeable (no roba el arrastre). */
 .alim-nota {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -1161,6 +1161,16 @@ body.arrastrando .paleta-item {
   cursor: w-resize;
 }
 
+/* C16: valores que se calculan solos (potencia/utilización de la
+ * carga). No son un campo: solo avisan qué está quedando. */
+.form-calculado {
+  margin: -4px 0 0;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+
 /* Ficha de la barra: extremo IZQUIERDO, por ENCIMA */
 .anotacion-nodo.anotacion-barra {
   top: auto;
@@ -1195,7 +1205,7 @@ body.arrastrando .paleta-item {
   background: #dbeafe;
 }
 
-/* Texto del mazo sobre la conexión, sin marco para no invadir.
+/* Texto del cable sobre la conexión, sin marco para no invadir.
    Si la línea es muy larga, quiebra hacia abajo (max-width). */
 .anotacion-edge {
   position: absolute;

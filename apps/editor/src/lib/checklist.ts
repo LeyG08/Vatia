@@ -4,7 +4,7 @@
  * Reglas acordadas (docs/estado-revision-aea.md):
  * - Símbolos: los campos con x-obligatorio del schema deben estar
  *   cargados; x-alguno-obligatorio exige al menos uno.
- * - Conductores: se valida POR MAZO (nunca por rol de conexión):
+ * - Conductores: se valida POR CABLE (nunca por rol de conexión):
  *   cantidad/secciones/material/aislación/norma + coherencia entre las
  *   llaves de neutro/tierra y sus secciones.
  * - Los alimentadores y los sin_ficha_tecnica no llevan ficha.
@@ -90,11 +90,11 @@ function problemasFicha(
 }
 
 /**
- * Validación POR MAZO de una conexión (familia conductor). Las secciones
+ * Validación POR CABLE de una conexión (familia conductor). Las secciones
  * del neutro/tierra se heredan de la fase cuando no se cargan aparte;
  * una conexión de SOLO neutro o solo tierra es válida y exige su sección.
  */
-function problemasMazo(a: Record<string, unknown>): string[] {
+function problemasCable(a: Record<string, unknown>): string[] {
   const msj: string[] = [];
   const num = (k: string): number | undefined =>
     typeof a[k] === "number" ? (a[k] as number) : undefined;
@@ -107,7 +107,7 @@ function problemasMazo(a: Record<string, unknown>): string[] {
   const sTierra = num("seccion_tierra_mm2");
 
   if (fases === 0 && !neutro && !tierra) {
-    return ["Mazo vacío: activá fases, neutro o tierra."];
+    return ["Cable sin conductores: activá fases, neutro o tierra."];
   }
   if (fases > 0 && !sFase) msj.push("Falta la sección de fase.");
   if (fases === 0) {
@@ -152,12 +152,12 @@ export function armarChecklist(
   for (const n of nodos) {
     const data = n.data as NodoData;
     if (data.tipo === "alimentador") {
-      // La alimentación se trata como un mazo más + su origen
+      // La alimentación se trata como un cable más + su origen
       const msj: string[] = [];
       if (typeof data.origen !== "string" || data.origen.trim() === "") {
         msj.push("Falta el origen (desde dónde viene).");
       }
-      msj.push(...problemasMazo(data.atributos ?? {}));
+      msj.push(...problemasCable(data.atributos ?? {}));
       if (msj.length > 0) {
         salida.push({
           id: n.id,
@@ -186,7 +186,7 @@ export function armarChecklist(
     const attrs =
       (c.data?.atributosConductor as Record<string, unknown> | undefined) ??
       {};
-    const msj = problemasMazo(attrs);
+    const msj = problemasCable(attrs);
     if (msj.length > 0) {
       const a = nombresPorId.get(String(c.source)) ?? "?";
       const b = nombresPorId.get(String(c.target)) ?? "?";

@@ -1093,6 +1093,30 @@ juego de barras con composición (feedback directo del usuario):**
 - Suites: build/lint OK; verificador de proyecto real (valida los
   campos nuevos), alineación y lint de símbolos OK; E2E Playwright OK.
 
+**C16 — «mazo» pasó a «cable» + juego de barras elegible + formulario
+de carga sin campos calculados (feedback directo del usuario):**
+- RENOMBRADO GLOBAL mazo → CABLE (el usuario eligió entre Cable /
+  Cableado / Conductores / Tendido): lo visible («Mazo de conductores»
+  del panel → «Cable»; checklist «Cable sin conductores: activá fases,
+  neutro o tierra.»; tooltips de conductor.schema.json) Y lo interno
+  (`lineasMazo`→`lineasCable`, `problemasMazo`→`problemasCable` en
+  editor y verificador, comentarios, descripción de undo). Grep final:
+  cero restos fuera de HISTORIAL. Sin cambios en claves de datos ⇒ los
+  proyectos guardados siguen funcionando igual.
+- JUEGO DE BARRAS ELEGIBLE: la composición ya no son tres campos
+  sueltos con valores precargados — ahora hay un bloque de CHIPS
+  «Composición» (1F/2F/3F + N + PE, estilo C13) que escribe sobre los
+  mismos campos del schema (`cantidad_fases`, `incluye_neutro`,
+  `incluye_tierra`). El precargado 3F+N+PE queda como punto de
+  partida, siempre cambiable. La anotación «Juego de barras
+  3F+N+PE · …» se arma igual que en C15.
+- FORMULARIO DE CARGA: fuera los campos de solo lectura Potencia (VA)
+  y Pot. utilización (VA) — se calculan solas y confundían. Queda una
+  línea informativa gris (= 4400 VA · útil 2200 VA (50 %)) debajo del
+  Ku, y el plano sigue anotándolas.
+- Suites: build/lint OK; alineación, lint de símbolos y verificador
+  de proyecto real OK; E2E Playwright OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1109,7 +1133,7 @@ juego de barras con composición (feedback directo del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C15 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C16 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1152,6 +1176,9 @@ juego de barras con composición (feedback directo del usuario):**
     conteo multipolar corregido agrupando por sección; neutro visible
     en la carga («1F N»/«3F N»); utilización como «útil X VA (P %)»;
     juego de barras con composición (cantidad_fases + N/PE).
+  · C16: renombrado global «mazo»→«cable»; composición del juego de
+    barras elegible con chips (1F/2F/3F+N+PE); formulario de carga sin
+    campos calculados (solo línea informativa).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

@@ -1,6 +1,6 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useEditor, type DatosAlimentador } from "../lib/store";
-import { lineasMazo } from "../lib/anotaciones";
+import { lineasCable } from "../lib/anotaciones";
 
 /** Misma geometría que las marcas de las conexiones (IEC 60617) */
 const SEP = 8;
@@ -24,7 +24,7 @@ function AlimentadorNode({
 }: NodeProps<Node<DatosAlimentador>>) {
   const actualizar = useEditor((s) => s.actualizarDatosAlimentador);
   const attrs = data.atributos ?? {};
-  const nota = lineasMazo(attrs);
+  const nota = lineasCable(attrs);
 
   const fases =
     typeof attrs.cantidad_conductores === "number"
@@ -50,7 +50,7 @@ function AlimentadorNode({
           title="Procedencia de la alimentación"
           style={{ width: `${Math.max(6, data.origen.length + 1)}ch` }}
         />
-        {/* Especificación del mazo APILADA (C15): secciones arriba,
+        {/* Especificación del cable APILADA (C15): secciones arriba,
          * debajo el material y debajo la norma. Sin cortes. */}
         {nota.length > 0 && (
           <div className="alim-nota">

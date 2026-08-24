@@ -202,11 +202,6 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
         />
       </label>
 
-      <label className="campo-atributo" title="Calculada automáticamente según alimentación y corriente">
-        <span>Potencia (VA)</span>
-        <input type="text" readOnly value={vaCalculada === null ? "" : String(vaCalculada)} />
-      </label>
-
       <label
         className="campo-atributo"
         title="Coeficiente de utilización: fracción de la nominal en uso. Sugerido por tipo de carga, siempre editable"
@@ -228,10 +223,20 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
         />
       </label>
 
-      <label className="campo-atributo" title="potencia_va × Ku — se guardará para el agregador de tablero con Ks">
-        <span>Pot. utilización (VA)</span>
-        <input type="text" readOnly value={utilCalculada === null ? "" : String(utilCalculada)} />
-      </label>
+      {/* C16: la potencia y la utilización se CALCULAN solas — ya no
+       * van como campos del formulario (confundían); solo un aviso de
+       * qué está quedando. En el plano se anotan igual. */}
+      {vaCalculada !== null && (() => {
+        const ku = typeof atributos.ku === "number" ? atributos.ku : null;
+        return (
+          <p className="form-calculado">
+            = {vaCalculada} VA
+            {utilCalculada !== null && ku !== null && ku < 1
+              ? ` · útil ${utilCalculada} VA (${Math.round(ku * 100)} %)`
+              : ""}
+          </p>
+        );
+      })()}
 
       <label className="campo-atributo">
         <span>Descripción</span>

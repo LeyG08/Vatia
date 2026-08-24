@@ -6,7 +6,7 @@
  *
  *  1. Cada nodo referencia un código existente en la librería.
  *  2. Símbolos aparato: campos x-obligatorio del subtipo + x-alguno-obligatorio.
- *  3. Mazos (conexiones y alimentadores): reglas POR MAZO idénticas al panel.
+ *  3. Cables (conexiones y alimentadores): reglas POR CABLE idénticas al panel.
  *  4. Alimentadores: origen cargado.
  *
  * Salida esperada con los datos cargados: CERO pendientes.
@@ -106,7 +106,7 @@ function problemasFicha(familia, attrs) {
   } else if (familia === "barra") {
     reglas = reglasDeRaiz(schemaBarra);
   } else {
-    return []; // conductor: el mazo se valida por conexión
+    return []; // conductor: el cable se valida por conexión
   }
   if (!reglas) return ["tipo_aparato desconocido"];
   const msj = [];
@@ -119,7 +119,7 @@ function problemasFicha(familia, attrs) {
   return msj;
 }
 
-function problemasMazo(a) {
+function problemasCable(a) {
   const msj = [];
   const num = (k) => (typeof a[k] === "number" ? a[k] : undefined);
   const fases = num("cantidad_conductores") ?? 0;
@@ -130,7 +130,7 @@ function problemasMazo(a) {
   const sTierra = num("seccion_tierra_mm2");
 
   if (fases === 0 && !neutro && !tierra) {
-    return ["Mazo vacío: activá fases, neutro o tierra."];
+    return ["Cable sin conductores: activá fases, neutro o tierra."];
   }
   if (fases > 0 && !sFase) msj.push("Falta la sección de fase.");
   if (fases === 0) {
@@ -161,7 +161,7 @@ for (const n of hoja.nodos) {
       ...(typeof n.datos?.origen !== "string" || n.datos.origen.trim() === ""
         ? ["Falta el origen (desde dónde viene)."]
         : []),
-      ...problemasMazo(n.atributos ?? {}),
+      ...problemasCable(n.atributos ?? {}),
     ];
     totalPendientes += msj.length;
     console.log(msj.length === 0
@@ -187,7 +187,7 @@ for (const n of hoja.nodos) {
 }
 
 for (const c of hoja.conexiones) {
-  const msj = problemasMazo(c.atributos_conductor ?? {});
+  const msj = problemasCable(c.atributos_conductor ?? {});
   totalPendientes += msj.length;
   const [src] = c.desde.split(".");
   const [tgt] = c.hasta.split(".");

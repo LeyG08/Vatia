@@ -16,6 +16,14 @@ function valorComoTexto(v: unknown): string {
   return v === undefined || v === null ? "" : String(v);
 }
 
+/** Campos del JUEGO DE BARRAS que maneja el bloque de composición
+ * (chips): nunca se renderizan como campos sueltos. */
+const CAMPOS_COMPOSICION_BARRA = [
+  "cantidad_fases",
+  "incluye_neutro",
+  "incluye_tierra",
+];
+
 /**
  * Estimación de la corriente de placa de un motor trifásico a partir
  * de su potencia MECÁNICA de eje + eficiencia + cos φ + tensión:
@@ -111,6 +119,14 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
         // cuando el campo que los gobierna está activo.
         const visibleSi = esquema["x-visible-si"];
         if (visibleSi && atributos[visibleSi] !== true) return null;
+        // Composición del juego de barras: la dibuja el bloque de
+        // chips de más abajo (C16), no campos sueltos.
+        if (
+          familia === "barra" &&
+          CAMPOS_COMPOSICION_BARRA.includes(nombre)
+        ) {
+          return null;
+        }
 
         let control: ReactElement;
 
@@ -181,6 +197,48 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
           </label>
         );
       })}
+
+      {/* C16: composición del JUEGO DE BARRAS elegible con chips.
+       * Cuántas barras de fase representa (1F/2F/3F) y si incluye
+       * neutro (N) y/o tierra (PE). Los valores viven en los mismos
+       * campos del schema; acá se eligen, no quedan fijos. */}
+      {familia === "barra" && atributos.es_conjunto === true && (
+        <div
+          className="campo-atributo"
+          title="Qué representa el juego: cuántas fases y si suma neutro y/o tierra"
+        >
+          <span>Composición</span>
+          <div className="chips" role="group" aria-label="Composición del juego de barras">
+            {[1, 2, 3].map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`chip${atributos.cantidad_fases === f ? " on" : ""}`}
+                onClick={() => actualizar("cantidad_fases", f)}
+                title={`${f} ${f === 1 ? "barra de fase" : "barras de fase"}`}
+              >
+                {f}F
+              </button>
+            ))}
+            <button
+              type="button"
+              className={`chip${atributos.incluye_neutro === true ? " on" : ""}`}
+              onClick={() => actualizar("incluye_neutro", atributos.incluye_neutro !== true)}
+              title="Incluye una barra de neutro"
+            >
+              N
+            </button>
+            <button
+              type="button"
+              className={`chip${atributos.incluye_tierra === true ? " on" : ""}`}
+              onClick={() => actualizar("incluye_tierra", atributos.incluye_tierra !== true)}
+              title="Incluye una barra de tierra (PE)"
+            >
+              PE
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Motor trifásico: si falta In de placa, ofrecé una ESTIMACIÓN
           explícita (η y cos φ por defecto si no están cargados). El

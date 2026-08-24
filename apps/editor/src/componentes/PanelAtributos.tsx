@@ -116,7 +116,7 @@ export default function PanelAtributos() {
         ) : (
           <>
             Conexión
-            <span className="panel-atributos-sub">Mazo de conductores</span>
+            <span className="panel-atributos-sub">Cable</span>
           </>
         )}
       </h3>
