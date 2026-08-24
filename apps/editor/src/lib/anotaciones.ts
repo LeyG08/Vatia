@@ -97,12 +97,24 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
 /**
  * Ficha de la BARRA en el formato del plano real (C8), en UNA línea:
  * "3x30x10mm · Cu · IRAM 2181-1 · 500 A". Si la línea representa un
- * CONJUNTO de barras (una por fase, C11) se antepone "Juego de
- * barras". Se dibuja en el extremo izquierdo, por encima de la barra.
+ * CONJUNTO de barras (C11) se antepone la composición (C15):
+ * "Juego de barras 3F+N+PE" — cuántas barras de fase y si el juego
+ * incluye neutro y/o tierra. Se dibuja en el extremo izquierdo, por
+ * encima de la barra.
  */
 export function anotacionBarra(a: Record<string, unknown>): string[] {
+  let conjunto = "";
+  if (a.es_conjunto === true) {
+    conjunto = "Juego de barras";
+    if (typeof a.cantidad_fases === "number" && a.cantidad_fases > 0) {
+      const partes = [`${a.cantidad_fases}F`];
+      if (a.incluye_neutro === true) partes.push("N");
+      if (a.incluye_tierra === true) partes.push("PE");
+      conjunto += ` ${partes.join("+")}`;
+    }
+  }
   const partes = [
-    a.es_conjunto === true ? "Juego de barras" : "",
+    conjunto,
     typeof a.dimensiones === "string" ? a.dimensiones : "",
     capitalizar(a.material),
     capitalizar(a.norma_iram),
@@ -127,20 +139,23 @@ function anotacionCarga(a: Record<string, unknown>): LineaAnotacion[] {
   if (a.alimentacion) {
     const tri = a.alimentacion === "trifasica";
     const v = tri || a.lleva_neutro === false ? "380 V" : "220 V";
+    // C15: el NEUTRO se declara en la línea ("1F N", "3F N") para
+    // distinguirlo de un circuito entre fases a simple vista.
+    const conN = a.lleva_neutro === true ? " N" : "";
     const linea = !tri && typeof a.linea_asignada === "string" ? ` · ${a.linea_asignada}` : "";
-    l.push({ texto: `${tri ? "3F" : "1F"} ${v}${linea}` });
+    l.push({ texto: `${tri ? "3F" : "1F"}${conN} ${v}${linea}` });
   }
   if (n(a.potencia_va)) l.push({ texto: `${n(a.potencia_va)} VA` });
   if (n(a.corriente_a)) l.push({ texto: `${n(a.corriente_a)} A` });
-  // Utilización como dato SECUNDARIO: solo si Ku cargado y < 1
-  // (con Ku=1 la utilización iguala a la nominal y no aporta nada).
+  // Utilización como dato SECUNDARIO, en % del nominal (C15):
+  // solo si Ku cargado y < 1 (con Ku=1 no aporta nada).
   if (
     typeof a.ku === "number" &&
     a.ku < 1 &&
     n(a.potencia_utilizacion_va)
   ) {
     l.push({
-      texto: `útil ≈ ${n(a.potencia_utilizacion_va)} VA · Ku ${String(a.ku).replace(".", ",")}`,
+      texto: `útil ${n(a.potencia_utilizacion_va)} VA (${Math.round(a.ku * 100)} %)`,
       secundaria: true,
     });
   }
@@ -171,12 +186,15 @@ export function anotacionNodo(
 /**
  * Anotación del MAZO sobre la conexión. Reglas (acordadas con el usuario):
  * - unipolar   → "n x 1 x S"; multipolar → "1 x n x S".
- * - Si TODOS los conductores comparten la MISMA sección (incluidos
- *   neutro y tierra) se agrupan en un solo término: "5 x 1 x 16 mm²".
- * - Si hay secciones distintas, lo diferente se anexa con "+ X mm²"
- *   (multipolar) o se lista explícito (unipolar).
+ * - Los conductores se agrupan POR SECCIÓN con su cantidad real
+ *   (C15): el neutro y la tierra ya no se cuelgan de la sección de
+ *   fase. Secciones iguales se suman en un mismo grupo.
+ * - Multipolar uniforme → "1 x 6 x 16 mm²"; con secciones mezcladas
+ *   el detalle va adentro: "1 x (3 x 50 + 2 x 35) mm²". Unipolar:
+ *   "3 x 1 x 50 mm² + 2 x 1 x 35 mm²".
  * - Puede haber conexiones SOLO de neutro o solo de tierra: se
  *   representan igualmente ("1 x 1 x 16 mm²").
+ * - Orden del bloque: SECCIONES / material-aislación / norma IRAM.
  */
 export function lineasMazo(a: Record<string, unknown>): string[] {
   const tieneAlgo =
@@ -190,49 +208,34 @@ export function lineasMazo(a: Record<string, unknown>): string[] {
 
   const sf = n(a.seccion_fase_mm2);
   const fases =
-    typeof a.cantidad_conductores === "number" ? a.cantidad_conductores : 0;
+    typeof a.cantidad_conductores === "number" && a.cantidad_conductores > 0
+      ? a.cantidad_conductores
+      : 0;
   const mp = a.tipo_cable === "multipolar";
   const sN = a.lleva_neutro ? n(a.seccion_neutro_mm2) || sf : "";
   const sT = a.lleva_tierra ? n(a.seccion_tierra_mm2) || sf : "";
 
-  interface Grupo {
-    cant: number;
-    s: string;
-  }
-  const grupos: Grupo[] = [];
-  if (fases > 0 && sf) grupos.push({ cant: fases, s: sf });
-  if (sN) grupos.push({ cant: 1, s: sN });
-  if (sT) grupos.push({ cant: 1, s: sT });
+  // Un grupo por sección, sumando cantidades reales
+  const grupos: { cant: number; s: string }[] = [];
+  const sumar = (cant: number, s: string) => {
+    if (!s || cant <= 0) return;
+    const g = grupos.find((x) => x.s === s);
+    if (g) g.cant += cant;
+    else grupos.push({ cant, s });
+  };
+  sumar(fases, sf);
+  sumar(1, sN);
+  sumar(1, sT);
   if (grupos.length === 0) return [];
 
-  const token = (cant: number, s: string) =>
-    mp ? `1 x ${cant} x ${s} mm²` : `${cant} x 1 x ${s} mm²`;
-
   let linea1 = "";
-  const primera = grupos[0].s;
-  if (grupos.every((g) => g.s === primera)) {
-    // Todo con la misma sección: un único término con el TOTAL
-    const total = grupos.reduce((t, g) => t + g.cant, 0);
-    linea1 = token(total, primera);
+  if (mp) {
+    linea1 =
+      grupos.length === 1
+        ? `1 x ${grupos[0].cant} x ${grupos[0].s} mm²`
+        : `1 x (${grupos.map((g) => `${g.cant} x ${g.s}`).join(" + ")}) mm²`;
   } else {
-    const partes: string[] = [];
-    const gF = grupos.find((g) => g.cant > 1);
-    if (gF) {
-      const nucleos = gF.cant + (sN ? 1 : 0);
-      partes.push(
-        mp
-          ? `1 x ${nucleos} x ${gF.s} mm²`
-          : `${gF.cant} x 1 x ${gF.s} mm²`,
-      );
-      if (sN && !(mp && sN === gF.s)) {
-        partes.push(mp ? `${sN} mm²` : `1 x 1 x ${sN} mm²`);
-      }
-      if (sT) partes.push(mp ? `${sT} mm²` : `1 x 1 x ${sT} mm²`);
-    } else {
-      // Sin fases cargadas: neutro/tierra explícitos uno por uno
-      for (const g of grupos) partes.push(token(g.cant, g.s));
-    }
-    linea1 = partes.join(" + ");
+    linea1 = grupos.map((g) => `${g.cant} x 1 x ${g.s} mm²`).join(" + ");
   }
 
   const matAis = [

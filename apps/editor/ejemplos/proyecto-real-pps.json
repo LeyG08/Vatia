@@ -53,6 +53,9 @@
           "atributos": {
             "dimensiones": "3 x 30 x 10 mm",
             "es_conjunto": true,
+            "cantidad_fases": 3,
+            "incluye_neutro": true,
+            "incluye_tierra": false,
             "material": "Cu",
             "norma_iram": "IRAM 2181-1",
             "corriente_admisible_A": 500

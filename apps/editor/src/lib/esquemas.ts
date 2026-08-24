@@ -19,6 +19,7 @@ type EsquemaCampo = {
   minimum?: number;
   maximum?: number;
   "x-obligatorio"?: boolean;
+  "x-visible-si"?: string;
 };
 
 type EsquemaDef = {

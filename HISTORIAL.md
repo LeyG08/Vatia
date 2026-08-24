@@ -1064,6 +1064,35 @@ automatizado):**
 - Suites: build/lint OK; verificador de proyecto real, alineación y
   lint de símbolos OK; E2E OK.
 
+**C15 — fichas: orden del mazo, conteo multipolar, neutro visible y
+juego de barras con composición (feedback directo del usuario):**
+- MAZO APILADO (alimentador): la especificación ya no va en una línea
+  separada por «·» sino en LÍNEAS APILADAS bajo el origen, en el orden
+  del plano real: SECCIONES → MATERIAL/AISLACIÓN → NORMA IRAM.
+  (`AlimentadorNode` mapea `lineasMazo()` a un div por línea.)
+- FIX CONTEO MULTIPOLAR: cuando neutro y tierra tienen sección
+  DISTINTA a las fases, la anotación vieja contaba mal («1 x 5 x
+  50 mm²» para 4F50+N35+PE35: metía el neutro de 35 como núcleo de
+  50). Ahora los conductores se agrupan POR SECCIÓN con su cantidad
+  real; multipolar uniforme «1 x 6 x 16 mm²», mezclado «1 x (4 x 50 +
+  2 x 35) mm²»; unipolar «3 x 1 x 50 mm² + 2 x 1 x 35 mm²». Casos
+  límite probados por script (solo N, solo T, secciones mezcladas,
+  vacío).
+- CARGA con neutro DECLARADO: la línea de alimentación ahora dice
+  «1F N 220 V · L1» / «3F N 380 V» (sin neutro queda «1F»/«3F»).
+- UTILIZACIÓN reformulada (el usuario rechazó «útil ≈ X VA · Ku 0,5»):
+  ahora como porcentaje del nominal en la línea secundaria gris:
+  «útil 1100 VA (50 %)».
+- JUEGO DE BARRAS con composición (C15): nuevos campos en
+  barra.schema.json — `cantidad_fases` (1..3), `incluye_neutro`,
+  `incluye_tierra` (visibles solo si `es_conjunto=true` vía nueva key
+  `x-visible-si`, soportada por FormularioAtributos que además
+  precarga 3F+N+PE al activar el conjunto). La anotación de barra pasa
+  de «Juego de barras · …» a «Juego de barras 3F+N+PE · …».
+  Ejemplo del PPS actualizado (B1 = 3F+PE).
+- Suites: build/lint OK; verificador de proyecto real (valida los
+  campos nuevos), alineación y lint de símbolos OK; E2E Playwright OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1080,7 +1109,7 @@ automatizado):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C14 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C15 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1119,6 +1148,10 @@ automatizado):**
     conexiones; cables anclados al centro EXACTO de cada handle (adiós
     aire de 2,5–5 px); arnés E2E Playwright con el caso del usuario
     como fixture de regresión (`npm run e2e`).
+  · C15: mazo del alimentador apilado (secciones/material/norma);
+    conteo multipolar corregido agrupando por sección; neutro visible
+    en la carga («1F N»/«3F N»); utilización como «útil X VA (P %)»;
+    juego de barras con composición (cantidad_fases + N/PE).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

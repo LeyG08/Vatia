@@ -85,6 +85,14 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
       }
     }
 
+    // C15: al declarar un JUEGO de barras, precargamos una composición
+    // razonable (3F+N+PE); siempre editable a continuación.
+    if (nombre === "es_conjunto" && valor === true) {
+      if (nuevos.cantidad_fases == null) nuevos.cantidad_fases = 3;
+      if (nuevos.incluye_neutro == null) nuevos.incluye_neutro = true;
+      if (nuevos.incluye_tierra == null) nuevos.incluye_tierra = true;
+    }
+
     onChange(nuevos);
   }
 
@@ -98,6 +106,11 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
       {campos.map((campo) => {
         const { nombre, esquema, obligatorio } = campo;
         const valorActual = atributos[nombre];
+
+        // C15: campos condicionales (x-visible-si) solo se muestran
+        // cuando el campo que los gobierna está activo.
+        const visibleSi = esquema["x-visible-si"];
+        if (visibleSi && atributos[visibleSi] !== true) return null;
 
         let control: ReactElement;
 

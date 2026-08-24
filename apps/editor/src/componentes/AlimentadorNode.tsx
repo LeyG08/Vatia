@@ -50,8 +50,15 @@ function AlimentadorNode({
           title="Procedencia de la alimentación"
           style={{ width: `${Math.max(6, data.origen.length + 1)}ch` }}
         />
-        {/* Especificación del mazo en UNA sola línea, sin cortes */}
-        {nota.length > 0 && <div className="alim-nota">{nota.join(" · ")}</div>}
+        {/* Especificación del mazo APILADA (C15): secciones arriba,
+         * debajo el material y debajo la norma. Sin cortes. */}
+        {nota.length > 0 && (
+          <div className="alim-nota">
+            {nota.map((linea, i) => (
+              <div key={i}>{linea}</div>
+            ))}
+          </div>
+        )}
       </div>
       {/* C13: el handle vive DENTRO de este contenedor → viaja pegado
        * al cable aunque la columna de textos crezca. Nada se desafina

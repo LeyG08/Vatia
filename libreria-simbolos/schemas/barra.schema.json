@@ -14,7 +14,24 @@
     },
     "es_conjunto": {
       "type": "boolean",
-      "description": "C11: true si la línea representa el CONJUNTO / juego de barras (una por fase R-S-T dibujadas como una sola línea); false o ausente = barra única. En el plano se anota como \"Juego de barras\" delante de las dimensiones."
+      "description": "C11: true si la línea representa el CONJUNTO / juego de barras dibujadas como una sola línea; false o ausente = barra única. En el plano se anota como \"Juego de barras\" (con su composición, C15) delante de las dimensiones."
+    },
+    "cantidad_fases": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "x-visible-si": "es_conjunto",
+      "description": "C15: cuántas barras de FASE representa el juego (1 a 3). Plano: \"Juego de barras 3F+N+PE\"."
+    },
+    "incluye_neutro": {
+      "type": "boolean",
+      "x-visible-si": "es_conjunto",
+      "description": "C15: true si el juego incluye una barra de NEUTRO. Plano: \"+N\" en la composición."
+    },
+    "incluye_tierra": {
+      "type": "boolean",
+      "x-visible-si": "es_conjunto",
+      "description": "C15: true si el juego incluye una barra de TIERRA (PE). Plano: \"+PE\" en la composición."
     },
     "material": {
       "enum": ["Cu", "Al"],
