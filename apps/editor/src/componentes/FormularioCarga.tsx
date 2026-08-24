@@ -1,4 +1,8 @@
 import { type ReactElement } from "react";
+import {
+  calcularUtilizacionVa,
+  kuSugeridoPara,
+} from "../lib/utilizacion";
 
 interface Props {
   atributos: Record<string, unknown>;
@@ -47,11 +51,27 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
       nuevos[nombre] = valor;
     }
 
+    // Al elegir tipo de carga, si todavía no cargó un Ku a mano,
+    // precargá el sugerido (queda editable).
+    if (nombre === "tipo_carga" && nuevos.ku === undefined) {
+      const sugerido = kuSugeridoPara(valor);
+      if (sugerido !== undefined) nuevos.ku = sugerido;
+    }
+
     const va = calcularPotenciaVa(nuevos);
     if (va === null) {
       delete nuevos.potencia_va;
     } else {
       nuevos.potencia_va = va;
+    }
+
+    // Potencia de utilización encadenada a la nominal (se guarda para
+    // el futuro agregador de tablero con Ks)
+    const util = calcularUtilizacionVa(nuevos);
+    if (util === null) {
+      delete nuevos.potencia_utilizacion_va;
+    } else {
+      nuevos.potencia_utilizacion_va = util;
     }
 
     // Si pasa a trifásica, la línea asignada deja de aplicar
@@ -88,6 +108,7 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
 
   const esTrifasica = atributos.alimentacion === "trifasica";
   const vaCalculada = calcularPotenciaVa(atributos);
+  const utilCalculada = calcularUtilizacionVa(atributos);
 
   return (
     <div className="form-atributos">
@@ -166,6 +187,32 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
       <label className="campo-atributo" title="Calculada automáticamente según alimentación y corriente">
         <span>Potencia (VA)</span>
         <input type="text" readOnly value={vaCalculada === null ? "" : String(vaCalculada)} />
+      </label>
+
+      <label
+        className="campo-atributo"
+        title="Coeficiente de utilización: fracción de la nominal en uso. Sugerido por tipo de carga, siempre editable"
+      >
+        <span>Ku utilización</span>
+        <input
+          type="number"
+          step="0.05"
+          min={0}
+          max={1}
+          placeholder="1"
+          value={valorComoTexto(atributos.ku)}
+          onChange={(e) =>
+            actualizar(
+              "ku",
+              e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+            )
+          }
+        />
+      </label>
+
+      <label className="campo-atributo" title="potencia_va × Ku — se guardará para el agregador de tablero con Ks">
+        <span>Pot. utilización (VA)</span>
+        <input type="text" readOnly value={utilCalculada === null ? "" : String(utilCalculada)} />
       </label>
 
       <label className="campo-atributo">

@@ -1034,6 +1034,31 @@ body.arrastrando .paleta-item {
   text-align: left;
 }
 
+/* Estimación de corriente de placa en motores (C10): texto gris
+   secundario + botón discreto para aceptarla. Nunca pisa un In real */
+.estimacion-in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.estimacion-in button {
+  border: none;
+  border-radius: 6px;
+  padding: 2px 10px;
+  background: #eef2ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.estimacion-in button:hover {
+  background: #dbeafe;
+}
+
 /* Texto del mazo sobre la conexión, sin marco para no invadir.
    Si la línea es muy larga, quiebra hacia abajo (max-width). */
 .anotacion-edge {

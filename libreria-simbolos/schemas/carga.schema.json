@@ -42,6 +42,17 @@
       "exclusiveMinimum": 0,
       "description": "Potencia aparente en VA — CALCULADA automáticamente: monofásica con neutro S=220·I; monofásica sin neutro S=380·I; trifásica S=√3·380·I."
     },
+    "ku": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Coeficiente de utilización Ku (0 a 1): fracción de la potencia nominal que el circuito usa en realidad. Sugerido según tipo de carga (IUG cercano a 1, TUG más bajo, ACU/seccional entre 0,75 y 1) y siempre editable a mano. Sin valor se asume 1."
+    },
+    "potencia_utilizacion_va": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Potencia de utilización en VA = potencia_va × ku (ku ausente ⇒ iguala a la nominal). CALCULADA y de solo lectura. Se guarda para el futuro nodo agregador de tablero, que la sumará junto con el coeficiente de simultaneidad Ks."
+    },
     "descripcion": {
       "type": "string",
       "description": "Designación de la carga. Plano real: \"Luces Tablero\", \"Tomacorrientes\", \"CNC VF3\"."

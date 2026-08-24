@@ -96,10 +96,12 @@
       },
       "properties": {
         "tipo_aparato": { "const": "motor_trifasico" },
-        "potencia_kw": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Potencia nominal en kW. Alternativa a potencia_hp; el formulario calcula una desde la otra (1 HP = 0,7457 kW)." },
-        "potencia_hp": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Unidad tal como la anota el plano: \"50HP\". Alternativa a potencia_kw." },
+        "potencia_kw": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Potencia MECÁNICA nominal de placa en kW (la que entrega el eje). Alternativa a potencia_hp; el formulario conviene una desde la otra (1 HP = 0,7457 kW). NO es potencia eléctrica absorbida." },
+        "potencia_hp": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Potencia MECÁNICA de placa tal como la anota el plano: \"50HP\". Alternativa a potencia_kw." },
         "tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Tensión nominal trifásica. Plano: red 3×400 Vca." },
-        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false },
+        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Corriente nominal de PLACA en amperes: dato principal si está disponible (no se deriva, se lee de la placa). Si falta, el formulario puede ESTIMARLA desde potencia mecánica + η + cos φ + tensión, marcada como estimación." },
+        "eficiencia_pct": { "type": "number", "exclusiveMinimum": 0, "maximum": 100, "x-obligatorio": false, "description": "Rendimiento de placa η en % (ej.: 92). Junto con cos φ y tensión permite estimar In cuando no está en la placa." },
+        "factor_potencia": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "x-obligatorio": false, "description": "Cos φ de placa (ej.: 0.85)." },
         "rpm": { "type": "integer", "exclusiveMinimum": 0, "x-obligatorio": false }
       }
     },

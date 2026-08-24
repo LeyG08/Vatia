@@ -1,6 +1,13 @@
-import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/react";
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  Position,
+  useStore,
+  type EdgeProps,
+} from "@xyflow/react";
 import { rutaOrtogonal } from "../lib/ruta";
 import { lineasMazo } from "../lib/anotaciones";
+import type { DatosBarra } from "../lib/store";
 
 /** Marcas de conductor según IEC 60617: trazos oblicuos a ~45°, juntos */
 const SEP_TICKS = 8;
@@ -101,6 +108,8 @@ function ubicarEnTrayectoria(
 
 export default function ConexionEdge({
   id,
+  source,
+  target,
   targetX,
   targetY,
   sourceX,
@@ -110,13 +119,41 @@ export default function ConexionEdge({
   data,
   ...props
 }: EdgeProps) {
+  /* En las BARRAS cada punto sirve para conectar desde cualquiera de
+   * sus lados, así que la dirección declarada del handle no garantiza
+   * nada: si el cable llega del lado contrario, el ruteo lo hace pasar
+   * por encima o mal unido. Derivamos SIEMPRE la dirección del lado
+   * donde está el otro extremo → entrada perpendicular y limpia. */
+  const nodos = useStore((s) => s.nodes);
+  const dirSegunBarra = (
+    nodeId: string | null | undefined,
+    propio: { x: number; y: number },
+    otro: { x: number; y: number },
+    original: Position,
+  ): Position => {
+    const n = nodos.find((x) => x.id === nodeId);
+    if (!n || n.type !== "barra") return original;
+    const rot = (((n.data as DatosBarra).rotacion ?? 0) % 180 + 180) % 180;
+    return rot !== 0
+      ? otro.x <= propio.x
+        ? Position.Left
+        : Position.Right
+      : otro.y <= propio.y
+        ? Position.Top
+        : Position.Bottom;
+  };
+
   const d = rutaOrtogonal(
     sourceX,
     sourceY,
-    String(sourcePosition),
+    String(
+      dirSegunBarra(source, { x: sourceX, y: sourceY }, { x: targetX, y: targetY }, sourcePosition),
+    ),
     targetX,
     targetY,
-    String(targetPosition),
+    String(
+      dirSegunBarra(target, { x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition),
+    ),
   );
   const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
   const lineas = lineasMazo(m);

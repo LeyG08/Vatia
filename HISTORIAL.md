@@ -919,6 +919,38 @@ barras para hacer la distribución". Rediseño completo de S00119:
 - Ejemplo PPS: CA1/C1·IUG·L1·0,08 A→18 VA · CA2.2/TUG·L2·10 A→
   2200 VA · CA3/C15·ACU trifásica sin neutro.
 
+**C10 — Motor mecánica/eléctrica + Ku de utilización + unión cable-barra:**
+- Aclaración del usuario sobre el checklist (punto 2): el checklist
+  no bloqueante SÍ está implementado desde C4 (ChecklistAea.tsx +
+  lib/checklist.ts, reglas schema-driven por familia, replicadas en
+  verificar_proyecto_real.mjs) y se fue extendiendo con cada familia
+  nueva (C6 conductor, C7 carga, C8 barra). La numeración del plan
+  original se desalineó al re-scopear pasos por feedback.
+- Corrección conceptual del motor: el HP/kW de placa es potencia
+  MECÁNICA del eje, no eléctrica — la conversión 1:1 (0,7457) solo
+  sirve entre HP y kW, NO para derivar corriente. Schema nuevo:
+  eficiencia_pct y factor_potencia (datos de placa, opcionales);
+  in_a pasa a dato principal de placa; si falta, el formulario
+  ofrece una ESTIMACIÓN explícita I = P_eje/(√3·V·cosφ·η) con
+  botón "usar" que nunca pisa un valor real ya cargado.
+- Ku de utilización en cargas (carga.schema.json): ku (0 a 1,
+  sugerido según tipo —IUG≈0,9, TUG≈0,5, ACU≈0,85— y siempre
+  editable) + potencia_utilizacion_va CALCULADA = potencia_va × ku
+  (ku ausente ⇒ 1). Se guarda para el futuro nodo agregador de
+  tablero, que lo sumará junto con Ks (agregación aún no
+  implementada). Helpers en lib/utilizacion.ts, compartibles para
+  futuras cargas no representadas con flecha.
+- Anotación bajo la flecha con jerarquía: nominal principal
+  ("2200 VA") y utilización como secundaria cuando Ku < 1
+  ("Ku=0,5 → 1100 VA útil.").
+- FIX "en la unión con las barras la línea sobrepasa la barra":
+  ConexionEdge ahora deriva el lado de aproximación de cada extremo
+  que cae en una barra según dónde está el otro elemento → la
+  conexión entra SIEMPRE perpendicular al eje, sin vueltas por
+  encima ni cable flotante.
+- Ejemplo PPS: CA1 Ku=0,9→16 VA útil · CA2.2 Ku=0,5→1100 VA útil ·
+  CA3 ACU trifásica Ku=0,85 (sin corriente de placa todavía).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -934,9 +966,29 @@ barras para hacer la distribución". Rediseño completo de S00119:
 ## Estado al cierre de esta entrada
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
-- Fase C en curso sobre rama `proyecto/fase-c-atributos-20260823`:
-  C1+C1-bis y C2 aplicadas, C3 implementada (sin montar), falta
-  aprobación de cada paso por el usuario. PR todavía NO abierto.
-- Pendiente: C4 (panel lateral conectado al store) → prueba del
-  usuario → C5 (checklist AEA no bloqueante) → C6 (E2E con valores
-  reales de los PDFs del PPS).
+- Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
+  IMPLEMENTADAS Y COMMITEADAS C1 a C10 —
+  · C1/C1-bis/C2: base de atributos y formularios schema-driven.
+  · C3: motor de checklist no bloqueante (lib/checklist.ts) +
+    panel ChecklistAea agrupado por elemento con subtareas.
+  · C4: panel de ficha técnica junto al elemento seleccionado,
+    conectado al store; el checklist quedó cerrado acá y se fue
+    extendiendo por familia en cada entrada posterior.
+  · C5a–C5h: rediseño del ALIMENTADOR (caja, mazo real, cable
+    alineado a grilla, extremos exactos, «Desde» fijo).
+  · C6: proyecto real del PPS + verificador schema-driven
+    (verificar_proyecto_real.mjs, cero pendientes).
+  · C7: símbolo de carga S00120 (flecha destino de circuito) +
+    familia carga.
+  · C8: barra de distribución como nodo propio (estirable, puntos
+    de conexión cada grilla, vertical por rotación, ficha arriba-
+    izquierda, migración automática de proyectos viejos).
+  · C9: alimentación/línea/neutro de la carga + potencia calculada
+    automáticamente (220/380/√3·380 × I).
+  · C10: motor mecánica/eléctrica con η y cosφ + estimador de In;
+    Ku de utilización con potencia_utilizacion_va guardada para el
+    futuro agregador de tablero (Ks); unión perpendicular
+    cable-barra.
+- PR todavía NO abierto: merge solo por orden expresa del usuario
+  (política vigente de AGENTS.md).
+- Próximo paso acordado: simbología ampliada (definir alcance).

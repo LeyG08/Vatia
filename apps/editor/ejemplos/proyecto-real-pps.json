@@ -160,6 +160,8 @@
             "lleva_neutro": true,
             "corriente_a": 0.08,
             "potencia_va": 18,
+            "ku": 0.9,
+            "potencia_utilizacion_va": 16,
             "descripcion": "Luces Tablero"
           }
         },
@@ -176,6 +178,8 @@
             "lleva_neutro": true,
             "corriente_a": 10,
             "potencia_va": 2200,
+            "ku": 0.5,
+            "potencia_utilizacion_va": 1100,
             "descripcion": "Tomacorrientes"
           }
         },
@@ -189,6 +193,7 @@
             "tipo_carga": "ACU",
             "alimentacion": "trifasica",
             "lleva_neutro": false,
+            "ku": 0.85,
             "descripcion": "CNC VF3"
           }
         }

@@ -16,6 +16,36 @@ function valorComoTexto(v: unknown): string {
   return v === undefined || v === null ? "" : String(v);
 }
 
+/**
+ * Estimación de la corriente de placa de un motor trifásico a partir
+ * de su potencia MECÁNICA de eje + eficiencia + cos φ + tensión:
+ *   I = P_eje / (√3 · V · cosφ · η)
+ * El HP/kW de placa NO es potencia eléctrica: sin η el 1:1 estaba mal.
+ * Devuelve null si no hay potencia cargada. Es solo un auxiliar del
+ * formulario: nunca pisa un In real ya cargado.
+ */
+function estimarInA(a: Record<string, unknown>): number | null {
+  let pWatts: number | null = null;
+  if (typeof a.potencia_kw === "number" && a.potencia_kw > 0) {
+    pWatts = a.potencia_kw * 1000;
+  } else if (typeof a.potencia_hp === "number" && a.potencia_hp > 0) {
+    pWatts = a.potencia_hp * 745.7;
+  }
+  if (pWatts === null) return null;
+
+  const ef =
+    typeof a.eficiencia_pct === "number" && a.eficiencia_pct > 0
+      ? a.eficiencia_pct / 100
+      : 0.9;
+  const cos =
+    typeof a.factor_potencia === "number" && a.factor_potencia > 0
+      ? a.factor_potencia
+      : 0.85;
+  const v = typeof a.tension_v === "number" && a.tension_v > 0 ? a.tension_v : 400;
+  const i = pWatts / (Math.sqrt(3) * v * cos * ef);
+  return Math.round(i * 10) / 10;
+}
+
 export default function FormularioAtributos({ familia, atributos, onChange }: Props) {
   const campos = useMemo(() => camposDeFamilia(familia, atributos), [familia, atributos]);
   const alguno = useMemo(() => algunoObligatorio(familia, atributos), [familia, atributos]);
@@ -138,6 +168,35 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
           </label>
         );
       })}
+
+      {/* Motor trifásico: si falta In de placa, ofrecé una ESTIMACIÓN
+          explícita (η y cos φ por defecto si no están cargados). El
+          botón completa el campo una vez; nunca pisa un valor real. */}
+      {familia === "aparato" &&
+        atributos.tipo_aparato === "motor_trifasico" &&
+        atributos.in_a == null &&
+        (() => {
+          const est = estimarInA(atributos);
+          if (est === null) return null;
+          const ef =
+            typeof atributos.eficiencia_pct === "number" && atributos.eficiencia_pct > 0
+              ? atributos.eficiencia_pct
+              : 90;
+          const cos =
+            typeof atributos.factor_potencia === "number" && atributos.factor_potencia > 0
+              ? atributos.factor_potencia
+              : 0.85;
+          return (
+            <div className="estimacion-in">
+              <span title="Estimación desde potencia de eje + η + cosφ + tensión; no reemplaza el dato de placa">
+                In ≈ {est} A (estimado, η={ef}% · cosφ={cos})
+              </span>
+              <button type="button" onClick={() => actualizar("in_a", est)}>
+                usar
+              </button>
+            </div>
+          );
+        })()}
     </div>
   );
 }

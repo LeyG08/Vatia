@@ -128,6 +128,17 @@ function anotacionCarga(a: Record<string, unknown>): string[] {
   }
   if (n(a.potencia_va)) l.push(`${n(a.potencia_va)} VA`);
   if (n(a.corriente_a)) l.push(`${n(a.corriente_a)} A`);
+  // Utilización como dato SECUNDARIO: solo si Ku cargado y < 1
+  // (con Ku=1 la utilización iguala a la nominal y no aporta nada).
+  if (
+    typeof a.ku === "number" &&
+    a.ku < 1 &&
+    n(a.potencia_utilizacion_va)
+  ) {
+    l.push(
+      `Ku=${String(a.ku).replace(".", ",")} → ${n(a.potencia_utilizacion_va)} VA útil.`,
+    );
+  }
   if (a.descripcion) l.push(capitalizar(a.descripcion));
   return l;
 }
