@@ -89,6 +89,7 @@ function Editor() {
   const onConnect = useEditor((s) => s.onConnect);
   const reconectar = useEditor((s) => s.reconectarConexion);
   const agregarSimbolo = useEditor((s) => s.agregarSimbolo);
+  const agregarAlimentador = useEditor((s) => s.agregarAlimentador);
   const registrarArrastre = useEditor((s) => s.registrarArrastre);
   const confirmarArrastre = useEditor((s) => s.confirmarArrastre);
   const rotarSeleccion = useEditor((s) => s.rotarSeleccion);
@@ -203,6 +204,29 @@ function Editor() {
         .elementFromPoint(e.clientX, e.clientY)
         ?.closest(".lienzo");
       if (!sobreLienzo) return;
+      // C13: el ALIMENTADOR también se arrastra desde la paleta
+      if (actual.codigo === "@alimentador") {
+        const flujo = screenToFlowPosition({
+          x: e.clientX,
+          y: e.clientY,
+        });
+        const x = Math.round(flujo.x / 10) * 10;
+        const y = Math.round(flujo.y / 10) * 10;
+        const datosPrueba = {
+          tipo: "alimentador",
+          origen: "",
+        } as NodoData;
+        if (invadeZona(capturarZonas(), x, y, datosPrueba)) {
+          setToast({
+            mensaje:
+              "Ahí están el rótulo y las notas: soltalo dentro del recuadro",
+            destinoId: null,
+          });
+          return;
+        }
+        agregarAlimentador(x, y);
+        return;
+      }
       const simbolo = obtenerSimbolo(actual.codigo);
       if (!simbolo) return;
       const vb = simbolo.viewBox;
@@ -241,6 +265,7 @@ function Editor() {
     };
   }, [
     agregarSimbolo,
+    agregarAlimentador,
     arrastre,
     capturarZonas,
     screenToFlowPosition,

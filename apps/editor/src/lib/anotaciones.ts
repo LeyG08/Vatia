@@ -117,19 +117,21 @@ export function anotacionBarra(a: Record<string, unknown>): string[] {
  * aparente / corriente / designación. Solo líneas con valor.
  * La alimentación sale de C9: "1F 220 V · L1" (mono con neutro),
  * "1F 380 V · L2" (mono entre fases) o "3F 380 V" (trifásica).
+ * La utilización (C10/C13) va como línea SECUNDARIA: más chica y
+ * gris, sin ensuciar la nominal.
  */
-function anotacionCarga(a: Record<string, unknown>): string[] {
-  const l: string[] = [];
-  if (a.codigo_circuito) l.push(String(a.codigo_circuito));
-  if (a.tipo_carga) l.push(String(a.tipo_carga));
+function anotacionCarga(a: Record<string, unknown>): LineaAnotacion[] {
+  const l: LineaAnotacion[] = [];
+  if (a.codigo_circuito) l.push({ texto: String(a.codigo_circuito) });
+  if (a.tipo_carga) l.push({ texto: String(a.tipo_carga) });
   if (a.alimentacion) {
     const tri = a.alimentacion === "trifasica";
     const v = tri || a.lleva_neutro === false ? "380 V" : "220 V";
     const linea = !tri && typeof a.linea_asignada === "string" ? ` · ${a.linea_asignada}` : "";
-    l.push(`${tri ? "3F" : "1F"} ${v}${linea}`);
+    l.push({ texto: `${tri ? "3F" : "1F"} ${v}${linea}` });
   }
-  if (n(a.potencia_va)) l.push(`${n(a.potencia_va)} VA`);
-  if (n(a.corriente_a)) l.push(`${n(a.corriente_a)} A`);
+  if (n(a.potencia_va)) l.push({ texto: `${n(a.potencia_va)} VA` });
+  if (n(a.corriente_a)) l.push({ texto: `${n(a.corriente_a)} A` });
   // Utilización como dato SECUNDARIO: solo si Ku cargado y < 1
   // (con Ku=1 la utilización iguala a la nominal y no aporta nada).
   if (
@@ -137,22 +139,31 @@ function anotacionCarga(a: Record<string, unknown>): string[] {
     a.ku < 1 &&
     n(a.potencia_utilizacion_va)
   ) {
-    l.push(
-      `Ku=${String(a.ku).replace(".", ",")} → ${n(a.potencia_utilizacion_va)} VA útil.`,
-    );
+    l.push({
+      texto: `útil ≈ ${n(a.potencia_utilizacion_va)} VA · Ku ${String(a.ku).replace(".", ",")}`,
+      secundaria: true,
+    });
   }
-  if (a.descripcion) l.push(capitalizar(a.descripcion));
+  if (a.descripcion) l.push({ texto: capitalizar(a.descripcion) });
   return l;
+}
+
+/** Línea de anotación bajo un símbolo. Las secundarias se dibujan un
+ * paso más chicas y claras (jerarquía de plano, C13). */
+export interface LineaAnotacion {
+  texto: string;
+  secundaria?: boolean;
 }
 
 /** Líneas de anotación bajo un símbolo, como en los planos reales */
 export function anotacionNodo(
   familia: FamiliaAtributos,
   data: DatosSimbolo,
-): string[] {
+): LineaAnotacion[] {
   const a = (data.atributos ?? {}) as Record<string, unknown>;
-  if (familia === "aparato") return anotacionAparato(a);
-  if (familia === "barra") return anotacionBarra(a);
+  const planas = (ss: string[]): LineaAnotacion[] => ss.map((t) => ({ texto: t }));
+  if (familia === "aparato") return planas(anotacionAparato(a));
+  if (familia === "barra") return planas(anotacionBarra(a));
   if (familia === "carga") return anotacionCarga(a);
   return [];
 }

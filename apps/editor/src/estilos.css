@@ -788,13 +788,13 @@ body.arrastrando .paleta-item {
 .alim-col {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  /* C13: todo alineado por la IZQUIERDA (Desde / caja / mazo) y la
+   * columna crece con el contenido: el borde punteado del nodo la
+   * abraza siempre. El handle viaja con el svg → nada se desafina. */
+  align-items: flex-start;
   gap: 2px;
-  /* C12: ancho FIJO de nuevo. El texto largo (origen larguísimo o
-   * especificación de varias secciones) crece hacia la izquierda
-   * FUERA del flujo — nunca empuja el cable ni desafina la punta. */
-  width: 58px;
-  position: relative;
+  width: auto;
+  min-width: 58px;
   padding-top: 6px;
 }
 
@@ -803,8 +803,9 @@ body.arrastrando .paleta-item {
   font-size: 13px;
   font-weight: 700;
   color: #111827;
-  text-align: right;
+  text-align: left;
   line-height: 1.2;
+  user-select: none;
 }
 
 .alim-origen {
@@ -814,8 +815,7 @@ body.arrastrando .paleta-item {
   font-size: 13px;
   font-weight: 700;
   color: #111827;
-  width: 100%;
-  text-align: right;
+  text-align: left;
   outline: none;
 }
 
@@ -824,19 +824,22 @@ body.arrastrando .paleta-item {
   font-weight: 400;
 }
 
-/* Notación del mazo: UNA sola línea, anclada al borde derecho de la
-   columna y creciendo hacia la IZQUIERDA (position:absolute → no
-   participa del layout: jamás corre la simbología de la acometida). */
+/* Contenedor del cable: el punto de conexión vive acá adentro (C13) */
+.alim-cable {
+  position: relative;
+}
+
+/* Notación del mazo: UNA sola línea bajo el origen. Decorativa:
+ * no seleccionable ni clickeable (no roba el arrastre). */
 .alim-nota {
-  position: absolute;
-  top: calc(100% + 1px);
-  right: 0;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
   color: #71717a;
   line-height: 1.35;
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
 }
 
 .nodo-alimentador .react-flow__handle {
@@ -859,6 +862,46 @@ body.arrastrando .paleta-item {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
+}
+
+/* C13: chips seleccionables que se ILUMINAN (línea asignada, neutro) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.chip.on {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+  font-weight: 600;
+}
+
+.chip.on:hover {
+  background: #1e40af;
+}
+
+.chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .form-atributos-aviso {
@@ -978,6 +1021,24 @@ body.arrastrando .paleta-item {
   white-space: nowrap;
   color: #71717a;
   pointer-events: none;
+}
+
+/* C13: línea SECUNDARIA de la ficha (utilización, etc.): un paso
+   más chica y más clara — jerarquía visual sin trucos de texto */
+.anotacion-nodo .anotacion-sec {
+  font-size: 8px;
+  color: #9ca3af;
+  margin-top: -1px;
+}
+
+/* C13: los textos del plano son DECORATIVOS — arrastrar por encima
+ * no debe seleccionarlos nunca (molestia reportada con el
+ * alimentador). Los inputs siguen siendo seleccionables. */
+.anotacion-nodo,
+.anotacion-edge,
+.nodo-barra,
+.paleta-item {
+  user-select: none;
 }
 
 /* La CARGA (flecha de destino de circuito) lleva el bloque DEBAJO,

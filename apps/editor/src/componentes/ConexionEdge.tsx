@@ -7,7 +7,6 @@ import {
 } from "@xyflow/react";
 import { rutaOrtogonal } from "../lib/ruta";
 import { lineasMazo } from "../lib/anotaciones";
-import type { DatosBarra } from "../lib/store";
 
 /** Marcas de conductor según IEC 60617: trazos oblicuos a ~45°, juntos */
 const SEP_TICKS = 8;
@@ -108,8 +107,6 @@ function ubicarEnTrayectoria(
 
 export default function ConexionEdge({
   id,
-  source,
-  target,
   targetX,
   targetY,
   sourceX,
@@ -141,33 +138,18 @@ export default function ConexionEdge({
         ? Position.Left
         : Position.Right;
   };
-  /* En las barras además el extremo del cable se RECORRE a la
-   * superficie visible del eje (≈3 px hacia el otro extremo): el
-   * conductor SIEMPRE remata sobre la barra, sin cruzarla. */
-  const nodos = useStore((s) => s.nodes);
-  const MITAD_EJE = 3;
-  const sobreSuperficie = (
-    nodeId: string | null | undefined,
-    propio: { x: number; y: number },
-    otro: { x: number; y: number },
-  ): { x: number; y: number } => {
-    const n = nodos.find((x) => x.id === nodeId);
-    if (!n || n.type !== "barra") return propio;
-    const rot = ((((n.data as DatosBarra).rotacion ?? 0) % 180) + 180) % 180;
-    return rot !== 0
-      ? { x: propio.x + (otro.x <= propio.x ? -MITAD_EJE : MITAD_EJE), y: propio.y }
-      : { x: propio.x, y: propio.y + (otro.y <= propio.y ? -MITAD_EJE : MITAD_EJE) };
-  };
-
-  const ini = sobreSuperficie(source, { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
-  const fin = sobreSuperficie(target, { x: targetX, y: targetY }, { x: sourceX, y: sourceY });
-
+  /* C13: el extremo del cable termina EXACTAMENTE sobre el centro del
+   * eje de la barra (banda oscura de 5 px): aunque el navegador tarde
+   * un tick en medir el handle durante el arrastre, el conductor
+   * SIEMPRE se ve unido. El recorte de ±3 px a la superficie visible
+   * quedó descartado: con elementos cruzados de lado dejaba un hueco
+   * apreciable entre el cable y la barra. */
   const d = rutaOrtogonal(
-    ini.x,
-    ini.y,
+    sourceX,
+    sourceY,
     String(dirEfectiva({ x: sourceX, y: sourceY }, { x: targetX, y: targetY }, sourcePosition)),
-    fin.x,
-    fin.y,
+    targetX,
+    targetY,
     String(dirEfectiva({ x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition)),
   );
   const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};

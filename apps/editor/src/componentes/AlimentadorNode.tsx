@@ -6,21 +6,16 @@ import { lineasMazo } from "../lib/anotaciones";
 const SEP = 8;
 const LARGO = 15;
 const ALTO_LINEA = 88;
-
-/* Posición EXACTA de la punta del cable dentro del nodo:
-   borde(1) + padding(2) + etiqueta(58) + gap(4) + centro del svg(15)
-   = 80 → MÚLTIPLO DE LA GRILLA: alineado con los símbolos, la
-   conexión vertical sale recta sin desvíos. */
-const CABLE_X = 80;
-/* borde(1) + padding(2) + largo de la línea (88) */
-const PUNTA_Y = 91;
+/* La línea visible termina en ALTO_LINEA - 4 dentro del svg: el punto
+ * de conexión va JUSTO ahí (C13: antes quedaba 4 px más abajo, con un
+ * hueco invisible entre la punta dibujada y el cable). */
 
 /**
  * Alimentación = CONDUCTOR VINIENTE desde el tablero, en VERTICAL.
  * Caja mínima: etiqueta «Desde …» con la notación debajo, y el cable a
  * la derecha con sus marcas normadas (neutro = círculo, tierra =
- * corte). El punto de conexión está EXACTAMENTE en la punta inferior
- * del cable.
+ * corte). El punto de conexión vive DENTRO del contenedor del cable:
+ * aunque los textos crezcan, punta y handle se mueven JUNTOS.
  */
 function AlimentadorNode({
   id,
@@ -53,63 +48,59 @@ function AlimentadorNode({
           placeholder="TGBT"
           onChange={(e) => actualizar(id, { origen: e.target.value })}
           title="Procedencia de la alimentación"
-          /* C12: la caja crece hacia la IZQUIERDA (margen negativo que
-           * compensa el ancho extra) — el layout no se mueve y el
-           * cable queda SIEMPRE unido a su punta. */
-          style={{
-            width: `${Math.max(6, data.origen.length + 1)}ch`,
-            marginLeft: `${Math.min(0, 6 - Math.max(6, data.origen.length + 1))}ch`,
-          }}
+          style={{ width: `${Math.max(6, data.origen.length + 1)}ch` }}
         />
-        {/* C11/C12: especificación del mazo en UNA sola línea; es
-         * absoluto respecto de la columna → puede crecer hacia la
-         * izquierda lo que quiera SIN empujar la simbología. */}
+        {/* Especificación del mazo en UNA sola línea, sin cortes */}
         {nota.length > 0 && <div className="alim-nota">{nota.join(" · ")}</div>}
       </div>
-      <svg className="alim-linea" width={30} height={ALTO_LINEA}>
-        <line
-          x1={15}
-          y1={0}
-          x2={15}
-          y2={ALTO_LINEA - 4}
-          stroke="#1e293b"
-          strokeWidth={1.5}
+      {/* C13: el handle vive DENTRO de este contenedor → viaja pegado
+       * al cable aunque la columna de textos crezca. Nada se desafina
+       * jamás. */}
+      <div className="alim-cable">
+        <svg className="alim-linea" width={30} height={ALTO_LINEA}>
+          <line
+            x1={15}
+            y1={0}
+            x2={15}
+            y2={ALTO_LINEA - 4}
+            stroke="#1e293b"
+            strokeWidth={1.5}
+          />
+          {total > 0 &&
+            Array.from({ length: total }, (_, i) => {
+              const cy = ALTO_LINEA / 2 + (i - (total - 1) / 2) * SEP;
+              const bx = 15 + wx * h;
+              const by = cy + wy * h;
+              return (
+                <g key={i} stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
+                  <line x1={15 - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
+                  {neutro && i === fases && (
+                    <circle cx={bx} cy={by} r={2.6} fill="#fdfdfd" />
+                  )}
+                  {tierra && i === fases + (neutro ? 1 : 0) && (
+                    <line
+                      x1={bx - wy * 3}
+                      y1={by + wx * 3}
+                      x2={bx + wy * 3}
+                      y2={by - wx * 3}
+                    />
+                  )}
+                </g>
+              );
+            })}
+        </svg>
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="salida"
+          style={{
+            left: "50%",
+            top: ALTO_LINEA - 4,
+            bottom: "auto",
+            transform: "translate(-50%, -50%)",
+          }}
         />
-        {total > 0 &&
-          Array.from({ length: total }, (_, i) => {
-            const cy = ALTO_LINEA / 2 + (i - (total - 1) / 2) * SEP;
-            const bx = 15 + wx * h;
-            const by = cy + wy * h;
-            return (
-              <g key={i} stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
-                <line x1={15 - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
-                {neutro && i === fases && (
-                  <circle cx={bx} cy={by} r={2.6} fill="#fdfdfd" />
-                )}
-                {tierra && i === fases + (neutro ? 1 : 0) && (
-                  <line
-                    x1={bx - wy * 3}
-                    y1={by + wx * 3}
-                    x2={bx + wy * 3}
-                    y2={by - wx * 3}
-                  />
-                )}
-              </g>
-            );
-          })}
-      </svg>
-      {/* El punto de conexión va JUSTO en la punta inferior del cable */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="salida"
-        style={{
-          left: CABLE_X,
-          top: PUNTA_Y,
-          bottom: "auto",
-          transform: "translate(-50%, -50%)",
-        }}
-      />
+      </div>
     </div>
   );
 }

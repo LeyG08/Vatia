@@ -131,7 +131,9 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
           className={`anotacion-nodo${esCarga ? " anotacion-carga" : ""}`}
         >
           {lineas.map((l, i) => (
-            <div key={i}>{l}</div>
+            <div key={i} className={l.secundaria ? "anotacion-sec" : undefined}>
+              {l.texto}
+            </div>
           ))}
         </div>
       )}

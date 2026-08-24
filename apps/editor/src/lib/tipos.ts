@@ -263,7 +263,9 @@ export function HOJA_POR_DEFECTO(): HojaConfig {
   return {
     formato: "A3",
     orientacion: "horizontal",
-    tablero: "TGBT",
+    // C13: sin nombre predeterminado — el usuario escribe el suyo
+    // (el placeholder solo sugiere, no guarda dato).
+    tablero: "",
     notasGabinete: NOTAS_GABINETE_POR_DEFECTO(),
     notaSeguridad: "",
     rotulo: ROTULO_POR_DEFECTO(),

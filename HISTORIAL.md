@@ -1001,6 +1001,36 @@ barras para hacer la distribución". Rediseño completo de S00119:
   es position:absolute anclada al borde derecho — una sola línea que
   se extiende afuera sin empujar JAMÁS la simbología.
 
+**C13 — Ficha de carga más clara, alimentador arrastrable y cable que
+nunca se ve desunido:**
+- Pedidos del usuario (cinco puntos):
+  1. Línea asignada y neutro de la CARGA como CHIPS que se ILUMINAN
+     (L1/L2/L3 con click = deseleccionar; «con neutro» / «sin
+     neutro»). En trifásica los chips de línea quedan apagados.
+  2. Utilización (Ku) como LÍNEA SECUNDARIA de la ficha: más chica y
+     gris («útil ≈ 5500 VA · Ku 0,5») debajo de la nominal, en vez
+     del texto crudo anterior. Sistema nuevo de líneas con
+     jerarquía (LineaAnotacion) reutilizable.
+  3. Sin nombre predeterminado de tablero: HOJA_POR_DEFECTO queda
+     con tablero vacío (el placeholder solo sugiere).
+  4. El ALIMENTADOR ahora se ARRASTRA desde la paleta igual que los
+     símbolos (mantener presionado → soltar en el plano; el click
+     simple sigue agregándolo donde siempre). Respeta las zonas
+     reservadas del rótulo/notas al soltarlo.
+  5. Alimentador: textos alineados por la IZQUIERDA (Desde / caja /
+     mazo), columna que abraza el contenido, y TODO texto decorativo
+     NO seleccionable (adiós selecciones accidentales al arrastrar).
+- Cable-barra SEPARADO (reporte persistente): el recorte de ±3 px a
+  la superficie del eje dejaba hueco visible al cruzar un elemento
+  de lado → DESCARTADO. Ahora todo extremo termina EXACTAMENTE sobre
+  el centro del eje oscuro (5 px): imposible que se lea desunido,
+  incluso mientras el navegador mide tarde el handle durante el
+  arrastre. La reorientación por geometría de C12 sigue igual.
+- BONUS: la punta del alimentador tenía un hueco oculto de 4 px entre
+  la línea dibujada y el punto real de conexión (el handle estaba en
+  el borde del svg, no en la punta). Ahora el handle vive DENTRO del
+  contenedor del cable y viaja pegado a él aunque crezcan los textos.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1017,7 +1047,7 @@ barras para hacer la distribución". Rediseño completo de S00119:
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C12 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C13 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1047,6 +1077,11 @@ barras para hacer la distribución". Rediseño completo de S00119:
     cruzar un elemento de lado (adiós "S" contra la barra);
     alimentador con columna fija y textos creciendo hacia afuera sin
     desafinar la simbología.
+  · C13: chips iluminados (línea/neutro) en la ficha de carga;
+    utilización como línea secundaria gris; sin tablero
+    predeterminado; alimentador arrastrable desde la paleta; textos
+    alineados a la izquierda y no seleccionables; extremos del cable
+    rematando sobre el centro del eje (nunca se ven desunidos).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

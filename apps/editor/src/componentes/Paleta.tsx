@@ -34,11 +34,15 @@ function Paleta({
 
       <div className="paleta-grupo">
         <h3>Alimentación</h3>
+        {/* C13: igual que los símbolos — mantener presionado y
+         * arrastrar al plano. El click simple sigue agregando en el
+         * lugar de siempre. */}
         <button
           type="button"
           className="paleta-item paleta-alim"
+          onMouseDown={(e) => onIniciarArrastre("@alimentador", e)}
           onClick={() => agregarAlimentador()}
-          title="Agrega un conductor viniente desde el tablero"
+          title="Arrastrá al plano (o click para agregar) — conductor viniente desde el tablero"
         >
           <span className="paleta-nombre">+ Alimentador «Desde …»</span>
         </button>

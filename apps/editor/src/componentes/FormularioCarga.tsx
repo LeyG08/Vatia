@@ -138,35 +138,53 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
         {seleccion("alimentacion", ["monofasica", "trifasica"])}
       </label>
 
-      <label className="campo-atributo" title={esTrifasica ? "En trifásica no aplica" : "Línea del tablero para equilibrar fases"}>
+      {/* C13: línea asignada como CHIPS que se iluminan (L1/L2/L3).
+       * En trifásica quedan apagados: no aplica. Click de nuevo =
+       * deseleccionar. */}
+      <div className="campo-atributo" title={esTrifasica ? "En trifásica no aplica" : "Línea del tablero para equilibrar fases"}>
         <span>Línea asignada</span>
-        {seleccion("linea_asignada", LINEAS, esTrifasica)}
-      </label>
+        <div className="chips" role="group" aria-label="Línea asignada">
+          {LINEAS.map((ln) => (
+            <button
+              key={ln}
+              type="button"
+              disabled={esTrifasica}
+              className={`chip${atributos.linea_asignada === ln ? " on" : ""}`}
+              onClick={() =>
+                actualizar(
+                  "linea_asignada",
+                  atributos.linea_asignada === ln ? undefined : ln,
+                )
+              }
+            >
+              {ln}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <label className="campo-atributo" title="Sin neutro la carga queda entre fases (380 V)">
+      {/* C13: neutro como par de chips iluminados (obligatorio) */}
+      <div className="campo-atributo" title="Sin neutro la carga queda entre fases (380 V)">
         <span>
           Neutro<em className="obligatorio">*</em>
         </span>
-        <select
-          value={
-            atributos.lleva_neutro === true
-              ? "si"
-              : atributos.lleva_neutro === false
-                ? "no"
-                : ""
-          }
-          onChange={(e) =>
-            actualizar(
-              "lleva_neutro",
-              e.target.value === "" ? undefined : e.target.value === "si",
-            )
-          }
-        >
-          <option value="">—</option>
-          <option value="si">sí</option>
-          <option value="no">no</option>
-        </select>
-      </label>
+        <div className="chips" role="group" aria-label="Neutro">
+          <button
+            type="button"
+            className={`chip${atributos.lleva_neutro === true ? " on" : ""}`}
+            onClick={() => actualizar("lleva_neutro", true)}
+          >
+            con neutro
+          </button>
+          <button
+            type="button"
+            className={`chip${atributos.lleva_neutro === false ? " on" : ""}`}
+            onClick={() => actualizar("lleva_neutro", false)}
+          >
+            sin neutro
+          </button>
+        </div>
+      </div>
 
       <label className="campo-atributo" title="Con la corriente se calcula la potencia automáticamente">
         <span>Corriente (A)</span>
