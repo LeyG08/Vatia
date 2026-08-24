@@ -11,6 +11,7 @@ import {
 } from "@xyflow/react";
 import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
+import { GRILLA_PX } from "./ruta";
 import {
   ALIMENTADOR_POR_DEFECTO,
   HOJA_POR_DEFECTO,
@@ -196,11 +197,50 @@ function atributosAlimentador(
   return a;
 }
 
-export type NodoData = DatosSimbolo | DatosAlimentador;
+export type NodoData = DatosSimbolo | DatosAlimentador | DatosBarra;
+
+/**
+ * BARRA de distribución (C8): la acometida llega a ella y de ella
+ * cuelgan los circuitos. Es un nodo PROPIO (no el símbolo genérico)
+ * porque su largo es estirable y sus puntos de conexión se generan
+ * a lo largo de toda la barra, cada 10 px, arriba y abajo.
+ */
+export interface DatosBarra extends Record<string, unknown> {
+  tipo: "barra";
+  codigo_iec: string; // "S00119" — fija la familia de atributos
+  rotacion: number; // 0 = horizontal; 90 = vertical (conexión entre barras)
+  /** Largo útil entre extremos, en px. Múltiplo de la grilla. */
+  largoPx: number;
+  /** Ficha de la barra: dimensiones/material/norma/corriente */
+  atributos: Record<string, unknown>;
+}
+
+/** Código IEC reservado para las barras de distribución */
+export const BARRA_CODIGO = "S00119";
+
+/** Largo por defecto = geometría del símbolo original (compatibilidad) */
+export const LARGO_BARRA_DEFECTO_PX = 100;
+
+/** Geometría local del nodo barra (px, sin rotar) */
+export const BARRA_GEO = {
+  /** Margen antes del primer extremo (donde van los handles "in"/"out") */
+  padX: 10,
+  /** Alto de la caja del nodo (la línea vive en el centro) */
+  altoCaja: 40,
+  /** Coordenada Y del eje de la barra dentro de la caja */
+  centroY: 20,
+};
 
 function esDatosAlimentador(d: NodoData): d is DatosAlimentador {
   return d.tipo === "alimentador";
 }
+
+function esDatosBarra(d: NodoData): d is DatosBarra {
+  return d.tipo === "barra";
+}
+
+/** Snapshot por nodo durante el drag de estiramiento de barras (C8) */
+const snapshotsEstiro = new Map<string, NodoData>();
 
 /* ==================== Conversiones RF ↔ proyecto ==================== */
 
@@ -214,19 +254,29 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
       id: n.id,
       tipo: "alimentador" as const,
       posicion,
-        datos: {
-          origen: n.data.origen,
-          fases: n.data.fases,
-          neutro: n.data.neutro,
-          tierra: n.data.tierra,
-          cantidadN: n.data.cantidadN,
-          // El mazo REAL (editado en el panel) manda; el sembrado por
-          // flags es solo red de seguridad si quedó vacío
-          atributos:
-            n.data.atributos && Object.keys(n.data.atributos).length > 0
-              ? { ...n.data.atributos }
-              : atributosAlimentador(n.data),
-        },
+      datos: {
+        origen: n.data.origen,
+        fases: n.data.fases,
+        neutro: n.data.neutro,
+        tierra: n.data.tierra,
+        cantidadN: n.data.cantidadN,
+        // El mazo REAL (editado en el panel) manda; el sembrado por
+        // flags es solo red de seguridad si quedó vacío
+        atributos:
+          n.data.atributos && Object.keys(n.data.atributos).length > 0
+            ? { ...n.data.atributos }
+            : atributosAlimentador(n.data),
+      },
+    };
+  }
+  if (esDatosBarra(n.data)) {
+    return {
+      id: n.id,
+      tipo: "barra" as const,
+      posicion,
+      rotacion: n.data.rotacion,
+      datos: { largoPx: n.data.largoPx },
+      atributos: { ...n.data.atributos },
     };
   }
   return {
@@ -307,6 +357,32 @@ function construirEstadoHoja(hojaSer: Hoja): {
       problemas.push(
         `[${etiqueta}] nodo ${n.id}: código ${n.codigo_iec} no existe en la librería — se omite`,
       );
+      continue;
+    }
+    // BARRA (C8): los proyectos viejos traían S00119 como símbolo
+    // genérico; migra a nodo barra preservando la geometría exacta
+    // de sus extremos (pad 10 px, centro y=20, largo 100 por defecto)
+    if (n.tipo === "barra" || n.codigo_iec === BARRA_CODIGO) {
+      nodos.push({
+        id: n.id,
+        type: "barra",
+        position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
+        data: {
+          tipo: "barra",
+          codigo_iec: BARRA_CODIGO,
+          rotacion: (((n.rotacion ?? 0) % 360) + 360) % 360,
+          largoPx:
+            typeof n.datos?.largoPx === "number" &&
+            Number.isFinite(n.datos.largoPx) &&
+            n.datos.largoPx >= 40
+              ? Math.round(n.datos.largoPx / GRILLA_PX) * GRILLA_PX
+              : LARGO_BARRA_DEFECTO_PX,
+          atributos: {
+            ...simbolo.metadata.atributos_base,
+            ...(n.atributos ?? {}),
+          },
+        },
+      });
       continue;
     }
     nodos.push({
@@ -401,6 +477,21 @@ interface EstadoEditor {
   actualizarDatosAlimentador: (
     id: string,
     patch: Partial<Omit<DatosAlimentador, "tipo">>,
+  ) => void;
+  /** Ficha/largo de la barra (C8) */
+  actualizarDatosBarra: (
+    id: string,
+    patch: Partial<Omit<DatosBarra, "tipo">>,
+  ) => void;
+  /**
+   * Estiramiento de la barra con drag. "inicio"/"moviendo" aplican el
+   * cambio en vivo SIN historial; "fin" consolida un único paso de
+   * undo/redo con el estado previo al gesto.
+   */
+  estirarBarra: (
+    id: string,
+    largoPx: number,
+    fase: "inicio" | "moviendo" | "fin",
   ) => void;
   /** Reemplaza la ficha técnica completa de un símbolo (C4) */
   actualizarAtributosNodo: (
@@ -498,9 +589,19 @@ export function tamanoWrapperPx(
 export const TAMANO_ALIMENTADOR_PX = { ancho: 100, alto: 92 };
 
 export function tamanoNodoPx(data: NodoData): { ancho: number; alto: number } {
-  return esDatosAlimentador(data)
-    ? { ...TAMANO_ALIMENTADOR_PX }
-    : tamanoWrapperPx(data.codigo_iec, data.rotacion);
+  if (esDatosAlimentador(data)) return { ...TAMANO_ALIMENTADOR_PX };
+  if (esDatosBarra(data)) {
+    // Caja local: largo + márgenes de extremos × alto fijo.
+    // Con giro de 90°/270° la caja queda vertical (dimensiones swaps).
+    const anchoLocal = data.largoPx + 2 * BARRA_GEO.padX;
+    const giro = ((((data.rotacion % 360) + 360) % 360) / 90) | 0;
+    const vertical = giro % 2 === 1;
+    return {
+      ancho: vertical ? BARRA_GEO.altoCaja : anchoLocal,
+      alto: vertical ? anchoLocal : BARRA_GEO.altoCaja,
+    };
+  }
+  return tamanoWrapperPx(data.codigo_iec, data.rotacion);
 }
 
 /** Proyecto vacío inicial con una sola hoja */
@@ -626,6 +727,31 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
       if (!simbolo) return;
+      // La barra de distribución es un nodo propio (C8): estirable,
+      // con puntos de conexión a lo largo de toda su extensión
+      if (codigoIec === BARRA_CODIGO) {
+        const data: DatosBarra = {
+          tipo: "barra",
+          codigo_iec: BARRA_CODIGO,
+          rotacion: 0,
+          largoPx: LARGO_BARRA_DEFECTO_PX,
+          atributos: { ...simbolo.metadata.atributos_base },
+        };
+        const pos = limitarAHoja(x, y, data);
+        const nodo: Node<NodoData> = {
+          id: nuevoId(get().nodos, "n"),
+          type: "barra",
+          position: pos,
+          data,
+          selected: true,
+        };
+        ejecutar({
+          descripcion: "agregar barra",
+          do: () => set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), nodo] })),
+          undo: () => set((s) => ({ nodos: s.nodos.filter((n) => n.id !== nodo.id) })),
+        });
+        return;
+      }
       const data: DatosSimbolo = {
         tipo: "simbolo",
         codigo_iec: codigoIec,
@@ -693,6 +819,85 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           set((s) => ({
             nodos: s.nodos.map((n) =>
               n.id === id ? { ...n, data: snapshot.data } : n,
+            ),
+          })),
+      });
+    },
+
+    actualizarDatosBarra(id, patch) {
+      const snapshot = get().nodos.find((n) => n.id === id);
+      if (!snapshot || !esDatosBarra(snapshot.data)) return;
+      ejecutar({
+        descripcion: `editar barra ${id}`,
+        do: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && esDatosBarra(n.data)
+                ? { ...n, data: { ...n.data, ...patch } }
+                : n,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id ? { ...n, data: snapshot.data } : n,
+            ),
+          })),
+      });
+    },
+
+    estirarBarra(id, largoPx, fase) {
+      const normalizar = (v: number): number =>
+        Math.min(
+          2000,
+          Math.max(40, Math.round(v / GRILLA_PX) * GRILLA_PX),
+        );
+      if (fase === "inicio") {
+        const nodo = get().nodos.find((n) => n.id === id);
+        if (!nodo || !esDatosBarra(nodo.data)) return;
+        snapshotsEstiro.set(id, nodo.data);
+        set((s) => ({
+          nodos: s.nodos.map((n) =>
+            n.id === id && esDatosBarra(n.data)
+              ? { ...n, data: { ...n.data, largoPx: normalizar(largoPx) } }
+              : n,
+          ),
+        }));
+        return;
+      }
+      if (fase === "moviendo") {
+        set((s) => ({
+          nodos: s.nodos.map((n) =>
+            n.id === id && esDatosBarra(n.data)
+              ? { ...n, data: { ...n.data, largoPx: normalizar(largoPx) } }
+              : n,
+          ),
+        }));
+        return;
+      }
+      // fin: un solo paso de historial con el estado previo al gesto
+      const antes = snapshotsEstiro.get(id);
+      snapshotsEstiro.delete(id);
+      if (!antes) return;
+      const nodoFinal = get().nodos.find((n) => n.id === id);
+      const valorFinal =
+        nodoFinal && esDatosBarra(nodoFinal.data)
+          ? nodoFinal.data.largoPx
+          : largoPx;
+      ejecutar({
+        descripcion: `estirar barra ${id}`,
+        do: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && esDatosBarra(n.data)
+                ? { ...n, data: { ...n.data, largoPx: valorFinal } }
+                : n,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id ? { ...n, data: antes } : n,
             ),
           })),
       });

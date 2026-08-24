@@ -16,6 +16,7 @@ import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
 import NodoSimbolo from "./componentes/NodoSimbolo";
 import AlimentadorNode from "./componentes/AlimentadorNode";
+import BarraNode from "./componentes/BarraNode";
 import HojaNode from "./componentes/HojaNode";
 import ConexionEdge from "./componentes/ConexionEdge";
 import { ESCALA, useEditor, tamanoNodoPx, type NodoData } from "./lib/store";
@@ -25,6 +26,7 @@ import { dimensionesHoja, rectanguloUtil } from "./lib/tipos";
 const nodeTypes = {
   simbolo: NodoSimbolo,
   alimentador: AlimentadorNode,
+  barra: BarraNode,
   hoja: HojaNode,
 } as const;
 const edgeTypes = { conexion: ConexionEdge } as const;

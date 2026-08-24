@@ -44,11 +44,15 @@ export interface NodoProyecto {
   id: string;
   posicion: { x: number; y: number };
   /** "simbolo" por defecto, para compatibilidad con proyectos viejos */
-  tipo?: "simbolo" | "alimentador";
+  tipo?: "simbolo" | "alimentador" | "barra";
   codigo_iec?: string;
   rotacion?: number;
-  /** Datos propios cuando tipo = "alimentador" */
-  datos?: Partial<AlimentadorConfig>;
+  /**
+   * Datos propios según el tipo:
+   * - alimentador → AlimentadorConfig (origen, fases…)
+   * - barra → { largoPx } (la barra estirable de distribución, C8)
+   */
+  datos?: Partial<AlimentadorConfig> & { largoPx?: number };
   atributos?: Record<string, unknown>;
 }
 

@@ -979,6 +979,61 @@ body.arrastrando .paleta-item {
   text-align: center;
 }
 
+/* ==================== BARRA de distribución (C8) ====================
+   Nodo propio estirable: eje grueso + puntos de conexión cada grilla
+   a lo largo + ficha arriba-izquierda. Los handles son discretos y
+   aparecen al acercar el mouse. */
+.nodo-barra {
+  position: relative;
+}
+
+.nodo-barra.sel .barra-eje {
+  background: #1d4ed8;
+}
+
+.barra-eje {
+  position: absolute;
+  top: 50%;
+  height: 5px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: #111827;
+  pointer-events: none;
+}
+
+.handle-barra {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.nodo-barra:hover .handle-barra,
+.nodo-barra.sel .handle-barra {
+  opacity: 1;
+}
+
+.barra-grip {
+  position: absolute;
+  width: 7px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background: rgba(37, 99, 235, 0.35);
+  cursor: ew-resize;
+}
+
+.barra-grip:hover {
+  background: #2563eb;
+}
+
+/* Ficha de la barra: extremo IZQUIERDO, por ENCIMA */
+.anotacion-nodo.anotacion-barra {
+  top: auto;
+  bottom: calc(100% + 2px);
+  left: 2px;
+  transform: none;
+  text-align: left;
+}
+
 /* Texto del mazo sobre la conexión, sin marco para no invadir.
    Si la línea es muy larga, quiebra hacia abajo (max-width). */
 .anotacion-edge {

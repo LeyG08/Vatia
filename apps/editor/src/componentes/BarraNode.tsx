@@ -1,0 +1,200 @@
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import { useCallback, useRef } from "react";
+import {
+  BARRA_GEO,
+  useEditor,
+  type DatosBarra,
+} from "../lib/store";
+import { GRILLA_PX } from "../lib/ruta";
+import { anotacionBarra } from "../lib/anotaciones";
+
+const DIRECCIONES = [
+  Position.Top,
+  Position.Right,
+  Position.Bottom,
+  Position.Left,
+] as const;
+
+/** Estilo común de los puntos de conexión de la barra */
+const ESTILO_HANDLE = {
+  width: 9,
+  height: 9,
+  border: "1.5px solid rgba(37, 99, 235, 0.55)",
+  borderRadius: "50%",
+  background: "transparent",
+  pointerEvents: "all" as const,
+  transform: "translate(-50%, -50%)",
+};
+
+/**
+ * BARRA de distribución (C8). La acometida llega a ella y de ella
+ * cuelgan los circuitos: los puntos de conexión se generan cada
+ * GRILLA_PX a lo largo del eje (dos por punto, uno por lado), más
+ * los extremos "in"/"out" heredados del símbolo original.
+ *
+ * El extremo derecho tiene un tirador para ESTIRAR la barra (snap a
+ * grilla); con rotación 90° la barra queda vertical y el drag se
+ * mapea al eje local según el giro. La ficha va en el extremo
+ * izquierdo, POR ENCIMA de la barra, como en los planos reales.
+ */
+function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
+  const estirar = useEditor((s) => s.estirarBarra);
+  const refDrag = useRef<{ x0: number; y0: number; largo0: number } | null>(
+    null,
+  );
+
+  const { largoPx, rotacion } = data;
+  const giro = ((((rotacion % 360) + 360) % 360) / 90) | 0;
+  const anchoLocal = largoPx + 2 * BARRA_GEO.padX;
+  const altoLocal = BARRA_GEO.altoCaja;
+  const vertical = giro % 2 === 1;
+  const cajaAncho = vertical ? altoLocal : anchoLocal;
+  const cajaAlto = vertical ? anchoLocal : altoLocal;
+
+  /** Punto local (sin rotar) → coordenadas % dentro de la caja girada */
+  function proyectar(px: number, py: number) {
+    let rx = px;
+    let ry = py;
+    if (giro === 1) {
+      rx = altoLocal - py;
+      ry = px;
+    } else if (giro === 2) {
+      rx = anchoLocal - px;
+      ry = altoLocal - py;
+    } else if (giro === 3) {
+      rx = py;
+      ry = anchoLocal - px;
+    }
+    return {
+      left: `${(rx / cajaAncho) * 100}%`,
+      top: `${(ry / cajaAlto) * 100}%`,
+    };
+  }
+
+  /** Dirección base desplazada por el giro */
+  function direccion(base: number) {
+    return DIRECCIONES[(base + giro) % 4];
+  }
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.stopPropagation();
+      e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      refDrag.current = { x0: e.clientX, y0: e.clientY, largo0: largoPx };
+      estirar(id, largoPx, "inicio");
+    },
+    [id, largoPx, estirar],
+  );
+
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = refDrag.current;
+      if (!d) return;
+      // Delta de pantalla → delta sobre el eje LOCAL de la barra
+      const dx = e.clientX - d.x0;
+      const dy = e.clientY - d.y0;
+      const deltaLocal =
+        giro === 0 ? dx : giro === 1 ? dy : giro === 2 ? -dx : -dy;
+      estirar(id, d.largo0 + deltaLocal, "moviendo");
+    },
+    [id, giro, estirar],
+  );
+
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = refDrag.current;
+      if (!d) return;
+      const dx = e.clientX - d.x0;
+      const dy = e.clientY - d.y0;
+      const deltaLocal =
+        giro === 0 ? dx : giro === 1 ? dy : giro === 2 ? -dx : -dy;
+      refDrag.current = null;
+      const final =
+        Math.round((d.largo0 + deltaLocal) / GRILLA_PX) * GRILLA_PX;
+      estirar(id, final, "fin");
+    },
+    [id, giro, estirar],
+  );
+
+  // Puntos de conexión cada grilla a lo largo del eje local
+  const cantidad = largoPx / GRILLA_PX; // pasos de 10 px
+  const offsets = Array.from(
+    { length: cantidad + 1 },
+    (_, i) => i * GRILLA_PX,
+  );
+
+  const ficha = anotacionBarra(data.atributos ?? {});
+
+  return (
+    <div className={`nodo-barra${selected ? " sel" : ""}`} title="Barra de distribución">
+      {/* Eje de la barra */}
+      <div
+        className="barra-eje"
+        style={{
+          left: `${(BARRA_GEO.padX / cajaAncho) * 100}%`,
+          right: `${(BARRA_GEO.padX / cajaAncho) * 100}%`,
+        }}
+      />
+      {offsets.map((o) => {
+        const pos = proyectar(BARRA_GEO.padX + o, BARRA_GEO.centroY);
+        const esExtremoIzq = o === 0;
+        const esExtremoDer = o === largoPx;
+        return (
+          <span key={o}>
+            <Handle
+              id={`${o}a`}
+              type="source"
+              position={direccion(0)}
+              className="handle-barra"
+              style={{ ...ESTILO_HANDLE, ...pos }}
+            />
+            <Handle
+              id={`${o}b`}
+              type="target"
+              position={direccion(2)}
+              className="handle-barra"
+              style={{ ...ESTILO_HANDLE, ...pos }}
+            />
+            {esExtremoIzq && (
+              <Handle
+                id="in"
+                type="target"
+                position={direccion(3)}
+                className="handle-barra"
+                style={{ ...ESTILO_HANDLE, ...pos }}
+              />
+            )}
+            {esExtremoDer && (
+              <Handle
+                id="out"
+                type="source"
+                position={direccion(1)}
+                className="handle-barra"
+                style={{ ...ESTILO_HANDLE, ...pos }}
+              />
+            )}
+          </span>
+        );
+      })}
+      {/* Tirador de estiramiento en el extremo derecho */}
+      <div
+        className="barra-grip nodrag"
+        style={proyectar(anchoLocal - BARRA_GEO.padX + 6, BARRA_GEO.centroY)}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        title="Arrastrá para alargar la barra"
+      />
+      {ficha.length > 0 && (
+        <div className="anotacion-nodo anotacion-barra">
+          {ficha.map((l, i) => (
+            <div key={i}>{l}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default BarraNode;

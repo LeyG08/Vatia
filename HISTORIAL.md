@@ -873,6 +873,28 @@ cero. La verificación del demo da idéntica.
   C15·ACU·CNC VF3. Verificador ahora resuelve la familia desde el
   metadata de cada símbolo → cero pendientes ✓.
 
+**C8 — La BARRA como nodo de distribución (feedback del usuario):**
+"las barras en unifilar son todo nodos: la acometida llega a las
+barras para hacer la distribución". Rediseño completo de S00119:
+- Nuevo componente BarraNode (antes símbolo genérico): eje grueso
+  ESTIRABLE con drag desde el extremo derecho (snap a grilla, undo
+  en un solo paso por gesto) y rotación 90° para barras VERTICALES
+  (drag mapeado al eje local según el giro).
+- Puntos de conexión cada 10 px a lo largo de TODO el eje, uno por
+  lado (arriba/abajo), más los extremos "in"/"out" legados. Los
+  proyectos viejos con S00119 migran solos y sus conexiones quedan
+  clavadas en las mismas coordenadas.
+- Ficha nueva (barra.schema.json): dimensiones* ("3x30x10mm") ·
+  material* (Cu/Al) · norma_iram* ("IRAM 2181-1") · corriente
+  admisible*. FUERA perfil rígida/flexible y seccion_mm2 (el plano
+  no los usa). Anotación en UNA línea al extremo IZQUIERDO, POR
+  ENCIMA de la barra.
+- Ejemplo PPS v3: TGBT → SF-Peli1-Moli llega ARRIBA a la barra
+  seccional; abajo cuelgan en puntos distintos y alineados: TM→KM→
+  Molino 50HP, cargas flecha C1·IUG / C2.2·TUG / C15·ACU y la PE.
+- Verificador de fichas ahora valida la barra como las demás
+  familias → cero pendientes ✓.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

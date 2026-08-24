@@ -2,28 +2,31 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "barra.schema.json",
   "title": "Vatia · Atributos de familia barra",
-  "description": "Brief §4.4. Los campos con x-obligatorio son advertidos por el Checklist AEA (§6): no bloquean el guardado.",
+  "description": "Fase C8. La barra es el nodo de distribución del tablero: la acometida llega a ella y de ella cuelgan los circuitos. La ficha se anota en el extremo izquierdo, por encima de la barra, con el formato del plano real: dimensiones · material · norma IRAM · corriente admisible. Los campos con x-obligatorio son advertidos por el Checklist: no bloquean el guardado.",
+  "$comment": "AJUSTE C8 del usuario: se eliminaron perfil (rigida/flexible) y seccion_mm2 — el plano anota las DIMENSIONES físicas del perfil (ej: '3x30x10mm') y la norma IRAM 2181-1, no la sección en mm².",
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "dimensiones": {
+      "type": "string",
+      "x-obligatorio": true,
+      "description": "Dimensiones del perfil de la barra (alto x ancho x espesor en mm). Plano: \"3x30x10mm\", \"3x50x5mm\"."
+    },
     "material": {
       "enum": ["Cu", "Al"],
-      "x-obligatorio": true
+      "x-obligatorio": true,
+      "description": "Plano: \"Cu\" (cobre desnudo)."
     },
-    "perfil": {
-      "enum": ["rigida", "flexible"],
-      "x-obligatorio": false
-    },
-    "seccion_mm2": {
-      "type": "number",
-      "exclusiveMinimum": 0,
-      "x-obligatorio": true
+    "norma_iram": {
+      "type": "string",
+      "x-obligatorio": true,
+      "description": "Norma del material de barras. Plano: \"IRAM 2181-1\"."
     },
     "corriente_admisible_A": {
       "type": "number",
       "exclusiveMinimum": 0,
-      "description": "Corriente admisible de la barra en amperes.",
-      "x-obligatorio": true
+      "x-obligatorio": true,
+      "description": "Corriente admisible de la barra en amperes."
     }
   }
 }

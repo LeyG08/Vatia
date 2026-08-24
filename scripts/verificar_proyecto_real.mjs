@@ -26,6 +26,9 @@ const schemaAparato = JSON.parse(
 const schemaCarga = JSON.parse(
   readFileSync(join(raiz, "libreria-simbolos/schemas/carga.schema.json"), "utf8"),
 );
+const schemaBarra = JSON.parse(
+  readFileSync(join(raiz, "libreria-simbolos/schemas/barra.schema.json"), "utf8"),
+);
 
 /* ---- códigos y familia por símbolo (desde cada metadata.json) ---- */
 const dirSimbolos = join(raiz, "libreria-simbolos/simbolos");
@@ -100,8 +103,10 @@ function problemasFicha(familia, attrs) {
     reglas = reglasDeFamiliaAparato(attrs);
   } else if (familia === "carga") {
     reglas = reglasDeRaiz(schemaCarga);
+  } else if (familia === "barra") {
+    reglas = reglasDeRaiz(schemaBarra);
   } else {
-    return []; // barra/conductor: el mazo se valida por conexión
+    return []; // conductor: el mazo se valida por conexión
   }
   if (!reglas) return ["tipo_aparato desconocido"];
   const msj = [];

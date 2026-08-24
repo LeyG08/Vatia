@@ -94,13 +94,19 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
   return l;
 }
 
-function anotacionBarra(a: Record<string, unknown>): string[] {
-  const l: string[] = [];
-  if (a.material) l.push(capitalizar(a.material));
-  if (a.perfil) l.push(capitalizar(a.perfil));
-  if (n(a.seccion_mm2)) l.push(`${n(a.seccion_mm2)} mm²`);
-  if (n(a.corriente_admisible_A)) l.push(`${n(a.corriente_admisible_A)} A`);
-  return l;
+/**
+ * Ficha de la BARRA en el formato del plano real (C8), en UNA línea:
+ * "3x30x10mm · Cu · IRAM 2181-1 · 500 A". Se dibuja en el extremo
+ * izquierdo, por encima de la barra.
+ */
+export function anotacionBarra(a: Record<string, unknown>): string[] {
+  const partes = [
+    typeof a.dimensiones === "string" ? a.dimensiones : "",
+    capitalizar(a.material),
+    capitalizar(a.norma_iram),
+    n(a.corriente_admisible_A) ? `${n(a.corriente_admisible_A)} A` : "",
+  ].filter(Boolean);
+  return partes.length > 0 ? [partes.join(" · ")] : [];
 }
 
 /**
