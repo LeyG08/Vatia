@@ -1,6 +1,6 @@
 {
   "codigo_iec": "S00120",
-  "nombre": "Carga de circuito (unifilar)",
+  "nombre": "Carga de circuito",
   "familia_atributos": "carga",
   "estado_revision": "pendiente_revision",
   "atributos_base": {},

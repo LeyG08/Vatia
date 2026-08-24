@@ -1,6 +1,6 @@
 {
   "codigo_iec": "S00115",
-  "nombre": "Motor trifásico (unifilar)",
+  "nombre": "Motor trifásico",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
   "puntos_conexion": [

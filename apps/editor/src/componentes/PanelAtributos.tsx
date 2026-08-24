@@ -9,6 +9,7 @@ import {
 import { obtenerSimbolo } from "../lib/libreria";
 import FormularioAtributos from "./FormularioAtributos";
 import FormularioConductor from "./FormularioConductor";
+import FormularioCarga from "./FormularioCarga";
 
 /**
  * Panel de ficha técnica (Fase C4): aparece JUNTO al símbolo o conexión
@@ -25,7 +26,9 @@ export default function PanelAtributos() {
   const transform = useStore((s) => s.transform);
 
   const simbolosSel = nodos.filter(
-    (n) => n.selected && (n.type === "simbolo" || n.type === "alimentador"),
+    (n) =>
+      n.selected &&
+      (n.type === "simbolo" || n.type === "alimentador" || n.type === "barra"),
   );
   const conexionesSel = conexiones.filter((e) => e.selected);
 
@@ -141,6 +144,12 @@ export default function PanelAtributos() {
                 />
               </label>
             }
+          />
+        ) : obtenerSimbolo((nodo.data as DatosSimbolo).codigo_iec)?.metadata
+              .familia_atributos === "carga" ? (
+          <FormularioCarga
+            atributos={(nodo.data as DatosSimbolo).atributos}
+            onChange={(attrs) => actualizarNodo(nodo.id, attrs)}
           />
         ) : (
           <FormularioAtributos

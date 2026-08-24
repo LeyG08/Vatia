@@ -898,6 +898,27 @@ barras para hacer la distribución". Rediseño completo de S00119:
   son posicionados en absoluto) y la barra no se veía; ahora el
   div raíz recibe width/height explícitos según caja×giro.
 
+**C9 — Carga: alimentación/línea/neutro con potencia automática + panel de la barra:**
+- Feedback del usuario: en la carga hace falta saber si es
+  monofásica o trifásica, qué línea tiene asignada (L1/L2/L3) y si
+  lleva neutro — "sabiendo esto el cálculo de la potencia se puede
+  hacer automático".
+- carga.schema.json v2: + alimentacion* (mono/tri), linea_asignada
+  (L1/L2/L3, no aplica en tri) y lleva_neutro*. potencia_va pasa a
+  ser CALCULADA: mono+neutro S=220·I · mono entre fases S=380·I ·
+  tri S=√3·380·I.
+- Nuevo FormularioCarga: la potencia se muestra de solo lectura y
+  se recalcula al cambiar corriente/alimentación/neutro; si pasa a
+  trifásica se borra la línea asignada.
+- Anotación bajo la flecha ahora incluye la línea de alimentación:
+  "1F 220 V · L1", "3F 380 V", etc.
+- FIX del reporte "la barra no aparece... para cargar sus datos":
+  PanelAtributos filtraba solo tipos simbolo/alimentador y el nodo
+  barra nunca abría el panel → ahora también acepta "barra" (la
+  ficha sale por su familia, ya registrada en esquemas.ts).
+- Ejemplo PPS: CA1/C1·IUG·L1·0,08 A→18 VA · CA2.2/TUG·L2·10 A→
+  2200 VA · CA3/C15·ACU trifásica sin neutro.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo

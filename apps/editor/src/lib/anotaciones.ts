@@ -110,14 +110,22 @@ export function anotacionBarra(a: Record<string, unknown>): string[] {
 }
 
 /**
- * Bloque DEBAJO de la flecha de destino de circuito (§C7), en el orden
- * del plano real: código / tipo / potencia aparente / corriente /
- * designación. Solo líneas con valor.
+ * Bloque DEBAJO de la flecha de destino de circuito (§C7/C9), en el
+ * orden del plano real: código / tipo / alimentación / potencia
+ * aparente / corriente / designación. Solo líneas con valor.
+ * La alimentación sale de C9: "1F 220 V · L1" (mono con neutro),
+ * "1F 380 V · L2" (mono entre fases) o "3F 380 V" (trifásica).
  */
 function anotacionCarga(a: Record<string, unknown>): string[] {
   const l: string[] = [];
   if (a.codigo_circuito) l.push(String(a.codigo_circuito));
   if (a.tipo_carga) l.push(String(a.tipo_carga));
+  if (a.alimentacion) {
+    const tri = a.alimentacion === "trifasica";
+    const v = tri || a.lleva_neutro === false ? "380 V" : "220 V";
+    const linea = !tri && typeof a.linea_asignada === "string" ? ` · ${a.linea_asignada}` : "";
+    l.push(`${tri ? "3F" : "1F"} ${v}${linea}`);
+  }
   if (n(a.potencia_va)) l.push(`${n(a.potencia_va)} VA`);
   if (n(a.corriente_a)) l.push(`${n(a.corriente_a)} A`);
   if (a.descripcion) l.push(capitalizar(a.descripcion));

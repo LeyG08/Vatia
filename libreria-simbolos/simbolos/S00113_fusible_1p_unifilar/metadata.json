@@ -1,6 +1,6 @@
 {
   "codigo_iec": "S00113",
-  "nombre": "Fusible 1P (unifilar)",
+  "nombre": "Fusible 1P",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
   "atributos_base": { "tipo_aparato": "fusible" },

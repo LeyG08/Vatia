@@ -2,36 +2,49 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "carga.schema.json",
   "title": "Vatia · Atributos de familia carga",
-  "description": "Fase C7. Destino de circuito dibujado como FLECHA apuntando hacia abajo (IUG/TUG/ACU/seccional). El bloque de texto debajo de la flecha replica el plano real: código de circuito (o tablero destino), tipo, potencia aparente [VA], corriente [A] y designación. La composición del mazo (fases/neutro/tierra + secciones) vive en la CONEXIÓN que llega a la flecha, no acá.",
+  "description": "Fase C7/C9. Destino de un circuito de distribución: IUG (iluminación), TUG (tomacorrientes de uso general), ACU (aire acondicionado), seccional u otra. La potencia aparente (VA) se CALCULA sola a partir de la alimentación, el neutro y la corriente; el usuario no la carga a mano.",
+  "$comment": "AJUSTE C9 del usuario: hace falta saber si la carga es monofásica o trifásica, qué línea tiene asignada (L1/L2/L3) y si lleva neutro — con eso la potencia se calcula automáticamente.",
   "type": "object",
   "additionalProperties": false,
+  "required": ["codigo_circuito", "tipo_carga", "alimentacion", "lleva_neutro"],
   "properties": {
     "codigo_circuito": {
       "type": "string",
       "x-obligatorio": true,
-      "description": "Número o clave del circuito en el tablero. Plano: \"C1\", \"C15\". Si la flecha apunta a un tablero seccional: \"TS-Pell1_y_Molino1\"."
+      "description": "Código del circuito en el tablero. Plano real: \"C1\", \"C2.2\", \"C15\"."
     },
     "tipo_carga": {
       "enum": ["IUG", "TUG", "ACU", "seccional", "otra"],
       "x-obligatorio": true,
-      "description": "IUG = iluminación uso general; TUG = tomacorriente uso general; ACU = aire acondicionado/usos especiales; seccional = alimentación a otro tablero."
+      "description": "IUG = iluminación de uso general · TUG = tomacorrientes de uso general · ACU = aire acondicionado."
     },
-    "potencia_va": {
-      "type": "number",
-      "exclusiveMinimum": 0,
-      "x-obligatorio": false,
-      "description": "Potencia aparente instalada. Plano: \"20 [VA]\", \"2200[VA]\"."
+    "alimentacion": {
+      "enum": ["monofasica", "trifasica"],
+      "x-obligatorio": true,
+      "description": "Monofásica (fase-neutro 220 V o fase-fase 380 V sin neutro) o trifásica (380 V entre líneas)."
+    },
+    "linea_asignada": {
+      "enum": ["L1", "L2", "L3"],
+      "description": "Línea del tablero a la que se asigna la carga monofásica (para equilibrar fases). En trifásica no aplica."
+    },
+    "lleva_neutro": {
+      "type": "boolean",
+      "x-obligatorio": true,
+      "description": "Monofásica con neutro → 220 V. Monofásica sin neutro → entre fases, 380 V."
     },
     "corriente_a": {
       "type": "number",
       "exclusiveMinimum": 0,
-      "x-obligatorio": false,
-      "description": "Corriente prevista. Plano: \"0,08 [A]\", \"10[A]\"."
+      "description": "Corriente nominal de la carga en amperes. Con este dato y la alimentación se calcula la potencia."
+    },
+    "potencia_va": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Potencia aparente en VA — CALCULADA automáticamente: monofásica con neutro S=220·I; monofásica sin neutro S=380·I; trifásica S=√3·380·I."
     },
     "descripcion": {
       "type": "string",
-      "x-obligatorio": false,
-      "description": "Designación del destino. Plano: \"Luces Tablero\", \"Tomacorrientes\", \"CNC VF3\"."
+      "description": "Designación de la carga. Plano real: \"Luces Tablero\", \"Tomacorrientes\", \"CNC VF3\"."
     }
   }
 }

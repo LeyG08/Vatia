@@ -155,8 +155,11 @@
           "atributos": {
             "codigo_circuito": "C1",
             "tipo_carga": "IUG",
-            "potencia_va": 20,
+            "alimentacion": "monofasica",
+            "linea_asignada": "L1",
+            "lleva_neutro": true,
             "corriente_a": 0.08,
+            "potencia_va": 18,
             "descripcion": "Luces Tablero"
           }
         },
@@ -168,8 +171,11 @@
           "atributos": {
             "codigo_circuito": "C2.2",
             "tipo_carga": "TUG",
-            "potencia_va": 2200,
+            "alimentacion": "monofasica",
+            "linea_asignada": "L2",
+            "lleva_neutro": true,
             "corriente_a": 10,
+            "potencia_va": 2200,
             "descripcion": "Tomacorrientes"
           }
         },
@@ -181,6 +187,8 @@
           "atributos": {
             "codigo_circuito": "C15",
             "tipo_carga": "ACU",
+            "alimentacion": "trifasica",
+            "lleva_neutro": false,
             "descripcion": "CNC VF3"
           }
         }
