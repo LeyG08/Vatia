@@ -127,7 +127,11 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
   const ficha = anotacionBarra(data.atributos ?? {});
 
   return (
-    <div className={`nodo-barra${selected ? " sel" : ""}`} title="Barra de distribución">
+    <div
+      className={`nodo-barra${selected ? " sel" : ""}`}
+      style={{ width: cajaAncho, height: cajaAlto }}
+      title="Barra de distribución"
+    >
       {/* Eje de la barra */}
       <div
         className="barra-eje"

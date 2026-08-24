@@ -894,6 +894,9 @@ barras para hacer la distribución". Rediseño completo de S00119:
   Molino 50HP, cargas flecha C1·IUG / C2.2·TUG / C15·ACU y la PE.
 - Verificador de fichas ahora valida la barra como las demás
   familias → cero pendientes ✓.
+- FIX: el contenedor de BarraNode quedaba en 0×0 (todos sus hijos
+  son posicionados en absoluto) y la barra no se veía; ahora el
+  div raíz recibe width/height explícitos según caja×giro.
 
 ---
 
