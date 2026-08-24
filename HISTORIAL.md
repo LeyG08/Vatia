@@ -1117,6 +1117,26 @@ de carga sin campos calculados (feedback directo del usuario):**
 - Suites: build/lint OK; alineación, lint de símbolos y verificador
   de proyecto real OK; E2E Playwright OK.
 
+**C17 — el alimentador ya no se corre al escribir, selección visible
+y puntas de cable más fáciles de mover (feedback del usuario):**
+- INPUT «Desde» de ancho FIJO (14ch): antes crecía con el texto
+  (`width: n ch`) y la columna empujaba el cable → el símbolo «se
+  corría» y perdía alineación MIENTRAS se escribía. Ahora el texto
+  largo scrollea dentro del input y nada se mueve.
+- SELECCIÓN VISIBLE en los cuatro tipos de objeto (antes había solo
+  un borde punteado sutil que pasaba desapercibido):
+  · símbolo: borde sólido azul + halo doble;
+  · alimentador: hover suave / seleccionado azul con halo;
+  · barra: eje pasa a azul con halo;
+  · conexión: trazo azul más grueso + drop-shadow.
+- PUNTAS DE CABLE MÁS FÁCILES DE MOVER: `connectionRadius` 12 → 30.
+  Al soltar una punta (reconexión, C11) o al conectar nuevo cable, el
+  imán agarra el handle más cercano sin apuntar fino. El E2E sigue
+  midiendo anclaje exacto (d≈0) — el snap no lo altera porque apunta
+  justo al centro.
+- Suites: build/lint OK; alineación, lint de símbolos y verificador
+  OK; E2E Playwright OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1133,7 +1153,7 @@ de carga sin campos calculados (feedback directo del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C16 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C17 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1179,6 +1199,9 @@ de carga sin campos calculados (feedback directo del usuario):**
   · C16: renombrado global «mazo»→«cable»; composición del juego de
     barras elegible con chips (1F/2F/3F+N+PE); formulario de carga sin
     campos calculados (solo línea informativa).
+  · C17: input «Desde» de ancho fijo (el alimentador no se corre al
+    escribir); selección evidente en símbolos/alimentador/barra/cable;
+    puntas de cable con imán generoso (connectionRadius 30).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

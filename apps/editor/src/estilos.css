@@ -313,13 +313,18 @@ body,
   background: rgba(37, 99, 235, 0.25);
 }
 
-/* Selección de nodos */
+/* Selección de nodos — C17: bien VISIBLE (borde sólido + halo), no
+ * el punteado sutil de antes: tiene que notarse qué objeto está
+ * seleccionado de un vistazo. */
 .react-flow__node-simbolo.selected .nodo-simbolo::after {
   content: "";
   position: absolute;
   inset: -5px;
-  border: 1px dashed var(--acento);
-  border-radius: 3px;
+  border: 2px solid var(--acento);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.15),
+    0 0 10px rgba(37, 99, 235, 0.35);
   pointer-events: none;
 }
 
@@ -327,6 +332,8 @@ body,
 .react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:focus .react-flow__edge-path {
   stroke: var(--acento);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.6));
 }
 
 .nodo-faltante {
@@ -814,9 +821,17 @@ body.arrastrando .paleta-item {
   color: #111827;
 }
 
-.nodo-alimentador.sel,
+/* C17: hover suave, selección FUERTE (mismo criterio que los
+ * símbolos: se tiene que ver qué está elegido). */
 .nodo-alimentador:hover {
   border-color: #93c5fd;
+}
+
+.nodo-alimentador.sel {
+  border-color: var(--acento);
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.15),
+    0 0 10px rgba(37, 99, 235, 0.35);
 }
 
 .alim-col {
@@ -851,6 +866,10 @@ body.arrastrando .paleta-item {
   color: #111827;
   text-align: left;
   outline: none;
+  /* C17: ancho FIJO — si creciera con el texto, la columna empuja el
+   * cable y el símbolo «se corre» mientras uno escribe. El texto largo
+   * scrollea adentro del input. */
+  width: 14ch;
 }
 
 .alim-origen::placeholder {
@@ -1103,8 +1122,10 @@ body.arrastrando .paleta-item {
   position: relative;
 }
 
+/* C17: barra seleccionada = eje azul + halo (visible de lejos) */
 .nodo-barra.sel .barra-eje {
-  background: #1d4ed8;
+  background: var(--acento);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
 .barra-eje {

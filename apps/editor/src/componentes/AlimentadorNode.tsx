@@ -48,7 +48,6 @@ function AlimentadorNode({
           placeholder="TGBT"
           onChange={(e) => actualizar(id, { origen: e.target.value })}
           title="Procedencia de la alimentación"
-          style={{ width: `${Math.max(6, data.origen.length + 1)}ch` }}
         />
         {/* Especificación del cable APILADA (C15): secciones arriba,
          * debajo el material y debajo la norma. Sin cortes. */}

@@ -510,7 +510,10 @@ function Editor() {
             type: "conexion",
             style: { strokeWidth: 1.5, stroke: "#1e293b" },
           }}
-          connectionRadius={12}
+          /* C17: radio de imán generoso — al soltar una punta de cable
+           * (o al conectar) agarra el handle MÁS CERCANO sin apuntar
+           * fino: mover extremos de conexión queda sencillo. */
+          connectionRadius={30}
           fitView
           proOptions={{ hideAttribution: true }}
         />
