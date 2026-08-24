@@ -95,32 +95,36 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
 }
 
 /**
- * Ficha de la BARRA en el formato del plano real (C8), en UNA línea:
- * "3x30x10mm · Cu · IRAM 2181-1 · 500 A". Si la línea representa un
- * CONJUNTO de barras (C11) se antepone la composición (C15):
- * "Juego de barras 3F+N+PE" — cuántas barras de fase y si el juego
- * incluye neutro y/o tierra. Se dibuja en el extremo izquierdo, por
- * encima de la barra.
+ * Ficha de la BARRA en el formato del plano real (C8), APILADA (C20):
+ * un ítem por línea, sin amontonar en un solo renglón:
+ *   Juego de barras 3P+N+PE     ← si es conjunto (C15/C11)
+ *   3x30x10mm                   ← dimensiones del perfil
+ *   Cu                          ← material
+ *   500 A · IRAM 2181-1         ← corriente admisible con la norma al lado
+ * Se dibuja en el extremo izquierdo, por encima de la barra.
  */
 export function anotacionBarra(a: Record<string, unknown>): string[] {
-  let conjunto = "";
+  const lineas: string[] = [];
   if (a.es_conjunto === true) {
-    conjunto = "Juego de barras";
     if (typeof a.cantidad_fases === "number" && a.cantidad_fases > 0) {
-      const partes = [`${a.cantidad_fases}F`];
+      const partes = [`${a.cantidad_fases}P`];
       if (a.incluye_neutro === true) partes.push("N");
       if (a.incluye_tierra === true) partes.push("PE");
-      conjunto += ` ${partes.join("+")}`;
+      lineas.push(`Juego de barras ${partes.join("+")}`);
+    } else {
+      lineas.push("Juego de barras");
     }
   }
-  const partes = [
-    conjunto,
-    typeof a.dimensiones === "string" ? a.dimensiones : "",
-    capitalizar(a.material),
-    capitalizar(a.norma_iram),
+  if (typeof a.dimensiones === "string" && a.dimensiones.trim() !== "") {
+    lineas.push(a.dimensiones);
+  }
+  if (capitalizar(a.material)) lineas.push(capitalizar(a.material));
+  const ultima = [
     n(a.corriente_admisible_A) ? `${n(a.corriente_admisible_A)} A` : "",
+    capitalizar(a.norma_iram),
   ].filter(Boolean);
-  return partes.length > 0 ? [partes.join(" · ")] : [];
+  if (ultima.length > 0) lineas.push(ultima.join(" · "));
+  return lineas;
 }
 
 /**

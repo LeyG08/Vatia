@@ -21,7 +21,7 @@
       "minimum": 1,
       "maximum": 3,
       "x-visible-si": "es_conjunto",
-      "description": "C15: cuántas barras de FASE representa el juego (1 a 3). Plano: \"Juego de barras 3F+N+PE\"."
+      "description": "C15: cuántas barras de FASE representa el juego (1 a 3). Plano: \"Juego de barras 3P+N+PE\"."
     },
     "incluye_neutro": {
       "type": "boolean",

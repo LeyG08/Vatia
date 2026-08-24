@@ -1171,6 +1171,21 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 - Suites: alineación, lint de símbolos y verificador OK; E2E completo
   OK (11 escenarios + reconexión + alimentador).
 
+**C20 — ficha de barra APILADA (regla general: un ítem por línea):**
+- El usuario pidió que los VARIOS ítems nunca vayan amontonados en un
+  renglón sino uno debajo del otro. La barra pasaba todo junto
+  («Juego de barras · 3x30x10mm · Cu · IRAM · 500 A»); ahora:
+    Juego de barras 3P+N+PE   ← composición (además F→P, como lo
+                                 escribe el usuario)
+    3x30x10mm                 ← dimensiones del perfil
+    Cu                        ← material como característica propia
+    300 A · IRAM 2104         ← corriente admisible con la norma AL LADO
+- Resto de anotaciones ya cumplían la regla (carga, cable,
+  alimentador apilado desde C15); quedan solo dos pares relacionados
+  en una línea: corriente+norma (pedido explícito) y tensión+categoría
+  del portafusible.
+- Suites: build/lint OK; alineación + lint + verificador OK; E2E OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1187,7 +1202,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C19 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C20 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1242,6 +1257,8 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     y de «escribir no mueve»; corregido bug latente de nombres/sentido
     de handles de barra en proyecto-real-pps.json (no dibujaba nada al
     abrirlo).
+  · C20: ficha de barra apilada (composición / dimensiones / material /
+    corriente+norma) — regla general: un ítem por línea.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).
