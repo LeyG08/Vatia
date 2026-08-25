@@ -1185,6 +1185,13 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   en una línea: corriente+norma (pedido explícito) y tensión+categoría
   del portafusible.
 - Suites: build/lint OK; alineación + lint + verificador OK; E2E OK.
+- **Ajuste posterior del usuario (mismo C20):** dimensiones y material
+  en la MISMA línea («3x30x10mm · Cu»); el material solo va solo si no
+  hay dimensiones. Layout final:
+    Juego de barras 3P+N+PE
+    3x30x10mm · Cu
+    300 A · IRAM 2104
+- Suites del ajuste: build/lint OK; E2E OK (14 escenarios).
 
 ---
 
@@ -1257,8 +1264,9 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     y de «escribir no mueve»; corregido bug latente de nombres/sentido
     de handles de barra en proyecto-real-pps.json (no dibujaba nada al
     abrirlo).
-  · C20: ficha de barra apilada (composición / dimensiones / material /
-    corriente+norma) — regla general: un ítem por línea.
+  · C20: ficha de barra apilada (composición / dimensiones con
+    material al lado / corriente+norma) — regla general: un ítem por
+    línea, pares relacionados comparten renglón.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

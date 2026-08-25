@@ -98,8 +98,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
  * Ficha de la BARRA en el formato del plano real (C8), APILADA (C20):
  * un ítem por línea, sin amontonar en un solo renglón:
  *   Juego de barras 3P+N+PE     ← si es conjunto (C15/C11)
- *   3x30x10mm                   ← dimensiones del perfil
- *   Cu                          ← material
+ *   3x30x10mm · Cu              ← dimensiones con el material al lado
  *   500 A · IRAM 2181-1         ← corriente admisible con la norma al lado
  * Se dibuja en el extremo izquierdo, por encima de la barra.
  */
@@ -115,10 +114,11 @@ export function anotacionBarra(a: Record<string, unknown>): string[] {
       lineas.push("Juego de barras");
     }
   }
-  if (typeof a.dimensiones === "string" && a.dimensiones.trim() !== "") {
-    lineas.push(a.dimensiones);
+  const dims = typeof a.dimensiones === "string" ? a.dimensiones.trim() : "";
+  const mat = capitalizar(a.material);
+  if (dims !== "" || mat) {
+    lineas.push([dims, mat].filter(Boolean).join(" · "));
   }
-  if (capitalizar(a.material)) lineas.push(capitalizar(a.material));
   const ultima = [
     n(a.corriente_admisible_A) ? `${n(a.corriente_admisible_A)} A` : "",
     capitalizar(a.norma_iram),
