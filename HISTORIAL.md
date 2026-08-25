@@ -1274,6 +1274,22 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   «TGBT» (p0), «TS-G1» (p0) y «TS-Lab» (p1). Total: 33 hojas.
 - Suites: E2E OK; verificador multi-hoja OK (32 vacías sin fallar).
 
+**C24b — migración del unifilar TGBT (página 0) a su hoja:**
+- Lectura posicional del PDF corregida por rotación (p.rotation=270;
+  coordenadas visuales con rotation_matrix). p0 = TGBT: doble ingreso
+  a la barra principal — Red de distribución (1x3x240+N120, IRAM 2178)
+  vía QG-TGBT1 (EMA SACE ISOL Z500 500A, PdCC 20kA, IEC 60947-2) +
+  KM1 (Siemens 3TF57 475A AC3, bobina 220V); PAT generador vía segundo
+  QG-TGBT1 + KM2 (Siemens 3TA28 170A AC3). Barra 3x30x10mm Cu
+  (IRAM 2181-1) + PE. Gabinete: autoportante, Clase I, BA5/BA4,
+  IP00 IEC 60529, barras de cobre desnudo, sin reserva futura.
+  Las salidas a TS-G1/TS-CD/TS-BC son seccionales/señales: viven como
+  alimentadores en SUS hojas, no acá.
+- `scripts/migrar_tgbt.mjs` (idempotente): 8 nodos + 7 conexiones en
+  la hoja tgbt. Corrección previa: resegmentar numeraba hojas desde 2
+  y generó ids duplicados → ahora continúa desde el sufijo máximo.
+- Verificador: hoja TGBT sin pendientes; E2E OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1360,7 +1376,9 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     migración de contenido página por página queda como próximo paso.
   · C24: corrección — TGBT y TS-G1 son tableros distintos; la hoja con
     contenido vuelve a ser TS-Pell1_y_Molino1; +TGBT, +TS-G1, +TS-Lab
-    como hojas propias (33 en total).
+    como hojas     propias (33 en total).
+  · C24b: migrado el unifilar TGBT (p0) a su hoja; ids de hoja
+    corregidos (sin duplicados).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).
