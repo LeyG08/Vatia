@@ -1469,8 +1469,9 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     con fases definidas; potencia NO se calcula sin fases (no hay
     tensión de referencia). Verificado en vivo sobre la hoja TGBT:
     3F→√3·380·I, —→sin cálculo, estado solo-PE ok.
-- PR todavía NO abierto: merge solo por orden expresa del usuario
-  (política vigente de AGENTS.md).
-- Próximo paso acordado: C29 camino de conexión con quiebre
-  arrastrable; C30 combinaciones libres fases/neutro/tierra en cable y
-  carga; luego nueva simbología MCCB/caja moldeada (Ir/Im).
+  · C31: verificación completa en verde (build · lint · alineación ·
+    símbolos · proyecto real · E2E 21 checks) y MERGE de la Fase C a
+    main por orden expresa del usuario (PR #11, --merge
+    --delete-branch); main sincronizada después del merge.
+- Próximo paso acordado: nueva simbología MCCB/caja moldeada (Ir/Im)
+  para reemplazar el placeholder S00110 del QG del TGBT.
