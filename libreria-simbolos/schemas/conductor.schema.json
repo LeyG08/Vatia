@@ -1,77 +1,46 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "conductor.schema.json",
-  "title": "Vatia · Atributos de familia conductor",
-  "description": "Brief §4.3. color_normalizado se deriva automáticamente de rol (IRAM 2183 / AEA 90364): las cláusulas if/then rechazan combinaciones inválidas. El Checklist AEA (§6) advierte los obligatorios vacíos sin bloquear el guardado.",
+  "title": "Vatia · Atributos de familia conductor (cable)",
+  "description": "Fase C (revisada con el usuario). La conexión representa un CABLE. La notación del plano depende de tipo_cable: unipolar = 'n x 1 x S' (conductores sueltos), multipolar = '1 x n x S' (un cable con núcleos, contando el neutro). Neutro y tierra van como llave activada/desactivada; su sección se anota SOLO cuando difiere de la de fase (ej: '1 x 4 x 25 mm² + 16 mm²'). Los campos con x-obligatorio son advertidos por el Checklist AEA (§C5): no bloquean el guardado.",
+  "$comment": "AJUSTE del usuario: tension_asignada eliminada por innecesaria; tipo_cable reducido a unipolar|multipolar (la variante 'vaina' se descartó). El formulario de conexión NO es el generador genérico: tiene UI propia con barras por conductor y llaves N/PE.",
   "type": "object",
   "additionalProperties": false,
+  "required": ["cantidad_conductores"],
   "properties": {
-    "rol": {
-      "enum": ["fase", "neutro", "tierra"],
-      "description": "Enum estricto: no se acepta texto libre.",
-      "x-obligatorio": true
-    },
-    "color_normalizado": {
-      "enum": ["marron", "negro", "rojo", "celeste", "verde-amarillo"],
-      "description": "Derivado automáticamente del rol. El usuario no puede elegir un color inválido para ese rol.",
-      "x-obligatorio": false
+    "cantidad_conductores": {
+      "type": "integer", "minimum": 0,
+      "x-obligatorio": true,
+      "description": "Conductores DE FASE del cable (las marcas oblicuas sobre la conexión). Puede ser 0: cables de solo neutro o solo tierra (C30). Sin límite superior."
     },
     "tipo_cable": {
-      "enum": ["unipolar", "multipolar", "vaina"],
-      "x-obligatorio": true
+      "enum": ["unipolar", "multipolar"],
+      "x-obligatorio": true,
+      "description": "unipolar → 'n x 1 x S'; multipolar → '1 x n x S' (el neutro cuenta en n)."
     },
-    "material": {
-      "enum": ["Cu", "Al"],
-      "x-obligatorio": true
+    "lleva_neutro": {
+      "type": "boolean", "x-obligatorio": true,
+      "description": "Llave: ¿el cable incluye neutro?"
     },
-    "seccion_mm2": {
-      "type": "number",
-      "exclusiveMinimum": 0,
-      "x-obligatorio": true
+    "seccion_neutro_mm2": {
+      "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false,
+      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_neutro=true, se asume igual a seccion_fase_mm2."
     },
-    "aislacion": {
-      "enum": ["PVC", "XLPE", "EPR"],
-      "x-obligatorio": true
+    "lleva_tierra": {
+      "type": "boolean", "x-obligatorio": true,
+      "description": "Llave: ¿el cable incluye tierra (PE)?"
     },
-    "tension_asignada": {
-      "type": "string",
-      "description": "Ej: 0,6/1kV.",
-      "x-obligatorio": true
+    "seccion_tierra_mm2": {
+      "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false,
+      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_tierra=true, se asume igual a seccion_fase_mm2."
     },
-    "norma_iram": {
-      "type": "string",
-      "description": "Ej: IRAM NM 247-3.",
-      "x-obligatorio": true
-    }
-  },
-  "required": ["rol"],
-  "allOf": [
-    {
-      "if": {
-        "properties": { "rol": { "const": "fase" }, "color_normalizado": { "type": "string" } },
-        "required": ["rol", "color_normalizado"]
-      },
-      "then": {
-        "properties": { "color_normalizado": { "enum": ["marron", "negro", "rojo"] } }
-      }
+    "seccion_fase_mm2": {
+      "type": "number", "exclusiveMinimum": 0,
+      "x-obligatorio": true,
+      "description": "Sección de cada conductor de fase. Plano: \"25mm²\"."
     },
-    {
-      "if": {
-        "properties": { "rol": { "const": "neutro" }, "color_normalizado": { "type": "string" } },
-        "required": ["rol", "color_normalizado"]
-      },
-      "then": {
-        "properties": { "color_normalizado": { "const": "celeste" } }
-      }
-    },
-    {
-      "if": {
-        "properties": { "rol": { "const": "tierra" }, "color_normalizado": { "type": "string" } },
-        "required": ["rol", "color_normalizado"]
-      },
-      "then": {
-        "properties": { "color_normalizado": { "const": "verde-amarillo" } }
-      }
-    }
-  ]
+    "material": { "enum": ["Cu", "Al"], "x-obligatorio": true, "description": "De todo el cable. Plano: \"Cu\"." },
+    "aislacion": { "enum": ["PVC", "XLPE", "EPR"], "x-obligatorio": true, "description": "Plano: \"PVC\", \"XLPE\"." },
+    "norma_iram": { "type": "string", "x-obligatorio": true, "description": "Plano: \"IRAM NM 247-3\", \"IRAM 2178\"." }
+  }
 }

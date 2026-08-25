@@ -1,93 +1,116 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { useEditor, type DatosAlimentador } from "../lib/store";
-import { etiquetaConductores } from "../lib/tipos";
+import { lineasCable } from "../lib/anotaciones";
+
+/** Misma geometría que las marcas de las conexiones (IEC 60617) */
+const SEP = 8;
+const LARGO = 15;
+/* C27: alto elegido para que la PUNTA (H-4) más el borde+padding de
+ * la caja (3 px) dé un offset vertical múltiplo de la grilla (80 px):
+ * así el CUERPO y la PUNTA quedan a la vez sobre el mapa de puntos. */
+const ALTO_LINEA = 81;
+/* La línea visible termina en ALTO_LINEA - 4 dentro del svg: el punto
+ * de conexión va JUSTO ahí (C13: antes quedaba 4 px más abajo, con un
+ * hueco invisible entre la punta dibujada y el cable). */
 
 /**
- * Combinaciones libres de fases / neutro / tierra para la referencia
- * del conductor que sale del alimentador, más el modo "cantidad n de
- * conductores" cuando la alimentación no encaja en esas categorías.
+ * Alimentación = CONDUCTOR VINIENTE desde el tablero, en VERTICAL.
+ * Caja mínima: etiqueta «Desde …» con la notación debajo, y el cable a
+ * la derecha con sus marcas normadas (neutro = círculo, tierra =
+ * corte). El punto de conexión vive DENTRO del contenedor del cable:
+ * aunque los textos crezcan, punta y handle se mueven JUNTOS.
  */
-const OPCIONES: { valor: string; etiqueta: string }[] = [
-  { valor: "", etiqueta: "—" },
-  { valor: "L", etiqueta: "3 líneas" },
-  { valor: "LN", etiqueta: "3 líneas + neutro" },
-  { valor: "LT", etiqueta: "3 líneas + tierra" },
-  { valor: "LNT", etiqueta: "3 líneas + neutro + tierra" },
-  { valor: "N", etiqueta: "Neutro" },
-  { valor: "T", etiqueta: "Tierra" },
-  { valor: "NT", etiqueta: "Neutro + tierra" },
-  { valor: "n", etiqueta: "Cantidad n de conductores…" },
-];
-
 function AlimentadorNode({
   id,
   data,
   selected,
 }: NodeProps<Node<DatosAlimentador>>) {
   const actualizar = useEditor((s) => s.actualizarDatosAlimentador);
-  const modoN = data.cantidadN != null;
-  const combo = modoN
-    ? "n"
-    : `${data.fases ? "L" : ""}${data.neutro ? "N" : ""}${data.tierra ? "T" : ""}`;
+  const attrs = data.atributos ?? {};
+  const nota = lineasCable(attrs);
 
-  const cambiarCombo = (v: string) => {
-    if (v === "n") {
-      actualizar(id, { cantidadN: data.cantidadN ?? 4 });
-      return;
-    }
-    actualizar(id, {
-      cantidadN: null,
-      fases: v.includes("L"),
-      neutro: v.includes("N"),
-      tierra: v.includes("T"),
-    });
-  };
+  const fases =
+    typeof attrs.cantidad_conductores === "number"
+      ? attrs.cantidad_conductores
+      : 0;
+  const neutro = attrs.lleva_neutro === true;
+  const tierra = attrs.lleva_tierra === true;
+  const total = fases + (neutro ? 1 : 0) + (tierra ? 1 : 0);
+  const h = LARGO / 2;
+  // Línea vertical hacia abajo → trazo inclinado a 45°
+  const wx = -1 / Math.SQRT2;
+  const wy = 1 / Math.SQRT2;
 
   return (
     <div className={`nodo-alimentador${selected ? " sel" : ""}`}>
-      <div className="alim-fila">
+      <div className="alim-col">
         <span className="alim-desde">Desde</span>
         <input
           className="nodrag alim-origen"
           value={data.origen}
           placeholder="TGBT"
           onChange={(e) => actualizar(id, { origen: e.target.value })}
+          title="Procedencia de la alimentación"
+        />
+        {/* Especificación del cable APILADA (C15): secciones arriba,
+         * debajo el material y debajo la norma. Sin cortes. */}
+        {nota.length > 0 && (
+          <div className="alim-nota">
+            {nota.map((linea, i) => (
+              <div key={i}>{linea}</div>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* C13: el handle vive DENTRO de este contenedor → viaja pegado
+       * al cable aunque la columna de textos crezca. Nada se desafina
+       * jamás. */}
+      <div className="alim-cable">
+        <svg className="alim-linea" width={30} height={ALTO_LINEA}>
+          <line
+            x1={15}
+            y1={0}
+            x2={15}
+            y2={ALTO_LINEA - 4}
+            stroke="#1e293b"
+            strokeWidth={1.5}
+          />
+          {total > 0 &&
+            Array.from({ length: total }, (_, i) => {
+              const cy = ALTO_LINEA / 2 + (i - (total - 1) / 2) * SEP;
+              const bx = 15 + wx * h;
+              const by = cy + wy * h;
+              return (
+                <g key={i} stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
+                  <line x1={15 - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
+                  {neutro && i === fases && (
+                    <circle cx={bx} cy={by} r={2.6} fill="#fdfdfd" />
+                  )}
+                  {tierra && i === fases + (neutro ? 1 : 0) && (
+                    <line
+                      x1={bx - wy * 3}
+                      y1={by + wx * 3}
+                      x2={bx + wy * 3}
+                      y2={by - wx * 3}
+                    />
+                  )}
+                </g>
+              );
+            })}
+        </svg>
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="salida"
+          className="handle-salida"
+          style={{
+            left: "50%",
+            top: ALTO_LINEA - 4,
+            bottom: "auto",
+            transform: "translate(-50%, -50%)",
+          }}
         />
       </div>
-      <select
-        className="nodrag alim-combo"
-        value={combo}
-        onChange={(e) => cambiarCombo(e.target.value)}
-        title="Referencia del conductor"
-      >
-        {OPCIONES.map((o) => (
-          <option key={o.valor} value={o.valor}>
-            {o.etiqueta}
-          </option>
-        ))}
-      </select>
-      {modoN && (
-        <label className="alim-fila alim-n">
-          <span>n =</span>
-          <input
-            type="number"
-            min={1}
-            max={99}
-            className="nodrag"
-            value={data.cantidadN ?? 1}
-            onChange={(e) => {
-              const v = Number(e.target.value);
-              actualizar(id, {
-                cantidadN:
-                  Number.isFinite(v) && v > 0 ? Math.min(99, Math.floor(v)) : null,
-              });
-            }}
-          />
-          <span>conductores</span>
-        </label>
-      )}
-      <span className="alim-tag">{etiquetaConductores(data)}</span>
-      <Handle type="source" position={Position.Bottom} id="salida" />
     </div>
   );
 }

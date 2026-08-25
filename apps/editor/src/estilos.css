@@ -269,6 +269,40 @@ body,
   z-index: 3;
 }
 
+/* C13b: React Flow ancla el cable al BORDE del handle medido (con
+   mínimo de 5×5 px de su hoja base ⇒ ~2,5 px de aire). Los handles
+   de ancla EXACTA miden 0×0 reales y dibujan su punto con ::before;
+   los pseudo-elementos no se miden pero sí reciben el mouse.
+   Doble clase para ganarle a .react-flow__handle sin depender del
+   orden de importación de estilos. */
+.react-flow__handle.handle-barra,
+.react-flow__handle.handle-entrada,
+.react-flow__handle.handle-salida,
+.react-flow__handle.handle-tierra,
+.nodo-alimentador .react-flow__handle.react-flow__handle {
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  border: none;
+}
+
+/* C13b: anillo visible del terminal — el Handle mide 0×0 (ver
+   NodoSimbolo) para que el cable llegue al CENTRO exacto. */
+.handle-entrada::before,
+.handle-salida::before,
+.handle-tierra::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid rgba(37, 99, 235, 0.55);
+}
+
 .handle-entrada:hover::after,
 .handle-salida:hover::after,
 .handle-tierra:hover::after {
@@ -279,13 +313,18 @@ body,
   background: rgba(37, 99, 235, 0.25);
 }
 
-/* Selección de nodos */
+/* Selección de nodos — C17: bien VISIBLE (borde sólido + halo), no
+ * el punteado sutil de antes: tiene que notarse qué objeto está
+ * seleccionado de un vistazo. */
 .react-flow__node-simbolo.selected .nodo-simbolo::after {
   content: "";
   position: absolute;
   inset: -5px;
-  border: 1px dashed var(--acento);
-  border-radius: 3px;
+  border: 2px solid var(--acento);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.15),
+    0 0 10px rgba(37, 99, 235, 0.35);
   pointer-events: none;
 }
 
@@ -293,6 +332,8 @@ body,
 .react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:focus .react-flow__edge-path {
   stroke: var(--acento);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.6));
 }
 
 .nodo-faltante {
@@ -304,13 +345,24 @@ body,
   font-size: 12px;
 }
 
-/* ---- Panel de problemas ---- */
-.panel-problemas {
+/* ---- Columna de paneles flotantes inferior izquierda ---- */
+.paneles-flotantes {
   position: absolute;
   left: 10px;
   bottom: 10px;
   z-index: 5;
-  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  max-width: 460px;
+  max-height: 62%;
+  overflow-y: auto;
+}
+
+/* ---- Panel de problemas ---- */
+.panel-problemas {
+  max-width: 440px;
   max-height: 40%;
   overflow-y: auto;
   background: #fff;
@@ -350,6 +402,68 @@ body,
   margin: 0;
   padding: 0 10px 8px;
   color: #16a34a;
+}
+
+/* ---- Checklist AEA (C5): pendientes de ficha técnica, no bloqueante ---- */
+.checklist-aea {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+}
+
+.checklist-aea.pendientes {
+  border-color: #d97706;
+}
+
+.checklist-cabecera {
+  all: unset;
+  display: block;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-weight: 600;
+  color: #92400e;
+  user-select: none;
+}
+
+.checklist-aea ul {
+  margin: 0;
+  padding: 0 10px 8px 12px;
+}
+
+/* Elemento con pendientes (ítem principal, clicable) */
+.checklist-elemento {
+  margin-top: 4px;
+}
+
+/* Subtareas: lo que falta de ese elemento */
+.checklist-elemento > ul {
+  margin: 2px 0 0;
+  padding-left: 14px;
+}
+
+.checklist-elemento > ul li {
+  font-size: 11px;
+}
+
+/* Botón con el nombre del elemento: clic = seleccionarlo en el plano */
+.checklist-ir {
+  all: unset;
+  cursor: pointer;
+  font-weight: 600;
+  color: #92400e;
+  text-decoration: underline dotted;
+}
+
+.checklist-ir:hover:not(:disabled) {
+  color: #78350f;
+  text-decoration-style: solid;
+}
+
+.checklist-ir:disabled {
+  cursor: default;
+  text-decoration: none;
 }
 
 /* ---- Arrastre desde la paleta ---- */
@@ -684,83 +798,125 @@ body.arrastrando .paleta-item {
   min-width: 0;
 }
 
-/* ---- Nodo alimentador «Desde …» ---- */
+/* Fecha incompleta o inválida en el rótulo */
+.panel-hoja-resp input.invalido {
+  border-color: var(--error);
+  background: #fef2f2;
+}
+
+/* ---- Nodo alimentador: conductor viniente «Desde …» (vertical) ----
+   Caja mínima que abraza al cable: etiqueta+notación a la izquierda,
+   cable a la derecha, handle en su punta inferior. */
 .nodo-alimentador {
-  width: 172px;
   box-sizing: border-box;
-  background: #fff;
-  border: 2px solid #111827;
-  border-radius: 6px;
-  padding: 6px 8px 8px;
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  padding: 2px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 4px;
   font-size: 12px;
   color: #111827;
 }
 
+/* C17: hover suave, selección FUERTE (mismo criterio que los
+ * símbolos: se tiene que ver qué está elegido). */
+.nodo-alimentador:hover {
+  border-color: #93c5fd;
+}
+
 .nodo-alimentador.sel {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  border-color: var(--acento);
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.15),
+    0 0 10px rgba(37, 99, 235, 0.35);
 }
 
-.alim-fila {
+.alim-col {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
+  flex-direction: column;
+  /* C18: el texto vive a la IZQUIERDA del cable → se justifica a la
+   * DERECHA, remachado contra el cable (regla del usuario). */
+  align-items: flex-end;
+  gap: 2px;
+  /* C27: ancho FIJO elegido para que el offset del handle sea
+   * múltiplo de la grilla (borde1 + padding2 + col + gap4 + centro
+   * del cable15 = col + 22 → con col=138 el handle cae a 160 px).
+   * Así cuerpo y punta quedan JUNTOS sobre el mapa de puntos. */
+  width: 138px;
+  padding-top: 6px;
 }
 
-/* Título del alimentador: grande y legible en el plano impreso */
+/* Etiqueta «Desde»: fija, seguida del origen editable */
 .alim-desde {
+  font-size: 13px;
   font-weight: 700;
-  flex: 0 0 auto;
-}
-
-.nodo-alimentador input,
-.nodo-alimentador select {
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 2px 4px;
-  font-size: 12px;
-  background: #fff;
-  min-width: 0;
-  font-family: inherit;
-  color: inherit;
+  color: #111827;
+  text-align: right;
+  line-height: 1.2;
+  user-select: none;
 }
 
 .alim-origen {
-  flex: 1;
-  font-size: 16px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
   font-weight: 700;
+  color: #111827;
+  text-align: right;
+  outline: none;
+  /* C17: ancho FIJO — si creciera con el texto, la columna empuja el
+   * cable y el símbolo «se corre» mientras uno escribe. El texto largo
+   * scrollea adentro del input. */
+  width: 14ch;
 }
 
-.alim-combo {
-  width: 100%;
+.alim-origen::placeholder {
+  color: #a1a1aa;
+  font-weight: 400;
 }
 
-.alim-n {
-  justify-content: space-between;
-  color: #52525b;
+/* Contenedor del cable: el punto de conexión vive acá adentro (C13) */
+.alim-cable {
+  position: relative;
 }
 
-.alim-n input {
-  width: 44px;
+/* Notación del cable apilada bajo el origen (C15), justificada hacia
+ * el cable (C18). Decorativa: no seleccionable ni clickeable.
+ * C22: con F/N/T de secciones distintas el renglón se hace largo —
+ * se permite partir en varias líneas (máx 26 ch) para que la columna
+ * no invada el diagrama; cada renglón conserva su plaqueta. */
+.alim-nota {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  color: #71717a;
+  line-height: 1.35;
+  text-align: right;
+  white-space: normal;
+  max-width: 26ch;
+  user-select: none;
+  pointer-events: none;
 }
 
-.alim-tag {
-  font-size: 10px;
-  color: #52525b;
-  text-align: center;
-  border-top: 1px dashed #d4d4d8;
-  padding-top: 3px;
-}
-
+/* C13b: punto de conexión del alimentador — Handle 0×0 (ancla al
+   centro exacto de la punta) + punto visible en ::before. */
 .nodo-alimentador .react-flow__handle {
-  background: #111827;
+  background: transparent;
+  border: none;
+}
+
+.nodo-alimentador .react-flow__handle::before {
+  content: "";
+  position: absolute;
+  left: -4.5px;
+  top: -4.5px;
   width: 9px;
   height: 9px;
-  border: none;
+  border-radius: 50%;
+  background: #111827;
 }
 
 /* Botón de alimentador en la paleta */
@@ -768,4 +924,534 @@ body.arrastrando .paleta-item {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
+}
+
+/* ---- Formulario de atributos (Fase C) ---- */
+
+.form-atributos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+/* C13: chips seleccionables que se ILUMINAN (línea asignada, neutro) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.chip.on {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fff;
+  font-weight: 600;
+}
+
+.chip.on:hover {
+  background: #1e40af;
+}
+
+.chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.form-atributos-aviso {
+  margin: 0;
+  font-size: 11px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.campo-atributo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.campo-atributo > span {
+  width: 118px;
+  min-width: 118px;
+  font-size: 11px;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  color: #3f3f46;
+  overflow-wrap: anywhere;
+}
+
+.campo-atributo .obligatorio {
+  color: #dc2626;
+  font-style: normal;
+  margin-left: 2px;
+}
+
+.campo-atributo input,
+.campo-atributo select {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.form-atributos-vacio {
+  margin: 4px 2px;
+  font-size: 12px;
+  color: #71717a;
+}
+
+/* ---- Panel de atributos (Fase C4) ---- */
+
+.panel-atributos {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 20;
+  width: 250px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  padding: 10px;
+}
+
+.panel-atributos h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.panel-atributos-sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: #71717a;
+}
+
+/* ---- Ajustes C4b: panel junto al elemento + anotaciones en hoja ---- */
+
+.panel-atributos {
+  right: auto;
+  bottom: auto;
+  width: 300px;
+}
+
+.panel-atributos h3 {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.panel-atributos h3:active {
+  cursor: grabbing;
+}
+
+.panel-atributos-mover {
+  color: #a1a1aa;
+  font-size: 11px;
+}
+
+/* Anotación de ficha AL COSTADO del símbolo: corta, gris, no invasiva */
+.anotacion-nodo {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  transform: translateY(-50%);
+  text-align: left;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: #71717a;
+  pointer-events: none;
+}
+
+/* C22: los textos del plano NO pueden ser invadidos por cables ni
+ * símbolos (si algo cruza por encima, no se lee). Cada renglón lleva
+ * su plaqueta casi opaca del color de la hoja — legible siempre. */
+.anotacion-nodo > div,
+.alim-desde,
+.alim-nota > div {
+  background: rgba(255, 255, 255, 0.94);
+  padding: 0 3px;
+  border-radius: 3px;
+  box-decoration-break: clone;
+}
+
+.anotacion-edge {
+  background: rgba(255, 255, 255, 0.94);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* C29: tirador del quiebre arrastrable del cable (visible con el
+ * cable seleccionado; clic derecho = quitar el quiebre). */
+.paso-grip {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fdfdfd;
+  border: 2px solid rgba(37, 99, 235, 0.85);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.paso-grip:hover {
+  background: #dbeafe;
+  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.25);
+}
+
+.paso-grip:active {
+  cursor: grabbing;
+}
+
+/* C13: línea SECUNDARIA de la ficha (utilización, etc.): un paso
+   más chica y más clara — jerarquía visual sin trucos de texto */
+.anotacion-nodo .anotacion-sec {
+  font-size: 8px;
+  color: #9ca3af;
+  margin-top: -1px;
+}
+
+/* C13: los textos del plano son DECORATIVOS — arrastrar por encima
+ * no debe seleccionarlos nunca (molestia reportada con el
+ * alimentador). Los inputs siguen siendo seleccionables. */
+.anotacion-nodo,
+.anotacion-edge,
+.nodo-barra,
+.paleta-item {
+  user-select: none;
+}
+
+/* La CARGA (flecha de destino de circuito) lleva el bloque DEBAJO,
+   como en los planos reales: C1 / IUG / VA / A / designación */
+.anotacion-carga {
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+/* ==================== BARRA de distribución (C8) ====================
+   Nodo propio estirable: eje grueso + puntos de conexión cada grilla
+   a lo largo + ficha arriba-izquierda. Los handles son discretos y
+   aparecen al acercar el mouse. */
+/* C22: la CAJA no captura el mouse — si tapaba, era imposible
+ * agarrar el updater de reconexión de un cable que termina en la
+ * barra (quedaba debajo del nodo): el clic se comía y arrastraba la
+ * barra entera. El WRAPPER de React Flow también apaga su
+ * pointer-events (él es el que estaba en el medio); solo el EJE, los
+ * TIRADORES y los PUNTOS reciben el puntero y el resto deja pasar el
+ * clic a las puntas de cable. */
+.react-flow .react-flow__node-barra,
+.nodo-barra {
+  /* !important obligatorio: RF pinta pointer-events:all INLINE en el
+   * wrapper y el inline solo pierde ante un !important de hoja. */
+  pointer-events: none !important;
+}
+
+.nodo-barra {
+  position: relative;
+}
+
+/* C17: barra seleccionada = eje azul + halo (visible de lejos) */
+.nodo-barra.sel .barra-eje {
+  background: var(--acento);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.barra-eje {
+  position: absolute;
+  top: 50%;
+  height: 5px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: #111827;
+  /* C22: recibe el puntero para poder arrastrar la barra por su
+   * línea; el ::after agranda la ZONA DE AGARRE (±6 px alrededor)
+   * sin cambiar lo dibujado. */
+  pointer-events: auto;
+}
+
+.barra-eje::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+/* C21: barra vertical — el trazo gira con el nodo (los handles y los
+   grips ya se reubicaban; el eje quedaba horizontal). Franja vertical
+   centrada en X, con el mismo margen de extremos a lo largo del eje. */
+.barra-eje-v {
+  top: auto;
+  left: 50%;
+  width: 5px;
+  height: auto;
+  transform: translateX(-50%);
+}
+
+.handle-barra {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+/* C13b: puntito visible del handle de barra — el Handle real mide
+   0×0 para que el cable ancle al centro exacto del eje (los pseudo-
+   elementos no afectan la medición de React Flow pero SÍ reciben el
+   mouse a nombre del elemento). */
+.handle-barra::before {
+  content: "";
+  position: absolute;
+  left: -4.5px;
+  top: -4.5px;
+  width: 9px;
+  height: 9px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid rgba(37, 99, 235, 0.55);
+}
+
+.nodo-barra:hover .handle-barra,
+.nodo-barra.sel .handle-barra {
+  opacity: 1;
+}
+
+/* C28: al reconectar una punta, el par a/b superpuesto en cada punto
+ * de la barra resolvía el hit-testing SIEMPRE a favor del último
+ * renderizado ('b'), así que arrastrar la punta FUENTE nunca encontraba
+ * su handle y la suelta se descartaba. La clase que React Flow emite
+ * durante la conexión indica el tipo de handle que ESPERA recibir la
+ * suelta (el opuesto al extremo agarrado); los del otro tipo dejan de
+ * recibir el mouse y el apuntado cae en el correcto. */
+.conectando-source .hb-fuente,
+.conectando-source .handle-salida,
+.conectando-target .hb-destino,
+.conectando-target .handle-entrada,
+.conectando-target .handle-tierra {
+  pointer-events: none !important;
+}
+
+.barra-grip {
+  position: absolute;
+  width: 7px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  border-radius: 3px;
+  background: rgba(37, 99, 235, 0.35);
+  cursor: ew-resize;
+  /* C22: con la caja en pointer-events:none, los tiradores vuelven a
+   * capturar explícitamente (estirar sigue funcionando). */
+  pointer-events: auto;
+}
+
+.barra-grip:hover {
+  background: #2563eb;
+}
+
+.barra-grip-izq {
+  cursor: w-resize;
+}
+
+/* C16: valores que se calculan solos (potencia/utilización de la
+ * carga). No son un campo: solo avisan qué está quedando. */
+.form-calculado {
+  margin: -4px 0 0;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+
+/* Ficha de la barra: extremo IZQUIERDO, por ENCIMA */
+.anotacion-nodo.anotacion-barra {
+  top: auto;
+  bottom: calc(100% + 2px);
+  left: 2px;
+  transform: none;
+  text-align: left;
+}
+
+/* Estimación de corriente de placa en motores (C10): texto gris
+   secundario + botón discreto para aceptarla. Nunca pisa un In real */
+.estimacion-in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.estimacion-in button {
+  border: none;
+  border-radius: 6px;
+  padding: 2px 10px;
+  background: #eef2ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.estimacion-in button:hover {
+  background: #dbeafe;
+}
+
+/* Texto del cable sobre la conexión, sin marco para no invadir.
+   Si la línea es muy larga, quiebra hacia abajo (max-width). */
+.anotacion-edge {
+  position: absolute;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 9px;
+  background: rgba(253, 253, 253, 0.75);
+  padding: 0 3px;
+  border-radius: 2px;
+  color: #71717a;
+  pointer-events: none;
+  max-width: 130px;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.35;
+}
+
+/* ---- Formulario de conexión (barras + llaves) ---- */
+
+.fc .fc-fases {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fc-paso {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #d4d4d8;
+  border-radius: 5px;
+  background: #fafafa;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fc-paso:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.fc-numero {
+  min-width: 26px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.fc-tipos {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.fc-tipo {
+  flex: 1;
+  font-size: 10.5px;
+  padding: 3px 4px;
+  border: 1px solid #d4d4d8;
+  border-radius: 5px;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.fc-tipo.activa {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.fc-llave {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d4d4d8;
+  border-radius: 999px;
+  background: #f4f4f5;
+  padding: 2px 6px;
+  cursor: pointer;
+  justify-content: flex-start;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.fc-llave-perilla {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #a1a1aa;
+  transition: margin-left 0.15s, background 0.15s;
+}
+
+.fc-llave-texto {
+  font-size: 10px;
+  color: #71717a;
+}
+
+.fc-llave.activa {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  justify-content: flex-end;
+}
+
+.fc-llave.activa .fc-llave-perilla {
+  background: #2563eb;
+}
+
+.fc-llave.activa .fc-llave-texto {
+  color: #1d4ed8;
+}
+
+.fc-sub > span {
+  padding-left: 10px;
+  color: #71717a;
+  width: 108px;
+  min-width: 108px;
+}
+
+.fc-preview {
+  margin-top: 6px;
+  border: 1px dashed #d4d4d8;
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 9.5px;
+  color: #18181b;
+  background: #fafafa;
 }

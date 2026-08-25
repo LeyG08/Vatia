@@ -11,6 +11,7 @@ import {
 } from "@xyflow/react";
 import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
+import { GRILLA_PX } from "./ruta";
 import {
   ALIMENTADOR_POR_DEFECTO,
   HOJA_POR_DEFECTO,
@@ -159,6 +160,8 @@ export interface DatosSimbolo extends Record<string, unknown> {
   tipo?: "simbolo";
   codigo_iec: string;
   rotacion: number;
+  /** Ficha técnica de la familia aparato (C4); semilla = atributos_base */
+  atributos: Record<string, unknown>;
 }
 
 export interface DatosAlimentador extends Record<string, unknown> {
@@ -168,13 +171,79 @@ export interface DatosAlimentador extends Record<string, unknown> {
   neutro: boolean;
   tierra: boolean;
   cantidadN: number | null;
+  /**
+   * Ficha del cable de alimentación (C5): MISMO schema que la conexión.
+   * Los campos legados (fases/neutro/tierra/cantidadN) se mantienen por
+   * compatibilidad y siembran estos atributos al cargar proyectos viejos.
+   */
+  atributos?: Record<string, unknown>;
 }
 
-export type NodoData = DatosSimbolo | DatosAlimentador;
+/** Siembra la ficha nueva desde los campos legados (o la existente) */
+function atributosAlimentador(
+  d: Partial<DatosAlimentador>,
+): Record<string, unknown> {
+  if (d.atributos && typeof d.atributos === "object") return { ...d.atributos };
+  const a: Record<string, unknown> = {};
+  const fases =
+    typeof d.cantidadN === "number" && d.cantidadN > 0
+      ? d.cantidadN
+      : d.fases
+        ? 3
+        : 0;
+  if (fases > 0) a.cantidad_conductores = fases;
+  if (d.neutro) a.lleva_neutro = true;
+  if (d.tierra) a.lleva_tierra = true;
+  return a;
+}
 
-function esDatosAlimentador(d: NodoData): d is DatosAlimentador {
+export type NodoData = DatosSimbolo | DatosAlimentador | DatosBarra;
+
+/**
+ * BARRA de distribución (C8): la acometida llega a ella y de ella
+ * cuelgan los circuitos. Es un nodo PROPIO (no el símbolo genérico)
+ * porque su largo es estirable y sus puntos de conexión se generan
+ * a lo largo de toda la barra, cada 10 px, arriba y abajo.
+ */
+export interface DatosBarra extends Record<string, unknown> {
+  tipo: "barra";
+  codigo_iec: string; // "S00119" — fija la familia de atributos
+  rotacion: number; // 0 = horizontal; 90 = vertical (conexión entre barras)
+  /** Largo útil entre extremos, en px. Múltiplo de la grilla. */
+  largoPx: number;
+  /** Ficha de la barra: dimensiones/material/norma/corriente */
+  atributos: Record<string, unknown>;
+}
+
+/** Código IEC reservado para las barras de distribución */
+export const BARRA_CODIGO = "S00119";
+
+/** Largo por defecto = geometría del símbolo original (compatibilidad) */
+export const LARGO_BARRA_DEFECTO_PX = 100;
+
+/** Geometría local del nodo barra (px, sin rotar) */
+export const BARRA_GEO = {
+  /** Margen antes del primer extremo (donde van los handles "in"/"out") */
+  padX: 10,
+  /** Alto de la caja del nodo (la línea vive en el centro) */
+  altoCaja: 40,
+  /** Coordenada Y del eje de la barra dentro de la caja */
+  centroY: 20,
+};
+
+export function esDatosAlimentador(d: NodoData): d is DatosAlimentador {
   return d.tipo === "alimentador";
 }
+
+function esDatosBarra(d: NodoData): d is DatosBarra {
+  return d.tipo === "barra";
+}
+
+/** Snapshot por nodo durante el drag de estiramiento de barras (C8) */
+const snapshotsEstiro = new Map<
+  string,
+  { data: DatosBarra; posicion: { x: number; y: number } }
+>();
 
 /* ==================== Conversiones RF ↔ proyecto ==================== */
 
@@ -194,7 +263,23 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
         neutro: n.data.neutro,
         tierra: n.data.tierra,
         cantidadN: n.data.cantidadN,
+        // El cable REAL (editado en el panel) manda; el sembrado por
+        // flags es solo red de seguridad si quedó vacío
+        atributos:
+          n.data.atributos && Object.keys(n.data.atributos).length > 0
+            ? { ...n.data.atributos }
+            : atributosAlimentador(n.data),
       },
+    };
+  }
+  if (esDatosBarra(n.data)) {
+    return {
+      id: n.id,
+      tipo: "barra" as const,
+      posicion,
+      rotacion: n.data.rotacion,
+      datos: { largoPx: n.data.largoPx },
+      atributos: { ...n.data.atributos },
     };
   }
   return {
@@ -202,16 +287,21 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
     codigo_iec: n.data.codigo_iec,
     posicion,
     rotacion: n.data.rotacion,
-    atributos: {},
+    atributos: { ...n.data.atributos },
   };
 }
 
 function rfAConexionProyecto(e: Edge): ConexionProyecto {
+  const paso = (e.data?.paso as { x: number; y: number } | undefined) ?? undefined;
   return {
     id: e.id,
     desde: `${e.source}.${e.sourceHandle ?? ""}`,
     hasta: `${e.target}.${e.targetHandle ?? ""}`,
-    atributos_conductor: {},
+    ...(paso ? { paso: { ...paso } } : {}),
+    atributos_conductor: {
+      ...((e.data?.atributosConductor as Record<string, unknown> | undefined) ??
+        {}),
+    },
   };
 }
 
@@ -259,6 +349,41 @@ function construirEstadoHoja(hojaSer: Hoja): {
             d.cantidadN > 0
               ? Math.floor(d.cantidadN)
               : null,
+          atributos:
+            n.atributos && Object.keys(n.atributos).length > 0
+              ? { ...n.atributos }
+              : atributosAlimentador(d as Partial<DatosAlimentador>),
+        },
+      });
+      continue;
+    }
+    // BARRA (C13b): PRIMERO por tipo — las barras nativas no llevan
+    // codigo_iec en el archivo (rfANodoProyecto no lo escribe), así que
+    // resolver el símbolo antes acá las descartaba JUNTO con todas sus
+    // conexiones al reabrir un proyecto guardado. El chequeo por código
+    // queda para migrar proyectos viejos que traían S00119 como
+    // símbolo genérico.
+    if (n.tipo === "barra" || n.codigo_iec === BARRA_CODIGO) {
+      const simboloBarra =
+        obtenerSimbolo(n.codigo_iec ?? "") ?? obtenerSimbolo(BARRA_CODIGO);
+      nodos.push({
+        id: n.id,
+        type: "barra",
+        position: { x: n.posicion?.x ?? 0, y: n.posicion?.y ?? 0 },
+        data: {
+          tipo: "barra",
+          codigo_iec: BARRA_CODIGO,
+          rotacion: (((n.rotacion ?? 0) % 360) + 360) % 360,
+          largoPx:
+            typeof n.datos?.largoPx === "number" &&
+            Number.isFinite(n.datos.largoPx) &&
+            n.datos.largoPx >= 40
+              ? Math.round(n.datos.largoPx / GRILLA_PX) * GRILLA_PX
+              : LARGO_BARRA_DEFECTO_PX,
+          atributos: {
+            ...(simboloBarra?.metadata.atributos_base ?? {}),
+            ...(n.atributos ?? {}),
+          },
         },
       });
       continue;
@@ -278,6 +403,10 @@ function construirEstadoHoja(hojaSer: Hoja): {
         tipo: "simbolo",
         codigo_iec: n.codigo_iec!,
         rotacion: (((n.rotacion ?? 0) % 360) + 360) % 360,
+        atributos: {
+          ...simbolo.metadata.atributos_base,
+          ...(n.atributos ?? {}),
+        },
       },
     });
   }
@@ -301,7 +430,10 @@ function construirEstadoHoja(hojaSer: Hoja): {
         ),
         y: snap(r.y0 + 170),
       },
-      data: { ...datos },
+      data: {
+        ...datos,
+        atributos: atributosAlimentador(datos as Partial<DatosAlimentador>),
+      },
     });
   }
   const idsValidos = new Set(nodos.map((n) => n.id));
@@ -322,6 +454,10 @@ function construirEstadoHoja(hojaSer: Hoja): {
       target: tgt,
       targetHandle: tgtH ?? null,
       type: "conexion",
+      data: {
+        atributosConductor: { ...(c.atributos_conductor ?? {}) },
+        paso: c.paso ? { ...c.paso } : null,
+      },
     });
   }
   return { cfg: fusion.hoja, nodos, conexiones, problemas };
@@ -355,13 +491,54 @@ interface EstadoEditor {
     id: string,
     patch: Partial<Omit<DatosAlimentador, "tipo">>,
   ) => void;
+  /** Ficha/largo de la barra (C8) */
+  actualizarDatosBarra: (
+    id: string,
+    patch: Partial<Omit<DatosBarra, "tipo">>,
+  ) => void;
+  /**
+   * Estiramiento de la barra con drag desde CUALQUIERA de sus dos
+   * extremos (C11): "der" mantiene fijo el extremo izquierdo, "izq"
+   * el derecho (corriendo la posición para compensar). "inicio"/
+   * "moviendo" aplican en vivo SIN historial; "fin" consolida un
+   * único paso de undo/redo con el estado previo al gesto.
+   */
+  estirarBarra: (
+    id: string,
+    largoPx: number,
+    fase: "inicio" | "moviendo" | "fin",
+    origen?: "der" | "izq",
+  ) => void;
+  /** Reemplaza la ficha técnica completa de un símbolo (C4) */
+  actualizarAtributosNodo: (
+    id: string,
+    atributos: Record<string, unknown>,
+  ) => void;
+  /** Reemplaza los atributos del cable de una conexión (C4) */
+  actualizarAtributosConexion: (
+    id: string,
+    atributos: Record<string, unknown>,
+  ) => void;
   onNodesChange: (cambios: NodeChange<Node<NodoData>>[]) => void;
   onEdgesChange: (cambios: EdgeChange[]) => void;
   onConnect: (conexion: Connection) => void;
+  /** Reancla los dos extremos de una conexión existente (C11): agarrá
+   * la punta del cable y soltala en otro handle sin perder el cable. */
+  reconectarConexion: (id: string, conexion: Connection) => void;
   registrarArrastre: (ids: string[]) => void;
   confirmarArrastre: (
     despues: Record<string, { x: number; y: number }>,
   ) => void;
+  /** C22: acomoda posiciones SIN historial (alineación fina de
+   * alimentadores al mapa de puntos tras cargar o soltar). */
+  fijarPosiciones: (mapa: Record<string, { x: number; y: number }>) => void;
+  /** C29: quiebre arrastrable del cable (ver notas en la impl.) */
+  moverPasoConexion: (id: string, punto: { x: number; y: number }) => void;
+  confirmarPasoConexion: (
+    id: string,
+    antes: { x: number; y: number } | null,
+  ) => void;
+  limpiarPasoConexion: (id: string) => void;
   rotarSeleccion: () => void;
   eliminarSeleccion: () => void;
   copiarSeleccion: () => void;
@@ -438,12 +615,22 @@ export function tamanoWrapperPx(
 }
 
 /** Tamaño fijo de la tarjeta del nodo alimentador (ver estilos.css) */
-export const TAMANO_ALIMENTADOR_PX = { ancho: 172, alto: 104 };
+export const TAMANO_ALIMENTADOR_PX = { ancho: 100, alto: 92 };
 
 export function tamanoNodoPx(data: NodoData): { ancho: number; alto: number } {
-  return esDatosAlimentador(data)
-    ? { ...TAMANO_ALIMENTADOR_PX }
-    : tamanoWrapperPx(data.codigo_iec, data.rotacion);
+  if (esDatosAlimentador(data)) return { ...TAMANO_ALIMENTADOR_PX };
+  if (esDatosBarra(data)) {
+    // Caja local: largo + márgenes de extremos × alto fijo.
+    // Con giro de 90°/270° la caja queda vertical (dimensiones swaps).
+    const anchoLocal = data.largoPx + 2 * BARRA_GEO.padX;
+    const giro = ((((data.rotacion % 360) + 360) % 360) / 90) | 0;
+    const vertical = giro % 2 === 1;
+    return {
+      ancho: vertical ? BARRA_GEO.altoCaja : anchoLocal,
+      alto: vertical ? anchoLocal : BARRA_GEO.altoCaja,
+    };
+  }
+  return tamanoWrapperPx(data.codigo_iec, data.rotacion);
 }
 
 /** Proyecto vacío inicial con una sola hoja */
@@ -569,7 +756,37 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     agregarSimbolo(codigoIec, x, y) {
       const simbolo = obtenerSimbolo(codigoIec);
       if (!simbolo) return;
-      const data: DatosSimbolo = { tipo: "simbolo", codigo_iec: codigoIec, rotacion: 0 };
+      // La barra de distribución es un nodo propio (C8): estirable,
+      // con puntos de conexión a lo largo de toda su extensión
+      if (codigoIec === BARRA_CODIGO) {
+        const data: DatosBarra = {
+          tipo: "barra",
+          codigo_iec: BARRA_CODIGO,
+          rotacion: 0,
+          largoPx: LARGO_BARRA_DEFECTO_PX,
+          atributos: { ...simbolo.metadata.atributos_base },
+        };
+        const pos = limitarAHoja(x, y, data);
+        const nodo: Node<NodoData> = {
+          id: nuevoId(get().nodos, "n"),
+          type: "barra",
+          position: pos,
+          data,
+          selected: true,
+        };
+        ejecutar({
+          descripcion: "agregar barra",
+          do: () => set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), nodo] })),
+          undo: () => set((s) => ({ nodos: s.nodos.filter((n) => n.id !== nodo.id) })),
+        });
+        return;
+      }
+      const data: DatosSimbolo = {
+        tipo: "simbolo",
+        codigo_iec: codigoIec,
+        rotacion: 0,
+        atributos: { ...simbolo.metadata.atributos_base },
+      };
       const pos = limitarAHoja(x, y, data);
       const nodo: Node<NodoData> = {
         id: nuevoId(get().nodos, "n"),
@@ -592,6 +809,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         tipo: "alimentador",
         ...ALIMENTADOR_POR_DEFECTO(),
       };
+      // Semilla coherente con los valores por defecto (3F+N+PE)
+      data.atributos = atributosAlimentador(data);
       // Debajo del bloque de notas del gabinete para no taparlo
       const pos = limitarAHoja(
         x ?? r.x0 + 60 + existentes * (TAMANO_ALIMENTADOR_PX.ancho + 20),
@@ -634,6 +853,182 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       });
     },
 
+    actualizarDatosBarra(id, patch) {
+      const snapshot = get().nodos.find((n) => n.id === id);
+      if (!snapshot || !esDatosBarra(snapshot.data)) return;
+      ejecutar({
+        descripcion: `editar barra ${id}`,
+        do: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && esDatosBarra(n.data)
+                ? { ...n, data: { ...n.data, ...patch } }
+                : n,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id ? { ...n, data: snapshot.data } : n,
+            ),
+          })),
+      });
+    },
+
+    estirarBarra(id, largoPx, fase, origen = "der") {
+      const normalizar = (v: number): number =>
+        Math.min(
+          2000,
+          Math.max(40, Math.round(v / GRILLA_PX) * GRILLA_PX),
+        );
+      /** Largo+posición coherentes: estirando desde el extremo IZQ el
+       * extremo derecho queda fijo (la posición corre sobre el eje
+       * local según el giro). */
+      const aplicar = (largo: number) => {
+        const base = snapshotsEstiro.get(id);
+        set((s) => ({
+          nodos: s.nodos.map((n) => {
+            if (!(n.id === id && esDatosBarra(n.data))) return n;
+            let posicion = n.position;
+            if (origen === "izq" && base) {
+              const giro =
+                ((((n.data.rotacion % 360) + 360) % 360) / 90) | 0;
+              const ux = giro === 0 ? 1 : giro === 2 ? -1 : 0;
+              const uy = giro === 1 ? 1 : giro === 3 ? -1 : 0;
+              const delta = base.data.largoPx - largo;
+              posicion = {
+                x: base.posicion.x + ux * delta,
+                y: base.posicion.y + uy * delta,
+              };
+            }
+            return { ...n, data: { ...n.data, largoPx: largo }, position: posicion };
+          }),
+        }));
+      };
+
+      if (fase === "inicio") {
+        const nodo = get().nodos.find((n) => n.id === id);
+        if (!nodo || !esDatosBarra(nodo.data)) return;
+        snapshotsEstiro.set(id, {
+          data: nodo.data,
+          posicion: { ...nodo.position },
+        });
+        aplicar(normalizar(largoPx));
+        return;
+      }
+      if (fase === "moviendo") {
+        aplicar(normalizar(largoPx));
+        return;
+      }
+      // fin: un solo paso de historial con el estado previo al gesto
+      const antes = snapshotsEstiro.get(id);
+      snapshotsEstiro.delete(id);
+      if (!antes) return;
+      const nodoFinal = get().nodos.find((n) => n.id === id);
+      const valorFinal =
+        nodoFinal && esDatosBarra(nodoFinal.data)
+          ? nodoFinal.data.largoPx
+          : normalizar(largoPx);
+      let posicionFinal = antes.posicion;
+      if (origen === "izq") {
+        const giro = ((((antes.data.rotacion % 360) + 360) % 360) / 90) | 0;
+        const ux = giro === 0 ? 1 : giro === 2 ? -1 : 0;
+        const uy = giro === 1 ? 1 : giro === 3 ? -1 : 0;
+        const delta = antes.data.largoPx - valorFinal;
+        posicionFinal = {
+          x: antes.posicion.x + ux * delta,
+          y: antes.posicion.y + uy * delta,
+        };
+      }
+      ejecutar({
+        descripcion: `estirar barra ${id}`,
+        do: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && esDatosBarra(n.data)
+                ? {
+                    ...n,
+                    data: { ...n.data, largoPx: valorFinal },
+                    posicion: posicionFinal,
+                  }
+                : n,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id
+                ? { ...n, data: antes.data, position: antes.posicion }
+                : n,
+            ),
+          })),
+      });
+    },
+
+    actualizarAtributosNodo(id, atributos) {
+      const snapshot = get().nodos.find((n) => n.id === id);
+      if (!snapshot || esDatosAlimentador(snapshot.data)) return;
+      const antes = snapshot.data.atributos;
+      if (
+        Object.keys(antes).length === Object.keys(atributos).length &&
+        Object.entries(atributos).every(
+          ([k, v]) => k in antes && antes[k] === v,
+        )
+      )
+        return; // nada cambió → no ensucia el historial
+      ejecutar({
+        descripcion: `editar atributos ${id}`,
+        do: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && !esDatosAlimentador(n.data)
+                ? { ...n, data: { ...n.data, atributos } }
+                : n,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            nodos: s.nodos.map((n) =>
+              n.id === id && !esDatosAlimentador(n.data)
+                ? { ...n, data: { ...n.data, atributos: antes } }
+                : n,
+            ),
+          })),
+      });
+    },
+
+    actualizarAtributosConexion(id, atributos) {
+      const snapshot = get().conexiones.find((e) => e.id === id);
+      if (!snapshot) return;
+      const antes = (snapshot.data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
+      if (
+        Object.keys(antes).length === Object.keys(atributos).length &&
+        Object.entries(atributos).every(
+          ([k, v]) => k in antes && antes[k] === v,
+        )
+      )
+        return;
+      ejecutar({
+        descripcion: `editar cable ${id}`,
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...(e.data ?? {}), atributosConductor: atributos } }
+                : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...(e.data ?? {}), atributosConductor: antes } }
+                : e,
+            ),
+          })),
+      });
+    },
+
     onNodesChange(cambios) {
       set((s) => ({ nodos: applyNodeChanges(cambios, s.nodos) }));
     },
@@ -652,6 +1047,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         target: conexion.target,
         targetHandle: conexion.targetHandle,
         type: "conexion",
+        data: { atributosConductor: {} },
       };
       ejecutar({
         descripcion: `conectar ${edge.id}`,
@@ -659,6 +1055,48 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         undo: () =>
           set((s) => ({
             conexiones: s.conexiones.filter((e) => e.id !== edge.id),
+          })),
+      });
+    },
+
+    reconectarConexion(id, conexion) {
+      if (!conexion.source || !conexion.target) return;
+      const antes = get().conexiones.find((e) => e.id === id);
+      if (!antes) return;
+      const despues = {
+        source: conexion.source,
+        sourceHandle: conexion.sourceHandle ?? null,
+        target: conexion.target,
+        targetHandle: conexion.targetHandle ?? null,
+      };
+      if (
+        antes.source === despues.source &&
+        antes.target === despues.target &&
+        (antes.sourceHandle ?? null) === despues.sourceHandle &&
+        (antes.targetHandle ?? null) === despues.targetHandle
+      )
+        return; // soltó donde mismo: nada que hacer
+      ejecutar({
+        descripcion: `reconectar ${id}`,
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id ? { ...e, ...despues } : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? {
+                    ...e,
+                    source: antes.source,
+                    sourceHandle: antes.sourceHandle,
+                    target: antes.target,
+                    targetHandle: antes.targetHandle,
+                  }
+                : e,
+            ),
           })),
       });
     },
@@ -706,6 +1144,81 @@ export const useEditor = create<EstadoEditor>((set, get) => {
               snapshotAntes[n.id]
                 ? { ...n, position: { ...snapshotAntes[n.id] } }
                 : n,
+            ),
+          })),
+      });
+    },
+
+    fijarPosiciones(mapa) {
+      const hay = Object.keys(mapa).length > 0;
+      if (!hay) return;
+      set((s) => ({
+        nodos: s.nodos.map((n) =>
+          mapa[n.id] ? { ...n, position: { ...mapa[n.id] } } : n,
+        ),
+      }));
+    },
+
+    /* C29: quiebre arrastrable del cable. moverPaso actualiza SIN
+     * historial mientras se arrastra; confirmarPaso graba la entrada de
+     * deshacer una sola vez al soltar; limpiarPaso quita el paso
+     * (vuelve a ruta automática) también con historial. */
+    moverPasoConexion(id, punto) {
+      set((s) => ({
+        conexiones: s.conexiones.map((e) =>
+          e.id === id ? { ...e, data: { ...e.data, paso: { ...punto } } } : e,
+        ),
+      }));
+    },
+    confirmarPasoConexion(id, antes) {
+      const despues = (
+        get().conexiones.find((e) => e.id === id)?.data as
+          | { paso?: { x: number; y: number } | null }
+          | undefined
+      )?.paso ?? null;
+      if (!despues) return;
+      if (antes && despues.x === antes.x && despues.y === antes.y) return;
+      ejecutar({
+        descripcion: "quiebre de conexión",
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, paso: { ...despues } } }
+                : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, paso: antes ?? null } }
+                : e,
+            ),
+          })),
+      });
+    },
+    limpiarPasoConexion(id) {
+      const actual = (
+        get().conexiones.find((e) => e.id === id)?.data as
+          | { paso?: { x: number; y: number } | null }
+          | undefined
+      )?.paso ?? null;
+      if (!actual) return;
+      ejecutar({
+        descripcion: "quitar quiebre",
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id ? { ...e, data: { ...e.data, paso: null } } : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, paso: { ...actual } } }
+                : e,
             ),
           })),
       });
@@ -834,6 +1347,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         target: idDe(l.t),
         targetHandle: l.th,
         type: "conexion",
+        data: { atributosConductor: {} },
       }));
 
       ejecutar({
@@ -955,7 +1469,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         const prefijo = n.tipo === "alimentador" ? "a" : "n";
         const nuevoIdStr = `${prefijo}${Date.now().toString(36)}${mapa.size}${Math.floor(Math.random() * 1000)}`;
         mapa.set(n.id, nuevoIdStr);
-        return { ...n, id: nuevoIdStr, atributos: {} };
+        return { ...n, id: nuevoIdStr, atributos: { ...(n.atributos ?? {}) } };
       });
       const conexionesCopiadas: ConexionProyecto[] = orig.conexiones.map(
         (c, i) => {
@@ -965,7 +1479,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             id: `c${Date.now().toString(36)}d${i}`,
             desde: `${mapa.get(src) ?? src}.${srcH ?? ""}`,
             hasta: `${mapa.get(tgt) ?? tgt}.${tgtH ?? ""}`,
-            atributos_conductor: {},
+            ...(c.paso ? { paso: { ...c.paso } } : {}),
+            atributos_conductor: { ...(c.atributos_conductor ?? {}) },
           };
         },
       );
@@ -1091,12 +1606,20 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const nodosDestino: NodoProyecto[] = seleccion.map(rfANodoProyecto).map(
         (np, i) => ({ ...np, id: [...remap.values()][i] }),
       );
-      const connsDestino: ConexionProyecto[] = viajan.map((e, i) => ({
-        id: `c${Date.now().toString(36)}m${i}`,
-        desde: `${remap.get(e.source)}.`,
-        hasta: `${remap.get(e.target)}.`,
-        atributos_conductor: {},
-      }));
+      const connsDestino: ConexionProyecto[] = viajan.map((e, i) => {
+        const paso =
+          (e.data?.paso as { x: number; y: number } | undefined) ?? undefined;
+        return {
+          id: `c${Date.now().toString(36)}m${i}`,
+          desde: `${remap.get(e.source)}.`,
+          hasta: `${remap.get(e.target)}.`,
+          ...(paso ? { paso: { ...paso } } : {}),
+          atributos_conductor: {
+            ...((e.data?.atributosConductor as Record<string, unknown> | undefined) ??
+              {}),
+          },
+        };
+      });
 
       const snapshotNodos = nodos;
       const snapshotConexiones = conexiones;

@@ -1,8 +1,9 @@
 {
   "codigo_iec": "S00114",
-  "nombre": "Transformador dos bobinados (unifilar)",
+  "nombre": "Transformador dos bobinados",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "transformador" },
   "puntos_conexion": [
     { "id": "prim", "rol": "entrada", "x": 0.0, "y": -20.0 },
     { "id": "sec", "rol": "salida", "x": 0.0, "y": 20.0 }

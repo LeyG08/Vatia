@@ -1,0 +1,124 @@
+{
+  "version": 2,
+  "meta": {
+    "nombre": "regresion_alimentador",
+    "fechaCreacion": "2026-08-24T23:30:00.000Z",
+    "ultimaModificacion": "2026-08-24T23:30:00.000Z"
+  },
+  "hojas": [
+    {
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ],
+        "numeroPlano": "",
+        "numeroPlanoCliente": "",
+        "paginacion": "1/1"
+      },
+      "id": "f8a1a000-0000-4000-8000-000000000001",
+      "nombre": "Hoja 1",
+      "nodos": [
+        {
+          "id": "a1",
+          "tipo": "alimentador",
+          "posicion": {
+            "x": 530,
+            "y": 70
+          },
+          "datos": {
+            "origen": "TGBT",
+            "fases": true,
+            "neutro": true,
+            "tierra": true,
+            "cantidadN": null,
+            "atributos": {
+              "cantidad_conductores": 3,
+              "lleva_neutro": true,
+              "lleva_tierra": true,
+              "tipo_cable": "multipolar",
+              "seccion_fase_mm2": 50,
+              "seccion_neutro_mm2": 35,
+              "seccion_tierra_mm2": 35,
+              "material": "Cu",
+              "aislacion": "PVC",
+              "norma_iram": "IRAM 2178"
+            }
+          }
+        },
+        {
+          "id": "b1",
+          "tipo": "barra",
+          "posicion": {
+            "x": 430,
+            "y": 340
+          },
+          "rotacion": 0,
+          "datos": {
+            "largoPx": 400
+          },
+          "atributos": {}
+        }
+      ],
+      "conexiones": [
+        {
+          "id": "c1",
+          "desde": "a1.salida",
+          "hasta": "b1.130b",
+          "atributos_conductor": {}
+        },
+        {
+          "id": "c2",
+          "desde": "b1.0a",
+          "hasta": "b1.30b",
+          "atributos_conductor": {}
+        }
+      ],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    }
+  ]
+}

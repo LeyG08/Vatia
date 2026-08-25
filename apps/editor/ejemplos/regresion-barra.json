@@ -1,17 +1,15 @@
 {
   "version": 2,
   "meta": {
-    "nombre": "mini_unifilar_prueba",
-    "fechaCreacion": "2026-08-25T04:42:01.545Z",
-    "ultimaModificacion": "2026-08-25T04:42:01.545Z"
+    "nombre": "proyecto_sin_nombre",
+    "fechaCreacion": "2026-08-24T19:59:31.855Z",
+    "ultimaModificacion": "2026-08-24T19:59:31.855Z"
   },
   "hojas": [
     {
-      "id": "demo-hoja-0001",
-      "nombre": "Hoja 1",
       "formato": "A3",
       "orientacion": "horizontal",
-      "tablero": "TGBT",
+      "tablero": "",
       "notasGabinete": {
         "material": "",
         "claseAislacion": "",
@@ -58,100 +56,102 @@
         "numeroPlanoCliente": "",
         "paginacion": "1/1"
       },
+      "id": "694693e2-f409-48f6-9fac-a531c912b54c",
+      "nombre": "Hoja 1",
       "nodos": [
         {
-          "id": "Q1",
-          "codigo_iec": "S00110",
+          "id": "n1",
+          "tipo": "barra",
           "posicion": {
-            "x": 400,
-            "y": 40
+            "x": 170,
+            "y": 150
           },
           "rotacion": 0,
+          "datos": {
+            "largoPx": 600
+          },
           "atributos": {}
         },
         {
-          "id": "K1",
-          "codigo_iec": "S00112",
+          "id": "n2",
+          "codigo_iec": "S00114",
           "posicion": {
-            "x": 400,
-            "y": 360
+            "x": 350,
+            "y": 50
           },
-          "rotacion": 0,
-          "atributos": {}
+          "rotacion": 180,
+          "atributos": {
+            "tipo_aparato": "transformador"
+          }
         },
         {
-          "id": "F1",
+          "id": "n3",
+          "codigo_iec": "S00114",
+          "posicion": {
+            "x": 330,
+            "y": 220
+          },
+          "rotacion": 0,
+          "atributos": {
+            "tipo_aparato": "transformador"
+          }
+        },
+        {
+          "id": "n4",
           "codigo_iec": "S00113",
           "posicion": {
-            "x": 400,
-            "y": 720
+            "x": 470,
+            "y": 50
           },
           "rotacion": 0,
-          "atributos": {}
+          "atributos": {
+            "tipo_aparato": "fusible"
+          }
         },
         {
-          "id": "PE",
-          "codigo_iec": "S00118",
+          "id": "n5",
+          "codigo_iec": "S00113",
           "posicion": {
-            "x": 160,
-            "y": 900
+            "x": 550,
+            "y": 220
           },
-          "rotacion": 0,
-          "atributos": {}
-        },
-        {
-          "id": "X1",
-          "codigo_iec": "S00119",
-          "posicion": {
-            "x": 260,
-            "y": 1120
-          },
-          "rotacion": 0,
-          "atributos": {}
-        },
-        {
-          "id": "M1",
-          "codigo_iec": "S00115",
-          "posicion": {
-            "x": 760,
-            "y": 1040
-          },
-          "rotacion": 0,
-          "atributos": {}
+          "rotacion": 180,
+          "atributos": {
+            "tipo_aparato": "fusible"
+          }
         }
       ],
       "conexiones": [
         {
           "id": "c1",
-          "desde": "Q1.out",
-          "hasta": "K1.in",
+          "desde": "n1.190a",
+          "hasta": "n2.prim",
           "atributos_conductor": {}
         },
         {
           "id": "c2",
-          "desde": "K1.out",
-          "hasta": "F1.1",
+          "desde": "n1.170a",
+          "hasta": "n3.prim",
           "atributos_conductor": {}
         },
         {
           "id": "c3",
-          "desde": "F1.2",
-          "hasta": "X1.in",
+          "desde": "n4.2",
+          "hasta": "n1.310b",
           "atributos_conductor": {}
         },
         {
           "id": "c4",
-          "desde": "X1.out",
-          "hasta": "M1.in",
-          "atributos_conductor": {}
-        },
-        {
-          "id": "c5",
-          "desde": "K1.in",
-          "hasta": "PE.PE",
+          "desde": "n5.2",
+          "hasta": "n1.390b",
           "atributos_conductor": {}
         }
-      ]
+      ],
+      "viewport": {
+        "x": -102.7843068854911,
+        "y": 69.33333333333337,
+        "zoom": 1.7333333333333343
+      }
     }
   ]
 }

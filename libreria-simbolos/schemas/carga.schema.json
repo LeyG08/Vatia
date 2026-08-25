@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carga.schema.json",
+  "title": "Vatia · Atributos de familia carga",
+  "description": "Fase C7/C9. Destino de un circuito de distribución: IUG (iluminación), TUG (tomacorrientes de uso general), ACU (aire acondicionado), seccional u otra. La potencia aparente (VA) se CALCULA sola a partir de la alimentación, el neutro y la corriente; el usuario no la carga a mano.",
+  "$comment": "AJUSTE C9 del usuario: hace falta saber si la carga es monofásica o trifásica, qué línea tiene asignada (L1/L2/L3) y si lleva neutro — con eso la potencia se calcula automáticamente. AJUSTE C30: alimentación y neutro dejan de ser obligatorios (puede haber cargas solo-tierra o sin fases definidas) y se agrega lleva_tierra.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["codigo_circuito", "tipo_carga"],
+  "properties": {
+    "codigo_circuito": {
+      "type": "string",
+      "x-obligatorio": true,
+      "description": "Código del circuito en el tablero. Plano real: \"C1\", \"C2.2\", \"C15\"."
+    },
+    "tipo_carga": {
+      "enum": ["IUG", "TUG", "ACU", "seccional", "otra"],
+      "x-obligatorio": true,
+      "description": "IUG = iluminación de uso general · TUG = tomacorrientes de uso general · ACU = aire acondicionado."
+    },
+    "alimentacion": {
+      "enum": ["monofasica", "trifasica"],
+      "description": "Monofásica (fase-neutro 220 V o fase-fase 380 V sin neutro) o trifásica (380 V entre líneas). Sin valor: carga sin fases definidas (ej. seccional de solo PE)."
+    },
+    "linea_asignada": {
+      "enum": ["L1", "L2", "L3"],
+      "description": "Línea del tablero a la que se asigna la carga monofásica (para equilibrar fases). En trifásica no aplica."
+    },
+    "lleva_neutro": {
+      "type": "boolean",
+      "description": "Monofásica con neutro → 220 V. Monofásica sin neutro → entre fases, 380 V. Sin valor: todavía no se definió."
+    },
+    "lleva_tierra": {
+      "type": "boolean",
+      "description": "¿La carga recibe conductor de tierra (PE)? Independiente del neutro y de las fases (C30)."
+    },
+    "corriente_a": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Corriente nominal de la carga en amperes. Con este dato y la alimentación se calcula la potencia."
+    },
+    "potencia_va": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Potencia aparente en VA — CALCULADA automáticamente: monofásica con neutro S=220·I; monofásica sin neutro S=380·I; trifásica S=√3·380·I."
+    },
+    "ku": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Coeficiente de utilización Ku (0 a 1): fracción de la potencia nominal que el circuito usa en realidad. Sugerido según tipo de carga (IUG cercano a 1, TUG más bajo, ACU/seccional entre 0,75 y 1) y siempre editable a mano. Sin valor se asume 1."
+    },
+    "potencia_utilizacion_va": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Potencia de utilización en VA = potencia_va × ku (ku ausente ⇒ iguala a la nominal). CALCULADA y de solo lectura. Se guarda para el futuro nodo agregador de tablero, que la sumará junto con el coeficiente de simultaneidad Ks."
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Designación de la carga. Plano real: \"Luces Tablero\", \"Tomacorrientes\", \"CNC VF3\"."
+    }
+  }
+}

@@ -1,5 +1,10 @@
 export type RolConexion = "entrada" | "salida" | "tierra";
-export type FamiliaAtributos = "aparato" | "conductor" | "barra";
+export type FamiliaAtributos =
+  | "aparato"
+  | "conductor"
+  | "barra"
+  | "carga"
+  | "sin_ficha_tecnica";
 export type EstadoRevision =
   | "pendiente_revision"
   | "verificado_aea"
@@ -39,11 +44,15 @@ export interface NodoProyecto {
   id: string;
   posicion: { x: number; y: number };
   /** "simbolo" por defecto, para compatibilidad con proyectos viejos */
-  tipo?: "simbolo" | "alimentador";
+  tipo?: "simbolo" | "alimentador" | "barra";
   codigo_iec?: string;
   rotacion?: number;
-  /** Datos propios cuando tipo = "alimentador" */
-  datos?: Partial<AlimentadorConfig>;
+  /**
+   * Datos propios según el tipo:
+   * - alimentador → AlimentadorConfig (origen, fases…)
+   * - barra → { largoPx } (la barra estirable de distribución, C8)
+   */
+  datos?: Partial<AlimentadorConfig> & { largoPx?: number };
   atributos?: Record<string, unknown>;
 }
 
@@ -51,6 +60,9 @@ export interface ConexionProyecto {
   id: string;
   desde: string;
   hasta: string;
+  /** C29: quiebre intermedio obligatorio del recorrido (coords de flujo).
+   * Ausente = ruta automática. */
+  paso?: { x: number; y: number };
   atributos_conductor?: Record<string, unknown>;
 }
 
@@ -121,6 +133,8 @@ export interface AlimentadorConfig {
    * número positivo = cantidad arbitraria de conductores.
    */
   cantidadN: number | null;
+  /** Ficha del cable (schema conductor); siembra desde los campos de arriba */
+  atributos?: Record<string, unknown>;
 }
 
 export function ALIMENTADOR_POR_DEFECTO(): AlimentadorConfig {
@@ -226,12 +240,12 @@ export interface NotasGabineteConfig {
 
 export function NOTAS_GABINETE_POR_DEFECTO(): NotasGabineteConfig {
   return {
-    material: "Gabinete o armazón metálico autoportante",
-    claseAislacion: "Clase I (puesta a tierra de masas metálicas)",
-    personalApto: "Exclusivo para personal BA4 o BA5",
-    gradoProteccion: "IP00 (tablero abierto según IEC 60529)",
-    barrasOConductores: "Sistema de barras principales de cobre desnudo",
-    reservaFutura: "Sin reserva de espacio futuro (0%)",
+    material: "",
+    claseAislacion: "",
+    personalApto: "",
+    gradoProteccion: "",
+    barrasOConductores: "",
+    reservaFutura: "",
   };
 }
 
@@ -252,7 +266,9 @@ export function HOJA_POR_DEFECTO(): HojaConfig {
   return {
     formato: "A3",
     orientacion: "horizontal",
-    tablero: "TGBT",
+    // C13: sin nombre predeterminado — el usuario escribe el suyo
+    // (el placeholder solo sugiere, no guarda dato).
+    tablero: "",
     notasGabinete: NOTAS_GABINETE_POR_DEFECTO(),
     notaSeguridad: "",
     rotulo: ROTULO_POR_DEFECTO(),

@@ -1,0 +1,281 @@
+import { useMemo, type ReactElement } from "react";
+import {
+  type FamiliaAtributos,
+  camposDeFamilia,
+  algunoObligatorio,
+  parAutomatico,
+} from "../lib/esquemas";
+
+interface Props {
+  familia: FamiliaAtributos;
+  atributos: Record<string, unknown>;
+  onChange: (nuevosAtributos: Record<string, unknown>) => void;
+}
+
+function valorComoTexto(v: unknown): string {
+  return v === undefined || v === null ? "" : String(v);
+}
+
+/** Campos del JUEGO DE BARRAS que maneja el bloque de composición
+ * (chips): nunca se renderizan como campos sueltos. */
+const CAMPOS_COMPOSICION_BARRA = [
+  "cantidad_fases",
+  "incluye_neutro",
+  "incluye_tierra",
+];
+
+/**
+ * Estimación de la corriente de placa de un motor trifásico a partir
+ * de su potencia MECÁNICA de eje + eficiencia + cos φ + tensión:
+ *   I = P_eje / (√3 · V · cosφ · η)
+ * El HP/kW de placa NO es potencia eléctrica: sin η el 1:1 estaba mal.
+ * Devuelve null si no hay potencia cargada. Es solo un auxiliar del
+ * formulario: nunca pisa un In real ya cargado.
+ */
+function estimarInA(a: Record<string, unknown>): number | null {
+  let pWatts: number | null = null;
+  if (typeof a.potencia_kw === "number" && a.potencia_kw > 0) {
+    pWatts = a.potencia_kw * 1000;
+  } else if (typeof a.potencia_hp === "number" && a.potencia_hp > 0) {
+    pWatts = a.potencia_hp * 745.7;
+  }
+  if (pWatts === null) return null;
+
+  const ef =
+    typeof a.eficiencia_pct === "number" && a.eficiencia_pct > 0
+      ? a.eficiencia_pct / 100
+      : 0.9;
+  const cos =
+    typeof a.factor_potencia === "number" && a.factor_potencia > 0
+      ? a.factor_potencia
+      : 0.85;
+  const v = typeof a.tension_v === "number" && a.tension_v > 0 ? a.tension_v : 400;
+  const i = pWatts / (Math.sqrt(3) * v * cos * ef);
+  return Math.round(i * 10) / 10;
+}
+
+export default function FormularioAtributos({ familia, atributos, onChange }: Props) {
+  const campos = useMemo(() => camposDeFamilia(familia, atributos), [familia, atributos]);
+  const alguno = useMemo(() => algunoObligatorio(familia, atributos), [familia, atributos]);
+  const reglaPar = useMemo(() => parAutomatico(familia, atributos), [familia, atributos]);
+
+  if (campos === null) {
+    return <p className="form-atributos-vacio">Este símbolo no lleva ficha técnica.</p>;
+  }
+  if (campos.length === 0) {
+    return (
+      <p className="form-atributos-vacio">
+        Tipo de aparato desconocido ({String(atributos.tipo_aparato ?? "—")}).
+      </p>
+    );
+  }
+
+  function actualizar(nombre: string, valor: unknown) {
+    const nuevos: Record<string, unknown> = { ...atributos };
+
+    if (valor === undefined || valor === "") {
+      delete nuevos[nombre];
+    } else {
+      nuevos[nombre] = valor;
+    }
+
+    if (reglaPar && reglaPar.campos.includes(nombre) && typeof valor === "number") {
+      const [campoA, campoB] = reglaPar.campos;
+      const otro = nombre === campoA ? campoB : campoA;
+      if (!Number.isFinite(valor)) {
+        delete nuevos[otro];
+      } else {
+        const convertido =
+          nombre === "potencia_hp"
+            ? valor * reglaPar.factorHpAKw
+            : valor / reglaPar.factorHpAKw;
+        nuevos[otro] = Math.round(convertido * 100) / 100;
+      }
+    }
+
+    // C15: al declarar un JUEGO de barras, precargamos una composición
+    // razonable (3F+N+PE); siempre editable a continuación.
+    if (nombre === "es_conjunto" && valor === true) {
+      if (nuevos.cantidad_fases == null) nuevos.cantidad_fases = 3;
+      if (nuevos.incluye_neutro == null) nuevos.incluye_neutro = true;
+      if (nuevos.incluye_tierra == null) nuevos.incluye_tierra = true;
+    }
+
+    onChange(nuevos);
+  }
+
+  return (
+    <div className="form-atributos">
+      {alguno && (
+        <p className="form-atributos-aviso">
+          Al menos uno de estos campos es obligatorio: {alguno.join(", ")}.
+        </p>
+      )}
+      {campos.map((campo) => {
+        const { nombre, esquema, obligatorio } = campo;
+        const valorActual = atributos[nombre];
+
+        // C15: campos condicionales (x-visible-si) solo se muestran
+        // cuando el campo que los gobierna está activo.
+        const visibleSi = esquema["x-visible-si"];
+        if (visibleSi && atributos[visibleSi] !== true) return null;
+        // Composición del juego de barras: la dibuja el bloque de
+        // chips de más abajo (C16), no campos sueltos.
+        if (
+          familia === "barra" &&
+          CAMPOS_COMPOSICION_BARRA.includes(nombre)
+        ) {
+          return null;
+        }
+
+        let control: ReactElement;
+
+        if (esquema.enum) {
+          control = (
+            <select
+              value={valorComoTexto(valorActual)}
+              onChange={(e) => actualizar(nombre, e.target.value || undefined)}
+            >
+              <option value="">—</option>
+              {esquema.enum.map((op) => (
+                <option key={op} value={op}>
+                  {op}
+                </option>
+              ))}
+            </select>
+          );
+        } else if (esquema.type === "boolean") {
+          control = (
+            <select
+              value={valorActual === true ? "si" : valorActual === false ? "no" : ""}
+              onChange={(e) =>
+                actualizar(
+                  nombre,
+                  e.target.value === "" ? undefined : e.target.value === "si",
+                )
+              }
+            >
+              <option value="">—</option>
+              <option value="si">sí</option>
+              <option value="no">no</option>
+            </select>
+          );
+        } else if (esquema.type === "number" || esquema.type === "integer") {
+          control = (
+            <input
+              type="number"
+              step={esquema.type === "integer" ? 1 : "any"}
+              min={esquema.minimum ?? esquema.exclusiveMinimum}
+              max={esquema.maximum}
+              value={valorComoTexto(valorActual)}
+              onChange={(e) => {
+                const texto = e.target.value;
+                actualizar(
+                  nombre,
+                  texto === "" ? undefined : Number.parseFloat(texto),
+                );
+              }}
+            />
+          );
+        } else {
+          control = (
+            <input
+              type="text"
+              value={valorComoTexto(valorActual)}
+              onChange={(e) => actualizar(nombre, e.target.value || undefined)}
+            />
+          );
+        }
+
+        return (
+          <label key={nombre} className="campo-atributo" title={esquema.description}>
+            <span>
+              {nombre}
+              {obligatorio && <em className="obligatorio" aria-label="obligatorio">*</em>}
+            </span>
+            {control}
+          </label>
+        );
+      })}
+
+      {/* C16: composición del JUEGO DE BARRAS elegible con chips.
+       * Cuántas barras de fase representa (1F/2F/3F) y si incluye
+       * neutro (N) y/o tierra (PE). Los valores viven en los mismos
+       * campos del schema; acá se eligen, no quedan fijos. */}
+      {familia === "barra" && atributos.es_conjunto === true && (
+        <div
+          className="campo-atributo"
+          title="Qué representa el juego: cuántas fases y si suma neutro y/o tierra"
+        >
+          <span>Composición</span>
+          <div className="chips" role="group" aria-label="Composición del juego de barras">
+            {[1, 2, 3].map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={`chip${atributos.cantidad_fases === f ? " on" : ""}`}
+                onClick={() => actualizar("cantidad_fases", f)}
+                title={`${f} ${f === 1 ? "barra de fase" : "barras de fase"}`}
+              >
+                {f}F
+              </button>
+            ))}
+            <button
+              type="button"
+              className={`chip${atributos.incluye_neutro === true ? " on" : ""}`}
+              onClick={() => actualizar("incluye_neutro", atributos.incluye_neutro !== true)}
+              title="Incluye una barra de neutro"
+            >
+              N
+            </button>
+            <button
+              type="button"
+              className={`chip${atributos.incluye_tierra === true ? " on" : ""}`}
+              onClick={() => actualizar("incluye_tierra", atributos.incluye_tierra !== true)}
+              title="Incluye una barra de tierra (PE)"
+            >
+              PE
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Motor trifásico: si falta In de placa, ofrecé una ESTIMACIÓN
+          explícita (η y cos φ por defecto si no están cargados). El
+          botón completa el campo Y TAMBIÉN deja cargados los valores
+          supuestos de η/cosφ (C11: el plano documenta qué se asumió);
+          nunca pisa un valor real ya existente. */}
+      {familia === "aparato" &&
+        atributos.tipo_aparato === "motor_trifasico" &&
+        atributos.in_a == null &&
+        (() => {
+          const est = estimarInA(atributos);
+          if (est === null) return null;
+          const ef =
+            typeof atributos.eficiencia_pct === "number" && atributos.eficiencia_pct > 0
+              ? atributos.eficiencia_pct
+              : 90;
+          const cos =
+            typeof atributos.factor_potencia === "number" && atributos.factor_potencia > 0
+              ? atributos.factor_potencia
+              : 0.85;
+          const usarEstimacion = () => {
+            const nuevos: Record<string, unknown> = { ...atributos, in_a: est };
+            if (atributos.eficiencia_pct == null) nuevos.eficiencia_pct = ef;
+            if (atributos.factor_potencia == null) nuevos.factor_potencia = cos;
+            onChange(nuevos);
+          };
+          return (
+            <div className="estimacion-in">
+              <span title="Estimación desde potencia de eje + η + cosφ + tensión; no reemplaza el dato de placa">
+                In ≈ {est} A (estimado, η={ef}% · cosφ={cos})
+              </span>
+              <button type="button" onClick={usarEstimacion}>
+                usar
+              </button>
+            </div>
+          );
+        })()}
+    </div>
+  );
+}

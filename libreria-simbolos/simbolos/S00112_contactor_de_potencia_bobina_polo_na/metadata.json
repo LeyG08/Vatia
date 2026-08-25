@@ -1,8 +1,9 @@
 {
   "codigo_iec": "S00112",
-  "nombre": "Contactor de potencia (bobina + polo NA)",
+  "nombre": "Contactor de potencia",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "contactor" },
   "puntos_conexion": [
     { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
     { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }

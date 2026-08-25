@@ -53,7 +53,9 @@
 | F2 | Rótulo "según planos reales" (sin cajetín) | SUPERADA por F3 (PR #6) | 23/08/2026 ~01:00–01:08 |
 | F3 | Corrección: rótulo IRAM 4508 conforme + alimentadores conectables | mergeada (PR #7) | 23/08/2026 01:10–01:38 |
 | F4 | HISTORIAL.md + reversión política de merge | mergeada (PR #8) | 23/08/2026 ~02:0x |
-| F5 | Notas de gabinete fijas + ajustes finos del cajetín | PR abierto (#9), espera aprobación | 23/08/2026 (actual) |
+| F5 | Notas de gabinete fijas + ajustes finos del cajetín | mergeada (PR #9) | 23/08/2026 ~02:xx |
+| F6 | Multi-hoja v2 (pestañas, undo por hoja, viewport por hoja) | mergeada (PR #10) | 23/08/2026 |
+| FC | Fase C: formularios de atributos técnicos (schemas → panel) | EN CURSO (rama `proyecto/fase-c-atributos-20260823`) | 23/08/2026 |
 
 Trabajo previo a esta sesión (resumen de referencia): creación del
 editor mínimo (PR #1/#2, noche 22/08 ~20:16–21:12), símbolos IEC con
@@ -530,6 +532,820 @@ rótulo/notas como zonas reservadas con rebote.
 
 ---
 
+### FASE C — FORMULARIOS DE ATRIBUTOS TÉCNICOS (2026-08-23)
+
+Rama `proyecto/fase-c-atributos-20260823`. Pasos C1→C6, el usuario
+prueba y aprueba cada uno antes del siguiente.
+
+**C1 — Schemas reestructurados (aprobado por usuario):**
+- `aparato.schema.json`: discriminado por `tipo_aparato` con 5 subtipos
+  (`$defs` + if/then): interruptor_termomagnetico, contactor, fusible,
+  motor_trifasico, transformador; campos cerrados
+  (`additionalProperties:false`) y anotación propia `x-obligatorio`
+  para el Checklist AEA (C5). Ajustes del usuario incorporados:
+  PdCC normalizado en kA (ambos), portafusible y fusible como productos
+  separados, potencia del motor como par kw/hp con auto-cálculo
+  (1 HP = 0,7457 kW) declarado en `x-par-automatico` +
+  `x-alguno-obligatorio`. Icu/Ics quedan NOTA PENDIENTE para un futuro
+  guardamotor_termomagnetico (IEC 60947-2), registrada en
+  `$comment` + docs/estado-revision-aea.md.
+- `conductor.schema.json` (C1-bis): la conexión representa un MAZO
+  ("3x1x70+1x1x50"): cantidad_conductores (fases 1–3),
+  seccion_fase_mm2 obligatoria, neutro/tierra opcionales como boolean
+  lleva_* + sección propia SOLO si difiere de fase. Salieron `rol` y
+  `color_normalizado` (un mazo mezcla roles); consecuencia anotada:
+  la regla futura "conductor sin rol" del checklist C5 ya no aplica,
+  validar por atributos del mazo (nota junto a la de Icu/Ics).
+
+**C2 — Mapeo aplicado (aprobado por usuario):** los 5 aparatos llevan
+`atributos_base: {"tipo_aparato": ...}` en metadata.json (semilla al
+instanciar → el formulario sabe qué schema cargar). S00115 pierde su
+vieja semilla `cantidad_fases:3` (redundante con el símbolo y hoy
+inválida contra el schema cerrado). S00118 (toma a tierra PE) pasa de
+familia "aparato" a NUEVA familia `sin_ficha_tecnica` (nombre elegido
+por el usuario sobre "ninguna": describe qué es, no qué no es;
+extensible a futuros símbolos decorativos). Enum actualizado en
+metadata.schema.json.
+
+**C3 — Generador dinámico de formulario (implementado):**
+- `src/lib/esquemas.ts`: importa los schemas vía alias `@libreria`
+  (ya existía en vite.config.ts; se agregaron resolveJsonModule+paths
+  a tsconfig.app.json) y expone helpers puros: camposDeFamilia()
+  resuelve base_comun+$ref por subtipo, algunoObligatorio(),
+  parAutomatico(), subtiposAparato().
+- `src/componentes/FormularioAtributos.tsx`: renderiza cualquier
+  familia desde el schema (text/number/integer/select/boolean),
+  marca obligatorios con *, muestra aviso de "al menos uno", y aplica
+  auto-conversión kw↔hp leyendo x-par-automatico (sin hardcodear el
+  caso motor). Familia sin_ficha_tecnica → mensaje, sin formulario.
+- Estilos .form-atributos/.campo-atributo en estilos.css.
+- Aún SIN montar: C4 (panel lateral al seleccionar nodo/conexión) lo
+  conecta con el store; recién ahí será probable probarlo en vivo.
+
+**Verificación:** lint_simbolos.py ✓ (7 símbolos, valida metadata vs
+schema nuevo), npm run build ✓, oxlint ✓, verificar_alineacion.mjs ✓.
+Fix durante build: TS infería tipos literales del JSON importado
+(`"tipo_aparato": true` no entraba en Record<string,EsquemaCampo>) →
+cast único `as unknown as EsquemaRaiz`; y baseUrl deprecado en TS6 →
+paths relativos sin baseUrl.
+
+**Bug reportado por el usuario tras C2 ("se rompió el modelo de la
+tierra"):** el editor tiene su PROPIA lista cerrada de familias —
+`FamiliaAtributos` en tipos.ts y `FAMILIAS` en validadorMetadata.ts —
+y al pasar S00118 a `sin_ficha_tecnica` el validador rechazaba su
+metadata y el cargador (libreria.ts) descartaba el símbolo entero con
+problema de nivel error. FIX: agregar la familia nueva en ambos puntos,
+más etiquetas legibles de grupo en la Paleta (Auxiliares/Aparatos/…)
+para no mostrar el nombre crudo. Verificación verde de nuevo. Lección:
+al extender un enum del schema hay que rastrear sus copias en el
+editor (tipos.ts + validadorMetadata.ts).
+
+**C4 — Panel de atributos conectado al store (implementado, a prueba
+del usuario):**
+- Los atributos ahora VIVEN en el estado React Flow: `DatosSimbolo`
+  gana `atributos` (semilla = `atributos_base` del metadata al crear
+  y también al cargar proyectos viejos, para que `tipo_aparato` esté
+  siempre); las conexiones llevan `data.atributosConductor`. Se
+  corrigieron TODOS los caminos que antes las descartaban con `{}`:
+  rfANodoProyecto/rfAConexionProyecto (serialización), cargar hoja,
+  pegar, duplicarHoja y moverSeleccionAHoja — los atributos viajan con
+  copiar/pegar, duplicado de hoja y movimiento entre hojas.
+- Acciones nuevas `actualizarAtributosNodo` / `actualizarAtributosConexion`
+  con snapshot+undo como el resto de comandos; si el objeto no cambió
+  no ensucian el historial.
+- `PanelAtributos.tsx`: flotante abajo-derecha dentro del lienzo; se
+  muestra con EXACTAMENTE un símbolo seleccionado (usa familia/código
+  del metadata) o una conexión (familia conductor). Con selección
+  múltiple/nula se oculta. Montado en App.tsx.
+- Fix de build: `NODO_HOJA` (nodo lámina) necesitaba `atributos: {}`
+  tras volver obligatorio el campo en DatosSimbolo.
+
+**Verificación:** npm run build ✓ · oxlint ✓ · verificar_alineacion.mjs ✓
+· lint_simbolos.py ✓.
+
+**Bug reportado por el usuario al probar C4 en dev:** Vite 8
+(rolldown) NO resolvió el alias `@libreria/schemas/*.json` en el
+servidor de desarrollo (import-analysis "Failed to resolve import"),
+aunque `vite build` sí lo empaquetaba. FIX: esquemas.ts pasó a imports
+relativos `../../../../libreria-simbolos/schemas/*.json` — la MISMA
+convención que ya usaba libreria.ts con import.meta.glob — y se sacó
+el mapeo `paths` del tsconfig (quedó solo resolveJsonModule). Verificado
+además levantando un dev server efímero: HTTP 200 y resolución a
+/@fs/ correcta para los tres schemas. Lección: en este repo, rutas
+relativas para salir de apps/editor; no confiar en el alias en dev.
+
+**C4b — Ajustes por prueba del usuario (panel + anotaciones en hoja):**
+- Quejas: el panel estaba clavado en la esquina y con tamaño malo, y
+  "si los datos no salen en la hoja están al pedo". Cambios:
+  1. `PanelAtributos` ahora se ANCLA junto al elemento seleccionado
+     (a la derecha del símbolo, usando transform del viewport), es más
+     ancho (300px) y se ARRASTRA desde su encabezado (pointer capture;
+     el arrastre se resetea al cambiar de selección).
+  2. Los atributos se DIBUJAN EN LA HOJA: `lib/anotaciones.ts`
+     formatea líneas al estilo de los planos reales por subtipo (ej.
+     "Siemens 3TF57 / 3P 475A AC-3 / Bobina 220V"; mazo:
+     "3x1x70+1x1x50mm² · Cu · PVC · 0,6/1kV · IRAM NM 247-3").
+     NodoSimbolo las muestra bajo el símbolo (fuera de la caja, sin
+     afectar clamp/zonas); ConexionEdge usa EdgeLabelRenderer para el
+     texto sobre la línea. Sin datos mínimos → no anota.
+  3. Estética de plano: todo texto generado arranca con MAYÚSCULA
+     (`capitalizar()` aplicado a marca/modelo/norma/tamaño/clase/etc.
+     solo en el render; los datos guardados no se mutan).
+
+**Verificación:** npm run build ✓ · oxlint ✓.
+
+**C4c — Refinamiento de anotaciones (feedback del usuario):** el texto
+debía ir AL COSTADO del elemento y no invadir, y "muchas características
+están normalizadas" (no se repiten en el plano). Cambios:
+- Anotación del símbolo pasa al costado derecho (centrada en Y), gris,
+  sin halo ni marco; la del mazo pierde el borde.
+- El texto se reduce a lo ESENCIAL por subtipo: TM "3P · 50A · C",
+  contactor "3P · 475A · AC-3", fusible "63A · gL · NH00",
+  motor "50HP · 400V", transformador "25kVA · 13000/400",
+  barra "Cu · 120mm² · 500A". Salieron marca/modelo, normas IEC,
+  poderes de corte, bobina, portafusible, rpm y grupo de conexión:
+  quedan SOLO en la ficha del panel (y en el JSON), no en la hoja.
+
+**C4d — Anotación completa apilada (feedback del usuario):** "todos
+los datos cargados deben aparecer uno abajo del otro" (revierte el
+criterio mínimo de C4c). La anotación al costado del símbolo lista
+ahora CADA campo con valor en su propia línea, con etiqueta:
+`3P x 10A` / `Curva C` / `PdCC 3000 A` / `Norma IEC 60898-1`, etc.
+El PdCC (guardado en kA) se muestra en amperes cuando es < 10 kA,
+como lo anota el plano. Fusible muestra bloque Portafusible + fusible.
+Barra apila material/perfil/sección/corriente.
+
+**C4e — Fusible sin marca/modelo duplicados (feedback del usuario):**
+había TRIPLE par marca/modelo: el de base_comun, portafusible_marca/
+modelo y fusible_marca/fusible_modelo. Decisión: los marca/modelo de
+base_comun son del PORTAFUSIBLE (el dispositivo dibujado); el cartucho
+fusible lleva solo In/clase/tamaño/PdCC/norma. Se eliminaron los 4
+campos duplicados del schema (queda $comment con la decisión) y se
+actualizó la anotación. La anotación del fusible ahora es:
+`Portafusible Siemens 3NP3` / `500 V · AC-20B` / `250 A gL` /
+`NH00` / `PdCC 125 kA` / `Norma IEC 60269-2`.
+
+**C4f — Formulario de conexión con barras y llaves (feedback del
+usuario):**
+- conductor.schema.json revisado: FUERA tension_asignada (innecesaria)
+  y la variante "vaina" de tipo_cable. tipo_cable queda unipolar |
+  multipolar y DEFINE LA NOTACIÓN: unipolar → "n x 1 x S"
+  (conductores sueltos); multipolar → "1 x n x S" donde n cuenta
+  fases + neutro (ej. del usuario: "1 x 4 x 25 mm² + 16 mm²" =
+  multipolar de 3 fases + neutro con sección distinta).
+- NUEVO FormularioConductor.tsx (el panel ya NO usa el generador
+  genérico para conexiones): stepper con BARRAS inclinadas que
+  representan los conductores de fase (1–3), sección de fase,
+  radios Unipolares/Multipolar, LLAVES on/off para neutro y tierra
+  que al activarse muestran "↳ Sección distinta" opcional
+  (placeholder "= fase"), material/aislación/norma resueltos desde el
+  schema, y VISTA PREVIA en vivo de las dos líneas que irán a la hoja.
+  Tradeoff documentado: este formulario es UI a medida por pedido del
+  usuario; el schema sigue siendo fuente de verdad para validación/C5.
+- lineasMazo() reemplaza a textoMazo(): devuelve DOS líneas — notación
+  del mazo y "Cu/PVC · IRAM 2178" (material/aislación con "/" y al
+  lado la norma). Neutro/tierra con misma sección no agregan sufijo
+  en multipolar; en unipolar se listan explícitos ("+ 1x1x16 mm²").
+  ConexionEdge apila las líneas.
+
+**Verificación:** npm run build ✓ · oxlint ✓ · verificar_alineacion ✓ ·
+lint_simbolos ✓.
+
+**C4g — Marcas de conductor SOBRE la conexión (feedback del usuario):**
+las barras no iban en el formulario sino en la propia conexión según
+normativa. Cambios:
+- FormularioConductor: el stepper pasa a mostrar solo el NÚMERO
+  (− 3 +), sin barras.
+- ConexionEdge: dibuja TRAZOS OBLICUOS cruzando la línea — uno por
+  conductor de línea (fases) — centrados en el segmento más largo del
+  recorrido ortogonal (IEC 60617, single-line). Se recalculan con el
+  path, así siguen las esquinas al mover los símbolos.
+
+**C4h — Marcas normadas completas (feedback del usuario):**
+- SIN límite de fases (schema deja de tener maximum:3; el stepper ya
+  no topea).
+- Trazos inclinados ~45° respecto de la línea y MÁS JUNTOS (separación
+  6px, adaptativa si el tramo es corto), según IEC 60617.
+- Marcas distintivas en el orden fases → neutro → tierra: el neutro es
+  un trazo con CÍRCULO en su punta; la tierra, un trazo CORTADO por
+  una línea corta perpendicular cerca de su punta. La marca se dibuja
+  sobre el segmento más largo del recorrido y sigue las esquinas.
+
+**C4i — Notación agrupada, marcas más visibles (feedback del usuario):**
+- Trazos más GRANDES (15px) y el texto del mazo ahora queda AL COSTADO
+  de las marcas (desplazado perpendicular al tramo), no encima.
+- Si TODOS los conductores comparten la misma sección (fases + neutro
+  + tierra), la notación se agrupa en un solo término: 3F+N+PE de
+  16 mm² unipolares → "5 x 1 x 16 mm²". Con secciones distintas se
+  mantiene el desglose con "+".
+- El texto quiebra hacia abajo si supera ~130px (no queda una línea
+  larguísima).
+- BUG corregido: sin conductores de fase no desaparece la anotación —
+  una conexión SOLO neutro o solo tierra se representa igualmente
+  ("1 x 1 x S mm²").
+
+**C4j — Ajuste fino de marcas y texto (feedback del usuario):**
+- Separación entre marcas sube a 8px: el corte de la TIERRA se veía
+  apretado contra las marcas vecinas.
+- El texto del mazo ya NO flota sobre la conexión: queda AL COSTADO
+  DERECHO de las marcas, centrado en altura, igual que las anotaciones
+  de los aparatos.
+
+**C5 — Checklist AEA no bloqueante:**
+- `lib/checklist.ts`: reglas puras. Símbolos aparato/barra → campos
+  x-obligatorio del schema vacíos + x-alguno-obligatorio (potencia kW
+  o HP). Conexiones → validación POR MAZO (nunca por rol): mazo
+  vacío, sección de fase, material/aislación/norma IRAM, coherencia
+  llaves ↔ secciones (neutro/tierra apagados con sección cargada;
+  secciones mayores que la de fase; solo-neutro/solo-tierra exigen su
+  propia sección).
+- `ChecklistAea.tsx`: panel ámbar en la esquina inferior izquierda
+  (columna compartida con PanelProblemas vía .paneles-flotantes),
+  colapsable, con contador; clic en el nombre de un símbolo lo
+  selecciona para corregirlo desde el panel de atributos. NO bloquea
+  ninguna acción.
+- Nota pendiente N°2 de docs/estado-revision-aea.md marcada RESUELTA.
+
+**C5b — Alimentador con la MISMA forma que las conexiones (feedback):**
+- El panel ya no dice "Checklist AEA": ahora es «Faltan completar
+  campos obligatorios (N)» / «✓ Campos obligatorios completos».
+- El alimentador adopta el lenguaje visual y de formulario de las
+  conexiones: mismo formulario (stepper de conductores, tipo
+  unipolar/multipolar, llaves N/PE con sección distinta, material/
+  aislación/norma, vista previa) con un campo extra ARRIBA: «Desde»
+  (de dónde viene). En la hoja: caja "Desde X" + las mismas marcas
+  oblicuas (círculo = neutro, corte = tierra) + notación al costado.
+  Los combos viejos ("3 líneas + neutro", modo n…) quedaron afuera.
+- DatosAlimentador lleva `atributos` (schema conductor); los proyectos
+  viejos se siembran desde fases/neutro/tierra/cantidadN. Serializa en
+  datos.atributos.
+- Checklist: valida también alimentadores — falta origen + reglas de
+  mazo.
+
+**C5c — Conexiones múltiples, notas vacías, alimentador-cable (feedback con proyecto real):**
+- PROYECTO DE PRUEBA: fusible con 3 conexiones desde el MISMO handle
+  apilaba marcas y textos en el corredor compartido. FIX: las
+  conexiones hermanas (mismo origen) escalonan sus marcas + texto a lo
+  largo del recorrido (fracciones 1/(n+1)… n/(n+1) del largo total de
+  cada trayectoria), con fallback al centro del tramo más largo.
+- Notas del gabinete: SIN valores precargados (todo vacío por
+  defecto).
+- Alimentador rediseñado: ya no es un cuadrado, es UN CONDUCTOR
+  VINIENTE — línea horizontal con etiqueta «Desde …» arriba (editable),
+  marcas normadas sobre la línea y notación abajo; enganche a la
+  derecha. TAMANO_ALIMENTADOR_PX ajustado (150×52).
+
+**C5d — Alimentador vertical + limpieza de textos (feedback):**
+- Alimentador girado: ahora es un cable VERTICAL que baja desde
+  arriba — «Desde …» a la izquierda del cable, marcas normadas sobre
+  la línea, notación a la derecha, enganche en el extremo inferior.
+- Textos descriptivos de más ELIMINADOS: párrafo de ayuda del
+  alimentador en la paleta; en Configuración de hoja quitaron los
+  avisos «Los alimentadores se agregan…», «Estructura fija…»,
+  «Enmarcado: margen izquierdo…», el detalle px/mm y se simplificaron
+  etiquetas; tooltip de «Nueva hoja» corto.
+
+**C5e — Alimentador compacto + fecha del rótulo (feedback):**
+- La caja del alimentador ahora abraza al contenido (≈106×92): la
+  notación pasó DEBAJO de la etiqueta «Desde …» y el handle quedó
+  EXACTAMENTE en la punta inferior del cable (posición fija por
+  estilo, no centrado de RF).
+- Fechas del rótulo con MÁSCARA dd/mm/aaaa: solo dígitos, barras
+  automáticas al escribir, placeholder actualizado y borde rojo si lo
+  escrito no es una fecha real (ej.: 32/13/2026).
+
+**C5f — Handle unido a la punta del cable (feedback):**
+el nodo de conexión del alimentador quedaba despegado del dibujo.
+Ahora se ancla con coordenadas EXACTAS al extremo de la línea
+(CABLE_X=86, PUNTA_Y=91 dentro del nodo), sin depender del centrado
+de React Flow.
+
+**C5g — Conexiones despegadas de los handles (feedback):**
+CAUSA RAÍZ encontrada: rutaOrtogonal snapeaba TAMBIÉN los extremos
+(sx,sy,tx,ty) a la grilla de 10px, pero los terminales de los
+símbolos viven en múltiplos de ESCALA=4px → el snap movía el fin del
+cable hasta 4-6px fuera del círculo del handle (se veía suelto).
+FIX: extremos EXACTOS sin snap; el snap solo aplica a quiebres
+intermedios, con guardas para que el quiebre caiga dentro del tramo
+útil (si no, punto medio real) y descarte de segmentos de longitud
+cero. La verificación del demo da idéntica.
+
+**C5h — Cable del alimentador en grilla + checklist jerárquico (feedback):**
+- El cable ahora cae a x=80 dentro del nodo (múltiplo de la grilla de
+  10px): alineado verticalmente con un símbolo, la conexión sale RECTA
+  sin desvíos. Caja ajustada a ≈100×92.
+- El checklist agrupa por ELEMENTO: ítem principal = el símbolo o
+  conexión (clicable para seleccionarlo), y debajo, como subtareas
+  sangradas, cada cosa que falta.
+
+**C6 — Proyecto de prueba con valores REALES del PPS:**
+- «Desde» ahora es texto fijo en el alimentador (el campo editable es
+  solo la procedencia; placeholder "TGBT").
+- `ejemplos/proyecto-real-pps.json`: cadena TGBT → SF-Peli1-Moli
+  (fusible Siemens R1288, 250 A gG NH1-NH2 125 kA IEC 60269-2) →
+  Q-TMyPET3 (TM SICA 3P 63 A curva C 3 kA) → KM1 (contactor Siemens
+  3TF57 415 V AC-3 475 A bobina 220 V) → Molino del fondo 50 HP
+  400 V, con mazos reales (3x1x240+120 IRAM 2178; 3x1x25+16;
+  3x1x10+6 IRAM NM 247-3; PE 16 mm²) y rama PAT → Q-LuzTablero
+  (BAW 1P 10 A C 1,5 kA).
+- Nuevo `scripts/verificar_proyecto_real.mjs`: replica las reglas del
+  checklist sobre el JSON (schema-driven) → cero pendientes ✓.
+- FIX ida-y-vuelta del alimentador: al cargar y al serializar se PISABA
+  el mazo real (data.atributos editado en el panel) con el sembrado por
+  flags. Ahora los atributos serializados mandan; el sembrado es solo
+  red de seguridad.
+
+**C7 — Símbolo de carga / destino de circuito (flecha):**
+- Nuevo `S00120_carga_circuito_unifilar`: flecha abierta apuntando
+  hacia ABAJO, entrada arriba, terminal en grilla (verificado ×2/×4).
+- Nueva familia de atributos **carga** (`carga.schema.json`):
+  codigo_circuito* ("C1", "C15" o "TS-Pell1"), tipo_carga*
+  (IUG/TUG/ACU/seccional/otra), potencia_va, corriente_a,
+  descripcion. Alta en metadata.schema, validadorMetadata, tipos,
+  esquemas y paleta (grupo "Cargas"); checklist y formulario
+  funcionan solos por ser schema-driven.
+- El bloque de texto va DEBAJO de la flecha (`.anotacion-carga`),
+  en el orden del plano: código / tipo / VA / A / designación.
+- Ejemplo PPS reconstruido con la topología real DENTRO del área
+  útil A3: TGBT → SF-Peli1-Moli → barra seccional (Cu 3x30x10)
+  → TM SICA 63A → KM1 3TF57 → Molino 50HP; PE colgando del mazo;
+  cargas flecha reales C1·IUG·Luces Tablero, C2.2·TUG·Tomacorrientes,
+  C15·ACU·CNC VF3. Verificador ahora resuelve la familia desde el
+  metadata de cada símbolo → cero pendientes ✓.
+
+**C8 — La BARRA como nodo de distribución (feedback del usuario):**
+"las barras en unifilar son todo nodos: la acometida llega a las
+barras para hacer la distribución". Rediseño completo de S00119:
+- Nuevo componente BarraNode (antes símbolo genérico): eje grueso
+  ESTIRABLE con drag desde el extremo derecho (snap a grilla, undo
+  en un solo paso por gesto) y rotación 90° para barras VERTICALES
+  (drag mapeado al eje local según el giro).
+- Puntos de conexión cada 10 px a lo largo de TODO el eje, uno por
+  lado (arriba/abajo), más los extremos "in"/"out" legados. Los
+  proyectos viejos con S00119 migran solos y sus conexiones quedan
+  clavadas en las mismas coordenadas.
+- Ficha nueva (barra.schema.json): dimensiones* ("3x30x10mm") ·
+  material* (Cu/Al) · norma_iram* ("IRAM 2181-1") · corriente
+  admisible*. FUERA perfil rígida/flexible y seccion_mm2 (el plano
+  no los usa). Anotación en UNA línea al extremo IZQUIERDO, POR
+  ENCIMA de la barra.
+- Ejemplo PPS v3: TGBT → SF-Peli1-Moli llega ARRIBA a la barra
+  seccional; abajo cuelgan en puntos distintos y alineados: TM→KM→
+  Molino 50HP, cargas flecha C1·IUG / C2.2·TUG / C15·ACU y la PE.
+- Verificador de fichas ahora valida la barra como las demás
+  familias → cero pendientes ✓.
+- FIX: el contenedor de BarraNode quedaba en 0×0 (todos sus hijos
+  son posicionados en absoluto) y la barra no se veía; ahora el
+  div raíz recibe width/height explícitos según caja×giro.
+
+**C9 — Carga: alimentación/línea/neutro con potencia automática + panel de la barra:**
+- Feedback del usuario: en la carga hace falta saber si es
+  monofásica o trifásica, qué línea tiene asignada (L1/L2/L3) y si
+  lleva neutro — "sabiendo esto el cálculo de la potencia se puede
+  hacer automático".
+- carga.schema.json v2: + alimentacion* (mono/tri), linea_asignada
+  (L1/L2/L3, no aplica en tri) y lleva_neutro*. potencia_va pasa a
+  ser CALCULADA: mono+neutro S=220·I · mono entre fases S=380·I ·
+  tri S=√3·380·I.
+- Nuevo FormularioCarga: la potencia se muestra de solo lectura y
+  se recalcula al cambiar corriente/alimentación/neutro; si pasa a
+  trifásica se borra la línea asignada.
+- Anotación bajo la flecha ahora incluye la línea de alimentación:
+  "1F 220 V · L1", "3F 380 V", etc.
+- FIX del reporte "la barra no aparece... para cargar sus datos":
+  PanelAtributos filtraba solo tipos simbolo/alimentador y el nodo
+  barra nunca abría el panel → ahora también acepta "barra" (la
+  ficha sale por su familia, ya registrada en esquemas.ts).
+- Ejemplo PPS: CA1/C1·IUG·L1·0,08 A→18 VA · CA2.2/TUG·L2·10 A→
+  2200 VA · CA3/C15·ACU trifásica sin neutro.
+
+**C10 — Motor mecánica/eléctrica + Ku de utilización + unión cable-barra:**
+- Aclaración del usuario sobre el checklist (punto 2): el checklist
+  no bloqueante SÍ está implementado desde C4 (ChecklistAea.tsx +
+  lib/checklist.ts, reglas schema-driven por familia, replicadas en
+  verificar_proyecto_real.mjs) y se fue extendiendo con cada familia
+  nueva (C6 conductor, C7 carga, C8 barra). La numeración del plan
+  original se desalineó al re-scopear pasos por feedback.
+- Corrección conceptual del motor: el HP/kW de placa es potencia
+  MECÁNICA del eje, no eléctrica — la conversión 1:1 (0,7457) solo
+  sirve entre HP y kW, NO para derivar corriente. Schema nuevo:
+  eficiencia_pct y factor_potencia (datos de placa, opcionales);
+  in_a pasa a dato principal de placa; si falta, el formulario
+  ofrece una ESTIMACIÓN explícita I = P_eje/(√3·V·cosφ·η) con
+  botón "usar" que nunca pisa un valor real ya cargado.
+- Ku de utilización en cargas (carga.schema.json): ku (0 a 1,
+  sugerido según tipo —IUG≈0,9, TUG≈0,5, ACU≈0,85— y siempre
+  editable) + potencia_utilizacion_va CALCULADA = potencia_va × ku
+  (ku ausente ⇒ 1). Se guarda para el futuro nodo agregador de
+  tablero, que lo sumará junto con Ks (agregación aún no
+  implementada). Helpers en lib/utilizacion.ts, compartibles para
+  futuras cargas no representadas con flecha.
+- Anotación bajo la flecha con jerarquía: nominal principal
+  ("2200 VA") y utilización como secundaria cuando Ku < 1
+  ("Ku=0,5 → 1100 VA útil.").
+- FIX "en la unión con las barras la línea sobrepasa la barra":
+  ConexionEdge ahora deriva el lado de aproximación de cada extremo
+  que cae en una barra según dónde está el otro elemento → la
+  conexión entra SIEMPRE perpendicular al eje, sin vueltas por
+  encima ni cable flotante.
+- Ejemplo PPS: CA1 Ku=0,9→16 VA útil · CA2.2 Ku=0,5→1100 VA útil ·
+  CA3 ACU trifásica Ku=0,85 (sin corriente de placa todavía).
+
+**C11 — Reconexión de cables, estiramiento por ambos extremos, conjunto de barras, textos libres y remate del cable sobre el eje:**
+- FIX persistente "la conexión con la barra se ve como hecha desde
+  arriba": ahora el extremo del cable que cae en una barra se RECORRE
+  a la SUPERFICIE visible del eje (±3 px hacia el otro extremo) además
+  de forzar la entrada perpendicular → el conductor remata SIEMPRE
+  sobre la barra; no puede cruzarla ni asomar del lado contrario.
+- Reconexión de conexiones (pedido del usuario): se pueden AGARRAR
+  las puntas de un cable ya hecho y soltarlas en otro handle
+  (ReactFlow onReconnect + edgesReconnectable). Nuevo store.
+  reconectarConexion: conserva el mazo cargado y queda en el
+  historial como un paso undo/redo. Soltar donde mismo no genera
+  paso.
+- Barra estirable desde los DOS extremos: tirador izquierdo nuevo;
+  al estirar por la izquierda la posición corre sobre el eje local
+  (según giro) para mantener fijo el extremo derecho. Undo en un
+  solo paso restaura largo Y posición.
+- es_conjunto (barra.schema.json): marca si la línea representa el
+  JUEGO de barras por fase dibujado como una sola línea; la ficha
+  antepone "Juego de barras ·". Ejemplo B1 marcado como conjunto.
+- Alimentador: especificación del mazo (varias secciones fase/
+  neutro/tierra) va TODA EN UNA SOLA LÍNEA ("3 x 1 x 25 mm² + … ·
+  Cu/PVC · IRAM NM 247-3") sin bajar hacia abajo; columna y campo
+  «Desde» crecen lo necesario — una palabra larguísima ya no se
+  corta.
+- Motor: aceptar la estimación de In TAMBIÉN carga los valores
+  supuestos de η (%) y cos φ usados en el cálculo, para que el plano
+  documente qué se asumió.
+
+**C12 — Reorientación completa del cable al cruzar lados + alimentador que no desafina:**
+- Reporte del usuario: uniendo un elemento desde abajo de la barra
+  y MOVIÉNDOLO arriba, en ciertas combinaciones el cable seguía
+  entrando mal. Causa: C10/C11 corregían solo el lado del extremo
+  de la BARRA; el OTRO extremo tiraba con su dirección declarada
+  vieja (ej.: una entrada que mira arriba, con la barra pasando a
+  quedar debajo) y generaba una "S".
+- FIX general (ConexionEdge): la dirección EFECTIVA de TODO extremo
+  conserva el eje declarado (vertical/horizontal) pero deriva la
+  POLARIDAD de la geometría real (¿el otro extremo quedó arriba o
+  abajo / a izquierda o derecha?). En cables bien puestos no cambia
+  nada; al cruzar lados se reorienta solo, sin "S". El recorte a la
+  superficie del eje de las barras sigue vigente.
+- Reporte del usuario: con textos largos, el alimentador corría su
+  simbología y quedaba desunida del nodo (la columna crecía y
+  empujaba el cable SVG fuera de su punta).
+- FIX (AlimentadorNode): columna de ancho FIJO otra vez; el campo
+  «Desde» largo crece hacia la IZQUIERDA con margen negativo
+  compensado (el layout no se entera) y la especificación del mazo
+  es position:absolute anclada al borde derecho — una sola línea que
+  se extiende afuera sin empujar JAMÁS la simbología.
+
+**C13 — Ficha de carga más clara, alimentador arrastrable y cable que
+nunca se ve desunido:**
+- Pedidos del usuario (cinco puntos):
+  1. Línea asignada y neutro de la CARGA como CHIPS que se ILUMINAN
+     (L1/L2/L3 con click = deseleccionar; «con neutro» / «sin
+     neutro»). En trifásica los chips de línea quedan apagados.
+  2. Utilización (Ku) como LÍNEA SECUNDARIA de la ficha: más chica y
+     gris («útil ≈ 5500 VA · Ku 0,5») debajo de la nominal, en vez
+     del texto crudo anterior. Sistema nuevo de líneas con
+     jerarquía (LineaAnotacion) reutilizable.
+  3. Sin nombre predeterminado de tablero: HOJA_POR_DEFECTO queda
+     con tablero vacío (el placeholder solo sugiere).
+  4. El ALIMENTADOR ahora se ARRASTRA desde la paleta igual que los
+     símbolos (mantener presionado → soltar en el plano; el click
+     simple sigue agregándolo donde siempre). Respeta las zonas
+     reservadas del rótulo/notas al soltarlo.
+  5. Alimentador: textos alineados por la IZQUIERDA (Desde / caja /
+     mazo), columna que abraza el contenido, y TODO texto decorativo
+     NO seleccionable (adiós selecciones accidentales al arrastrar).
+- Cable-barra SEPARADO (reporte persistente): el recorte de ±3 px a
+  la superficie del eje dejaba hueco visible al cruzar un elemento
+  de lado → DESCARTADO. Ahora todo extremo termina EXACTAMENTE sobre
+  el centro del eje oscuro (5 px): imposible que se lea desunido,
+  incluso mientras el navegador mide tarde el handle durante el
+  arrastre. La reorientación por geometría de C12 sigue igual.
+- BONUS: la punta del alimentador tenía un hueco oculto de 4 px entre
+  la línea dibujada y el punto real de conexión (el handle estaba en
+  el borde del svg, no en la punta). Ahora el handle vive DENTRO del
+  contenedor del cable y viaja pegado a él aunque crezcan los textos.
+
+**C14 — LA causa raíz de los "cables desunidos" (dos bugs reales,
+encontrados reproduciendo el archivo del usuario con navegador
+automatizado):**
+- El usuario reportó que el bug "volvió" y aportó su proyecto JSON.
+- HALLAZGO 1 (crítico): ABRIR un proyecto guardado PERDÍA la barra y
+  TODAS sus conexiones. `construirEstadoHoja` resolvía el símbolo de
+  la librería ANTES de llegar a la rama «barra», pero las barras
+  nativas no llevan `codigo_iec` en el archivo ⇒ `obtenerSimbolo("")`
+  fallaba y el nodo se descartaba; sin él, las 4 conexiones quedaban
+  huérfanas y también se descartaban. FIX: el chequeo por `tipo ===
+  "barra"` va PRIMERO (queda además el fallback por S00119 para
+  migrar proyectos viejos). Guardar→abrir ya es ida-y-vuelta exacta.
+- HALLAZGO 2 (el hueco visible): React Flow NO ancla los cables al
+  centro del handle sino al BORDE del rectángulo medido, y su hoja
+  base impone mínimo 5×5 px ⇒ ~2,5–5 px de aire entre la punta del
+  cable y la barra/símbolo SIEMPRE (antes lo maquillaba a medias el
+  recorte de −3 px descartado en C13). FIX: handles de ancla EXACTA
+  de 0×0 (`min-width/height:0`, doble clase para ganarle al CSS de
+  RF sin depender del orden de importación) y el punto visible como
+  `::before` (no se mide, pero recibe el mouse). Medido tras el fix:
+  **d = 0.00 px exacto en todos los extremos**.
+- REGRESIÓN PERMANENTE: arnés E2E con Playwright
+  (`apps/editor/e2e/conexiones.mjs` + `npm run e2e`) sobre un FIXTURE
+  con el archivo exacto del usuario (`ejemplos/regresion-barra.json`).
+  Mide el gap de todo extremo de cable contra su handle al cargar,
+  al conectar desde abajo con el mouse, al CRUZAR elementos por
+  encima/debajo de la barra (durante y después del arrastre) y al
+  volver a cruzarlos. Umbral 2,5 px; falla si no hay paths (la
+  primera corrida dio un «ok» falso porque el loader había tirado
+  todo — lección incorporada).
+- Suites: build/lint OK; verificador de proyecto real, alineación y
+  lint de símbolos OK; E2E OK.
+
+**C15 — fichas: orden del mazo, conteo multipolar, neutro visible y
+juego de barras con composición (feedback directo del usuario):**
+- MAZO APILADO (alimentador): la especificación ya no va en una línea
+  separada por «·» sino en LÍNEAS APILADAS bajo el origen, en el orden
+  del plano real: SECCIONES → MATERIAL/AISLACIÓN → NORMA IRAM.
+  (`AlimentadorNode` mapea `lineasMazo()` a un div por línea.)
+- FIX CONTEO MULTIPOLAR: cuando neutro y tierra tienen sección
+  DISTINTA a las fases, la anotación vieja contaba mal («1 x 5 x
+  50 mm²» para 4F50+N35+PE35: metía el neutro de 35 como núcleo de
+  50). Ahora los conductores se agrupan POR SECCIÓN con su cantidad
+  real; multipolar uniforme «1 x 6 x 16 mm²», mezclado «1 x (4 x 50 +
+  2 x 35) mm²»; unipolar «3 x 1 x 50 mm² + 2 x 1 x 35 mm²». Casos
+  límite probados por script (solo N, solo T, secciones mezcladas,
+  vacío).
+- CARGA con neutro DECLARADO: la línea de alimentación ahora dice
+  «1F N 220 V · L1» / «3F N 380 V» (sin neutro queda «1F»/«3F»).
+- UTILIZACIÓN reformulada (el usuario rechazó «útil ≈ X VA · Ku 0,5»):
+  ahora como porcentaje del nominal en la línea secundaria gris:
+  «útil 1100 VA (50 %)».
+- JUEGO DE BARRAS con composición (C15): nuevos campos en
+  barra.schema.json — `cantidad_fases` (1..3), `incluye_neutro`,
+  `incluye_tierra` (visibles solo si `es_conjunto=true` vía nueva key
+  `x-visible-si`, soportada por FormularioAtributos que además
+  precarga 3F+N+PE al activar el conjunto). La anotación de barra pasa
+  de «Juego de barras · …» a «Juego de barras 3F+N+PE · …».
+  Ejemplo del PPS actualizado (B1 = 3F+PE).
+- Suites: build/lint OK; verificador de proyecto real (valida los
+  campos nuevos), alineación y lint de símbolos OK; E2E Playwright OK.
+
+**C16 — «mazo» pasó a «cable» + juego de barras elegible + formulario
+de carga sin campos calculados (feedback directo del usuario):**
+- RENOMBRADO GLOBAL mazo → CABLE (el usuario eligió entre Cable /
+  Cableado / Conductores / Tendido): lo visible («Mazo de conductores»
+  del panel → «Cable»; checklist «Cable sin conductores: activá fases,
+  neutro o tierra.»; tooltips de conductor.schema.json) Y lo interno
+  (`lineasMazo`→`lineasCable`, `problemasMazo`→`problemasCable` en
+  editor y verificador, comentarios, descripción de undo). Grep final:
+  cero restos fuera de HISTORIAL. Sin cambios en claves de datos ⇒ los
+  proyectos guardados siguen funcionando igual.
+- JUEGO DE BARRAS ELEGIBLE: la composición ya no son tres campos
+  sueltos con valores precargados — ahora hay un bloque de CHIPS
+  «Composición» (1F/2F/3F + N + PE, estilo C13) que escribe sobre los
+  mismos campos del schema (`cantidad_fases`, `incluye_neutro`,
+  `incluye_tierra`). El precargado 3F+N+PE queda como punto de
+  partida, siempre cambiable. La anotación «Juego de barras
+  3F+N+PE · …» se arma igual que en C15.
+- FORMULARIO DE CARGA: fuera los campos de solo lectura Potencia (VA)
+  y Pot. utilización (VA) — se calculan solas y confundían. Queda una
+  línea informativa gris (= 4400 VA · útil 2200 VA (50 %)) debajo del
+  Ku, y el plano sigue anotándolas.
+- Suites: build/lint OK; alineación, lint de símbolos y verificador
+  de proyecto real OK; E2E Playwright OK.
+
+**C17 — el alimentador ya no se corre al escribir, selección visible
+y puntas de cable más fáciles de mover (feedback del usuario):**
+- INPUT «Desde» de ancho FIJO (14ch): antes crecía con el texto
+  (`width: n ch`) y la columna empujaba el cable → el símbolo «se
+  corría» y perdía alineación MIENTRAS se escribía. Ahora el texto
+  largo scrollea dentro del input y nada se mueve.
+- SELECCIÓN VISIBLE en los cuatro tipos de objeto (antes había solo
+  un borde punteado sutil que pasaba desapercibido):
+  · símbolo: borde sólido azul + halo doble;
+  · alimentador: hover suave / seleccionado azul con halo;
+  · barra: eje pasa a azul con halo;
+  · conexión: trazo azul más grueso + drop-shadow.
+- PUNTAS DE CABLE MÁS FÁCILES DE MOVER: `connectionRadius` 12 → 30.
+  Al soltar una punta (reconexión, C11) o al conectar nuevo cable, el
+  imán agarra el handle más cercano sin apuntar fino. El E2E sigue
+  midiendo anclaje exacto (d≈0) — el snap no lo altera porque apunta
+  justo al centro.
+- Suites: build/lint OK; alineación, lint de símbolos y verificador
+  OK; E2E Playwright OK.
+
+**C18 — justificación del texto del alimentador hacia el cable:**
+- El texto vive a la IZQUIERDA del cable ⇒ se justifica a la DERECHA
+  (regla del usuario: si está de un lado, remacha contra el elemento;
+  viceversa si pasara al otro). «Desde», el origen y la nota apilada
+  terminan ahora flush contra el cable en vez de dejar borde ragged.
+  Cambio solo CSS (align-items/text-align); la geometría del handle no
+  se mueve — E2E verificado.
+- Suites: build/lint OK; E2E Playwright OK.
+
+**C19 — arnés E2E ampliado + bug latente de nombres de handles:**
+- El arnés `e2e/conexiones.mjs` ahora FALLA de verdad (exit 1) cuando
+  algo va mal, y sumó dos escenarios de regresión para lo pedido en
+  C17:
+  · RECONEXIÓN de punta: arrastra el updater target de c4 desde 390b
+    hasta 410b (misma barra) y verifica que el extremo caiga EXACTO en
+    el nuevo slot. Detalle técnico: los updaters de React Flow quedan
+    por DEBAJO del nodo en el z-order, así que el mousedown se
+    despacha sintético directo al elemento y el arrastre/suelta son
+    mouse real.
+  · ESCRIBIR no mueve el alimentador: carga un fixture dedicado
+    (`ejemplos/regresion-alimentador.json`: alimentador + barra +
+    conexión), tipea «Tablero TS-G1» en «Desde» y mide el handle:
+    desplazamiento 0.00 px.
+- BUG LATENTE corregido de paso: los handles de barra se llaman
+  «130a/130b» (sin «p»), y el sufijo importa — «a» es SOURCE y «b» es
+  TARGET; React Flow descarta EN SILENCIO toda conexión cuyo lado no
+  coincida. El ejemplo `proyecto-real-pps.json` traía los nombres
+  viejos con «p» Y los lados invertidos ⇒ al abrirlo en el editor NO
+  se dibujaba ninguna conexión a la barra. Reescribí sus extremos con
+  el formato actual (hacia la barra = b, desde la barra = a); el
+  verificador sigue dando OK con los nuevos nombres.
+- Suites: alineación, lint de símbolos y verificador OK; E2E completo
+  OK (11 escenarios + reconexión + alimentador).
+
+**C20 — ficha de barra APILADA (regla general: un ítem por línea):**
+- El usuario pidió que los VARIOS ítems nunca vayan amontonados en un
+  renglón sino uno debajo del otro. La barra pasaba todo junto
+  («Juego de barras · 3x30x10mm · Cu · IRAM · 500 A»); ahora:
+    Juego de barras 3P+N+PE   ← composición (además F→P, como lo
+                                 escribe el usuario)
+    3x30x10mm                 ← dimensiones del perfil
+    Cu                        ← material como característica propia
+    300 A · IRAM 2104         ← corriente admisible con la norma AL LADO
+- Resto de anotaciones ya cumplían la regla (carga, cable,
+  alimentador apilado desde C15); quedan solo dos pares relacionados
+  en una línea: corriente+norma (pedido explícito) y tensión+categoría
+  del portafusible.
+- Suites: build/lint OK; alineación + lint + verificador OK; E2E OK.
+- **Ajuste posterior del usuario (mismo C20):** dimensiones y material
+  en la MISMA línea («3x30x10mm · Cu»); el material solo va solo si no
+  hay dimensiones. Layout final:
+    Juego de barras 3P+N+PE
+    3x30x10mm · Cu
+    300 A · IRAM 2104
+- Suites del ajuste: build/lint OK; E2E OK (14 escenarios).
+
+**C21 — barra VERTICAL: el trazo también gira:**
+- Reporte del usuario: en vertical los handles y los tiradores se
+  reubican bien, pero la SIMBOLOGÍA quedaba horizontal. Causa: el eje
+  (.barra-eje) era siempre una franja horizontal (top:50%+height fijo);
+  sus insets left/right caían sobre el ancho corto de la caja girada.
+- Arreglo: BarraNode agrega la clase .barra-eje-v cuando el giro es
+  impar → franja VERTICAL centrada en X, con top/bottom = padX a lo
+  largo del eje (mismo margen de extremos que en horizontal). La ficha
+  sigue quedando sobre el extremo superior, coherente.
+- Arnés E2E: nuevo escenario «rotar barra» — selecciona la barra, tecla
+  R y mide el bounding del eje (horizontal ≫ancho → vertical ≫alto,
+  comparación RELATIVA porque el zoom del viewport infla los px) y
+  verifica que los cables siguen anclando exacto tras la rotación.
+- Suites: build/lint OK; alineación + lint + verificador OK; E2E OK.
+
+**C22 — cinco arreglos tras probar el diagrama PPS real (molino del fondo):**
+1. ALIMENTADOR ENTRE DOS PUNTOS: la punta «salida» vive a
+   (columna+15 px) del origen del nodo y ese offset no es múltiplo de
+   grilla; RF snapeaba la ESQUINA, no la punta → cable torcido.
+   Ahora se mide el offset real (DOM/zoom) y el nodo se corre lo justo
+   para que la PUNTA caiga exacta en el mapa de puntos: al soltar un
+   arrastre y en silencio al cargar/cambiar de hoja (acción nueva
+   `fijarPosiciones`, sin historial). E2E: resto=(0.00, 0.00) px.
+2. RECONEXIÓN RÁPIDA ROTA: agarrar la punta de un cable que termina
+   en la barra arrastraba LA BARRA — el updater queda debajo y tanto
+   mi caja como el WRAPPER de React Flow capturaban el clic (RF pinta
+   `pointer-events:all` INLINE en el wrapper). Solución: wrapper +
+   caja con `pointer-events:none !important`; solo eje (::after de
+   ±6 px), tiradores y puntos reciben puntero. E2E nuevo: la punta es
+   ALCANZABLE con elementFromPoint.
+3. MIGRACIÓN DWG (PENDIENTE, requiere datos): el usuario aclaró que el
+   DWG real tiene ~30 UNIFILARES DISTINTOS en un solo archivo y la
+   interpretación actual los mezcla como si fueran un tablero. Falta
+   el archivo fuente (DWG/DXF o export) para re-segmentar en hojas;
+   NO se tocó proyecto-real-pps.json todavía.
+4. TEXTO INVADIDO: cada renglón de las fichas (símbolos, barra,
+   carga, alimentador) y la anotación de los cables llevan ahora una
+   plaqueta casi opaca blanca (rgba .94) — nada que cruce por debajo
+   tapa la lectura. La nota del alimentador con F/N/T de secciones
+   distintas permite partir en líneas (máx 26 ch).
+5. SALTOS BRUSCOS AL ACOMODAR: mientras se arrastra UNA punta de
+   cable (conexión nueva o reconexión), el quiebre intermedio va SIN
+   snap (ruta suave, sigue al puntero); al soltar vuelve el criterio
+   definitivo snapeado. Además la notación de cables pasó a "×"
+   compacta ("3×50 + 2×35 mm²", multipolar "1 × (3×50 + 2×35) mm²").
+- Suites: build/lint OK; alineación + lint + verificador OK; E2E OK
+  (16 verificaciones).
+
+**C23 — el proyecto PPS pasa a ser MULTI-HOJA (un unifilar por tablero):**
+- El usuario pasó el fuente real: «Unifilares de Tableros.dwg»
+  (AC1032, 20/08) + «Unifilares de Tableros (PROV).pdf» (28 págs,
+  11/08) en Downloads. Relevamiento con PyMuPDF: cada página es un
+  unifilar de UN tablero; los nombres TS-* que aparecen son destinos,
+  no títulos (de ahí venía la confusión anterior).
+- El DWG comprime los textos (escaneo binario UTF-16/ASCII: solo
+  fragmentos sueltos) — la lista completa sale de la capa de texto del
+  PDF. Sin líneas vectoriales en el PDF (ploteo rasterizado): no hay
+  marcos dibujados que detectar.
+- `scripts/resegmentar_pps.mjs` (idempotente): reestructura
+  proyecto-real-pps.json en 30 HOJAS — la existente pasa a llamarse
+  «TGBT · TS-G1» (el viejo nombre "TS-Pell1_y_Molino1" era un destino
+  mal tomado como título) y se agregan 29 hojas VACÍAS nombradas por
+  unifilar, con metadatos de migración (fuente/página/estado). Coincide
+  con los ~30 unifilares que mencionó el usuario.
+- `verificar_proyecto_real.mjs`: ahora barre TODAS las hojas; las
+  vacías se informan como «Sin migrar aún» y NO hacen fallar.
+- PENDIENTE (próximas iteraciones): migrar el CONTENIDO de cada página
+  del PDF a su hoja (extracción posicional página por página).
+- Suites: build/lint OK; E2E OK; alineación + lint + verificador OK
+  (30 hojas, sin pendientes de fichas).
+
+**C24 — corrección de C23: TGBT y TS-G1 son tableros DISTINTOS:**
+- El usuario lo marca: TGBT es un tablero propio; el nombre combinado
+  «TGBT · TS-G1» era un error, igual que haber renombrado la hoja con
+  contenido (ese contenido ES TS-Pell1_y_Molino1 — un tablero
+  alimentado DESDE TGBT).
+- `resegmentar_pps.mjs`: hoja 1 restaurada a
+  «TS-Pell1_y_Molino1» (migracion.pagina=null) + nuevas hojas vacías
+  «TGBT» (p0), «TS-G1» (p0) y «TS-Lab» (p1). Total: 33 hojas.
+- Suites: E2E OK; verificador multi-hoja OK (32 vacías sin fallar).
+
+**C24b — migración del unifilar TGBT (página 0) a su hoja:**
+- Lectura posicional del PDF corregida por rotación (p.rotation=270;
+  coordenadas visuales con rotation_matrix). p0 = TGBT: doble ingreso
+  a la barra principal — Red de distribución (1x3x240+N120, IRAM 2178)
+  vía QG-TGBT1 (EMA SACE ISOL Z500 500A, PdCC 20kA, IEC 60947-2) +
+  KM1 (Siemens 3TF57 475A AC3, bobina 220V); PAT generador vía segundo
+  QG-TGBT1 + KM2 (Siemens 3TA28 170A AC3). Barra 3x30x10mm Cu
+  (IRAM 2181-1) + PE. Gabinete: autoportante, Clase I, BA5/BA4,
+  IP00 IEC 60529, barras de cobre desnudo, sin reserva futura.
+  Las salidas a TS-G1/TS-CD/TS-BC son seccionales/señales: viven como
+  alimentadores en SUS hojas, no acá.
+- `scripts/migrar_tgbt.mjs` (idempotente): 8 nodos + 7 conexiones en
+  la hoja tgbt. Corrección previa: resegmentar numeraba hojas desde 2
+  y generó ids duplicados → ahora continúa desde el sufijo máximo.
+- Verificador: hoja TGBT sin pendientes; E2E OK.
+**C26 — TGBT re-migrado FIEL al dibujo del usuario:**
+- El usuario dibujó el TGBT en el editor (Downloads\TGBT.json,
+  interpretación de su AutoCAD sin la parte de comando) y mostró que
+  la topología de C24b era incorrecta. Topología real:
+  Red (multipolar 3x240+N120 IRAM 2178) entra DIRECTO a la barra
+  principal (30x10 mm Cu, 573 A); los ramales BAJAN barra -> KM
+  (3TF57 475A / 3TA28 170A ue 690V) -> QG-TGBT1 (EMA SACE ISOL Z500
+  500A) -> carga seccional «TS-G1»; cada seccional recibe además un
+  enlace SOLO NEUTRO 35 mm2 directo desde la barra; y PAT pasa por
+  AFUERA (unipolar 1x70+PE70 IRAM 2004) hasta su propio TS-G1.
+- migrar_tgbt.mjs reescrito: nodos/conexiones copiados verbatim del
+  archivo del usuario. Ajustes mínimos documentados: c1/c7/c8/c11
+  completados con datos del PDF; n8 alimentacion=monofasica; a2/c11
+  aislacion XLPE (IRAM 2004; el checklist la exige).
+- verificar_proyecto_real.mjs ahora resuelve barra por tipo
+  (S00119) como hace construirEstadoHoja — el export del usuario no
+  trae codigo_iec en la barra.
+- PENDIENTE ACORDADO: próxima ronda = NUEVA SIMBOLOGÍA MCCB / caja
+  moldeada con Ir/Im (hoy se usa S00110 como placeholder; por eso el
+  usuario cargó pdcc 2500). Valores del usuario respetados verbatim.
+- Verificador OK (sin pendientes); E2E OK.
+**C27 — alimentador: cuerpo Y punta sobre el mapa punteado:**
+- Queja del usuario: los alimentadores quedaban «levemente
+  desalineados» del mapa. Causas encontradas: (1) el zoom se leía con
+  un regex que no matchea transform matrix(...) y fallaba en silencio;
+  (2) por diseño C22 la PUNTA se alineaba pero el CUERPO quedaba entre
+  puntos (offset interno no múltiplo de grilla y dependiente del
+  texto).
+- App.tsx: zoom vía DOMMatrixReadOnly(getComputedStyle(...).transform);
+  reintento doble del efecto de alineación (120 ms + 600 ms) para no
+  perder nodos si RF aún no montó el handle.
+- AlimentadorNode/estilos: ALTO_LINEA 88->81 (punta a 80 px) y
+  .alim-col ancho fijo 138 px -> offset del handle (160, 80) múltiplo
+  de 10 en ambos ejes. Cuerpo y punta caen juntos en la grilla; el
+  snapToGrid mantiene la alineación durante el arrastre.
+- E2E: nueva medición «alineación cuerpo alimentador» (translate del
+  wrapper % 10 == 0). Verde en (0.00, 0.00).
+
+**C25 — reinicio del proyecto PPS desde TGBT (reversión de C23/C24):**
+- El usuario ordena borrar todo y empezar de nuevo: TGBT es EL tablero
+  donde inicia todo. Las 33 hojas especulativas se descartan — varias
+  eran tableros inexistentes inventados a partir de etiquetas de
+  destino o de MÁQUINAS (CNC VF3/VF2/TL2/VF4 son cargas ACU dentro del
+  tablero de p2, no tableros).
+- proyecto-real-pps.json regenerado con UNA sola hoja: «TGBT»
+  (contenido real de p0 migrado por scripts/migrar_tgbt.mjs: doble
+  ingreso Red/PAT → QG-TGBT1×2 + KM1/KM2 → barra 3x30x10 Cu + PE).
+- Se elimina scripts/resegmentar_pps.mjs (su lista de unifilares era
+  inválida). Los demás tableros se irán agregando UNO POR UNO a medida
+  que se migre cada página real del PDF/DWG, en orden topológico desde
+  TGBT.
+- Verificador OK (1 hoja, sin pendientes); E2E OK.
+  Aclaración UX: no hay menú de ejemplos — el archivo se abre con
+  «📂 Cargar…» eligiendo apps/editor/ejemplos/proyecto-real-pps.json.
+
+---
+
 ## Registro de reversiones y cambios de rumbo
 
 | Qué | Cuándo | Motivo | Efecto |
@@ -537,13 +1353,125 @@ rótulo/notas como zonas reservadas con rebote.
 | Cajetín IRAM v1 (PR #4) → formato "planos reales" sin cajetín (PR #6) | 01:08 | decisión del usuario ante pregunta | reemplazo de RotuloConfig por EncabezadoConfig |
 | Formato "sin cajetín" (PR #6) → rótulo IRAM 4508 CONFORME (PR #7) | 01:10–01:38 | corrección del usuario: el rótulo debe existir y cumplir la norma | se restaura RotuloConfig ampliado + geometría figura 1 |
 | Política auto-merge de AGENTS.md (dc03f8e) → aprobación previa del usuario | F4 (actual) | pedido explícito del usuario | los PR quedan abiertos hasta orden expreso de merge |
+| Proyecto PPS multi-hoja especulativo (C23/C24) → reinicio con solo TGBT (C25) | C25 (actual) | orden del usuario: «borra todo y comenzá de nuevo»; TGBT es el tablero donde inicia todo; había tableros inventados (CNC VF3/VF2 eran cargas, no tableros) | proyecto-real-pps.json queda con UNA hoja TGBT real; los demás unifilares se agregan al migrar cada página |
 
 ---
 
 ## Estado al cierre de esta entrada
 
-- `main` local = `00556bb` (PR #8 mergeado): AGENTS.md con política de
-  aprobación previa + HISTORIAL.md activo.
-- Pendiente: aprobar PR #9 (F5: notas fijas + ajustes del cajetín).
-- Próximos pasos funcionales sugeridos: exportar PDF de la hoja,
-  atributos de conductores en conexiones, más símbolos IEC.
+- `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
+- Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
+  IMPLEMENTADAS Y COMMITEADAS C1 a C30 —
+  · C1/C1-bis/C2: base de atributos y formularios schema-driven.
+  · C3: motor de checklist no bloqueante (lib/checklist.ts) +
+    panel ChecklistAea agrupado por elemento con subtareas.
+  · C4: panel de ficha técnica junto al elemento seleccionado,
+    conectado al store; el checklist quedó cerrado acá y se fue
+    extendiendo por familia en cada entrada posterior.
+  · C5a–C5h: rediseño del ALIMENTADOR (caja, mazo real, cable
+    alineado a grilla, extremos exactos, «Desde» fijo).
+  · C6: proyecto real del PPS + verificador schema-driven
+    (verificar_proyecto_real.mjs, cero pendientes).
+  · C7: símbolo de carga S00120 (flecha destino de circuito) +
+    familia carga.
+  · C8: barra de distribución como nodo propio (estirable, puntos
+    de conexión cada grilla, vertical por rotación, ficha arriba-
+    izquierda, migración automática de proyectos viejos).
+  · C9: alimentación/línea/neutro de la carga + potencia calculada
+    automáticamente (220/380/√3·380 × I).
+  · C10: motor mecánica/eléctrica con η y cosφ + estimador de In;
+    Ku de utilización con potencia_utilizacion_va guardada para el
+    futuro agregador de tablero (Ks); unión perpendicular
+    cable-barra.
+  · C11: reconexión de puntas del cable; barra estirable por ambos
+    extremos; es_conjunto (juego de barras); mazo del alimentador en
+    una línea y textos sin recortes; remate del cable sobre la
+    superficie del eje.
+  · C12: reorientación automática del cable en TODOS los extremos al
+    cruzar un elemento de lado (adiós "S" contra la barra);
+    alimentador con columna fija y textos creciendo hacia afuera sin
+    desafinar la simbología.
+  · C13: chips iluminados (línea/neutro) en la ficha de carga;
+    utilización como línea secundaria gris; sin tablero
+    predeterminado; alimentador arrastrable desde la paleta; textos
+    alineados a la izquierda y no seleccionables; extremos del cable
+    rematando sobre el centro del eje (nunca se ven desunidos).
+  · C14: cargar un proyecto guardado ya NO pierde la barra ni sus
+    conexiones; cables anclados al centro EXACTO de cada handle (adiós
+    aire de 2,5–5 px); arnés E2E Playwright con el caso del usuario
+    como fixture de regresión (`npm run e2e`).
+  · C15: mazo del alimentador apilado (secciones/material/norma);
+    conteo multipolar corregido agrupando por sección; neutro visible
+    en la carga («1F N»/«3F N»); utilización como «útil X VA (P %)»;
+    juego de barras con composición (cantidad_fases + N/PE).
+  · C16: renombrado global «mazo»→«cable»; composición del juego de
+    barras elegible con chips (1F/2F/3F+N+PE); formulario de carga sin
+    campos calculados (solo línea informativa).
+  · C17: input «Desde» de ancho fijo (el alimentador no se corre al
+    escribir); selección evidente en símbolos/alimentador/barra/cable;
+    puntas de cable con imán generoso (connectionRadius 30).
+  · C18: texto del alimentador justificado hacia el cable (derecha,
+    por estar a su izquierda).
+  · C19: arnés E2E con fallo real + escenarios de reconexión de punta
+    y de «escribir no mueve»; corregido bug latente de nombres/sentido
+    de handles de barra en proyecto-real-pps.json (no dibujaba nada al
+    abrirlo).
+  · C20: ficha de barra apilada (composición / dimensiones con
+    material al lado / corriente+norma) — regla general: un ítem por
+    línea, pares relacionados comparten renglón.
+  · C21: barra vertical — el trazo gira con el nodo (+ escenario E2E
+    de rotación).
+  · C22: punta del alimentador exacta en el mapa de puntos; la
+    reconexión rápida de puntas vuelve a andar (la caja de la barra ya
+    no tapa); plaquetas blancas bajo TODO texto del plano; ruta suave
+    mientras se arrastra una punta. PENDIENTE C22: re-migración del
+    DWG (~30 unifilares en un archivo) — falta el archivo fuente.
+  · C23: recibido el fuente real (DWG+PDF) — proyecto reestructurado
+    en 30 hojas, una por unifilar/tablero; verificador multi-hoja;
+    migración de contenido página por página queda como próximo paso.
+  · C24: corrección — TGBT y TS-G1 son tableros distintos; la hoja con
+    contenido vuelve a ser TS-Pell1_y_Molino1; +TGBT, +TS-G1, +TS-Lab
+    como hojas     propias (33 en total).
+  · C24b: migrado el unifilar TGBT (p0) a su hoja; ids de hoja
+    corregidos (sin duplicados).
+  · C26: migración VERBATIM del TGBT según el dibujo de referencia del
+    usuario (Downloads/TGBT.json): Red entra DIRECTO a la barra n1;
+    dos ramales barra→KM→QG→carga-seccional (TS-G1); enlaces de solo
+    neutro 35 mm²; PAT por fuera de la barra (1×70+PE, IRAM 2004) a
+    otra carga-seccional; pdcc 2500 del QG se mantiene (en realidad es
+    un MCCB — placeholder hasta la nueva simbología). Verificador
+    resuelve barras sin codigo_iec (S00119).
+  · C27: cuerpo+punta del alimentador alineados al mapa punteado
+    (zoom leído con DOMMatrix, ALTO_LINEA 81, columna fija 138 px,
+    reintento del efecto); E2E «alineación cuerpo alimentador».
+  · C28: reconexión de la punta FUENTE sobre la barra (imposible desde
+    siempre): con los handles a/b superpuestos, React Flow resolvía el
+    apuntado con elementFromPoint SIEMPRE a favor del último
+    renderizado ('b', tipo destino) y descartaba la suelta en silencio.
+    Fix: durante la conexión se marca la raíz con .conectando-{tipo}
+    (callbacks onConnectStart/onReconnectStart + refs, sin re-renders;
+    useConnection en el padre provocaba bucle React #185) y CSS deja
+    fuera del hit-testing los handles del tipo incompatible. E2E nuevo:
+    punta fuente de c1 → n1.210a.
+  · C29: quiebre arrastrable del cable — con el cable seleccionado
+    aparece un grip sobre el recorrido; arrastrarlo fuerza UNA esquina
+    exacta (ConexionProyecto.paso, snap a grilla, se serializa y viaja
+    con duplicar/mover a hoja), clic derecho lo quita; Ctrl+Z deshace.
+    Ruta: rutaOrtogonal acepta paso (extremo→esquina→extremo
+    respetando ejes de salida/llegada). E2E: vértices 4→5 al doblar,
+    gaps en cero, deshacer restaura.
+  · C30: combinaciones LIBRES fases/neutro/tierra — cable: el stepper
+    de conductores baja a 0 (solo N, solo PE o solo secciones propias;
+    schema minimum 0; checklist ya exigía sección por línea presente).
+    Carga: schema sin alimentacion/lleva_neutro obligatorios + nuevo
+    lleva_tierra; formulario con chips Fases (—/1F/3F) + Neutro (con/
+    sin N) + Tierra (con/sin PE) independientes; línea asignada solo
+    con fases definidas; potencia NO se calcula sin fases (no hay
+    tensión de referencia). Verificado en vivo sobre la hoja TGBT:
+    3F→√3·380·I, —→sin cálculo, estado solo-PE ok.
+  · C31: verificación completa en verde (build · lint · alineación ·
+    símbolos · proyecto real · E2E 21 checks) y MERGE de la Fase C a
+    main por orden expresa del usuario (PR #11, --merge
+    --delete-branch); main sincronizada después del merge.
+- Próximo paso acordado: nueva simbología MCCB/caja moldeada (Ir/Im)
+  para reemplazar el placeholder S00110 del QG del TGBT.

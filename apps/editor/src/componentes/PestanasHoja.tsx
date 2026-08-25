@@ -110,7 +110,7 @@ export default function PestanasHoja() {
       <button
         type="button"
         className="pestana-hoja nueva"
-        title="Nueva hoja (hereda formato, rótulo y notas de la activa)"
+        title="Nueva hoja"
         onClick={() => agregarHoja()}
       >
         ＋ Nueva

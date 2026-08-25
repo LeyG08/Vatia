@@ -10,19 +10,24 @@ import "@xyflow/react/dist/style.css";
 import BarraSuperior from "./componentes/BarraSuperior";
 import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
+import ChecklistAea from "./componentes/ChecklistAea";
 import PanelHoja from "./componentes/PanelHoja";
+import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
 import NodoSimbolo from "./componentes/NodoSimbolo";
 import AlimentadorNode from "./componentes/AlimentadorNode";
+import BarraNode from "./componentes/BarraNode";
 import HojaNode from "./componentes/HojaNode";
 import ConexionEdge from "./componentes/ConexionEdge";
-import { ESCALA, useEditor, tamanoNodoPx, type NodoData } from "./lib/store";
+import { ESCALA, useEditor, tamanoNodoPx, esDatosAlimentador, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
 import { dimensionesHoja, rectanguloUtil } from "./lib/tipos";
+import { GRILLA_PX } from "./lib/ruta";
 
 const nodeTypes = {
   simbolo: NodoSimbolo,
   alimentador: AlimentadorNode,
+  barra: BarraNode,
   hoja: HojaNode,
 } as const;
 const edgeTypes = { conexion: ConexionEdge } as const;
@@ -31,7 +36,7 @@ const NODO_HOJA: Node<NodoData> = {
   id: "hoja",
   type: "hoja",
   position: { x: 0, y: 0 },
-  data: { codigo_iec: "", rotacion: 0 },
+  data: { codigo_iec: "", rotacion: 0, atributos: {} },
   draggable: false,
   selectable: false,
   deletable: false,
@@ -78,12 +83,27 @@ function invadeZona(
 function Editor() {
   const nodos = useEditor((s) => s.nodos);
   const conexiones = useEditor((s) => s.conexiones);
+  const rfRef = useRef<HTMLDivElement>(null);
+  const marcarConexion = useCallback(
+    (t: "source" | "target" | null | undefined) => {
+      const w = rfRef.current;
+      if (!w || !t) return;
+      w.classList.remove("conectando-source", "conectando-target");
+      w.classList.add(`conectando-${t}`);
+    },
+    [],
+  );
+  const desmarcarConexion = useCallback(() => {
+    rfRef.current?.classList.remove("conectando-source", "conectando-target");
+  }, []);
   const hoja = useEditor((s) => s.hoja);
   const paletaVisible = useEditor((s) => s.paletaVisible);
   const onNodesChange = useEditor((s) => s.onNodesChange);
   const onEdgesChange = useEditor((s) => s.onEdgesChange);
   const onConnect = useEditor((s) => s.onConnect);
+  const reconectar = useEditor((s) => s.reconectarConexion);
   const agregarSimbolo = useEditor((s) => s.agregarSimbolo);
+  const agregarAlimentador = useEditor((s) => s.agregarAlimentador);
   const registrarArrastre = useEditor((s) => s.registrarArrastre);
   const confirmarArrastre = useEditor((s) => s.confirmarArrastre);
   const rotarSeleccion = useEditor((s) => s.rotarSeleccion);
@@ -98,6 +118,7 @@ function Editor() {
   const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
   const moverSeleccionAHojaFn = useEditor((s) => s.moverSeleccionAHoja);
   const cambiarHojaActivaFn = useEditor((s) => s.cambiarHojaActiva);
+  const fijarPosicionesFn = useEditor((s) => s.fijarPosiciones);
   const [arrastre, setArrastre] = useState<ArrastreEnCurso | null>(null);
   const arrastreRef = useRef<ArrastreEnCurso | null>(null);
   useEffect(() => {
@@ -113,6 +134,93 @@ function Editor() {
     const t = window.setTimeout(() => setToast(null), 10000);
     return () => window.clearTimeout(t);
   }, [toast]);
+
+  /* C22 — ALINEACIÓN AL MAPA DE PUNTOS: el handle «salida» del
+   * alimentador vive a (ancho columna + 15 px) del origen del nodo y
+   * esa distancia NO es múltiplo de la grilla, así que aunque RF
+   * snapee la POSICIÓN del nodo, la PUNTA caía "entre medio" de dos
+   * puntos de la barra y el cable arrancaba torcido. Medimos el
+   * offset real del handle (DOM/zoom) y corremos el nodo lo justo
+   * para que la punta caiga EXACTA sobre la grilla. */
+  const offsetHandleAlimentador = useCallback((id: string) => {
+    const wrap = document.querySelector(
+      `.react-flow__node[data-id="${id}"]`,
+    );
+    const hnd = wrap?.querySelector(".alim-cable .react-flow__handle");
+    if (!wrap || !hnd) return null;
+    const wr = wrap.getBoundingClientRect();
+    const hr = hnd.getBoundingClientRect();
+    const vp = document.querySelector(".react-flow__viewport");
+    /* C27: leer el transform con DOMMatrix — el regex anterior no
+     * matcheaba `matrix(...)` y fallaba en silencio con zoom≠1
+     * (desalineación de ~1-2 px, justo lo que veía el usuario). */
+    let z = 1;
+    if (vp) {
+      const tf = getComputedStyle(vp).transform;
+      if (tf && tf !== "none") {
+        try {
+          z = new DOMMatrixReadOnly(tf).a;
+        } catch {
+          z = 1;
+        }
+      }
+    }
+    if (!Number.isFinite(z) || z <= 0) return null;
+    return {
+      offX: (hr.x + hr.width / 2 - wr.x) / z,
+      offY: (hr.y + hr.height / 2 - wr.y) / z,
+    };
+  }, []);
+
+  /** Corre cada alimentador para que su punta caiga en la grilla.
+   * Devuelve el mapa aplicado (vacío si ya estaba alineado). */
+  const alinearAlimentadores = useCallback(
+    (ids: string[]) => {
+      const mapa: Record<string, { x: number; y: number }> = {};
+      for (const id of ids) {
+        const nodo = useEditor.getState().nodos.find((m) => m.id === id);
+        if (!nodo || !esDatosAlimentador(nodo.data) || nodo.dragging) continue;
+        const off = offsetHandleAlimentador(id);
+        if (!off) continue;
+        const gx =
+          Math.round((nodo.position.x + off.offX) / GRILLA_PX) * GRILLA_PX;
+        const gy =
+          Math.round((nodo.position.y + off.offY) / GRILLA_PX) * GRILLA_PX;
+        const nx = +(gx - off.offX).toFixed(2);
+        const ny = +(gy - off.offY).toFixed(2);
+        if (
+          Math.abs(nx - nodo.position.x) > 0.5 ||
+          Math.abs(ny - nodo.position.y) > 0.5
+        ) {
+          mapa[id] = { x: nx, y: ny };
+        }
+      }
+      if (Object.keys(mapa).length > 0) fijarPosicionesFn(mapa);
+    },
+    [fijarPosicionesFn, offsetHandleAlimentador],
+  );
+
+  /* Al cargar/cambiar de hoja: alineación silenciosa (sin historial)
+   * de TODOS los alimentadores, una vez estabilizado el render. */
+  const idsAlimentadores = useEditor((s) =>
+    s.nodos
+      .filter((m) => esDatosAlimentador(m.data))
+      .map((m) => `${m.id}@${m.position.x.toFixed(1)},${m.position.y.toFixed(1)}`)
+      .join("|"),
+  );
+  useEffect(() => {
+    if (idsAlimentadores === "") return;
+    const ids = idsAlimentadores.split("|").map((p) => p.split("@")[0]);
+    /* C27: DOS intentos — si RF todavía no montó el handle al primer
+     * timeout, offsetHandleAlimentador devolvía null y el nodo quedaba
+     * sin alinear para siempre. */
+    const t1 = window.setTimeout(() => alinearAlimentadores(ids), 120);
+    const t2 = window.setTimeout(() => alinearAlimentadores(ids), 600);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [idsAlimentadores, alinearAlimentadores]);
 
   /* Zonas reservadas (rótulo IRAM, notas del gabinete y nota de
    * seguridad): ningún símbolo puede QUEDAR encima. Los rects se miden
@@ -198,6 +306,29 @@ function Editor() {
         .elementFromPoint(e.clientX, e.clientY)
         ?.closest(".lienzo");
       if (!sobreLienzo) return;
+      // C13: el ALIMENTADOR también se arrastra desde la paleta
+      if (actual.codigo === "@alimentador") {
+        const flujo = screenToFlowPosition({
+          x: e.clientX,
+          y: e.clientY,
+        });
+        const x = Math.round(flujo.x / 10) * 10;
+        const y = Math.round(flujo.y / 10) * 10;
+        const datosPrueba = {
+          tipo: "alimentador",
+          origen: "",
+        } as NodoData;
+        if (invadeZona(capturarZonas(), x, y, datosPrueba)) {
+          setToast({
+            mensaje:
+              "Ahí están el rótulo y las notas: soltalo dentro del recuadro",
+            destinoId: null,
+          });
+          return;
+        }
+        agregarAlimentador(x, y);
+        return;
+      }
       const simbolo = obtenerSimbolo(actual.codigo);
       if (!simbolo) return;
       const vb = simbolo.viewBox;
@@ -236,6 +367,7 @@ function Editor() {
     };
   }, [
     agregarSimbolo,
+    agregarAlimentador,
     arrastre,
     capturarZonas,
     screenToFlowPosition,
@@ -394,14 +526,23 @@ function Editor() {
             </button>
           </div>
         )}
+        <PanelAtributos />
         <ReactFlow
+          ref={rfRef}
           nodes={nodosMarcados}
           edges={conexiones}
           nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
+          edgeTypes={edgeTypes}          onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onReconnect={(edgeViejo, conexionNueva) =>
+            reconectar(edgeViejo.id, conexionNueva)
+          }
+          onConnectStart={(_, p) => marcarConexion(p.handleType)}
+          onConnectEnd={() => desmarcarConexion()}
+          onReconnectStart={(_, __, t) => marcarConexion(t)}
+          onReconnectEnd={() => desmarcarConexion()}
+          edgesReconnectable={true}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
           onNodeDragStart={(_, nodo) => {
             registrarArrastre([nodo.id]);
@@ -449,7 +590,26 @@ function Editor() {
                 });
                 revertidos += 1;
               } else {
-                despues[n.id] = { x: rx, y: ry };
+                /* C22: el alimentador se corre lo justo para que su
+                 * PUNTA caiga sobre la grilla (mapa de puntos), no su
+                 * esquina — así el cable nace derecho desde el primer
+                 * arrastre. */
+                let px = rx;
+                let py = ry;
+                if (esDatosAlimentador(n.data)) {
+                  const off = offsetHandleAlimentador(n.id);
+                  if (off) {
+                    px = Math.round(
+                      Math.round((rx + off.offX) / GRILLA_PX) * GRILLA_PX -
+                        off.offX,
+                    );
+                    py = Math.round(
+                      Math.round((ry + off.offY) / GRILLA_PX) * GRILLA_PX -
+                        off.offY,
+                    );
+                  }
+                }
+                despues[n.id] = { x: px, y: py };
               }
             }
             if (reversiones.length > 0) onNodesChange(reversiones);
@@ -476,11 +636,17 @@ function Editor() {
             type: "conexion",
             style: { strokeWidth: 1.5, stroke: "#1e293b" },
           }}
-          connectionRadius={12}
+          /* C17: radio de imán generoso — al soltar una punta de cable
+           * (o al conectar) agarra el handle MÁS CERCANO sin apuntar
+           * fino: mover extremos de conexión queda sencillo. */
+          connectionRadius={30}
           fitView
           proOptions={{ hideAttribution: true }}
         />
-        <PanelProblemas />
+        <div className="paneles-flotantes">
+          <ChecklistAea />
+          <PanelProblemas />
+        </div>
         <PanelHoja />
       </div>
       {arrastre && simboloFantasma && (

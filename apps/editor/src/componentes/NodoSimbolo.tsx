@@ -1,6 +1,7 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ESCALA, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
+import { anotacionNodo } from "../lib/anotaciones";
 import type { SimboloDef } from "../lib/tipos";
 
 const DIRECCIONES = [
@@ -85,6 +86,8 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
   };
   const anchoPx = Math.max(1, Math.round(caja.cajaAncho * ESCALA));
   const altoPx = Math.max(1, Math.round(caja.cajaAlto * ESCALA));
+  const esCarga = simbolo.metadata.familia_atributos === "carga";
+  const lineas = anotacionNodo(simbolo.metadata.familia_atributos, data);
 
   return (
     <div
@@ -111,18 +114,30 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
           position={r.direccion}
           className={`handle-${punto.rol}`}
           style={{
-            width: 10,
-            height: 10,
-            border: "1.5px solid rgba(37, 99, 235, 0.55)",
-            borderRadius: "50%",
+            /* C13b: 0×0 — RF ancla al borde del handle; con tamaño
+             * real quedaban ~5 px de aire. El anillo visible es el
+             * ::before de la clase. */
+            width: 0,
+            height: 0,
+            border: "none",
             background: "transparent",
             pointerEvents: "all",
             left: `${(r.x / r.cajaAncho) * 100}%`,
             top: `${(r.y / r.cajaAlto) * 100}%`,
-            transform: "translate(-50%, -50%)",
           }}
         />
       ))}
+      {lineas.length > 0 && (
+        <div
+          className={`anotacion-nodo${esCarga ? " anotacion-carga" : ""}`}
+        >
+          {lineas.map((l, i) => (
+            <div key={i} className={l.secundaria ? "anotacion-sec" : undefined}>
+              {l.texto}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

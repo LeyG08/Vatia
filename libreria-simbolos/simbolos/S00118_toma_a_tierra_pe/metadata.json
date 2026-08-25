@@ -1,7 +1,7 @@
 {
   "codigo_iec": "S00118",
   "nombre": "Toma a tierra (PE)",
-  "familia_atributos": "aparato",
+  "familia_atributos": "sin_ficha_tecnica",
   "estado_revision": "pendiente_revision",
   "puntos_conexion": [
     {

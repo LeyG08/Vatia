@@ -1,6 +1,14 @@
 import { SIMBOLOS, svgLimpio } from "../lib/libreria";
 import { useEditor } from "../lib/store";
-import type { SimboloDef } from "../lib/tipos";
+import type { FamiliaAtributos, SimboloDef } from "../lib/tipos";
+
+const ETIQUETAS_FAMILIA: Record<FamiliaAtributos, string> = {
+  aparato: "Aparatos",
+  conductor: "Conductores",
+  barra: "Barras",
+  carga: "Cargas",
+  sin_ficha_tecnica: "Auxiliares",
+};
 
 function Paleta({
   onIniciarArrastre,
@@ -26,23 +34,23 @@ function Paleta({
 
       <div className="paleta-grupo">
         <h3>Alimentación</h3>
+        {/* C13: igual que los símbolos — mantener presionado y
+         * arrastrar al plano. El click simple sigue agregando en el
+         * lugar de siempre. */}
         <button
           type="button"
           className="paleta-item paleta-alim"
+          onMouseDown={(e) => onIniciarArrastre("@alimentador", e)}
           onClick={() => agregarAlimentador()}
-          title="Agrega un alimentador «Desde …» arriba del marco, con nodo de salida para conectar a los aparatos"
+          title="Arrastrá al plano (o click para agregar) — conductor viniente desde el tablero"
         >
           <span className="paleta-nombre">+ Alimentador «Desde …»</span>
         </button>
-        <p className="paleta-ayuda">
-          Se agrega junto al encabezado; elegí la referencia del conductor
-          (líneas / neutro / tierra o cantidad n) en su menú desplegable.
-        </p>
       </div>
 
       {[...grupos.entries()].map(([familia, items]) => (
         <div key={familia} className="paleta-grupo">
-          <h3>{familia}</h3>
+          <h3>{ETIQUETAS_FAMILIA[familia as FamiliaAtributos] ?? familia}</h3>
           {items.map((s) => (
             <button
               key={s.codigo_iec}

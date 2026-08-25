@@ -1,8 +1,9 @@
 {
   "codigo_iec": "S00110",
-  "nombre": "Interruptor termomagnético (unifilar)",
+  "nombre": "Interruptor termomagnético",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "interruptor_termomagnetico" },
   "puntos_conexion": [
     { "id": "in", "rol": "entrada", "x": 0.0, "y": -30.0 },
     { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }

@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { useEditor } from "../lib/store";
-import { PX_POR_MM, TAMANIOS_HOJA_MM, dimensionesHoja } from "../lib/tipos";
+import { TAMANIOS_HOJA_MM } from "../lib/tipos";
 import type { FormatoHoja, OrientacionHoja } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
@@ -35,7 +35,6 @@ function PanelHoja() {
   const actualizar = useEditor((s) => s.actualizarHoja);
 
   if (!abierto) return null;
-  const { pxW, pxH } = dimensionesHoja(hoja);
   const [mmCorto, mmLargo] = TAMANIOS_HOJA_MM[hoja.formato];
   const mmW = hoja.orientacion === "horizontal" ? mmLargo : mmCorto;
   const mmH = hoja.orientacion === "horizontal" ? mmCorto : mmLargo;
@@ -43,6 +42,26 @@ function PanelHoja() {
 
   const setRotulo = (patch: Partial<typeof rotulo>) =>
     actualizar({ rotulo: patch });
+
+  /* ---- Fechas dd/mm/aaaa (ej.: 10/05/2026) ---- */
+
+  /** Máscara mientras se escribe: solo dígitos, barras automáticas */
+  function enmascararFecha(v: string): string {
+    const d = v.replace(/\D/g, "").slice(0, 8);
+    if (d.length <= 2) return d;
+    if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+    return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+  }
+
+  /** ¿Es una fecha completa y real? */
+  function fechaValida(v: string): boolean {
+    const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return false;
+    const [dd, mm, aaaa] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    if (mm < 1 || mm > 12 || dd < 1) return false;
+    const dias = new Date(aaaa, mm, 0).getDate();
+    return dd <= dias;
+  }
 
   const setResponsable = (i: number, campo: "fecha" | "nombre", v: string) => {
     const lista = rotulo.responsables.map((r, j) =>
@@ -91,9 +110,7 @@ function PanelHoja() {
           </div>
 
           <p className="panel-hoja-dimension">
-            Hoja: {mmW} × {mmH} mm → {(pxW / PX_POR_MM).toFixed(0)}×
-            {(pxH / PX_POR_MM).toFixed(0)} mm en pantalla a{" "}
-            {PX_POR_MM} px/mm.
+            Hoja: {mmW} × {mmH} mm.
           </p>
         </div>
 
@@ -105,18 +122,10 @@ function PanelHoja() {
             valor={hoja.tablero}
             onChange={(v) => actualizar({ tablero: v })}
           />
-          <p className="panel-hoja-dimension">
-            Los alimentadores «Desde …» se agregan desde la paleta y quedan
-            como nodos conectables sobre la hoja.
-          </p>
         </div>
 
         <h3>Notas del gabinete</h3>
 
-        <p className="panel-hoja-dimension">
-          Estructura fija: se dibujan siempre estas seis líneas, en este
-          orden, arriba a la izquierda de la hoja.
-        </p>
         <div className="panel-hoja-bloque">
           <Campo
             etiqueta="Material del gabinete"
@@ -155,7 +164,7 @@ function PanelHoja() {
         <h3>Nota de seguridad operativa</h3>
 
         <label className="panel-hoja-campo">
-          <span>Texto al pie de la hoja; vacío si la lámina no lo lleva</span>
+          <span>Texto al pie de la hoja</span>
           <textarea
             rows={4}
             value={hoja.notaSeguridad}
@@ -240,9 +249,15 @@ function PanelHoja() {
                 <Fragment key={r.rol}>
                   <em>{r.rol}</em>
                   <input
-                    placeholder="dd/mm/aa"
+                    inputMode="numeric"
+                    placeholder="dd/mm/aaaa"
                     value={r.fecha}
-                    onChange={(e) => setResponsable(i, "fecha", e.target.value)}
+                    className={
+                      r.fecha !== "" && !fechaValida(r.fecha) ? "invalido" : ""
+                    }
+                    onChange={(e) =>
+                      setResponsable(i, "fecha", enmascararFecha(e.target.value))
+                    }
                   />
                   <input
                     placeholder="Nombre y apellido"
@@ -275,7 +290,6 @@ function PanelHoja() {
         </div>
 
         <footer className="panel-hoja-pie">
-          <p>Enmarcado: margen izquierdo 25 mm (archivado), resto 10 mm.</p>
           <button type="button" onClick={alternar}>
             Cerrar
           </button>
