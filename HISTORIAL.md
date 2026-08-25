@@ -1473,5 +1473,23 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     símbolos · proyecto real · E2E 21 checks) y MERGE de la Fase C a
     main por orden expresa del usuario (PR #11, --merge
     --delete-branch); main sincronizada después del merge.
-- Próximo paso acordado: nueva simbología MCCB/caja moldeada (Ir/Im)
-  para reemplazar el placeholder S00110 del QG del TGBT.
+  · C32: lote grande de simbología ampliada (12 nuevos símbolos unifilares
+    con trazo único conforme IEC 60617 / IEC 60947 / IRAM, schemas
+    discriminados por subtipo en aparato.schema.json y anotaciones en
+    anotaciones.ts):
+    1. S00121 MCCB / caja moldeada (Ir_min, Ir_max, Im, pdcc_kA, IEC 60947-2) —
+       reemplaza el placeholder S00110 del QG (n4/n5) en el proyecto TGBT real.
+    2. S00122 Guardamotor termomagnético (Ue_V, Ir_min/max, Ii, Icu_kA, Ics_kA, AC-3).
+    3. S00123 Relé térmico RT (Ue_V, Ir_min/max, clase_disparo 10A/10/20/30).
+    4. S00124 Contacto auxiliar NA/NC (entidad de conexión separada, Ith_A).
+    5. S00125 Transformador de corriente TI (relación 600/5, S_VA, clase_precisión, FS, Ue_kV).
+    6. S00126 Banco de capacitores (Ue_V, Q_kvar, conexión delta/estrella).
+    7. S00127 Portafusible / base (entidad separada del fusible, Ue_V, categoría).
+    8. S00128 Interruptor diferencial ID/RCD (IΔn_mA, In_A, tipo AC/A/B/F, IEC 61008/9).
+    9. S00129 Relé de protección de tensión (Ue_V, subtensión %, sobretensión %, asimetría %, retardo_s).
+    10. S00130 Relé/contactor auxiliar completo (bobina_V, 2PDT/3PDT/4PDT, Ith_A).
+    11. S00131 Sirena / alarma sonora (Ue_V, tipo_señal continua/intermitente/multitono).
+    12. S00132 Instrumento de medición (voltímetro/amperímetro/multifunción, escala).
+    Galería de símbolos regenerada (index.html con 20 símbolos). Verificación
+    completa aprobada (build · lint · alineación · símbolos · proyecto real · E2E).
+- Próximo paso acordado: revisión por parte del usuario del lote de 12 símbolos y sus esquemas (PR abierto en la rama proyecto/simbologia-ampliada-20260825).

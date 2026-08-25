@@ -1,0 +1,15 @@
+{
+  "codigo_iec": "S00125",
+  "nombre": "Transformador de corriente (TI)",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "transformador_corriente" },
+  "puntos_conexion": [
+    { "id": "p1", "rol": "entrada", "x": 0.0, "y": -25.0 },
+    { "id": "p2", "rol": "salida", "x": 0.0, "y": 25.0 },
+    { "id": "s1", "rol": "auxiliar", "x": -10.0, "y": 0.0 },
+    { "id": "s2", "rol": "auxiliar", "x": 10.0, "y": 0.0 }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_qet": "dibujo directo conforme IEC 60617 / IEC 61869 (sin fuente .elmt en la colección unifilar de QET)"
+}

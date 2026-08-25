@@ -90,6 +90,90 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       if (n(a.impedancia_pct)) l.push(`uk ${n(a.impedancia_pct)} %`);
       break;
     }
+    case "mccb_caja_moldeada": {
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
+      if (n(a.ir_a_min) || n(a.ir_a_max)) {
+        l.push(`Ir ${n(a.ir_a_min)}..${n(a.ir_a_max)} A`);
+      }
+      if (n(a.im_a)) l.push(`Im ${n(a.im_a)} A`);
+      const pdcc = pdccEnA(a.pdcc_kA);
+      if (pdcc) l.push(`PdCC ${pdcc}`);
+      if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
+      break;
+    }
+    case "guardamotor_termomagnetico": {
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
+      if (n(a.ir_min_a) || n(a.ir_max_a)) {
+        l.push(`Ir ${n(a.ir_min_a)}..${n(a.ir_max_a)} A`);
+      }
+      if (n(a.ii_a)) l.push(`Ii ${n(a.ii_a)} A`);
+      const icu = pdccEnA(a.icu_kA);
+      if (icu) l.push(`Icu ${icu}`);
+      if (a.categoria_empleo) l.push(`Cat ${a.categoria_empleo}`);
+      break;
+    }
+    case "rele_termico": {
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
+      if (n(a.ir_min_a) || n(a.ir_max_a)) {
+        l.push(`Ir ${n(a.ir_min_a)}..${n(a.ir_max_a)} A`);
+      }
+      if (a.clase_disparo) l.push(`Clase ${capitalizar(a.clase_disparo)}`);
+      break;
+    }
+    case "contacto_auxiliar": {
+      if (a.tipo_contacto) l.push(`Contacto ${a.tipo_contacto}`);
+      if (n(a.ith_a)) l.push(`Ith ${n(a.ith_a)} A`);
+      break;
+    }
+    case "transformador_corriente": {
+      if (a.relacion) l.push(`TI ${a.relacion}`);
+      if (n(a.s_va)) l.push(`${n(a.s_va)} VA`);
+      if (a.clase_precision) l.push(`Clase ${a.clase_precision}`);
+      break;
+    }
+    case "banco_capacitores": {
+      if (n(a.potencia_kvar)) l.push(`${n(a.potencia_kvar)} kvar`);
+      if (n(a.tension_v)) l.push(`${n(a.tension_v)} V`);
+      if (a.conexion) l.push(capitalizar(a.conexion));
+      break;
+    }
+    case "portafusible": {
+      const pf = [capitalizar(a.portafusible_marca), capitalizar(a.portafusible_modelo)].filter(Boolean).join(" ");
+      if (pf) l.push(`Base ${pf}`);
+      if (n(a.portafusible_tension_v)) l.push(`${n(a.portafusible_tension_v)} V`);
+      break;
+    }
+    case "interruptor_diferencial": {
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
+      if (n(a.in_a)) l.push(`In ${n(a.in_a)} A`);
+      if (n(a.sensibilidad_ma)) l.push(`IΔn ${n(a.sensibilidad_ma)} mA`);
+      if (a.tipo_diferencial) l.push(`Tipo ${a.tipo_diferencial}`);
+      break;
+    }
+    case "rele_proteccion_tension": {
+      if (n(a.ue_v)) l.push(`Ue ${n(a.ue_v)} V`);
+      if (n(a.subtension_pct) || n(a.sobretension_pct)) {
+        l.push(`U< ${n(a.subtension_pct)}% · U> ${n(a.sobretension_pct)}%`);
+      }
+      if (n(a.retardo_disparo_s)) l.push(`t ${n(a.retardo_disparo_s)} s`);
+      break;
+    }
+    case "rele_auxiliar": {
+      if (n(a.tension_bobina_v)) l.push(`Bobina ${n(a.tension_bobina_v)} V`);
+      if (a.configuracion_contactos) l.push(String(a.configuracion_contactos));
+      if (n(a.capacidad_termica_contactos_a)) l.push(`Ith ${n(a.capacidad_termica_contactos_a)} A`);
+      break;
+    }
+    case "sirena_alarma": {
+      if (n(a.tension_v)) l.push(`${n(a.tension_v)} V`);
+      if (a.tipo_senal) l.push(capitalizar(a.tipo_senal));
+      break;
+    }
+    case "instrumento_medicion": {
+      if (a.tipo_instrumento) l.push(capitalizar(a.tipo_instrumento));
+      if (a.escala) l.push(String(a.escala));
+      break;
+    }
   }
   return l;
 }

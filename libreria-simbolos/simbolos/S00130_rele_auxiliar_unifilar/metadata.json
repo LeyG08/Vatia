@@ -1,0 +1,13 @@
+{
+  "codigo_iec": "S00130",
+  "nombre": "Relé/contactor auxiliar (dispositivo completo)",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "rele_auxiliar" },
+  "puntos_conexion": [
+    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
+    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_qet": "dibujo directo conforme IEC 60617 / IEC 61810 (sin fuente .elmt en la colección unifilar de QET)"
+}
