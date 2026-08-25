@@ -1289,6 +1289,27 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   la hoja tgbt. Corrección previa: resegmentar numeraba hojas desde 2
   y generó ids duplicados → ahora continúa desde el sufijo máximo.
 - Verificador: hoja TGBT sin pendientes; E2E OK.
+**C26 — TGBT re-migrado FIEL al dibujo del usuario:**
+- El usuario dibujó el TGBT en el editor (Downloads\TGBT.json,
+  interpretación de su AutoCAD sin la parte de comando) y mostró que
+  la topología de C24b era incorrecta. Topología real:
+  Red (multipolar 3x240+N120 IRAM 2178) entra DIRECTO a la barra
+  principal (30x10 mm Cu, 573 A); los ramales BAJAN barra -> KM
+  (3TF57 475A / 3TA28 170A ue 690V) -> QG-TGBT1 (EMA SACE ISOL Z500
+  500A) -> carga seccional «TS-G1»; cada seccional recibe además un
+  enlace SOLO NEUTRO 35 mm2 directo desde la barra; y PAT pasa por
+  AFUERA (unipolar 1x70+PE70 IRAM 2004) hasta su propio TS-G1.
+- migrar_tgbt.mjs reescrito: nodos/conexiones copiados verbatim del
+  archivo del usuario. Ajustes mínimos documentados: c1/c7/c8/c11
+  completados con datos del PDF; n8 alimentacion=monofasica; a2/c11
+  aislacion XLPE (IRAM 2004; el checklist la exige).
+- verificar_proyecto_real.mjs ahora resuelve barra por tipo
+  (S00119) como hace construirEstadoHoja — el export del usuario no
+  trae codigo_iec en la barra.
+- PENDIENTE ACORDADO: próxima ronda = NUEVA SIMBOLOGÍA MCCB / caja
+  moldeada con Ir/Im (hoy se usa S00110 como placeholder; por eso el
+  usuario cargó pdcc 2500). Valores del usuario respetados verbatim.
+- Verificador OK (sin pendientes); E2E OK.
 
 **C25 — reinicio del proyecto PPS desde TGBT (reversión de C23/C24):**
 - El usuario ordena borrar todo y empezar de nuevo: TGBT es EL tablero

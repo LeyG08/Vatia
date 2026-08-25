@@ -181,16 +181,19 @@ for (const hoja of proyecto.hojas) {
       : `  ✗ ${nombres.get(n.id)}\n      - ${msj.join("\n      - ")}`);
     continue;
   }
-  if (!codigosLibreria.has(n.codigo_iec)) {
+  /* C26: la app resuelve el código por tipo cuando falta (barra →
+   * S00119, ver construirEstadoHoja); el verificador espeja eso. */
+  const codigo = n.codigo_iec ?? (n.tipo === "barra" ? "S00119" : n.codigo_iec);
+  if (!codigosLibreria.has(codigo)) {
     totalPendientes += 1;
     console.log(`  ✗ ${n.id}: código ${n.codigo_iec} NO existe en la librería`);
     continue;
   }
   const attrs = n.atributos ?? {};
-  const familia = METAS.get(n.codigo_iec)?.familia_atributos;
+  const familia = METAS.get(codigo)?.familia_atributos;
   const marcaModelo = [attrs.marca, attrs.modelo].filter(Boolean).join(" ");
-  const etiqueta = `${n.id} (${n.codigo_iec})${marcaModelo ? ` · ${marcaModelo}` : ""}`;
-  nombres.set(n.id, `${n.codigo_iec}${marcaModelo ? ` ${marcaModelo}` : ""}`);
+  const etiqueta = `${n.id} (${codigo})${marcaModelo ? ` · ${marcaModelo}` : ""}`;
+  nombres.set(n.id, `${codigo}${marcaModelo ? ` ${marcaModelo}` : ""}`);
   const msj = problemasFicha(familia, attrs);
   totalPendientes += msj.length;
   console.log(msj.length === 0
