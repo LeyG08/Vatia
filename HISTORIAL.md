@@ -1361,7 +1361,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C25 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C28 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1434,6 +1434,27 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     como hojas     propias (33 en total).
   · C24b: migrado el unifilar TGBT (p0) a su hoja; ids de hoja
     corregidos (sin duplicados).
+  · C26: migración VERBATIM del TGBT según el dibujo de referencia del
+    usuario (Downloads/TGBT.json): Red entra DIRECTO a la barra n1;
+    dos ramales barra→KM→QG→carga-seccional (TS-G1); enlaces de solo
+    neutro 35 mm²; PAT por fuera de la barra (1×70+PE, IRAM 2004) a
+    otra carga-seccional; pdcc 2500 del QG se mantiene (en realidad es
+    un MCCB — placeholder hasta la nueva simbología). Verificador
+    resuelve barras sin codigo_iec (S00119).
+  · C27: cuerpo+punta del alimentador alineados al mapa punteado
+    (zoom leído con DOMMatrix, ALTO_LINEA 81, columna fija 138 px,
+    reintento del efecto); E2E «alineación cuerpo alimentador».
+  · C28: reconexión de la punta FUENTE sobre la barra (imposible desde
+    siempre): con los handles a/b superpuestos, React Flow resolvía el
+    apuntado con elementFromPoint SIEMPRE a favor del último
+    renderizado ('b', tipo destino) y descartaba la suelta en silencio.
+    Fix: durante la conexión se marca la raíz con .conectando-{tipo}
+    (callbacks onConnectStart/onReconnectStart + refs, sin re-renders;
+    useConnection en el padre provocaba bucle React #185) y CSS deja
+    fuera del hit-testing los handles del tipo incompatible. E2E nuevo:
+    punta fuente de c1 → n1.210a.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
-- Próximo paso acordado: simbología ampliada (definir alcance).
+- Próximo paso acordado: C29 camino de conexión con quiebre
+  arrastrable; C30 combinaciones libres fases/neutro/tierra en cable y
+  carga; luego nueva simbología MCCB/caja moldeada (Ir/Im).

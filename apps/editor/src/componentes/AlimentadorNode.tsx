@@ -102,6 +102,7 @@ function AlimentadorNode({
           type="source"
           position={Position.Bottom}
           id="salida"
+          className="handle-salida"
           style={{
             left: "50%",
             top: ALTO_LINEA - 4,

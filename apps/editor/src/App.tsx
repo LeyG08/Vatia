@@ -83,6 +83,19 @@ function invadeZona(
 function Editor() {
   const nodos = useEditor((s) => s.nodos);
   const conexiones = useEditor((s) => s.conexiones);
+  const rfRef = useRef<HTMLDivElement>(null);
+  const marcarConexion = useCallback(
+    (t: "source" | "target" | null | undefined) => {
+      const w = rfRef.current;
+      if (!w || !t) return;
+      w.classList.remove("conectando-source", "conectando-target");
+      w.classList.add(`conectando-${t}`);
+    },
+    [],
+  );
+  const desmarcarConexion = useCallback(() => {
+    rfRef.current?.classList.remove("conectando-source", "conectando-target");
+  }, []);
   const hoja = useEditor((s) => s.hoja);
   const paletaVisible = useEditor((s) => s.paletaVisible);
   const onNodesChange = useEditor((s) => s.onNodesChange);
@@ -515,6 +528,7 @@ function Editor() {
         )}
         <PanelAtributos />
         <ReactFlow
+          ref={rfRef}
           nodes={nodosMarcados}
           edges={conexiones}
           nodeTypes={nodeTypes}
@@ -524,6 +538,10 @@ function Editor() {
           onReconnect={(edgeViejo, conexionNueva) =>
             reconectar(edgeViejo.id, conexionNueva)
           }
+          onConnectStart={(_, p) => marcarConexion(p.handleType)}
+          onConnectEnd={() => desmarcarConexion()}
+          onReconnectStart={(_, __, t) => marcarConexion(t)}
+          onReconnectEnd={() => desmarcarConexion()}
           edgesReconnectable={true}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
           onNodeDragStart={(_, nodo) => {

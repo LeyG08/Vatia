@@ -161,14 +161,14 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
               id={`${o}a`}
               type="source"
               position={direccion(0)}
-              className="handle-barra"
+              className="handle-barra hb-fuente"
               style={{ ...ESTILO_HANDLE, ...pos }}
             />
             <Handle
               id={`${o}b`}
               type="target"
               position={direccion(2)}
-              className="handle-barra"
+              className="handle-barra hb-destino"
               style={{ ...ESTILO_HANDLE, ...pos }}
             />
             {esExtremoIzq && (
@@ -176,7 +176,7 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
                 id="in"
                 type="target"
                 position={direccion(3)}
-                className="handle-barra"
+                className="handle-barra hb-destino"
                 style={{ ...ESTILO_HANDLE, ...pos }}
               />
             )}
@@ -185,7 +185,7 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
                 id="out"
                 type="source"
                 position={direccion(1)}
-                className="handle-barra"
+                className="handle-barra hb-fuente"
                 style={{ ...ESTILO_HANDLE, ...pos }}
               />
             )}

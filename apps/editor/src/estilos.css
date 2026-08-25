@@ -1222,6 +1222,21 @@ body.arrastrando .paleta-item {
   opacity: 1;
 }
 
+/* C28: al reconectar una punta, el par a/b superpuesto en cada punto
+ * de la barra resolvía el hit-testing SIEMPRE a favor del último
+ * renderizado ('b'), así que arrastrar la punta FUENTE nunca encontraba
+ * su handle y la suelta se descartaba. La clase que React Flow emite
+ * durante la conexión indica el tipo de handle que ESPERA recibir la
+ * suelta (el opuesto al extremo agarrado); los del otro tipo dejan de
+ * recibir el mouse y el apuntado cae en el correcto. */
+.conectando-source .hb-fuente,
+.conectando-source .handle-salida,
+.conectando-target .hb-destino,
+.conectando-target .handle-entrada,
+.conectando-target .handle-tierra {
+  pointer-events: none !important;
+}
+
 .barra-grip {
   position: absolute;
   width: 7px;

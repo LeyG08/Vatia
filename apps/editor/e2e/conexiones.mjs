@@ -1,11 +1,12 @@
-/* Arnés E2E de conexiones (C14, ampliado en C19): abre el editor,
- * carga un proyecto de prueba, verifica que TODO extremo de cable
- * caiga EXACTO sobre su handle (gap < 2,5 px), conecta desde abajo con
- * el mouse, cruza elementos por encima/debajo de la barra, vuelve a
- * cruzarlos, RECONECTA una punta arrastrándola a otro handle de la
- * barra y comprueba que ESCRIBIR en «Desde» del alimentador NO mueva
- * ni un píxel el símbolo, que ROTAR la barra (R) gire también su
- * trazo, que la punta de reconexión sea ALCANZABLE y que la salida
+/* Arnés E2E de conexiones (C14, ampliado en C19/C22/C27/C28): abre el
+ * editor, carga un proyecto de prueba, verifica que TODO extremo de
+ * cable caiga EXACTO sobre su handle (gap < 2,5 px), conecta desde
+ * abajo con el mouse, cruza elementos por encima/debajo de la barra,
+ * vuelve a cruzarlos, RECONECTA una punta destino y una punta FUENTE
+ * entre handles de la barra (C28: la fuente era imposible por el par
+ * a/b superpuesto) y comprueba que ESCRIBIR en «Desde» del alimentador
+ * NO mueva ni un píxel el símbolo, que ROTAR la barra (R) gire también
+ * su trazo, que la punta de reconexión sea ALCANZABLE y que la salida
  * del alimentador caiga EXACTA en el mapa de puntos.
  *
  * Uso:  npm run build && npm run preview &  → luego  npm run e2e
@@ -204,6 +205,53 @@ await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
       marcarFalla(
         `la punta de c4 quedó en ${fila?.hacia ?? "?"} (esperaba n1.410a/b)`,
       );
+    }
+  }
+}
+
+/* C28: RECONEXIÓN de la punta FUENTE sobre la barra — arrastro el
+ * updater source de c1 (sale de n1.190a) hasta el slot 210a. Con los
+ * handles a/b superpuestos, React Flow resolvía el apuntado SIEMPRE
+ * con elementFromPoint a favor del último renderizado ('b', tipo
+ * destino) y la suelta de una punta fuente se descartaba en silencio.
+ * Ahora, mientras se arrastra, los handles del tipo incompatible
+ * quedan fuera del hit-testing (.conectando-* + pointer-events). */
+{
+  const upd = page.locator(
+    '.react-flow__edge[data-id="c1"] .react-flow__edgeupdater-source',
+  );
+  const bbU = await upd.boundingBox().catch(() => null);
+  const bbH = await page
+    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="210a"]')
+    .boundingBox();
+  if (!bbU || !bbH) {
+    marcarFalla("no encontré el updater source de c1 o el handle 210a");
+  } else {
+    const ux = bbU.x + bbU.width / 2;
+    const uy = bbU.y + bbU.height / 2;
+    const hx = bbH.x + bbH.width / 2;
+    const hy = bbH.y + bbH.height / 2;
+    await upd.dispatchEvent("mousedown", {
+      clientX: ux,
+      clientY: uy,
+      button: 0,
+      buttons: 1,
+      bubbles: true,
+      cancelable: true,
+    });
+    await page.mouse.move(ux, uy);
+    for (let i = 1; i <= 10; i++)
+      await page.mouse.move(ux + ((hx - ux) * i) / 10, uy + ((hy - uy) * i) / 10);
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    const r = await medir(page);
+    const filaF = r.filas?.find((f) => f.edge === "c1" && f.ext === "ini");
+    if (!filaF || !filaF.hacia.startsWith("n1.210")) {
+      marcarFalla(
+        `la punta fuente de c1 quedó en ${filaF?.hacia ?? "?"} (esperaba n1.210a/b)`,
+      );
+    } else {
+      console.log(`[punta fuente] c1/ini → ${filaF.hacia}`);
     }
   }
 }
