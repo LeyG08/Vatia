@@ -1264,6 +1264,16 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 - Suites: build/lint OK; E2E OK; alineación + lint + verificador OK
   (30 hojas, sin pendientes de fichas).
 
+**C24 — corrección de C23: TGBT y TS-G1 son tableros DISTINTOS:**
+- El usuario lo marca: TGBT es un tablero propio; el nombre combinado
+  «TGBT · TS-G1» era un error, igual que haber renombrado la hoja con
+  contenido (ese contenido ES TS-Pell1_y_Molino1 — un tablero
+  alimentado DESDE TGBT).
+- `resegmentar_pps.mjs`: hoja 1 restaurada a
+  «TS-Pell1_y_Molino1» (migracion.pagina=null) + nuevas hojas vacías
+  «TGBT» (p0), «TS-G1» (p0) y «TS-Lab» (p1). Total: 33 hojas.
+- Suites: E2E OK; verificador multi-hoja OK (32 vacías sin fallar).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1348,6 +1358,9 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   · C23: recibido el fuente real (DWG+PDF) — proyecto reestructurado
     en 30 hojas, una por unifilar/tablero; verificador multi-hoja;
     migración de contenido página por página queda como próximo paso.
+  · C24: corrección — TGBT y TS-G1 son tableros distintos; la hoja con
+    contenido vuelve a ser TS-Pell1_y_Molino1; +TGBT, +TS-G1, +TS-Lab
+    como hojas propias (33 en total).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

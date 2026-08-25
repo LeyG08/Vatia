@@ -21,9 +21,10 @@ const ruta = join(
 );
 const proyecto = JSON.parse(readFileSync(ruta, "utf8"));
 
-/** Unifilar → página del PDF (relevamiento C22). null = sin página asignada aún. */
+/** Unifilar → página del PDF (relevamiento C22/C24). null = sin página asignada aún. */
 const UNIFILARES = [
-  ["tgbt-g1", "TGBT · TS-G1", "p0"],
+  ["tgbt", "TGBT", "p0"],
+  ["ts-g1", "TS-G1", "p0"],
   ["ts-g2", "TS-G2", "p2"],
   ["ts-g3", "TS-G3", "p3"],
   ["ts-bc", "TS-BC", "p4"],
@@ -52,13 +53,13 @@ const UNIFILARES = [
   ["ts-taller-h", "TS-TallerH", "p2"],
   ["ts-horno", "TS-Horno", "p2"],
   ["ts-taller-s", "TS-TallerS", "p2"],
+  ["ts-lab", "TS-Lab", "p1"],
   ["sf-alimentacion-cd", "SF-AlimentacionCD", "p5"],
 ];
 
 let numeracion = 2;
 const nuevas = [];
 for (const [id, nombre, pagina] of UNIFILARES) {
-  if (id === "tgbt-g1") continue; // es la hoja existente
   if (proyecto.hojas.some((h) => h.tablero === id || h.nombre === nombre)) {
     continue;
   }
@@ -103,22 +104,26 @@ for (const [id, nombre, pagina] of UNIFILARES) {
   });
 }
 
-// La hoja existente se marca con su fuente de migración
-if (!proyecto.hojas[0].migracion) {
-  proyecto.hojas[0].migracion = {
-    fuente: "Unifilares de Tableros.dwg",
-    pagina: "p0",
-    estado: "parcial",
-  };
-}
-// C22: la primera hoja era TGBT/TS-G1 — el nombre viejo
-// "TS-Pell1_y_Molino1" venía de tomar un DESTINO como si fuera el título.
+// C24: corrección — TGBT y TS-G1 son tableros DISTINTOS (cada uno su
+// unifilar), y la hoja con contenido es TS-Pell1_y_Molino1 (alimentada
+// DESDE TGBT). El nombre combinado «TGBT · TS-G1» de C23 era un error.
 if (
   !proyecto.hojas[0].tablero ||
-  proyecto.hojas[0].tablero === "TS-Pell1_y_Molino1"
+  proyecto.hojas[0].tablero === "TS-Pell1_y_Molino1" ||
+  proyecto.hojas[0].tablero === "tgbt-g1" ||
+  proyecto.hojas[0].nombre === "TGBT · TS-G1"
 ) {
-  proyecto.hojas[0].tablero = "tgbt-g1";
-  proyecto.hojas[0].nombre = "TGBT · TS-G1";
+  proyecto.hojas[0].tablero = "ts-pell1-y-molino1";
+  proyecto.hojas[0].nombre = "TS-Pell1_y_Molino1";
+  if (!proyecto.hojas[0].migracion) {
+    proyecto.hojas[0].migracion = {
+      fuente: "Unifilares de Tableros.dwg",
+      pagina: null,
+      estado: "parcial",
+    };
+  } else {
+    proyecto.hojas[0].migracion.pagina = null;
+  }
 }
 
 proyecto.hojas.push(...nuevas);
