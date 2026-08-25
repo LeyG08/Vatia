@@ -838,14 +838,14 @@ body.arrastrando .paleta-item {
   display: flex;
   flex-direction: column;
   /* C18: el texto vive a la IZQUIERDA del cable → se justifica a la
-   * DERECHA, remachado contra el cable (regla del usuario: si está de
-   * un lado, justifica hacia el elemento; viceversa si algún día el
-   * texto pasa al otro lado). El handle viaja con el svg → nada se
-   * desafina. */
+   * DERECHA, remachado contra el cable (regla del usuario). */
   align-items: flex-end;
   gap: 2px;
-  width: auto;
-  min-width: 58px;
+  /* C27: ancho FIJO elegido para que el offset del handle sea
+   * múltiplo de la grilla (borde1 + padding2 + col + gap4 + centro
+   * del cable15 = col + 22 → con col=138 el handle cae a 160 px).
+   * Así cuerpo y punta quedan JUNTOS sobre el mapa de puntos. */
+  width: 138px;
   padding-top: 6px;
 }
 

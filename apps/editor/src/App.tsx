@@ -138,10 +138,20 @@ function Editor() {
     const wr = wrap.getBoundingClientRect();
     const hr = hnd.getBoundingClientRect();
     const vp = document.querySelector(".react-flow__viewport");
-    const m = vp
-      ? /scale\(([\d.]+)\)/.exec((vp as HTMLElement).style.transform)
-      : null;
-    const z = m ? parseFloat(m[1]) : 1;
+    /* C27: leer el transform con DOMMatrix — el regex anterior no
+     * matcheaba `matrix(...)` y fallaba en silencio con zoom≠1
+     * (desalineación de ~1-2 px, justo lo que veía el usuario). */
+    let z = 1;
+    if (vp) {
+      const tf = getComputedStyle(vp).transform;
+      if (tf && tf !== "none") {
+        try {
+          z = new DOMMatrixReadOnly(tf).a;
+        } catch {
+          z = 1;
+        }
+      }
+    }
     if (!Number.isFinite(z) || z <= 0) return null;
     return {
       offX: (hr.x + hr.width / 2 - wr.x) / z,
@@ -187,10 +197,16 @@ function Editor() {
   );
   useEffect(() => {
     if (idsAlimentadores === "") return;
-    const t = window.setTimeout(() => {
-      alinearAlimentadores(idsAlimentadores.split("|").map((p) => p.split("@")[0]));
-    }, 120);
-    return () => window.clearTimeout(t);
+    const ids = idsAlimentadores.split("|").map((p) => p.split("@")[0]);
+    /* C27: DOS intentos — si RF todavía no montó el handle al primer
+     * timeout, offsetHandleAlimentador devolvía null y el nodo quedaba
+     * sin alinear para siempre. */
+    const t1 = window.setTimeout(() => alinearAlimentadores(ids), 120);
+    const t2 = window.setTimeout(() => alinearAlimentadores(ids), 600);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
   }, [idsAlimentadores, alinearAlimentadores]);
 
   /* Zonas reservadas (rótulo IRAM, notas del gabinete y nota de

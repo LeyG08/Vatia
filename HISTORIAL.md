@@ -1310,6 +1310,22 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   moldeada con Ir/Im (hoy se usa S00110 como placeholder; por eso el
   usuario cargó pdcc 2500). Valores del usuario respetados verbatim.
 - Verificador OK (sin pendientes); E2E OK.
+**C27 — alimentador: cuerpo Y punta sobre el mapa punteado:**
+- Queja del usuario: los alimentadores quedaban «levemente
+  desalineados» del mapa. Causas encontradas: (1) el zoom se leía con
+  un regex que no matchea transform matrix(...) y fallaba en silencio;
+  (2) por diseño C22 la PUNTA se alineaba pero el CUERPO quedaba entre
+  puntos (offset interno no múltiplo de grilla y dependiente del
+  texto).
+- App.tsx: zoom vía DOMMatrixReadOnly(getComputedStyle(...).transform);
+  reintento doble del efecto de alineación (120 ms + 600 ms) para no
+  perder nodos si RF aún no montó el handle.
+- AlimentadorNode/estilos: ALTO_LINEA 88->81 (punta a 80 px) y
+  .alim-col ancho fijo 138 px -> offset del handle (160, 80) múltiplo
+  de 10 en ambos ejes. Cuerpo y punta caen juntos en la grilla; el
+  snapToGrid mantiene la alineación durante el arrastre.
+- E2E: nueva medición «alineación cuerpo alimentador» (translate del
+  wrapper % 10 == 0). Verde en (0.00, 0.00).
 
 **C25 — reinicio del proyecto PPS desde TGBT (reversión de C23/C24):**
 - El usuario ordena borrar todo y empezar de nuevo: TGBT es EL tablero

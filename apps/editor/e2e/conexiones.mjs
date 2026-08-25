@@ -263,11 +263,11 @@ await page.waitForTimeout(400);
 }
 
 /* C22: la PUNTA del alimentador cae EXACTA en el mapa de puntos —
- * resto a la grilla de 10 px (en coords de flujo, sin zoom) ≈ 0. */
+ * resto a la grilla de 10 px (en coords de flujo, sin zoom) ≈ 0.
+ * C27: y también el CUERPO del nodo (posición del nodo múltiplo de
+ * 10 px) — cuerpo y punta juntos sobre el mapa punteado. */
 {
   const punta = await page.evaluate(() => {
-    const vp = document.querySelector(".react-flow__viewport");
-    const m = /scale\(([\d.]+)\)/.exec(vp?.style.transform ?? "");
     const svg = document.querySelector(".react-flow__edge-path")
       ?.ownerSVGElement;
     const inv = svg?.getScreenCTM()?.inverse();
@@ -278,7 +278,6 @@ await page.waitForTimeout(400);
     const r = h.getBoundingClientRect();
     const p = new DOMPoint(r.x + r.width / 2, r.y + r.height / 2)
       .matrixTransform(inv);
-    void vp; void m;
     return { fx: p.x, fy: p.y };
   });
   if (!punta) {
@@ -291,6 +290,25 @@ await page.waitForTimeout(400);
     );
     if (dx > 0.6 || dy > 0.6)
       marcarFalla("la punta quedó ENTRE DOS puntos del mapa");
+  }
+  /* C27: posición del NODO (origen de la caja) también en grilla.
+   * RF pinta la posición como translate(x, y) en el wrapper. */
+  const cuerpo = await page.evaluate(() => {
+    const h = document.querySelector(".nodo-alimentador");
+    const w = h?.closest(".react-flow__node");
+    const m = /translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(
+      w?.style.transform ?? "",
+    );
+    return m ? { x: parseFloat(m[1]), y: parseFloat(m[2]) } : null;
+  });
+  if (!cuerpo) {
+    marcarFalla("no pude medir el cuerpo del alimentador");
+  } else {
+    const bx = Math.abs(cuerpo.x - Math.round(cuerpo.x / 10) * 10);
+    const by = Math.abs(cuerpo.y - Math.round(cuerpo.y / 10) * 10);
+    console.log(`[alineación cuerpo alimentador] resto=(${bx.toFixed(2)}, ${by.toFixed(2)}) px`);
+    if (bx > 0.6 || by > 0.6)
+      marcarFalla("el CUERPO del alimentador quedó entre dos puntos del mapa");
   }
 }
 

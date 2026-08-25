@@ -5,7 +5,10 @@ import { lineasCable } from "../lib/anotaciones";
 /** Misma geometría que las marcas de las conexiones (IEC 60617) */
 const SEP = 8;
 const LARGO = 15;
-const ALTO_LINEA = 88;
+/* C27: alto elegido para que la PUNTA (H-4) más el borde+padding de
+ * la caja (3 px) dé un offset vertical múltiplo de la grilla (80 px):
+ * así el CUERPO y la PUNTA quedan a la vez sobre el mapa de puntos. */
+const ALTO_LINEA = 81;
 /* La línea visible termina en ALTO_LINEA - 4 dentro del svg: el punto
  * de conexión va JUSTO ahí (C13: antes quedaba 4 px más abajo, con un
  * hueco invisible entre la punta dibujada y el cable). */
