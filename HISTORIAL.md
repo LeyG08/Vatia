@@ -1290,6 +1290,23 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   y generó ids duplicados → ahora continúa desde el sufijo máximo.
 - Verificador: hoja TGBT sin pendientes; E2E OK.
 
+**C25 — reinicio del proyecto PPS desde TGBT (reversión de C23/C24):**
+- El usuario ordena borrar todo y empezar de nuevo: TGBT es EL tablero
+  donde inicia todo. Las 33 hojas especulativas se descartan — varias
+  eran tableros inexistentes inventados a partir de etiquetas de
+  destino o de MÁQUINAS (CNC VF3/VF2/TL2/VF4 son cargas ACU dentro del
+  tablero de p2, no tableros).
+- proyecto-real-pps.json regenerado con UNA sola hoja: «TGBT»
+  (contenido real de p0 migrado por scripts/migrar_tgbt.mjs: doble
+  ingreso Red/PAT → QG-TGBT1×2 + KM1/KM2 → barra 3x30x10 Cu + PE).
+- Se elimina scripts/resegmentar_pps.mjs (su lista de unifilares era
+  inválida). Los demás tableros se irán agregando UNO POR UNO a medida
+  que se migre cada página real del PDF/DWG, en orden topológico desde
+  TGBT.
+- Verificador OK (1 hoja, sin pendientes); E2E OK.
+  Aclaración UX: no hay menú de ejemplos — el archivo se abre con
+  «📂 Cargar…» eligiendo apps/editor/ejemplos/proyecto-real-pps.json.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1299,6 +1316,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 | Cajetín IRAM v1 (PR #4) → formato "planos reales" sin cajetín (PR #6) | 01:08 | decisión del usuario ante pregunta | reemplazo de RotuloConfig por EncabezadoConfig |
 | Formato "sin cajetín" (PR #6) → rótulo IRAM 4508 CONFORME (PR #7) | 01:10–01:38 | corrección del usuario: el rótulo debe existir y cumplir la norma | se restaura RotuloConfig ampliado + geometría figura 1 |
 | Política auto-merge de AGENTS.md (dc03f8e) → aprobación previa del usuario | F4 (actual) | pedido explícito del usuario | los PR quedan abiertos hasta orden expreso de merge |
+| Proyecto PPS multi-hoja especulativo (C23/C24) → reinicio con solo TGBT (C25) | C25 (actual) | orden del usuario: «borra todo y comenzá de nuevo»; TGBT es el tablero donde inicia todo; había tableros inventados (CNC VF3/VF2 eran cargas, no tableros) | proyecto-real-pps.json queda con UNA hoja TGBT real; los demás unifilares se agregan al migrar cada página |
 
 ---
 
@@ -1306,7 +1324,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C23 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C25 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
