@@ -1490,6 +1490,13 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     10. S00130 Relé/contactor auxiliar completo (bobina_V, 2PDT/3PDT/4PDT, Ith_A).
     11. S00131 Sirena / alarma sonora (Ue_V, tipo_señal continua/intermitente/multitono).
     12. S00132 Instrumento de medición (voltímetro/amperímetro/multifunción, escala).
-    Galería de símbolos regenerada (index.html con 20 símbolos). Verificación
-    completa aprobada (build · lint · alineación · símbolos · proyecto real · E2E).
-- Próximo paso acordado: revisión por parte del usuario del lote de 12 símbolos y sus esquemas (PR abierto en la rama proyecto/simbologia-ampliada-20260825).
+    Fuentes: 8 símbolos importados de QElectroTech
+    (qelectrotech/qelectrotech-elements@b9e1020) via convertir_qet.py;
+    4 símbolos creados manualmente siguiendo IEC 60617
+    (TI, banco capacitores, relé protección tensión, relé auxiliar).
+    Galería de símbolos regenerada (index.html con 20 símbolos).
+    Verificación completa aprobada (build · lint · alineación · símbolos ·
+    proyecto real · E2E 21 checks).
+- Próximo paso acordado: revisión por parte del usuario del lote de 12
+  símbolos y sus esquemas (PR abierto en la rama
+  proyecto/simbologia-ampliada-20260825).

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-60.0 -45.0 100 90" width="600" height="540">
+  <g fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="-56.0" y1="-12.0" x2="-53.0" y2="-12.0" stroke-width="0.5" />
+  <polyline points="20.0,14.0 20.0,10.0 25.0,10.0 25.0,4.0 20.0,4.0 20.0,-6.0 13.0,-25.0" />
+  <polyline points="0.0,14.0 0.0,10.0 5.0,10.0 5.0,4.0 0.0,4.0 0.0,-6.0 -7.0,-25.0" />
+  <rect x="-30.0" y="0.0" width="60.0" height="28.0" rx="0" ry="0" />
+  <line x1="-18.0" y1="-33.0" x2="-22.0" y2="-29.0" />
+  <line x1="-22.0" y1="-33.0" x2="-18.0" y2="-29.0" />
+  <line x1="2.0" y1="-33.0" x2="-2.0" y2="-29.0" />
+  <line x1="-2.0" y1="-33.0" x2="2.0" y2="-29.0" />
+  <line x1="22.0" y1="-33.0" x2="18.0" y2="-29.0" />
+  <line x1="18.0" y1="-33.0" x2="22.0" y2="-29.0" />
+  <line x1="-30.0" y1="14.0" x2="30.0" y2="14.0" />
+  <line x1="-10.0" y1="0.0" x2="-10.0" y2="27.0" />
+  <line x1="10.0" y1="0.0" x2="10.0" y2="28.0" />
+  <line x1="-20.0" y1="40.0" x2="-20.0" y2="29.0" />
+  <line x1="0.0" y1="40.0" x2="0.0" y2="29.0" />
+  <line x1="20.0" y1="40.0" x2="20.0" y2="29.0" />
+  <polyline points="-20.0,14.0 -20.0,10.0 -15.0,10.0 -15.0,4.0 -20.0,4.0 -20.0,-6.0 -27.0,-25.0" />
+  <line x1="-20.0" y1="-27.0" x2="-20.0" y2="-40.0" />
+  <line x1="0.0" y1="-27.0" x2="0.0" y2="-40.0" />
+  <line x1="20.0" y1="-27.0" x2="20.0" y2="-40.0" />
+  <rect x="-46.0" y="-22.0" width="12.0" height="12.0" rx="0" ry="0" stroke-width="0.5" />
+  <line x1="-34.0" y1="-16.0" x2="-53.0" y2="-16.0" stroke-width="0.5" />
+  <line x1="-53.0" y1="-20.0" x2="-53.0" y2="-12.0" stroke-width="0.5" />
+  <line x1="-40.0" y1="-10.0" x2="-40.0" y2="-22.0" stroke-width="0.5" />
+  <line x1="-34.0" y1="-16.0" x2="16.0" y2="-16.0" stroke-width="0.5" stroke-dasharray="3,2" />
+  <polyline points="-30.0,21.0 -40.0,21.0 -40.0,-10.0" stroke-width="0.5" stroke-dasharray="3,2" />
+  <line x1="-30.0" y1="7.0" x2="-40.0" y2="7.0" stroke-width="0.5" stroke-dasharray="3,2" />
+  <line x1="-53.0" y1="-20.0" x2="-50.0" y2="-20.0" stroke-width="0.5" />
+  <line x1="-22.0" y1="-27.0" x2="-18.0" y2="-27.0" />
+  <line x1="-2.0" y1="-27.0" x2="2.0" y2="-27.0" />
+  <line x1="18.0" y1="-27.0" x2="22.0" y2="-27.0" />
+  <circle class="punto-conexion" cx="20.0" cy="-40.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4" />
+  <circle class="punto-conexion" cx="20.0" cy="40.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4" />
+  <circle class="punto-conexion" cx="0.0" cy="40.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4" />
+  <circle class="punto-conexion" cx="-20.0" cy="-40.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4" />
+  <circle class="punto-conexion" cx="0.0" cy="-40.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4" />
+  <circle class="punto-conexion" cx="-20.0" cy="40.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4" />
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+{
+  "codigo_iec": "S00122",
+  "nombre": "Guardamotor termomagnético",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "puntos_conexion": [
+    {
+      "id": "5",
+      "rol": "entrada",
+      "x": 20.0,
+      "y": -40.0
+    },
+    {
+      "id": "6",
+      "rol": "salida",
+      "x": 20.0,
+      "y": 40.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/12_magneto_thermal_circuit_breakers/gv2p.elmt"
+}

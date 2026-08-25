@@ -1,0 +1,22 @@
+{
+  "codigo_iec": "S00129",
+  "version_libreria": "0.1.0",
+  "puntos_conexion": [
+    {
+      "id": "t1",
+      "y": -20.0,
+      "x": 0.0,
+      "rol": "entrada"
+    },
+    {
+      "id": "t2",
+      "y": 20.0,
+      "x": 0.0,
+      "rol": "salida"
+    }
+  ],
+  "fuente_qet": "manual - IEC 60617",
+  "nombre": "Relé de protección de tensión",
+  "estado_revision": "pendiente_revision",
+  "familia_atributos": "aparato"
+}
