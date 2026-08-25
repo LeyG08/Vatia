@@ -1208,6 +1208,39 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   verifica que los cables siguen anclando exacto tras la rotación.
 - Suites: build/lint OK; alineación + lint + verificador OK; E2E OK.
 
+**C22 — cinco arreglos tras probar el diagrama PPS real (molino del fondo):**
+1. ALIMENTADOR ENTRE DOS PUNTOS: la punta «salida» vive a
+   (columna+15 px) del origen del nodo y ese offset no es múltiplo de
+   grilla; RF snapeaba la ESQUINA, no la punta → cable torcido.
+   Ahora se mide el offset real (DOM/zoom) y el nodo se corre lo justo
+   para que la PUNTA caiga exacta en el mapa de puntos: al soltar un
+   arrastre y en silencio al cargar/cambiar de hoja (acción nueva
+   `fijarPosiciones`, sin historial). E2E: resto=(0.00, 0.00) px.
+2. RECONEXIÓN RÁPIDA ROTA: agarrar la punta de un cable que termina
+   en la barra arrastraba LA BARRA — el updater queda debajo y tanto
+   mi caja como el WRAPPER de React Flow capturaban el clic (RF pinta
+   `pointer-events:all` INLINE en el wrapper). Solución: wrapper +
+   caja con `pointer-events:none !important`; solo eje (::after de
+   ±6 px), tiradores y puntos reciben puntero. E2E nuevo: la punta es
+   ALCANZABLE con elementFromPoint.
+3. MIGRACIÓN DWG (PENDIENTE, requiere datos): el usuario aclaró que el
+   DWG real tiene ~30 UNIFILARES DISTINTOS en un solo archivo y la
+   interpretación actual los mezcla como si fueran un tablero. Falta
+   el archivo fuente (DWG/DXF o export) para re-segmentar en hojas;
+   NO se tocó proyecto-real-pps.json todavía.
+4. TEXTO INVADIDO: cada renglón de las fichas (símbolos, barra,
+   carga, alimentador) y la anotación de los cables llevan ahora una
+   plaqueta casi opaca blanca (rgba .94) — nada que cruce por debajo
+   tapa la lectura. La nota del alimentador con F/N/T de secciones
+   distintas permite partir en líneas (máx 26 ch).
+5. SALTOS BRUSCOS AL ACOMODAR: mientras se arrastra UNA punta de
+   cable (conexión nueva o reconexión), el quiebre intermedio va SIN
+   snap (ruta suave, sigue al puntero); al soltar vuelve el criterio
+   definitivo snapeado. Además la notación de cables pasó a "×"
+   compacta ("3×50 + 2×35 mm²", multipolar "1 × (3×50 + 2×35) mm²").
+- Suites: build/lint OK; alineación + lint + verificador OK; E2E OK
+  (16 verificaciones).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1224,7 +1257,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C21 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C22 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1284,6 +1317,11 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     línea, pares relacionados comparten renglón.
   · C21: barra vertical — el trazo gira con el nodo (+ escenario E2E
     de rotación).
+  · C22: punta del alimentador exacta en el mapa de puntos; la
+    reconexión rápida de puntas vuelve a andar (la caja de la barra ya
+    no tapa); plaquetas blancas bajo TODO texto del plano; ruta suave
+    mientras se arrastra una punta. PENDIENTE C22: re-migración del
+    DWG (~30 unifilares en un archivo) — falta el archivo fuente.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

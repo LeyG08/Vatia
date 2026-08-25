@@ -107,6 +107,8 @@ function ubicarEnTrayectoria(
 
 export default function ConexionEdge({
   id,
+  source,
+  target,
   targetX,
   targetY,
   sourceX,
@@ -144,6 +146,27 @@ export default function ConexionEdge({
    * SIEMPRE se ve unido. El recorte de ±3 px a la superficie visible
    * quedó descartado: con elementos cruzados de lado dejaba un hueco
    * apreciable entre el cable y la barra. */
+  /* C22: mientras el usuario arrastra UNA punta de este cable
+   * (conexión nueva o reconexión) el quiebre intermedio va SIN snap:
+   * sigue al puntero de forma continua y no da saltos bruscos de
+   * grilla. Al soltar, la ruta queda con el criterio definitivo.
+   * (Acceso tolerante: el shape del estado de conexión cambió entre
+   * versiones de React Flow — nodeId vs startHandle.nodeId.) */
+  const vuelo = useStore(
+    (s) => s.connection as unknown as {
+      inProgress: boolean;
+      edgeId?: string;
+      nodeId?: string;
+      startHandle?: { nodeId?: string };
+    },
+  );
+  const propiaVuela =
+    vuelo.inProgress &&
+    (vuelo.edgeId === id ||
+      vuelo.nodeId === source ||
+      vuelo.nodeId === target ||
+      vuelo.startHandle?.nodeId === source ||
+      vuelo.startHandle?.nodeId === target);
   const d = rutaOrtogonal(
     sourceX,
     sourceY,
@@ -151,6 +174,7 @@ export default function ConexionEdge({
     targetX,
     targetY,
     String(dirEfectiva({ x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition)),
+    propiaVuela,
   );
   const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
     const lineas = lineasCable(m);

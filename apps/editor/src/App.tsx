@@ -19,9 +19,10 @@ import AlimentadorNode from "./componentes/AlimentadorNode";
 import BarraNode from "./componentes/BarraNode";
 import HojaNode from "./componentes/HojaNode";
 import ConexionEdge from "./componentes/ConexionEdge";
-import { ESCALA, useEditor, tamanoNodoPx, type NodoData } from "./lib/store";
+import { ESCALA, useEditor, tamanoNodoPx, esDatosAlimentador, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
 import { dimensionesHoja, rectanguloUtil } from "./lib/tipos";
+import { GRILLA_PX } from "./lib/ruta";
 
 const nodeTypes = {
   simbolo: NodoSimbolo,
@@ -104,6 +105,7 @@ function Editor() {
   const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
   const moverSeleccionAHojaFn = useEditor((s) => s.moverSeleccionAHoja);
   const cambiarHojaActivaFn = useEditor((s) => s.cambiarHojaActiva);
+  const fijarPosicionesFn = useEditor((s) => s.fijarPosiciones);
   const [arrastre, setArrastre] = useState<ArrastreEnCurso | null>(null);
   const arrastreRef = useRef<ArrastreEnCurso | null>(null);
   useEffect(() => {
@@ -119,6 +121,77 @@ function Editor() {
     const t = window.setTimeout(() => setToast(null), 10000);
     return () => window.clearTimeout(t);
   }, [toast]);
+
+  /* C22 — ALINEACIÓN AL MAPA DE PUNTOS: el handle «salida» del
+   * alimentador vive a (ancho columna + 15 px) del origen del nodo y
+   * esa distancia NO es múltiplo de la grilla, así que aunque RF
+   * snapee la POSICIÓN del nodo, la PUNTA caía "entre medio" de dos
+   * puntos de la barra y el cable arrancaba torcido. Medimos el
+   * offset real del handle (DOM/zoom) y corremos el nodo lo justo
+   * para que la punta caiga EXACTA sobre la grilla. */
+  const offsetHandleAlimentador = useCallback((id: string) => {
+    const wrap = document.querySelector(
+      `.react-flow__node[data-id="${id}"]`,
+    );
+    const hnd = wrap?.querySelector(".alim-cable .react-flow__handle");
+    if (!wrap || !hnd) return null;
+    const wr = wrap.getBoundingClientRect();
+    const hr = hnd.getBoundingClientRect();
+    const vp = document.querySelector(".react-flow__viewport");
+    const m = vp
+      ? /scale\(([\d.]+)\)/.exec((vp as HTMLElement).style.transform)
+      : null;
+    const z = m ? parseFloat(m[1]) : 1;
+    if (!Number.isFinite(z) || z <= 0) return null;
+    return {
+      offX: (hr.x + hr.width / 2 - wr.x) / z,
+      offY: (hr.y + hr.height / 2 - wr.y) / z,
+    };
+  }, []);
+
+  /** Corre cada alimentador para que su punta caiga en la grilla.
+   * Devuelve el mapa aplicado (vacío si ya estaba alineado). */
+  const alinearAlimentadores = useCallback(
+    (ids: string[]) => {
+      const mapa: Record<string, { x: number; y: number }> = {};
+      for (const id of ids) {
+        const nodo = useEditor.getState().nodos.find((m) => m.id === id);
+        if (!nodo || !esDatosAlimentador(nodo.data) || nodo.dragging) continue;
+        const off = offsetHandleAlimentador(id);
+        if (!off) continue;
+        const gx =
+          Math.round((nodo.position.x + off.offX) / GRILLA_PX) * GRILLA_PX;
+        const gy =
+          Math.round((nodo.position.y + off.offY) / GRILLA_PX) * GRILLA_PX;
+        const nx = +(gx - off.offX).toFixed(2);
+        const ny = +(gy - off.offY).toFixed(2);
+        if (
+          Math.abs(nx - nodo.position.x) > 0.5 ||
+          Math.abs(ny - nodo.position.y) > 0.5
+        ) {
+          mapa[id] = { x: nx, y: ny };
+        }
+      }
+      if (Object.keys(mapa).length > 0) fijarPosicionesFn(mapa);
+    },
+    [fijarPosicionesFn, offsetHandleAlimentador],
+  );
+
+  /* Al cargar/cambiar de hoja: alineación silenciosa (sin historial)
+   * de TODOS los alimentadores, una vez estabilizado el render. */
+  const idsAlimentadores = useEditor((s) =>
+    s.nodos
+      .filter((m) => esDatosAlimentador(m.data))
+      .map((m) => `${m.id}@${m.position.x.toFixed(1)},${m.position.y.toFixed(1)}`)
+      .join("|"),
+  );
+  useEffect(() => {
+    if (idsAlimentadores === "") return;
+    const t = window.setTimeout(() => {
+      alinearAlimentadores(idsAlimentadores.split("|").map((p) => p.split("@")[0]));
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [idsAlimentadores, alinearAlimentadores]);
 
   /* Zonas reservadas (rótulo IRAM, notas del gabinete y nota de
    * seguridad): ningún símbolo puede QUEDAR encima. Los rects se miden
@@ -483,7 +556,26 @@ function Editor() {
                 });
                 revertidos += 1;
               } else {
-                despues[n.id] = { x: rx, y: ry };
+                /* C22: el alimentador se corre lo justo para que su
+                 * PUNTA caiga sobre la grilla (mapa de puntos), no su
+                 * esquina — así el cable nace derecho desde el primer
+                 * arrastre. */
+                let px = rx;
+                let py = ry;
+                if (esDatosAlimentador(n.data)) {
+                  const off = offsetHandleAlimentador(n.id);
+                  if (off) {
+                    px = Math.round(
+                      Math.round((rx + off.offX) / GRILLA_PX) * GRILLA_PX -
+                        off.offX,
+                    );
+                    py = Math.round(
+                      Math.round((ry + off.offY) / GRILLA_PX) * GRILLA_PX -
+                        off.offY,
+                    );
+                  }
+                }
+                despues[n.id] = { x: px, y: py };
               }
             }
             if (reversiones.length > 0) onNodesChange(reversiones);

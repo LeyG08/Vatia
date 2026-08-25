@@ -231,7 +231,7 @@ export const BARRA_GEO = {
   centroY: 20,
 };
 
-function esDatosAlimentador(d: NodoData): d is DatosAlimentador {
+export function esDatosAlimentador(d: NodoData): d is DatosAlimentador {
   return d.tipo === "alimentador";
 }
 
@@ -524,6 +524,9 @@ interface EstadoEditor {
   confirmarArrastre: (
     despues: Record<string, { x: number; y: number }>,
   ) => void;
+  /** C22: acomoda posiciones SIN historial (alineación fina de
+   * alimentadores al mapa de puntos tras cargar o soltar). */
+  fijarPosiciones: (mapa: Record<string, { x: number; y: number }>) => void;
   rotarSeleccion: () => void;
   eliminarSeleccion: () => void;
   copiarSeleccion: () => void;
@@ -1132,6 +1135,16 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             ),
           })),
       });
+    },
+
+    fijarPosiciones(mapa) {
+      const hay = Object.keys(mapa).length > 0;
+      if (!hay) return;
+      set((s) => ({
+        nodos: s.nodos.map((n) =>
+          mapa[n.id] ? { ...n, position: { ...mapa[n.id] } } : n,
+        ),
+      }));
     },
 
     rotarSeleccion() {

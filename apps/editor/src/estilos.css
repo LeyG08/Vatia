@@ -885,14 +885,18 @@ body.arrastrando .paleta-item {
 }
 
 /* Notación del cable apilada bajo el origen (C15), justificada hacia
- * el cable (C18). Decorativa: no seleccionable ni clickeable. */
+ * el cable (C18). Decorativa: no seleccionable ni clickeable.
+ * C22: con F/N/T de secciones distintas el renglón se hace largo —
+ * se permite partir en varias líneas (máx 26 ch) para que la columna
+ * no invada el diagrama; cada renglón conserva su plaqueta. */
 .alim-nota {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
   color: #71717a;
   line-height: 1.35;
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 26ch;
   user-select: none;
   pointer-events: none;
 }
@@ -1089,6 +1093,24 @@ body.arrastrando .paleta-item {
   pointer-events: none;
 }
 
+/* C22: los textos del plano NO pueden ser invadidos por cables ni
+ * símbolos (si algo cruza por encima, no se lee). Cada renglón lleva
+ * su plaqueta casi opaca del color de la hoja — legible siempre. */
+.anotacion-nodo > div,
+.alim-desde,
+.alim-nota > div {
+  background: rgba(255, 255, 255, 0.94);
+  padding: 0 3px;
+  border-radius: 3px;
+  box-decoration-break: clone;
+}
+
+.anotacion-edge {
+  background: rgba(255, 255, 255, 0.94);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
 /* C13: línea SECUNDARIA de la ficha (utilización, etc.): un paso
    más chica y más clara — jerarquía visual sin trucos de texto */
 .anotacion-nodo .anotacion-sec {
@@ -1120,6 +1142,20 @@ body.arrastrando .paleta-item {
    Nodo propio estirable: eje grueso + puntos de conexión cada grilla
    a lo largo + ficha arriba-izquierda. Los handles son discretos y
    aparecen al acercar el mouse. */
+/* C22: la CAJA no captura el mouse — si tapaba, era imposible
+ * agarrar el updater de reconexión de un cable que termina en la
+ * barra (quedaba debajo del nodo): el clic se comía y arrastraba la
+ * barra entera. El WRAPPER de React Flow también apaga su
+ * pointer-events (él es el que estaba en el medio); solo el EJE, los
+ * TIRADORES y los PUNTOS reciben el puntero y el resto deja pasar el
+ * clic a las puntas de cable. */
+.react-flow .react-flow__node-barra,
+.nodo-barra {
+  /* !important obligatorio: RF pinta pointer-events:all INLINE en el
+   * wrapper y el inline solo pierde ante un !important de hoja. */
+  pointer-events: none !important;
+}
+
 .nodo-barra {
   position: relative;
 }
@@ -1137,7 +1173,16 @@ body.arrastrando .paleta-item {
   transform: translateY(-50%);
   border-radius: 2px;
   background: #111827;
-  pointer-events: none;
+  /* C22: recibe el puntero para poder arrastrar la barra por su
+   * línea; el ::after agranda la ZONA DE AGARRE (±6 px alrededor)
+   * sin cambiar lo dibujado. */
+  pointer-events: auto;
+}
+
+.barra-eje::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
 }
 
 /* C21: barra vertical — el trazo gira con el nodo (los handles y los
@@ -1185,6 +1230,9 @@ body.arrastrando .paleta-item {
   border-radius: 3px;
   background: rgba(37, 99, 235, 0.35);
   cursor: ew-resize;
+  /* C22: con la caja en pointer-events:none, los tiradores vuelven a
+   * capturar explícitamente (estirar sigue funcionando). */
+  pointer-events: auto;
 }
 
 .barra-grip:hover {

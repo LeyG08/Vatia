@@ -30,6 +30,10 @@ function armar(puntos: [number, number][]): string {
  * de la grilla — moverlos despega la conexión del símbolo). El snap a
  * grilla solo aplica a los QUIEBRES intermedios, y si el quiebre
  * snapeado cae fuera del tramo útil se usa el punto medio real.
+ *
+ * C22: con `suave` el quiebre NO snapea — sigue al puntero de forma
+ * continua mientras se arrastra una punta (adiós saltos bruscos de
+ * 10 px); la versión definitiva puede seguir siendo snapeada.
  */
 export function rutaOrtogonal(
   sx: number,
@@ -38,6 +42,7 @@ export function rutaOrtogonal(
   tx: number,
   ty: number,
   dirLlegada: string,
+  suave = false,
 ): string {
   const saleVertical = dirSalida === "top" || dirSalida === "bottom";
   const llegaVertical = dirLlegada === "top" || dirLlegada === "bottom";
@@ -47,7 +52,7 @@ export function rutaOrtogonal(
     // Quiebre en una fila intermedia: snapeado pero DENTRO del tramo
     const lo = Math.min(sy, ty);
     const hi = Math.max(sy, ty);
-    let fila = snap((sy + ty) / 2);
+    let fila = suave ? (sy + ty) / 2 : snap((sy + ty) / 2);
     if (fila <= lo || fila >= hi) fila = (sy + ty) / 2;
     return armar([[sx, sy], [sx, fila], [tx, fila], [tx, ty]]);
   }
@@ -56,7 +61,7 @@ export function rutaOrtogonal(
     if (sy === ty) return armar([[sx, sy], [tx, ty]]);
     const lo = Math.min(sx, tx);
     const hi = Math.max(sx, tx);
-    let columna = snap((sx + tx) / 2);
+    let columna = suave ? (sx + tx) / 2 : snap((sx + tx) / 2);
     if (columna <= lo || columna >= hi) columna = (sx + tx) / 2;
     return armar([[sx, sy], [columna, sy], [columna, ty], [tx, ty]]);
   }

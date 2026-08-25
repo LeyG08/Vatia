@@ -4,8 +4,9 @@
  * el mouse, cruza elementos por encima/debajo de la barra, vuelve a
  * cruzarlos, RECONECTA una punta arrastrándola a otro handle de la
  * barra y comprueba que ESCRIBIR en «Desde» del alimentador NO mueva
- * ni un píxel el símbolo y que ROTAR la barra (R) gire también su
- * trazo.
+ * ni un píxel el símbolo, que ROTAR la barra (R) gire también su
+ * trazo, que la punta de reconexión sea ALCANZABLE y que la salida
+ * del alimentador caiga EXACTA en el mapa de puntos.
  *
  * Uso:  npm run build && npm run preview &  → luego  npm run e2e
  * (requiere `npx playwright install chromium` una sola vez).
@@ -169,6 +170,18 @@ await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
     const uy = bbU.y + bbU.height / 2;
     const hx = bbH.x + bbH.width / 2;
     const hy = bbH.y + bbH.height / 2;
+    // C22: la punta tiene que ser ALCANZABLE con un clic real — la
+    // caja de la barra ya no tapa al updater (pointer-events:none).
+    const queHay = await page.evaluate(({ x, y }) => {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return "";
+      return el.getAttribute?.("class") ?? String(el.className.baseVal ?? "");
+    }, { x: ux, y: uy });
+    if (!String(queHay).includes("edgeupdater")) {
+      marcarFalla(
+        `la punta de reconexión está TAPADA por ${String(queHay).slice(0, 40)}`,
+      );
+    }
     await upd.dispatchEvent("mousedown", {
       clientX: ux,
       clientY: uy,
@@ -247,6 +260,38 @@ await page.waitForTimeout(400);
   console.log(`[escribiendo en Desde] desplazamiento del handle=${d.toFixed(2)} px`);
   if (d > 0.5) marcarFalla("el alimentador se movió al escribir");
   resumen("alimentador tras escribir", await medir(page));
+}
+
+/* C22: la PUNTA del alimentador cae EXACTA en el mapa de puntos —
+ * resto a la grilla de 10 px (en coords de flujo, sin zoom) ≈ 0. */
+{
+  const punta = await page.evaluate(() => {
+    const vp = document.querySelector(".react-flow__viewport");
+    const m = /scale\(([\d.]+)\)/.exec(vp?.style.transform ?? "");
+    const svg = document.querySelector(".react-flow__edge-path")
+      ?.ownerSVGElement;
+    const inv = svg?.getScreenCTM()?.inverse();
+    const h = document.querySelector(
+      ".nodo-alimentador .react-flow__handle",
+    );
+    if (!inv || !h) return null;
+    const r = h.getBoundingClientRect();
+    const p = new DOMPoint(r.x + r.width / 2, r.y + r.height / 2)
+      .matrixTransform(inv);
+    void vp; void m;
+    return { fx: p.x, fy: p.y };
+  });
+  if (!punta) {
+    marcarFalla("no pude medir la punta del alimentador");
+  } else {
+    const dx = Math.abs(punta.fx - Math.round(punta.fx / 10) * 10);
+    const dy = Math.abs(punta.fy - Math.round(punta.fy / 10) * 10);
+    console.log(
+      `[alineación punta alimentador] resto=(${dx.toFixed(2)}, ${dy.toFixed(2)}) px`,
+    );
+    if (dx > 0.6 || dy > 0.6)
+      marcarFalla("la punta quedó ENTRE DOS puntos del mapa");
+  }
 }
 
 await browser.close();

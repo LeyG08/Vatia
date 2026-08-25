@@ -190,15 +190,16 @@ export function anotacionNodo(
 /**
  * Anotación del CABLE sobre la conexión. Reglas (acordadas con el
  * usuario):
- * - unipolar   → "n x 1 x S"; multipolar → "1 x n x S".
+ * - unipolar   → "n × 1 × S"; multipolar → "1 × n × S".
  * - Los conductores se agrupan POR SECCIÓN con su cantidad real
  *   (C15): el neutro y la tierra ya no se cuelgan de la sección de
  *   fase. Secciones iguales se suman en un mismo grupo.
- * - Multipolar uniforme → "1 x 6 x 16 mm²"; con secciones mezcladas
- *   el detalle va adentro: "1 x (3 x 50 + 2 x 35) mm²". Unipolar:
- *   "3 x 1 x 50 mm² + 2 x 1 x 35 mm²".
+ * - Multipolar uniforme → "1 × 6 × 16 mm²"; con secciones mezcladas
+ *   el detalle va adentro: "1 × (3×50 + 2×35) mm²". Unipolar:
+ *   "3×50 + 2×35 mm²" (C22: sin repetir "1 x" por grupo — más corto
+ *   para que la nota no invada el diagrama).
  * - Puede haber conexiones SOLO de neutro o solo de tierra: se
- *   representan igualmente ("1 x 1 x 16 mm²").
+ *   representan igualmente ("1 × 16 mm²").
  * - Orden del bloque: SECCIONES / material-aislación / norma IRAM.
  */
 export function lineasCable(a: Record<string, unknown>): string[] {
@@ -237,10 +238,10 @@ export function lineasCable(a: Record<string, unknown>): string[] {
   if (mp) {
     linea1 =
       grupos.length === 1
-        ? `1 x ${grupos[0].cant} x ${grupos[0].s} mm²`
-        : `1 x (${grupos.map((g) => `${g.cant} x ${g.s}`).join(" + ")}) mm²`;
+        ? `1 × ${grupos[0].cant} × ${grupos[0].s} mm²`
+        : `1 × (${grupos.map((g) => `${g.cant}×${g.s}`).join(" + ")}) mm²`;
   } else {
-    linea1 = grupos.map((g) => `${g.cant} x 1 x ${g.s} mm²`).join(" + ");
+    linea1 = grupos.map((g) => `${g.cant}×${g.s}`).join(" + ") + " mm²";
   }
 
   const matAis = [
