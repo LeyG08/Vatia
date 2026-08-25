@@ -136,13 +136,20 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
       style={{ width: cajaAncho, height: cajaAlto }}
       title="Barra de distribución"
     >
-      {/* Eje de la barra */}
+      {/* Eje de la barra (C21: gira con el nodo) */}
       <div
-        className="barra-eje"
-        style={{
-          left: `${(BARRA_GEO.padX / cajaAncho) * 100}%`,
-          right: `${(BARRA_GEO.padX / cajaAncho) * 100}%`,
-        }}
+        className={`barra-eje${vertical ? " barra-eje-v" : ""}`}
+        style={
+          vertical
+            ? {
+                top: `${(BARRA_GEO.padX / cajaAlto) * 100}%`,
+                bottom: `${(BARRA_GEO.padX / cajaAlto) * 100}%`,
+              }
+            : {
+                left: `${(BARRA_GEO.padX / cajaAncho) * 100}%`,
+                right: `${(BARRA_GEO.padX / cajaAncho) * 100}%`,
+              }
+        }
       />
       {offsets.map((o) => {
         const pos = proyectar(BARRA_GEO.padX + o, BARRA_GEO.centroY);

@@ -4,7 +4,8 @@
  * el mouse, cruza elementos por encima/debajo de la barra, vuelve a
  * cruzarlos, RECONECTA una punta arrastrándola a otro handle de la
  * barra y comprueba que ESCRIBIR en «Desde» del alimentador NO mueva
- * ni un píxel el símbolo.
+ * ni un píxel el símbolo y que ROTAR la barra (R) gire también su
+ * trazo.
  *
  * Uso:  npm run build && npm run preview &  → luego  npm run e2e
  * (requiere `npx playwright install chromium` una sola vez).
@@ -192,6 +193,37 @@ await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
       );
     }
   }
+}
+
+/* C21: BARRA VERTICAL — roto la barra con R y verifico que el trazo
+ * (.barra-eje) TAMBIÉN gira (antes quedaba horizontal) y que los
+ * cables siguen anclando exacto sobre los handles reproyectados. */
+{
+  await page.click('.react-flow__node[data-id="n1"] .nodo-barra');
+  const antes = await page
+    .locator('.react-flow__node[data-id="n1"] .barra-eje')
+    .boundingBox();
+  await page.keyboard.press("r");
+  await page.waitForTimeout(250);
+  const despues = await page
+    .locator('.react-flow__node[data-id="n1"] .barra-eje')
+    .boundingBox();
+  if (!antes || !despues) {
+    marcarFalla("no encontré el eje de la barra");
+  } else {
+    console.log(
+      `[rotar barra] eje ${antes.width.toFixed(0)}x${antes.height.toFixed(0)}` +
+        ` → ${despues.width.toFixed(0)}x${despues.height.toFixed(0)}`,
+    );
+    // Comparación RELATIVA (el zoom del viewport infla los px): antes
+    // horizontal (ancho ≫ alto), después vertical (alto ≫ ancho).
+    const horizontalOk = antes.width >= 3 * antes.height;
+    const verticalOk = despues.height >= 3 * despues.width;
+    if (!horizontalOk || !verticalOk) {
+      marcarFalla("el trazo de la barra no gira al rotar");
+    }
+  }
+  resumen("cables tras rotar la barra", await medir(page));
 }
 
 /* C19: ESCRIBIR en «Desde» NO mueve el símbolo — proyecto con

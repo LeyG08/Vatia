@@ -1140,6 +1140,17 @@ body.arrastrando .paleta-item {
   pointer-events: none;
 }
 
+/* C21: barra vertical — el trazo gira con el nodo (los handles y los
+   grips ya se reubicaban; el eje quedaba horizontal). Franja vertical
+   centrada en X, con el mismo margen de extremos a lo largo del eje. */
+.barra-eje-v {
+  top: auto;
+  left: 50%;
+  width: 5px;
+  height: auto;
+  transform: translateX(-50%);
+}
+
 .handle-barra {
   opacity: 0;
   transition: opacity 0.12s ease;

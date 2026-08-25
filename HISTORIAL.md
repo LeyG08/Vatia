@@ -1193,6 +1193,21 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     300 A · IRAM 2104
 - Suites del ajuste: build/lint OK; E2E OK (14 escenarios).
 
+**C21 — barra VERTICAL: el trazo también gira:**
+- Reporte del usuario: en vertical los handles y los tiradores se
+  reubican bien, pero la SIMBOLOGÍA quedaba horizontal. Causa: el eje
+  (.barra-eje) era siempre una franja horizontal (top:50%+height fijo);
+  sus insets left/right caían sobre el ancho corto de la caja girada.
+- Arreglo: BarraNode agrega la clase .barra-eje-v cuando el giro es
+  impar → franja VERTICAL centrada en X, con top/bottom = padX a lo
+  largo del eje (mismo margen de extremos que en horizontal). La ficha
+  sigue quedando sobre el extremo superior, coherente.
+- Arnés E2E: nuevo escenario «rotar barra» — selecciona la barra, tecla
+  R y mide el bounding del eje (horizontal ≫ancho → vertical ≫alto,
+  comparación RELATIVA porque el zoom del viewport infla los px) y
+  verifica que los cables siguen anclando exacto tras la rotación.
+- Suites: build/lint OK; alineación + lint + verificador OK; E2E OK.
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1209,7 +1224,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C20 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C21 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1267,6 +1282,8 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   · C20: ficha de barra apilada (composición / dimensiones con
     material al lado / corriente+norma) — regla general: un ítem por
     línea, pares relacionados comparten renglón.
+  · C21: barra vertical — el trazo gira con el nodo (+ escenario E2E
+    de rotación).
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).
