@@ -149,12 +149,24 @@ function problemasCable(a) {
   return msj;
 }
 
-/* ---- barrido ---- */
-const hoja = proyecto.hojas[0];
-const nombres = new Map();
+/* ---- barrido ----
+ * C22: el proyecto es MULTI-HOJA (un hoja por unifilar del DWG).
+ * Las hojas con contenido se validan igual que antes; las VACÍAS son
+ * unifilares aún no migrados: se informan pero NO hacen fallar. */
 let totalPendientes = 0;
+const nombres = new Map();
+const vacias = [];
 
-for (const n of hoja.nodos) {
+for (const hoja of proyecto.hojas) {
+  if (
+    (!hoja.nodos || hoja.nodos.length === 0) &&
+    (!hoja.conexiones || hoja.conexiones.length === 0)
+  ) {
+    vacias.push(hoja.nombre ?? hoja.id);
+    continue;
+  }
+  console.log(`— Hoja «${hoja.nombre}» (${hoja.tablero ?? "?"})`);
+  for (const n of hoja.nodos) {
   if (n.tipo === "alimentador") {
     nombres.set(n.id, `Alimentador${n.datos?.origen ? ` desde ${n.datos.origen}` : ""}`);
     const msj = [
@@ -186,16 +198,21 @@ for (const n of hoja.nodos) {
     : `  ✗ ${etiqueta}\n      - ${msj.join("\n      - ")}`);
 }
 
-for (const c of hoja.conexiones) {
-  const msj = problemasCable(c.atributos_conductor ?? {});
-  totalPendientes += msj.length;
-  const [src] = c.desde.split(".");
-  const [tgt] = c.hasta.split(".");
-  const etiqueta = `${c.desde} → ${c.hasta}`;
-  void src; void tgt; void nombres;
-  console.log(msj.length === 0
-    ? `  ✓ Conexión ${etiqueta}`
-    : `  ✗ Conexión ${etiqueta}\n      - ${msj.join("\n      - ")}`);
+  for (const c of hoja.conexiones) {
+    const msj = problemasCable(c.atributos_conductor ?? {});
+    totalPendientes += msj.length;
+    const etiqueta = `${c.desde} → ${c.hasta}`;
+    console.log(msj.length === 0
+      ? `  ✓ Conexión ${etiqueta}`
+      : `  ✗ Conexión ${etiqueta}\n      - ${msj.join("\n      - ")}`);
+  }
+}
+
+if (vacias.length > 0) {
+  console.log(
+    `\nSin migrar aún (${vacias.length} hojas vacías, no fallan): ` +
+      vacias.join(", "),
+  );
 }
 
 console.log(

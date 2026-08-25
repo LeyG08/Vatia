@@ -1241,6 +1241,29 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 - Suites: build/lint OK; alineación + lint + verificador OK; E2E OK
   (16 verificaciones).
 
+**C23 — el proyecto PPS pasa a ser MULTI-HOJA (un unifilar por tablero):**
+- El usuario pasó el fuente real: «Unifilares de Tableros.dwg»
+  (AC1032, 20/08) + «Unifilares de Tableros (PROV).pdf» (28 págs,
+  11/08) en Downloads. Relevamiento con PyMuPDF: cada página es un
+  unifilar de UN tablero; los nombres TS-* que aparecen son destinos,
+  no títulos (de ahí venía la confusión anterior).
+- El DWG comprime los textos (escaneo binario UTF-16/ASCII: solo
+  fragmentos sueltos) — la lista completa sale de la capa de texto del
+  PDF. Sin líneas vectoriales en el PDF (ploteo rasterizado): no hay
+  marcos dibujados que detectar.
+- `scripts/resegmentar_pps.mjs` (idempotente): reestructura
+  proyecto-real-pps.json en 30 HOJAS — la existente pasa a llamarse
+  «TGBT · TS-G1» (el viejo nombre "TS-Pell1_y_Molino1" era un destino
+  mal tomado como título) y se agregan 29 hojas VACÍAS nombradas por
+  unifilar, con metadatos de migración (fuente/página/estado). Coincide
+  con los ~30 unifilares que mencionó el usuario.
+- `verificar_proyecto_real.mjs`: ahora barre TODAS las hojas; las
+  vacías se informan como «Sin migrar aún» y NO hacen fallar.
+- PENDIENTE (próximas iteraciones): migrar el CONTENIDO de cada página
+  del PDF a su hoja (extracción posicional página por página).
+- Suites: build/lint OK; E2E OK; alineación + lint + verificador OK
+  (30 hojas, sin pendientes de fichas).
+
 ---
 
 ## Registro de reversiones y cambios de rumbo
@@ -1257,7 +1280,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C22 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C23 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1322,6 +1345,9 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     no tapa); plaquetas blancas bajo TODO texto del plano; ruta suave
     mientras se arrastra una punta. PENDIENTE C22: re-migración del
     DWG (~30 unifilares en un archivo) — falta el archivo fuente.
+  · C23: recibido el fuente real (DWG+PDF) — proyecto reestructurado
+    en 30 hojas, una por unifilar/tablero; verificador multi-hoja;
+    migración de contenido página por página queda como próximo paso.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: simbología ampliada (definir alcance).

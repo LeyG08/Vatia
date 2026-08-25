@@ -3,15 +3,15 @@
   "meta": {
     "nombre": "pps_molino_del_fondo_real",
     "fechaCreacion": "2026-08-23T22:30:00.000Z",
-    "ultimaModificacion": "2026-08-24T02:00:00.000Z"
+    "ultimaModificacion": "2026-08-25T00:52:34.183Z"
   },
   "hojas": [
     {
       "id": "pps-hoja-0001",
-      "nombre": "Unifilar PPS · Molino del fondo",
+      "nombre": "TGBT · TS-G1",
       "formato": "A3",
       "orientacion": "horizontal",
-      "tablero": "TS-Pell1_y_Molino1",
+      "tablero": "tgbt-g1",
       "notasGabinete": {
         "material": "",
         "claseAislacion": "",
@@ -33,10 +33,26 @@
         "escala": "",
         "metodoIso": "(E)",
         "responsables": [
-          { "rol": "Proyectó", "fecha": "", "nombre": "" },
-          { "rol": "Dibujó", "fecha": "", "nombre": "" },
-          { "rol": "Revisó", "fecha": "", "nombre": "" },
-          { "rol": "Aprobó", "fecha": "", "nombre": "" }
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
         ],
         "numeroPlano": "",
         "numeroPlanoCliente": "",
@@ -47,9 +63,14 @@
           "id": "B1",
           "tipo": "barra",
           "codigo_iec": "S00119",
-          "posicion": { "x": 290, "y": 460 },
+          "posicion": {
+            "x": 290,
+            "y": 460
+          },
           "rotacion": 0,
-          "datos": { "largoPx": 620 },
+          "datos": {
+            "largoPx": 620
+          },
           "atributos": {
             "dimensiones": "3 x 30 x 10 mm",
             "es_conjunto": true,
@@ -64,7 +85,10 @@
         {
           "id": "A1",
           "tipo": "alimentador",
-          "posicion": { "x": 340, "y": 60 },
+          "posicion": {
+            "x": 340,
+            "y": 60
+          },
           "datos": {
             "origen": "TGBT",
             "fases": true,
@@ -87,7 +111,10 @@
         {
           "id": "F1",
           "codigo_iec": "S00113",
-          "posicion": { "x": 380, "y": 200 },
+          "posicion": {
+            "x": 380,
+            "y": 200
+          },
           "rotacion": 0,
           "atributos": {
             "tipo_aparato": "fusible",
@@ -105,7 +132,10 @@
         {
           "id": "Q1",
           "codigo_iec": "S00110",
-          "posicion": { "x": 580, "y": 560 },
+          "posicion": {
+            "x": 580,
+            "y": 560
+          },
           "rotacion": 0,
           "atributos": {
             "tipo_aparato": "interruptor_termomagnetico",
@@ -120,7 +150,10 @@
         {
           "id": "K1",
           "codigo_iec": "S00112",
-          "posicion": { "x": 580, "y": 860 },
+          "posicion": {
+            "x": 580,
+            "y": 860
+          },
           "rotacion": 0,
           "atributos": {
             "tipo_aparato": "contactor",
@@ -136,7 +169,10 @@
         {
           "id": "M1",
           "codigo_iec": "S00115",
-          "posicion": { "x": 580, "y": 1120 },
+          "posicion": {
+            "x": 580,
+            "y": 1120
+          },
           "rotacion": 0,
           "atributos": {
             "tipo_aparato": "motor_trifasico",
@@ -147,14 +183,20 @@
         {
           "id": "PE",
           "codigo_iec": "S00118",
-          "posicion": { "x": 140, "y": 600 },
+          "posicion": {
+            "x": 140,
+            "y": 600
+          },
           "rotacion": 0,
           "atributos": {}
         },
         {
           "id": "CA1",
           "codigo_iec": "S00120",
-          "posicion": { "x": 740, "y": 600 },
+          "posicion": {
+            "x": 740,
+            "y": 600
+          },
           "rotacion": 0,
           "atributos": {
             "codigo_circuito": "C1",
@@ -172,7 +214,10 @@
         {
           "id": "CA2",
           "codigo_iec": "S00120",
-          "posicion": { "x": 820, "y": 600 },
+          "posicion": {
+            "x": 820,
+            "y": 600
+          },
           "rotacion": 0,
           "atributos": {
             "codigo_circuito": "C2.2",
@@ -190,7 +235,10 @@
         {
           "id": "CA3",
           "codigo_iec": "S00120",
-          "posicion": { "x": 900, "y": 600 },
+          "posicion": {
+            "x": 900,
+            "y": 600
+          },
           "rotacion": 0,
           "atributos": {
             "codigo_circuito": "C15",
@@ -342,7 +390,1810 @@
             "norma_iram": "IRAM 2178"
           }
         }
-      ]
+      ],
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p0",
+        "estado": "parcial"
+      }
+    },
+    {
+      "id": "pps-hoja-0002",
+      "nombre": "TS-G2",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-g2",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0003",
+      "nombre": "TS-G3",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-g3",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p3",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0004",
+      "nombre": "TS-BC",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-bc",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p4",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0005",
+      "nombre": "TS-CD",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-cd",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p5",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0006",
+      "nombre": "TS-Engel",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-engel",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p7",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0007",
+      "nombre": "TS-NB",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-nb",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p8",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0008",
+      "nombre": "TS-LucesGalpon1",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-luces-galpon1",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p9",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0009",
+      "nombre": "TS-TallerManuel",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-taller-manuel",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p10",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0010",
+      "nombre": "TS-TallerManuelAdentro",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-taller-manuel-adentro",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p11",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0011",
+      "nombre": "TS-Matriceria",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-matriceria",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p12",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0012",
+      "nombre": "TS-TomasMatriceria1",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-tomas-matriceria-1",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p13",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0013",
+      "nombre": "TS-TomasMatriceria2",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-tomas-matriceria-2",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p14",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0014",
+      "nombre": "TS-LucesMatriceria",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-luces-matriceria",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p15",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0015",
+      "nombre": "TS-PET1",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-pet1",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p16",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0016",
+      "nombre": "TS-PET2y3",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-pet2y3",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p17",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0017",
+      "nombre": "TS-SalaMaquinas (frío)",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-sala-maquinas",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": null,
+        "estado": "pendiente-sin-pagina"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0018",
+      "nombre": "TS-AGR",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-agr",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0019",
+      "nombre": "TS-Pell2_y_Inyec2",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-pell2-y-inyec2",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0020",
+      "nombre": "TS-MolinoRepasoSopladoras",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-molino-repaso-sopladoras",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p18",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0021",
+      "nombre": "TS-MolinosRepaso45",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-molinos-repaso45",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p19",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0022",
+      "nombre": "TS-MolinoRepaso4",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-molino-repaso4",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p20",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0023",
+      "nombre": "TS-Sopladora1",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-sopladora1",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p21",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0024",
+      "nombre": "TS-Sopladora2y3",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-sopladora23",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p22",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0025",
+      "nombre": "TS-VF3",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-vf3",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0026",
+      "nombre": "TS-TG2",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-tg2",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0027",
+      "nombre": "TS-TallerH",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-taller-h",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0028",
+      "nombre": "TS-Horno",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-horno",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0029",
+      "nombre": "TS-TallerS",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "ts-taller-s",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p2",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
+    },
+    {
+      "id": "pps-hoja-0030",
+      "nombre": "SF-AlimentacionCD",
+      "formato": "A3",
+      "orientacion": "horizontal",
+      "tablero": "sf-alimentacion-cd",
+      "notasGabinete": {
+        "material": "",
+        "claseAislacion": "",
+        "personalApto": "",
+        "gradoProteccion": "",
+        "barrasOConductores": "",
+        "reservaFutura": ""
+      },
+      "notaSeguridad": "",
+      "rotulo": {
+        "empresa": "",
+        "logoTexto": "",
+        "cliente": "",
+        "localidad": "",
+        "denominacion": "",
+        "claveRepresentado": "",
+        "nombreArchivo": "",
+        "toleranciasGenerales": "",
+        "escala": "",
+        "metodoIso": "(E)",
+        "responsables": [
+          {
+            "rol": "Proyectó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Dibujó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Revisó",
+            "fecha": "",
+            "nombre": ""
+          },
+          {
+            "rol": "Aprobó",
+            "fecha": "",
+            "nombre": ""
+          }
+        ]
+      },
+      "migracion": {
+        "fuente": "Unifilares de Tableros.dwg",
+        "pagina": "p5",
+        "estado": "pendiente"
+      },
+      "nodos": [],
+      "conexiones": [],
+      "viewport": {
+        "x": -300,
+        "y": -40,
+        "zoom": 1.5
+      }
     }
   ]
 }
