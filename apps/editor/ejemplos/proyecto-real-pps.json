@@ -3,7 +3,7 @@
   "meta": {
     "nombre": "pps_molino_del_fondo_real",
     "fechaCreacion": "2026-08-23T22:30:00.000Z",
-    "ultimaModificacion": "2026-08-25T01:20:03.565Z"
+    "ultimaModificacion": "2026-08-25T01:28:56.771Z"
   },
   "hojas": [
     {
@@ -2196,20 +2196,20 @@
       }
     },
     {
-      "id": "pps-hoja-0002",
+      "id": "pps-hoja-0031",
       "nombre": "TGBT",
       "formato": "A3",
       "orientacion": "horizontal",
       "tablero": "tgbt",
       "notasGabinete": {
-        "material": "",
-        "claseAislacion": "",
-        "personalApto": "",
-        "gradoProteccion": "",
-        "barrasOConductores": "",
-        "reservaFutura": ""
+        "material": "Gabinete o armazón metálico autoportante",
+        "claseAislacion": "Clase I (puesta a tierra de masas metálicas)",
+        "personalApto": "Exclusivo para personal BA5/BA4",
+        "gradoProteccion": "IP00 (tablero abierto según IEC 60529)",
+        "barrasOConductores": "Barras principales de cobre desnudo",
+        "reservaFutura": "Sin espacio de reserva futuro"
       },
-      "notaSeguridad": "",
+      "notaSeguridad": "Toda maniobra de desconexión se ejecuta en vacío, previa apertura del interruptor automático aguas abajo.",
       "rotulo": {
         "empresa": "",
         "logoTexto": "",
@@ -2247,10 +2247,273 @@
       "migracion": {
         "fuente": "Unifilares de Tableros.dwg",
         "pagina": "p0",
-        "estado": "pendiente"
+        "estado": "parcial"
       },
-      "nodos": [],
-      "conexiones": [],
+      "nodos": [
+        {
+          "id": "ARed",
+          "tipo": "alimentador",
+          "posicion": {
+            "x": 340,
+            "y": 60
+          },
+          "rotacion": 0,
+          "datos": {
+            "origen": "Red de distribución",
+            "fases": true,
+            "neutro": true,
+            "tierra": false,
+            "cantidadN": null
+          },
+          "atributos": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": true,
+            "seccion_neutro_mm2": 120,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 240,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM 2178"
+          }
+        },
+        {
+          "id": "QG1",
+          "codigo_iec": "S00110",
+          "posicion": {
+            "x": 330,
+            "y": 220
+          },
+          "rotacion": 0,
+          "atributos": {
+            "tipo_aparato": "interruptor_termomagnetico",
+            "marca": "EMA",
+            "modelo": "SACE ISOL Z500",
+            "cantidad_polos": 3,
+            "in_a": 500,
+            "curva_disparo": "-",
+            "pdcc_kA": 20,
+            "norma_fabricacion": "IEC 60947-2"
+          }
+        },
+        {
+          "id": "KM1",
+          "codigo_iec": "S00112",
+          "posicion": {
+            "x": 330,
+            "y": 360
+          },
+          "rotacion": 0,
+          "atributos": {
+            "tipo_aparato": "contactor",
+            "marca": "Siemens",
+            "modelo": "3TF57",
+            "cantidad_polos": 3,
+            "ue_V": 415,
+            "categoria_empleo": "AC-3",
+            "in_a": 475,
+            "tension_bobina_v": 220
+          }
+        },
+        {
+          "id": "APat",
+          "tipo": "alimentador",
+          "posicion": {
+            "x": 660,
+            "y": 60
+          },
+          "rotacion": 0,
+          "datos": {
+            "origen": "PAT (generador)",
+            "fases": true,
+            "neutro": false,
+            "tierra": false,
+            "cantidadN": null
+          },
+          "atributos": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": false,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 70,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM NM 247-3"
+          }
+        },
+        {
+          "id": "QG2",
+          "codigo_iec": "S00110",
+          "posicion": {
+            "x": 650,
+            "y": 220
+          },
+          "rotacion": 0,
+          "atributos": {
+            "tipo_aparato": "interruptor_termomagnetico",
+            "marca": "EMA",
+            "modelo": "SACE ISOL Z500",
+            "cantidad_polos": 3,
+            "in_a": 500,
+            "curva_disparo": "-",
+            "pdcc_kA": 20,
+            "norma_fabricacion": "IEC 60947-2"
+          }
+        },
+        {
+          "id": "KM2",
+          "codigo_iec": "S00112",
+          "posicion": {
+            "x": 650,
+            "y": 360
+          },
+          "rotacion": 0,
+          "atributos": {
+            "tipo_aparato": "contactor",
+            "marca": "Siemens",
+            "modelo": "3TA28",
+            "cantidad_polos": 3,
+            "ue_V": 380,
+            "categoria_empleo": "AC-3",
+            "in_a": 170,
+            "tension_bobina_v": 220
+          }
+        },
+        {
+          "id": "B1",
+          "tipo": "barra",
+          "codigo_iec": "S00119",
+          "posicion": {
+            "x": 250,
+            "y": 540
+          },
+          "rotacion": 0,
+          "datos": {
+            "largoPx": 620
+          },
+          "atributos": {
+            "dimensiones": "3 x 30 x 10 mm",
+            "es_conjunto": true,
+            "cantidad_fases": 3,
+            "incluye_neutro": true,
+            "incluye_tierra": false,
+            "material": "Cu",
+            "norma_iram": "IRAM 2181-1",
+            "corriente_admisible_A": 500
+          }
+        },
+        {
+          "id": "PE",
+          "codigo_iec": "S00118",
+          "posicion": {
+            "x": 180,
+            "y": 660
+          },
+          "rotacion": 0,
+          "atributos": {}
+        }
+      ],
+      "conexiones": [
+        {
+          "desde": "ARed.salida",
+          "hasta": "QG1.1",
+          "atributos_conductor": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": true,
+            "seccion_neutro_mm2": 120,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 240,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM 2178"
+          }
+        },
+        {
+          "desde": "QG1.2",
+          "hasta": "KM1.1",
+          "atributos_conductor": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": false,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 70,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM NM 247-3"
+          }
+        },
+        {
+          "desde": "KM1.2",
+          "hasta": "B1.140b",
+          "atributos_conductor": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": false,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 70,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM NM 247-3"
+          }
+        },
+        {
+          "desde": "APat.salida",
+          "hasta": "QG2.1",
+          "atributos_conductor": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": false,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 70,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM NM 247-3"
+          }
+        },
+        {
+          "desde": "QG2.2",
+          "hasta": "KM2.1",
+          "atributos_conductor": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": false,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 70,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM NM 247-3"
+          }
+        },
+        {
+          "desde": "KM2.2",
+          "hasta": "B1.260b",
+          "atributos_conductor": {
+            "cantidad_conductores": 3,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": false,
+            "lleva_tierra": false,
+            "seccion_fase_mm2": 70,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM NM 247-3"
+          }
+        },
+        {
+          "desde": "B1.60a",
+          "hasta": "PE.PE",
+          "atributos_conductor": {
+            "cantidad_conductores": 0,
+            "tipo_cable": "unipolar",
+            "lleva_neutro": false,
+            "lleva_tierra": true,
+            "seccion_tierra_mm2": 16,
+            "material": "Cu",
+            "aislacion": "PVC",
+            "norma_iram": "IRAM NM 247-3"
+          }
+        }
+      ],
       "viewport": {
         "x": -300,
         "y": -40,
@@ -2258,7 +2521,7 @@
       }
     },
     {
-      "id": "pps-hoja-0003",
+      "id": "pps-hoja-0032",
       "nombre": "TS-G1",
       "formato": "A3",
       "orientacion": "horizontal",
@@ -2320,7 +2583,7 @@
       }
     },
     {
-      "id": "pps-hoja-0004",
+      "id": "pps-hoja-0033",
       "nombre": "TS-Lab",
       "formato": "A3",
       "orientacion": "horizontal",

@@ -57,7 +57,13 @@ const UNIFILARES = [
   ["sf-alimentacion-cd", "SF-AlimentacionCD", "p5"],
 ];
 
+// Numeración: continuar desde el sufijo numérico MÁXIMO existente
+// (C24: antes reiniciaba en 2 y generaba ids duplicados).
 let numeracion = 2;
+for (const h of proyecto.hojas) {
+  const m = /^pps-hoja-(\d+)$/.exec(h.id);
+  if (m) numeracion = Math.max(numeracion, Number(m[1]) + 1);
+}
 const nuevas = [];
 for (const [id, nombre, pagina] of UNIFILARES) {
   if (proyecto.hojas.some((h) => h.tablero === id || h.nombre === nombre)) {
