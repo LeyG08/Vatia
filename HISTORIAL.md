@@ -1361,7 +1361,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C29 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C30 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1460,6 +1460,15 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     Ruta: rutaOrtogonal acepta paso (extremo→esquina→extremo
     respetando ejes de salida/llegada). E2E: vértices 4→5 al doblar,
     gaps en cero, deshacer restaura.
+  · C30: combinaciones LIBRES fases/neutro/tierra — cable: el stepper
+    de conductores baja a 0 (solo N, solo PE o solo secciones propias;
+    schema minimum 0; checklist ya exigía sección por línea presente).
+    Carga: schema sin alimentacion/lleva_neutro obligatorios + nuevo
+    lleva_tierra; formulario con chips Fases (—/1F/3F) + Neutro (con/
+    sin N) + Tierra (con/sin PE) independientes; línea asignada solo
+    con fases definidas; potencia NO se calcula sin fases (no hay
+    tensión de referencia). Verificado en vivo sobre la hoja TGBT:
+    3F→√3·380·I, —→sin cálculo, estado solo-PE ok.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: C29 camino de conexión con quiebre

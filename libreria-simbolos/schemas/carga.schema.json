@@ -3,10 +3,10 @@
   "$id": "carga.schema.json",
   "title": "Vatia · Atributos de familia carga",
   "description": "Fase C7/C9. Destino de un circuito de distribución: IUG (iluminación), TUG (tomacorrientes de uso general), ACU (aire acondicionado), seccional u otra. La potencia aparente (VA) se CALCULA sola a partir de la alimentación, el neutro y la corriente; el usuario no la carga a mano.",
-  "$comment": "AJUSTE C9 del usuario: hace falta saber si la carga es monofásica o trifásica, qué línea tiene asignada (L1/L2/L3) y si lleva neutro — con eso la potencia se calcula automáticamente.",
+  "$comment": "AJUSTE C9 del usuario: hace falta saber si la carga es monofásica o trifásica, qué línea tiene asignada (L1/L2/L3) y si lleva neutro — con eso la potencia se calcula automáticamente. AJUSTE C30: alimentación y neutro dejan de ser obligatorios (puede haber cargas solo-tierra o sin fases definidas) y se agrega lleva_tierra.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["codigo_circuito", "tipo_carga", "alimentacion", "lleva_neutro"],
+  "required": ["codigo_circuito", "tipo_carga"],
   "properties": {
     "codigo_circuito": {
       "type": "string",
@@ -20,8 +20,7 @@
     },
     "alimentacion": {
       "enum": ["monofasica", "trifasica"],
-      "x-obligatorio": true,
-      "description": "Monofásica (fase-neutro 220 V o fase-fase 380 V sin neutro) o trifásica (380 V entre líneas)."
+      "description": "Monofásica (fase-neutro 220 V o fase-fase 380 V sin neutro) o trifásica (380 V entre líneas). Sin valor: carga sin fases definidas (ej. seccional de solo PE)."
     },
     "linea_asignada": {
       "enum": ["L1", "L2", "L3"],
@@ -29,8 +28,11 @@
     },
     "lleva_neutro": {
       "type": "boolean",
-      "x-obligatorio": true,
-      "description": "Monofásica con neutro → 220 V. Monofásica sin neutro → entre fases, 380 V."
+      "description": "Monofásica con neutro → 220 V. Monofásica sin neutro → entre fases, 380 V. Sin valor: todavía no se definió."
+    },
+    "lleva_tierra": {
+      "type": "boolean",
+      "description": "¿La carga recibe conductor de tierra (PE)? Independiente del neutro y de las fases (C30)."
     },
     "corriente_a": {
       "type": "number",

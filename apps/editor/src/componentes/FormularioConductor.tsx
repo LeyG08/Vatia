@@ -84,9 +84,9 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
           <button
             type="button"
             className="fc-paso"
-            disabled={fases <= 1}
-            onClick={() => onChange(poner(atributos, "cantidad_conductores", Math.max(1, fases - 1)))}
-            title="Quitar conductor de fase"
+            disabled={fases <= 0}
+            onClick={() => onChange(poner(atributos, "cantidad_conductores", Math.max(0, fases - 1)))}
+            title="Quitar conductor de fase (0 = solo neutro/tierra)"
           >
             −
           </button>

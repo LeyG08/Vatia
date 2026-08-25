@@ -28,6 +28,9 @@ export function calcularPotenciaVa(a: Record<string, unknown>): number | null {
       ? a.corriente_a
       : null;
   if (i === null) return null;
+  // C30: sin fases definidas no hay tensión de referencia → no se calcula
+  if (a.alimentacion !== "monofasica" && a.alimentacion !== "trifasica")
+    return null;
   if (a.alimentacion === "trifasica") {
     return Math.round(Math.sqrt(3) * 380 * i);
   }
@@ -131,16 +134,74 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
         {seleccion("tipo_carga", TIPOS)}
       </label>
 
-      <label className="campo-atributo">
-        <span>
-          Alimentación<em className="obligatorio">*</em>
-        </span>
-        {seleccion("alimentacion", ["monofasica", "trifasica"])}
-      </label>
+      {/* C30: composición LIBRE de la carga — fases (— / 1F / 3F),
+       * neutro y tierra independientes entre sí. Sin fases la potencia
+       * no se calcula (no hay tensión de referencia). */}
+      <div className="campo-atributo" title="Cantidad de fases que entran a la carga">
+        <span>Fases</span>
+        <div className="chips" role="group" aria-label="Fases">
+          {(
+            [
+              ["", "—"],
+              ["monofasica", "1F"],
+              ["trifasica", "3F"],
+            ] as const
+          ).map(([valor, etiqueta]) => (
+            <button
+              key={etiqueta}
+              type="button"
+              className={`chip${(atributos.alimentacion as string | undefined ?? "") === valor ? " on" : ""}`}
+              onClick={() => actualizar("alimentacion", valor || undefined)}
+            >
+              {etiqueta}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="campo-atributo" title="Sin neutro la carga queda entre fases (380 V)">
+        <span>Neutro</span>
+        <div className="chips" role="group" aria-label="Neutro">
+          <button
+            type="button"
+            className={`chip${atributos.lleva_neutro === true ? " on" : ""}`}
+            onClick={() => actualizar("lleva_neutro", true)}
+          >
+            con N
+          </button>
+          <button
+            type="button"
+            className={`chip${atributos.lleva_neutro === false ? " on" : ""}`}
+            onClick={() => actualizar("lleva_neutro", false)}
+          >
+            sin N
+          </button>
+        </div>
+      </div>
+
+      <div className="campo-atributo" title="Conductor de tierra (PE), independiente del neutro">
+        <span>Tierra</span>
+        <div className="chips" role="group" aria-label="Tierra">
+          <button
+            type="button"
+            className={`chip${atributos.lleva_tierra === true ? " on" : ""}`}
+            onClick={() => actualizar("lleva_tierra", true)}
+          >
+            con PE
+          </button>
+          <button
+            type="button"
+            className={`chip${atributos.lleva_tierra === false ? " on" : ""}`}
+            onClick={() => actualizar("lleva_tierra", false)}
+          >
+            sin PE
+          </button>
+        </div>
+      </div>
 
       {/* C13: línea asignada como CHIPS que se iluminan (L1/L2/L3).
-       * En trifásica quedan apagados: no aplica. Click de nuevo =
-       * deseleccionar. */}
+       * Solo aplica a monofásica (C30: con fases "—" tampoco aplica).
+       * Click de nuevo = deseleccionar. */}
       <div className="campo-atributo" title={esTrifasica ? "En trifásica no aplica" : "Línea del tablero para equilibrar fases"}>
         <span>Línea asignada</span>
         <div className="chips" role="group" aria-label="Línea asignada">
@@ -148,7 +209,7 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
             <button
               key={ln}
               type="button"
-              disabled={esTrifasica}
+              disabled={!atributos.alimentacion || esTrifasica}
               className={`chip${atributos.linea_asignada === ln ? " on" : ""}`}
               onClick={() =>
                 actualizar(
@@ -160,29 +221,6 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
               {ln}
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* C13: neutro como par de chips iluminados (obligatorio) */}
-      <div className="campo-atributo" title="Sin neutro la carga queda entre fases (380 V)">
-        <span>
-          Neutro<em className="obligatorio">*</em>
-        </span>
-        <div className="chips" role="group" aria-label="Neutro">
-          <button
-            type="button"
-            className={`chip${atributos.lleva_neutro === true ? " on" : ""}`}
-            onClick={() => actualizar("lleva_neutro", true)}
-          >
-            con neutro
-          </button>
-          <button
-            type="button"
-            className={`chip${atributos.lleva_neutro === false ? " on" : ""}`}
-            onClick={() => actualizar("lleva_neutro", false)}
-          >
-            sin neutro
-          </button>
         </div>
       </div>
 

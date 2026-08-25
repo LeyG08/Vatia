@@ -9,9 +9,9 @@
   "required": ["cantidad_conductores"],
   "properties": {
     "cantidad_conductores": {
-      "type": "integer", "minimum": 1,
+      "type": "integer", "minimum": 0,
       "x-obligatorio": true,
-      "description": "Conductores DE FASE del cable (las marcas oblicuas sobre la conexión). Sin límite superior."
+      "description": "Conductores DE FASE del cable (las marcas oblicuas sobre la conexión). Puede ser 0: cables de solo neutro o solo tierra (C30). Sin límite superior."
     },
     "tipo_cable": {
       "enum": ["unipolar", "multipolar"],
