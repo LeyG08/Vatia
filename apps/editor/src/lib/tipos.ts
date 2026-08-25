@@ -60,6 +60,9 @@ export interface ConexionProyecto {
   id: string;
   desde: string;
   hasta: string;
+  /** C29: quiebre intermedio obligatorio del recorrido (coords de flujo).
+   * Ausente = ruta automática. */
+  paso?: { x: number; y: number };
   atributos_conductor?: Record<string, unknown>;
 }
 

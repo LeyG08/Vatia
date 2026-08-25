@@ -34,6 +34,11 @@ function armar(puntos: [number, number][]): string {
  * C22: con `suave` el quiebre NO snapea — sigue al puntero de forma
  * continua mientras se arrastra una punta (adiós saltos bruscos de
  * 10 px); la versión definitiva puede seguir siendo snapeada.
+ *
+ * C29: `paso` fuerza UNA esquina exacta del recorrido (el quiebre
+ * arrastrable). Se ignoran las heurísticas y el cable va
+ * extremo → esquina → extremo respetando el eje de salida/llegada;
+ * también se snapea a grilla para que viva en el mapa punteado.
  */
 export function rutaOrtogonal(
   sx: number,
@@ -43,9 +48,21 @@ export function rutaOrtogonal(
   ty: number,
   dirLlegada: string,
   suave = false,
+  paso?: { x: number; y: number } | null,
 ): string {
   const saleVertical = dirSalida === "top" || dirSalida === "bottom";
   const llegaVertical = dirLlegada === "top" || dirLlegada === "bottom";
+
+  if (paso && !suave) {
+    const px = snap(paso.x);
+    const py = snap(paso.y);
+    const puntos: [number, number][] = saleVertical
+      ? [[sx, sy], [sx, py], [px, py]]
+      : [[sx, sy], [px, sy], [px, py]];
+    if (llegaVertical) puntos.push([tx, py], [tx, ty]);
+    else puntos.push([px, ty], [tx, ty]);
+    return armar(puntos);
+  }
 
   if (saleVertical && llegaVertical) {
     if (sx === tx) return armar([[sx, sy], [tx, ty]]);

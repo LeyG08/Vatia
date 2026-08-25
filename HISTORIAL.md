@@ -1361,7 +1361,7 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 
 - `main` = `7b0d37a` (Fase 6 cerrada: PR #10 mergeado + HISTORIAL).
 - Fase C sobre rama `proyecto/fase-c-atributos-20260823`:
-  IMPLEMENTADAS Y COMMITEADAS C1 a C28 —
+  IMPLEMENTADAS Y COMMITEADAS C1 a C29 —
   · C1/C1-bis/C2: base de atributos y formularios schema-driven.
   · C3: motor de checklist no bloqueante (lib/checklist.ts) +
     panel ChecklistAea agrupado por elemento con subtareas.
@@ -1453,6 +1453,13 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     useConnection en el padre provocaba bucle React #185) y CSS deja
     fuera del hit-testing los handles del tipo incompatible. E2E nuevo:
     punta fuente de c1 → n1.210a.
+  · C29: quiebre arrastrable del cable — con el cable seleccionado
+    aparece un grip sobre el recorrido; arrastrarlo fuerza UNA esquina
+    exacta (ConexionProyecto.paso, snap a grilla, se serializa y viaja
+    con duplicar/mover a hoja), clic derecho lo quita; Ctrl+Z deshace.
+    Ruta: rutaOrtogonal acepta paso (extremo→esquina→extremo
+    respetando ejes de salida/llegada). E2E: vértices 4→5 al doblar,
+    gaps en cero, deshacer restaura.
 - PR todavía NO abierto: merge solo por orden expresa del usuario
   (política vigente de AGENTS.md).
 - Próximo paso acordado: C29 camino de conexión con quiebre

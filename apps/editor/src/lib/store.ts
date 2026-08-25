@@ -292,10 +292,12 @@ function rfANodoProyecto(n: Node<NodoData>): NodoProyecto {
 }
 
 function rfAConexionProyecto(e: Edge): ConexionProyecto {
+  const paso = (e.data?.paso as { x: number; y: number } | undefined) ?? undefined;
   return {
     id: e.id,
     desde: `${e.source}.${e.sourceHandle ?? ""}`,
     hasta: `${e.target}.${e.targetHandle ?? ""}`,
+    ...(paso ? { paso: { ...paso } } : {}),
     atributos_conductor: {
       ...((e.data?.atributosConductor as Record<string, unknown> | undefined) ??
         {}),
@@ -452,7 +454,10 @@ function construirEstadoHoja(hojaSer: Hoja): {
       target: tgt,
       targetHandle: tgtH ?? null,
       type: "conexion",
-      data: { atributosConductor: { ...(c.atributos_conductor ?? {}) } },
+      data: {
+        atributosConductor: { ...(c.atributos_conductor ?? {}) },
+        paso: c.paso ? { ...c.paso } : null,
+      },
     });
   }
   return { cfg: fusion.hoja, nodos, conexiones, problemas };
@@ -527,6 +532,13 @@ interface EstadoEditor {
   /** C22: acomoda posiciones SIN historial (alineación fina de
    * alimentadores al mapa de puntos tras cargar o soltar). */
   fijarPosiciones: (mapa: Record<string, { x: number; y: number }>) => void;
+  /** C29: quiebre arrastrable del cable (ver notas en la impl.) */
+  moverPasoConexion: (id: string, punto: { x: number; y: number }) => void;
+  confirmarPasoConexion: (
+    id: string,
+    antes: { x: number; y: number } | null,
+  ) => void;
+  limpiarPasoConexion: (id: string) => void;
   rotarSeleccion: () => void;
   eliminarSeleccion: () => void;
   copiarSeleccion: () => void;
@@ -1147,6 +1159,71 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       }));
     },
 
+    /* C29: quiebre arrastrable del cable. moverPaso actualiza SIN
+     * historial mientras se arrastra; confirmarPaso graba la entrada de
+     * deshacer una sola vez al soltar; limpiarPaso quita el paso
+     * (vuelve a ruta automática) también con historial. */
+    moverPasoConexion(id, punto) {
+      set((s) => ({
+        conexiones: s.conexiones.map((e) =>
+          e.id === id ? { ...e, data: { ...e.data, paso: { ...punto } } } : e,
+        ),
+      }));
+    },
+    confirmarPasoConexion(id, antes) {
+      const despues = (
+        get().conexiones.find((e) => e.id === id)?.data as
+          | { paso?: { x: number; y: number } | null }
+          | undefined
+      )?.paso ?? null;
+      if (!despues) return;
+      if (antes && despues.x === antes.x && despues.y === antes.y) return;
+      ejecutar({
+        descripcion: "quiebre de conexión",
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, paso: { ...despues } } }
+                : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, paso: antes ?? null } }
+                : e,
+            ),
+          })),
+      });
+    },
+    limpiarPasoConexion(id) {
+      const actual = (
+        get().conexiones.find((e) => e.id === id)?.data as
+          | { paso?: { x: number; y: number } | null }
+          | undefined
+      )?.paso ?? null;
+      if (!actual) return;
+      ejecutar({
+        descripcion: "quitar quiebre",
+        do: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id ? { ...e, data: { ...e.data, paso: null } } : e,
+            ),
+          })),
+        undo: () =>
+          set((s) => ({
+            conexiones: s.conexiones.map((e) =>
+              e.id === id
+                ? { ...e, data: { ...e.data, paso: { ...actual } } }
+                : e,
+            ),
+          })),
+      });
+    },
+
     rotarSeleccion() {
       // Solo los símbolos rotan; los alimentadores son tarjetas fijas
       const seleccionadas = get().nodos.filter(
@@ -1402,6 +1479,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             id: `c${Date.now().toString(36)}d${i}`,
             desde: `${mapa.get(src) ?? src}.${srcH ?? ""}`,
             hasta: `${mapa.get(tgt) ?? tgt}.${tgtH ?? ""}`,
+            ...(c.paso ? { paso: { ...c.paso } } : {}),
             atributos_conductor: { ...(c.atributos_conductor ?? {}) },
           };
         },
@@ -1528,15 +1606,20 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const nodosDestino: NodoProyecto[] = seleccion.map(rfANodoProyecto).map(
         (np, i) => ({ ...np, id: [...remap.values()][i] }),
       );
-      const connsDestino: ConexionProyecto[] = viajan.map((e, i) => ({
-        id: `c${Date.now().toString(36)}m${i}`,
-        desde: `${remap.get(e.source)}.`,
-        hasta: `${remap.get(e.target)}.`,
-        atributos_conductor: {
-          ...((e.data?.atributosConductor as Record<string, unknown> | undefined) ??
-            {}),
-        },
-      }));
+      const connsDestino: ConexionProyecto[] = viajan.map((e, i) => {
+        const paso =
+          (e.data?.paso as { x: number; y: number } | undefined) ?? undefined;
+        return {
+          id: `c${Date.now().toString(36)}m${i}`,
+          desde: `${remap.get(e.source)}.`,
+          hasta: `${remap.get(e.target)}.`,
+          ...(paso ? { paso: { ...paso } } : {}),
+          atributos_conductor: {
+            ...((e.data?.atributosConductor as Record<string, unknown> | undefined) ??
+              {}),
+          },
+        };
+      });
 
       const snapshotNodos = nodos;
       const snapshotConexiones = conexiones;

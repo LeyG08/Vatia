@@ -256,6 +256,71 @@ await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
   }
 }
 
+/* C29: QUIEBRE arrastrable — selecciono el cable c4 clickeando el
+ * PUNTO MEDIO de su tramo más largo (el centro del bbox puede caer
+ * fuera del trazo en rutas en L), aparece el grip, al arrastrarlo el
+ * cable dobla por esa esquina exacta (más vértices) y Ctrl+Z restaura. */
+{
+  const pathC4 = page
+    .locator('.react-flow__edge[data-id="c4"] .react-flow__edge-path')
+    .first();
+  const d0 = await pathC4.getAttribute("d");
+  const v0 = (d0?.match(/-?\d+(?:\.\d+)?/g)?.length ?? 0) / 2;
+  // punto sobre la línea: mitad del segmento más largo, a coords pantalla
+  const punto = await pathC4.evaluate((p) => {
+    const nums = (p.getAttribute("d") ?? "").match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    const pts = [];
+    for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+    let mejor = [pts[0], pts[1]], largo = -1;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+      if (l > largo) { largo = l; mejor = [pts[i], pts[i + 1]]; }
+    }
+    const pt = new DOMPoint(
+      (mejor[0][0] + mejor[1][0]) / 2,
+      (mejor[0][1] + mejor[1][1]) / 2,
+    ).matrixTransform(p.ownerSVGElement.getScreenCTM());
+    return { x: pt.x, y: pt.y };
+  });
+  await page.mouse.click(punto.x, punto.y);
+  await page.waitForTimeout(200);
+  const elegido = await page.evaluate(
+    () => document.querySelector(".react-flow__edge.selected")?.getAttribute("data-id") ?? "(ninguno)",
+  );
+  const grip = page.locator('.paso-grip[data-edge="c4"]');
+  await grip.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
+  const bbG = await grip.boundingBox().catch(() => null);
+  if (elegido !== "c4" || !bbG) {
+    marcarFalla(`clic no seleccionó c4 (${elegido}) o el grip no apareció`);
+  } else {
+    const gx = bbG.x + bbG.width / 2;
+    const gy = bbG.y + bbG.height / 2;
+    await page.mouse.move(gx, gy);
+    await page.mouse.down();
+    for (let i = 1; i <= 8; i++)
+      await page.mouse.move(gx + (36 * i) / 8, gy + (18 * i) / 8);
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    const d1 = await pathC4.getAttribute("d");
+    const v1 = (d1?.match(/-?\d+(?:\.\d+)?/g)?.length ?? 0) / 2;
+    if (v1 <= v0) {
+      marcarFalla(`el quiebre no dobló el cable (vértices ${v0} → ${v1})`);
+    } else {
+      console.log(`[quiebre] vértices ${v0} → ${v1}`);
+      resumen("cable con quiebre", await medir(page));
+      await page.keyboard.press("Control+z");
+      await page.waitForTimeout(250);
+      const d2 = await pathC4.getAttribute("d");
+      const v2 = (d2?.match(/-?\d+(?:\.\d+)?/g)?.length ?? 0) / 2;
+      if (v2 !== v0) {
+        marcarFalla(`Ctrl+Z no restauró la ruta (vértices ${v2}, esperaba ${v0})`);
+      } else {
+        console.log("[quiebre] deshacer OK");
+      }
+    }
+  }
+}
+
 /* C21: BARRA VERTICAL — roto la barra con R y verifico que el trazo
  * (.barra-eje) TAMBIÉN gira (antes quedaba horizontal) y que los
  * cables siguen anclando exacto sobre los handles reproyectados. */

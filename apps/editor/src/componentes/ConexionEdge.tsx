@@ -3,10 +3,13 @@ import {
   EdgeLabelRenderer,
   Position,
   useStore,
+  useStoreApi,
   type EdgeProps,
 } from "@xyflow/react";
-import { rutaOrtogonal } from "../lib/ruta";
+import { useRef } from "react";
+import { GRILLA_PX, rutaOrtogonal } from "../lib/ruta";
 import { lineasCable } from "../lib/anotaciones";
+import { useEditor } from "../lib/store";
 
 /** Marcas de conductor según IEC 60617: trazos oblicuos a ~45°, juntos */
 const SEP_TICKS = 8;
@@ -167,6 +170,10 @@ export default function ConexionEdge({
       vuelo.nodeId === target ||
       vuelo.startHandle?.nodeId === source ||
       vuelo.startHandle?.nodeId === target);
+  /* C29: quiebre arrastrable — data.paso fuerza una esquina exacta.
+   * Mientras se arrastra una punta (vuelo) la ruta automática manda. */
+  const paso =
+    ((data?.paso as { x: number; y: number } | null | undefined) ?? null);
   const d = rutaOrtogonal(
     sourceX,
     sourceY,
@@ -175,6 +182,7 @@ export default function ConexionEdge({
     targetY,
     String(dirEfectiva({ x: targetX, y: targetY }, { x: sourceX, y: sourceY }, targetPosition)),
     propiaVuela,
+    propiaVuela ? null : paso,
   );
   const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
     const lineas = lineasCable(m);
@@ -211,6 +219,63 @@ export default function ConexionEdge({
     ? geo.x + halfSpan * Math.abs(geo.ux) + h * Math.abs(geo.uy) + 6
     : (sourceX + targetX) / 2;
   const labelY = geo ? geo.y : (sourceY + targetY) / 2;
+
+  /* ---- C29: grip del quiebre (visible con el cable seleccionado) ---- */
+  const moverPaso = useEditor((s) => s.moverPasoConexion);
+  const confirmarPaso = useEditor((s) => s.confirmarPasoConexion);
+  const limpiarPaso = useEditor((s) => s.limpiarPasoConexion);
+  const api = useStoreApi();
+  const antesRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Posición del grip: la esquina forzada si existe; si no, el punto
+  // medio del recorrido automático (arrastrarla lo CREA ahí).
+  let gripX: number;
+  let gripY: number;
+  if (paso) {
+    gripX = Math.round(paso.x / GRILLA_PX) * GRILLA_PX;
+    gripY = Math.round(paso.y / GRILLA_PX) * GRILLA_PX;
+  } else {
+    const pts = puntosDe(d);
+    let total = 0;
+    for (let i = 0; i + 1 < pts.length; i++)
+      total += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+    let restante = total / 2;
+    gripX = (sourceX + targetX) / 2;
+    gripY = (sourceY + targetY) / 2;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+      if (restante <= l) {
+        gripX = pts[i][0] + ((pts[i + 1][0] - pts[i][0]) * restante) / l;
+        gripY = pts[i][1] + ((pts[i + 1][1] - pts[i][1]) * restante) / l;
+        break;
+      }
+      restante -= l;
+    }
+  }
+
+  const agarrarPaso = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    antesRef.current = paso ? { ...paso } : null;
+    const move = (ev: PointerEvent) => {
+      const estado = api.getState();
+      const t = estado.transform;
+      const rect = estado.domNode?.getBoundingClientRect();
+      if (!rect) return;
+      moverPaso(id, {
+        x: (ev.clientX - rect.left - t[0]) / t[2],
+        y: (ev.clientY - rect.top - t[1]) / t[2],
+      });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      confirmarPaso(id, antesRef.current);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   return (
     <>
@@ -254,6 +319,24 @@ export default function ConexionEdge({
               <div key={i}>{l}</div>
             ))}
           </div>
+        </EdgeLabelRenderer>
+      )}
+      {props.selected && (
+        <EdgeLabelRenderer>
+          <div
+            className="paso-grip nodrag nopan"
+            data-edge={id}
+            title="Arrastrá para mover el quiebre · clic derecho lo quita"
+            style={{
+              transform: `translate(-50%, -50%) translate(${gripX}px, ${gripY}px)`,
+            }}
+            onPointerDown={agarrarPaso}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              limpiarPaso(id);
+            }}
+          />
         </EdgeLabelRenderer>
       )}
     </>
