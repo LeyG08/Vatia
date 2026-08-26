@@ -1683,3 +1683,17 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   - **Type errors corregidos:** `FabricObject` import de `fabric`, null
     check para `svgEl`, `_next` en middleware.
   - Build (`tsc -b && vite build`) OK.
+- **C36 — Branch management + revert commits de prueba:**
+  - Revertidos 18 commits automáticos del endpoint /api/metadata que
+    estaban en main (commits de prueba de S00110/S00112). Usado
+    `git reset --soft` para no perder cambios del working tree.
+  - S00110 verificado: `estado_revision: "pendiente_revision"`
+    (confirmado en archivo).
+  - Creada rama `proyecto/editor-simbolos-20260826` desde `5cf4317`.
+  - Commiteada en 3 grupos lógicos:
+    1. `6b6ed42` C35: fix HMR + modo oscuro + modo admin
+    2. `09a0849` C35: editor de símbolos (Fabric.js + dropdown estado)
+    3. `998f244` C32-C35: fix tipo_aparato + schema titles + historial
+  - Endpoint /api/metadata: confirma que commitea sobre la rama activa
+    del repo (usa `cwd: raizRepo` sin branch explícito). Desde ahora
+    el dev server debe correr sobre `proyecto/editor-simbolos-20260826`.
