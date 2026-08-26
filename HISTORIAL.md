@@ -1521,6 +1521,26 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     t1/t2, 1/2, 3/5, etc.). atributos_base agregado a los 8 metadata.
     Verificación completa aprobada (lint 20/20 · galería 20 ·
     alineación · proyecto real · E2E 21 checks · build OK).
-- Próximo paso acordado: revisión por parte del usuario del lote de 12
-  símbolos rediseñados (PR #12, rama
+  · C32 (3/3): Tercer intento de rediseño de 8 símbolos rechazados por
+    el usuario. Geometría corregida basada en SVGs exportados desde
+    AutoCAD (Acme CAD Converter) del DWG original del usuario:
+    - S00121 MCCB: interruptor con caja moldeada (rect IEC centrado
+      en eje, switch arm diagonal, sin curva térmica compleja).
+    - S00122 Guardamotor: interruptor con liberación magnética
+      (rectángulo IEC debajo del switch arm, viewBox 20×60).
+    - S00123 RT: rele térmico con bimetal (rectángulo con diagonal
+      a la izquierda del eje, viewBox 30×60, terminal in movido a
+      y=-30). Metadata actualizado.
+    - S00128 ID/RCD: interruptor diferencial con CT diferencial
+      (círculo punteado, sin cambios significativos).
+    - S00129 Relé sobretensión: texto cambiado de "V>" a "U<>"
+      según pedido del usuario. Metadata actualizado.
+    - S00130 Relé auxiliar: bobina + contacto NA enlazado (sin
+      cambios significativos).
+    - S00127 Portafusible: base con fusible (sin cambios).
+    - S00132 Voltímetro: círculo con "V" (sin cambios).
+    Verificación completa aprobada (lint 20/20 · alineación ·
+    proyecto real · gallery 20 · build OK · oxlint OK).
+- Próximo paso acordado: revisión por parte del usuario del lote de
+  12 símbolos rediseñados (3er intento, PR #12, rama
   proyecto/simbologia-ampliada-20260825).

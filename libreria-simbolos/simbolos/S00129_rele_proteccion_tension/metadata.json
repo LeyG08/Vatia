@@ -9,5 +9,5 @@
     { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "manual - IEC 60617: bobina con texto V> enlazada por línea mecánica punteada a contacto NA"
+  "fuente_qet": "manual - IEC 60617: bobina con texto U<> enlazada por línea mecánica punteada a contacto NA"
 }
