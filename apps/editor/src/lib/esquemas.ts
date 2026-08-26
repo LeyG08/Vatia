@@ -15,6 +15,7 @@ type EsquemaCampo = {
   enum?: string[];
   const?: string;
   description?: string;
+  title?: string;
   exclusiveMinimum?: number;
   minimum?: number;
   maximum?: number;
@@ -48,6 +49,7 @@ export interface CampoDescriptor {
   nombre: string;
   esquema: EsquemaCampo;
   obligatorio: boolean;
+  title?: string;
 }
 
 export interface ReglaParAutomatico {
@@ -109,6 +111,7 @@ export function camposDeFamilia(
     nombre,
     esquema,
     obligatorio: esquema["x-obligatorio"] === true,
+    title: esquema.title,
   }));
 }
 

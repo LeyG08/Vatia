@@ -5,6 +5,38 @@
   --fondo-panel: #fafafa;
   --acento: #2563eb;
   --error: #dc2626;
+
+  --bg-canvas: #d8dfe8;
+  --bg-surface: #ffffff;
+  --bg-surface-alt: #f1f5f9;
+  --bg-hover: #eff6ff;
+  --text-primary: #111827;
+  --text-secondary: #475569;
+  --text-muted: #71717a;
+  --text-faint: #a1a1aa;
+  --border-strong: #111827;
+  --chip-bg: #ffffff;
+  --chip-border: #cbd5e1;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --borde: #3f3f46;
+  --fondo-panel: #18181b;
+  --acento: #60a5fa;
+  --error: #f87171;
+
+  --bg-canvas: #0f0f11;
+  --bg-surface: #27272a;
+  --bg-surface-alt: #1c1c1f;
+  --bg-hover: #1e3a5f;
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-faint: #52525b;
+  --border-strong: #e4e4e7;
+  --chip-bg: #27272a;
+  --chip-border: #52525b;
 }
 
 * {
@@ -229,6 +261,7 @@ body,
   width: 100%;
   height: 100%;
   display: block;
+  color: #000000;
 }
 
 .paleta-nombre {
@@ -257,6 +290,7 @@ body,
   height: 100%;
   display: block;
   pointer-events: none;
+  color: #000000;
 }
 
 .simbolo-svg .punto-conexion {
@@ -479,6 +513,7 @@ body,
   width: 100%;
   height: 100%;
   display: block;
+  color: #000000;
 }
 
 body.arrastrando {
@@ -514,13 +549,13 @@ body.arrastrando .paleta-item {
 
 .hoja {
   position: relative;
-  background: #fff;
+  background: var(--bg-surface);
   /* Puntillado visible dentro de la hoja, alineado a la grilla de 10
    * px: los centros de los puntos caen EXACTAMENTE sobre las líneas
    * de la grilla/múltiplos de 10 (por eso el desplazamiento de -5px),
    * así el enmarcado, el rótulo y los símbolos snapeados pasan por
    * los puntos en cualquier formato de hoja. */
-  background-image: radial-gradient(#c2ccd9 1px, transparent 1.4px);
+  background-image: radial-gradient(var(--text-faint) 1px, transparent 1.4px);
   background-size: 10px 10px;
   background-position: -5px -5px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
@@ -609,7 +644,7 @@ body.arrastrando .paleta-item {
 
 .hoja-marco {
   position: absolute;
-  border: 2px solid #111827;
+  border: 2px solid var(--text-primary);
 }
 
 /* ---- Panel de configuración de hoja ---- */
@@ -818,7 +853,7 @@ body.arrastrando .paleta-item {
   align-items: flex-start;
   gap: 4px;
   font-size: 12px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 /* C17: hover suave, selección FUERTE (mismo criterio que los
@@ -853,7 +888,7 @@ body.arrastrando .paleta-item {
 .alim-desde {
   font-size: 13px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   text-align: right;
   line-height: 1.2;
   user-select: none;
@@ -865,7 +900,7 @@ body.arrastrando .paleta-item {
   padding: 0;
   font-size: 13px;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   text-align: right;
   outline: none;
   /* C17: ancho FIJO — si creciera con el texto, la columna empuja el
@@ -916,7 +951,7 @@ body.arrastrando .paleta-item {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #111827;
+  background: var(--text-primary);
 }
 
 /* Botón de alimentador en la paleta */
@@ -1099,14 +1134,14 @@ body.arrastrando .paleta-item {
 .anotacion-nodo > div,
 .alim-desde,
 .alim-nota > div {
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
   padding: 0 3px;
   border-radius: 3px;
   box-decoration-break: clone;
 }
 
 .anotacion-edge {
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
   padding: 1px 4px;
   border-radius: 3px;
 }
@@ -1195,7 +1230,7 @@ body.arrastrando .paleta-item {
   height: 5px;
   transform: translateY(-50%);
   border-radius: 2px;
-  background: #111827;
+  background: var(--text-primary);
   /* C22: recibe el puntero para poder arrastrar la barra por su
    * línea; el ::after agranda la ZONA DE AGARRE (±6 px alrededor)
    * sin cambiar lo dibujado. */
@@ -1331,7 +1366,7 @@ body.arrastrando .paleta-item {
   position: absolute;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
-  background: rgba(253, 253, 253, 0.75);
+  background: color-mix(in srgb, var(--bg-surface) 75%, transparent);
   padding: 0 3px;
   border-radius: 2px;
   color: #71717a;
@@ -1454,4 +1489,699 @@ body.arrastrando .paleta-item {
   font-size: 9.5px;
   color: #18181b;
   background: #fafafa;
+}
+
+/* ================================================================
+   MODO OSCURO — overrides por [data-theme="dark"]
+   ================================================================ */
+[data-theme="dark"] body,
+[data-theme="dark"] html {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+}
+
+/* React Flow viewport */
+[data-theme="dark"] .lienzo .react-flow {
+  background-color: var(--bg-canvas);
+  color: #e4e4e7;
+}
+
+/* Barra superior */
+[data-theme="dark"] .barra-superior {
+  background: var(--fondo-panel);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .barra-superior button {
+  background: var(--bg-surface);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .barra-superior button:hover:not(:disabled) {
+  color: var(--acento);
+  border-color: var(--acento);
+}
+
+[data-theme="dark"] .barra-superior button.activo {
+  background: var(--bg-hover);
+  color: var(--acento);
+  border-color: var(--acento);
+}
+
+[data-theme="dark"] .nombre-proyecto {
+  background: var(--bg-surface);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .marca {
+  color: var(--acento);
+}
+
+[data-theme="dark"] .ayuda {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .separador {
+  background: var(--borde);
+}
+
+/* Pestañas de hoja */
+[data-theme="dark"] .pestanas-hoja {
+  background: var(--fondo-panel);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .pestana-hoja {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .pestana-hoja.activa {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .pestana-hoja.activa::after {
+  background: var(--bg-surface);
+}
+
+[data-theme="dark"] .pestana-hoja.nueva {
+  color: var(--text-muted);
+}
+
+/* Paleta */
+[data-theme="dark"] .paleta {
+  background: var(--fondo-panel);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .paleta h2 {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .paleta-grupo h3 {
+  color: var(--text-muted);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .paleta-item {
+  background: var(--bg-surface);
+  border-color: transparent;
+}
+
+[data-theme="dark"] .paleta-item:hover {
+  border-color: var(--acento);
+}
+
+[data-theme="dark"] .paleta-nombre {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .paleta-ayuda {
+  color: var(--text-muted);
+}
+
+/* Paneles flotantes */
+[data-theme="dark"] .panel-atributos {
+  background: var(--bg-surface);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .panel-atributos h3 {
+  color: var(--text-primary);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .panel-atributos-sub {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .panel-problemas {
+  background: var(--bg-surface);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .sin-problemas {
+  color: #4ade80;
+}
+
+[data-theme="dark"] .panel-problemas li.aviso {
+  color: #fbbf24;
+}
+
+/* Checklist AEA */
+[data-theme="dark"] .checklist-aea {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .checklist-cabecera {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .checklist-ir {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .checklist-ir:hover:not(:disabled) {
+  color: #fde68a;
+}
+
+/* Panel de hoja (modal) */
+[data-theme="dark"] .modal-fondo {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .panel-hoja {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .panel-hoja h3 {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .panel-hoja-campo span {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .panel-hoja-campo input,
+[data-theme="dark"] .panel-hoja-campo select,
+[data-theme="dark"] .panel-hoja-campo textarea,
+[data-theme="dark"] .panel-hoja-item input,
+[data-theme="dark"] .panel-hoja-item button,
+[data-theme="dark"] .panel-hoja-agregar,
+[data-theme="dark"] .orientacion-opciones button,
+[data-theme="dark"] .panel-hoja-pie button,
+[data-theme="dark"] .panel-hoja-resp input {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .panel-hoja-pie p,
+[data-theme="dark"] .panel-hoja-dimension {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .panel-hoja-resp em {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .panel-hoja-item button:hover {
+  background: #3b1111;
+  border-color: var(--error);
+}
+
+/* Formulario de atributos */
+[data-theme="dark"] .campo-atributo > span {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .campo-atributo input,
+[data-theme="dark"] .campo-atributo select {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-atributos-vacio {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .form-calculado {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .obligatorio {
+  color: var(--error);
+}
+
+/* Chips */
+[data-theme="dark"] .chip {
+  background: var(--chip-bg);
+  border-color: var(--chip-border);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .chip:hover:not(:disabled) {
+  border-color: #60a5fa;
+  background: var(--bg-hover);
+}
+
+[data-theme="dark"] .chip.on {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+[data-theme="dark"] .form-atributos-aviso {
+  background: #422006;
+  border-color: #92400e;
+  color: #fbbf24;
+}
+
+/* Anotaciones sobre el plano — heredan color del tema vía var() */
+[data-theme="dark"] .anotacion-nodo .anotacion-sec {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .alim-origen::placeholder {
+  color: var(--text-faint);
+}
+
+/* Alimentador: botón */
+[data-theme="dark"] .paleta-alim {
+  background: var(--bg-surface);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+/* Toast y avisos */
+[data-theme="dark"] .toast-mover {
+  background: #052e16;
+  border-color: #16a34a;
+  color: #bbf7d0;
+}
+
+[data-theme="dark"] .toast-mover button {
+  background: var(--bg-surface);
+  border-color: #16a34a;
+  color: #bbf7d0;
+}
+
+[data-theme="dark"] .aviso-fuera-hoja {
+  background: #450a0a;
+  border-color: var(--error);
+  color: #fecaca;
+}
+
+[data-theme="dark"] .aviso-fuera-hoja button {
+  background: var(--bg-surface);
+  border-color: var(--error);
+  color: #fecaca;
+}
+
+[data-theme="dark"] .aviso-fuera-hoja button:hover {
+  background: var(--error);
+  color: #fff;
+}
+
+/* Nodo faltante */
+[data-theme="dark"] .nodo-faltante {
+  background: var(--bg-surface);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* Formulario de conexión */
+[data-theme="dark"] .fc-paso {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .fc-numero {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .fc-tipo {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .fc-llave {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+}
+
+[data-theme="dark"] .fc-llave-texto {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .fc-llave.activa {
+  background: #1e3a5f;
+  border-color: #60a5fa;
+}
+
+[data-theme="dark"] .fc-llave.activa .fc-llave-texto {
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .fc-sub > span {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .fc-preview {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .fc-llave-perilla {
+  background: var(--text-faint);
+}
+
+[data-theme="dark"] .fc-llave.activa .fc-llave-perilla {
+  background: var(--acento);
+}
+
+/* Símbolos SVG en dark mode: el color se resuelve vía currentColor
+   (reemplazado en svgLimpio), así que solo cambiamos la propiedad
+   color del contenedor. Los puntos de conexión conservan #e11d48. */
+[data-theme="dark"] .simbolo-svg,
+[data-theme="dark"] .simbolo-svg svg {
+  color: #e4e4e7;
+}
+
+/* Paleta thumbnails — mismo color */
+[data-theme="dark"] .paleta-thumb svg {
+  color: #e4e4e7;
+}
+
+/* Fantasma de arrastre */
+[data-theme="dark"] .fantasma-arrastre svg {
+  color: #e4e4e7;
+}
+
+/* Panel de atributos: borde superior del drag handle */
+[data-theme="dark"] .panel-atributos-mover {
+  color: var(--text-faint);
+}
+
+/* Pantalla fuera de hoja */
+[data-theme="dark"] .react-flow__node.nodo-fuera-hoja .nodo-simbolo {
+  outline-color: var(--error);
+}
+
+/* Paso grip (quiebre de cable) */
+[data-theme="dark"] .paso-grip {
+  background: var(--bg-surface);
+  border-color: rgba(96, 165, 250, 0.85);
+}
+
+[data-theme="dark"] .paso-grip:hover {
+  background: #1e3a5f;
+}
+
+/* Botón de toggle dark mode */
+.btn-tema {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-tema {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+}
+
+/* ---- Badge de modo admin ---- */
+.badge-admin {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #dc2626;
+  color: #fff;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+/* ================================================================
+   Editor de símbolos (D4.2) — visible solo en modo admin
+   ================================================================ */
+
+.editor-simbolos {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.editor-simbolos-panel {
+  width: 300px;
+  min-width: 240px;
+  border-right: 1px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.editor-simbolos-buscar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.editor-simbolos-buscar input {
+  flex: 1;
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.editor-simbolos-buscar input:focus {
+  border-color: var(--acento);
+}
+
+.editor-simbolos-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 24px;
+  text-align: right;
+}
+
+.editor-simbolos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.editor-simbolos-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--borde);
+  transition: background 0.1s;
+}
+
+.editor-simbolos-item:hover {
+  background: var(--bg-hover);
+}
+
+.editor-simbolos-item.activo {
+  background: var(--acento);
+  color: #fff;
+}
+
+.editor-simbolos-item.activo .editor-simbolos-codigo,
+.editor-simbolos-item.activo .editor-simbolos-nombre,
+.editor-simbolos-item.activo .editor-simbolos-badge {
+  color: #fff;
+}
+
+.editor-simbolos-mini {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.editor-simbolos-item.activo .editor-simbolos-mini {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.editor-simbolos-mini svg {
+  width: 28px;
+  height: 28px;
+}
+
+.editor-simbolos-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.editor-simbolos-codigo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+.editor-simbolos-nombre {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-simbolos-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.editor-simbolos-badge.verificado {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.editor-simbolos-badge.pendiente_revision {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.editor-simbolos-badge.corregido {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+[data-theme="dark"] .editor-simbolos-badge.verificado {
+  background: rgba(22, 163, 74, 0.2);
+  color: #4ade80;
+}
+
+[data-theme="dark"] .editor-simbolos-badge.pendiente_revision {
+  background: rgba(202, 138, 4, 0.2);
+  color: #facc15;
+}
+
+[data-theme="dark"] .editor-simbolos-badge.corregido {
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+}
+
+.editor-simbolos-canvas-wrap {
+  flex: 1;
+  position: relative;
+  background: var(--bg-surface-alt);
+  overflow: hidden;
+}
+
+.editor-simbolos-canvas-wrap canvas {
+  display: block;
+}
+
+.editor-simbolos-meta {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.editor-simbolos-meta-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.editor-simbolos-meta-info strong {
+  color: var(--text-primary);
+}
+
+.editor-simbolos-estado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-simbolos-estado-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.editor-simbolos-estado-select {
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 12px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.editor-simbolos-estado-select:focus {
+  border-color: var(--acento);
+  outline: none;
+}
+
+.editor-simbolos-estado-select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.editor-simbolos-guardando {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.editor-simbolos-mensaje {
+  font-size: 11px;
+  color: var(--acento);
+}
+
+.editor-simbolos-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  pointer-events: none;
 }

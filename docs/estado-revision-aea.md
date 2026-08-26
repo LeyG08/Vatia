@@ -84,6 +84,17 @@ Registro de decisiones diferidas para que no se pierdan entre pasos:
 
 ---
 
+## Exportación PDF (futura)
+
+La exportación a PDF debe forzar **tema claro** sin importar cómo esté
+configurada la interfaz en ese momento. El modo oscuro es solo para la
+edición en pantalla (comodidad visual nocturna, como AutoCAD/KiCad); el
+documento impreso/exportado es siempre fondo blanco con tinta negra.
+Verificar que la función de exportación aplique `data-theme=""` (vacío)
+antes de capturar y lo restaure al terminar.
+
+---
+
 ## Licencia y atribución
 
 Los símbolos derivan de la colección oficial

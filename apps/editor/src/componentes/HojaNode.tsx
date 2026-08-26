@@ -78,8 +78,8 @@ function CeldaRotulo({
       style={{
         gridColumn: col,
         gridRow: fila,
-        borderRight: sinDerecha ? undefined : "1px solid #111827",
-        borderBottom: sinAbajo ? undefined : "1px solid #111827",
+        borderRight: sinDerecha ? undefined : "1px solid var(--text-primary)",
+        borderBottom: sinAbajo ? undefined : "1px solid var(--text-primary)",
         padding: `${mm(0.7)} 0`,
         overflow: "hidden",
         display: "flex",
@@ -147,14 +147,11 @@ function RotuloIram() {
   return (
     <div
       style={bloqueStyle({
-        // Contorno del rótulo fundido con el recuadro: el corrimiento
-        // de 2 px hacia afuera hace coincidir ambas trazas píxel a
-        // píxel, sobre las líneas de puntos de la grilla.
         right: -2,
         bottom: -2,
-        border: "2px solid #111827",
-        background: "#fff",
-        color: "#111827",
+        border: "2px solid var(--text-primary)",
+        background: "var(--bg-surface)",
+        color: "var(--text-primary)",
         display: "grid",
         gridTemplateColumns: ROTULO_COLUMNAS_MM.map((c) => mm(c)).join("px ") + "px",
         gridTemplateRows: ROTULO_FILAS_MM.map((f) => mm(f)).join("px ") + "px",
@@ -178,7 +175,7 @@ function RotuloIram() {
               style={{
                 fontSize: mm(1.7) + FUENTE_EXTRA_PX,
                 lineHeight: 1.25,
-                color: "#374151",
+                color: "var(--text-secondary)",
                 paddingLeft: mm(1.5),
                 paddingRight: mm(1),
               }}
@@ -206,8 +203,8 @@ function RotuloIram() {
         style={{
           gridColumn: "4",
           gridRow: "1 / span 2",
-          borderRight: "1px solid #111827",
-          borderBottom: "1px solid #111827",
+          borderRight: "1px solid var(--text-primary)",
+          borderBottom: "1px solid var(--text-primary)",
           padding: `${mm(0.7)} 0`,
           overflow: "hidden",
           display: "flex",
@@ -273,7 +270,7 @@ function RotuloIram() {
         style={{
           gridColumn: "5",
           gridRow: "1 / span 4",
-          borderBottom: "1px solid #111827",
+          borderBottom: "1px solid var(--text-primary)",
           padding: `${mm(0.7)} 0`,
           overflow: "hidden",
           position: "relative",
@@ -423,7 +420,7 @@ function HojaNode(_props: NodeProps) {
             right: 0,
             display: "flex",
             justifyContent: "center",
-            color: "#111827",
+            color: "var(--text-primary)",
           })}
         >
           <strong style={{ fontSize: mm(5), lineHeight: 1.15 }}>
@@ -442,7 +439,7 @@ function HojaNode(_props: NodeProps) {
               top: mm(4),
               left: mm(6),
               maxWidth: hoja.orientacion === "vertical" ? mm(80) : mm(105),
-              color: "#111827",
+              color: "var(--text-primary)",
             })}
           >
             {notasGabinete.map((n) => (
@@ -461,7 +458,7 @@ function HojaNode(_props: NodeProps) {
               bottom: mm(4),
               left: mm(6),
               maxWidth: mm(120),
-              color: "#111827",
+              color: "var(--text-primary)",
               whiteSpace: "pre-wrap",
             })}
           >

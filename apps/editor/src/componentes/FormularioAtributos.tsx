@@ -112,7 +112,7 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
         </p>
       )}
       {campos.map((campo) => {
-        const { nombre, esquema, obligatorio } = campo;
+        const { nombre, esquema, obligatorio, title } = campo;
         const valorActual = atributos[nombre];
 
         // C15: campos condicionales (x-visible-si) solo se muestran
@@ -190,7 +190,7 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
         return (
           <label key={nombre} className="campo-atributo" title={esquema.description}>
             <span>
-              {nombre}
+              {title ?? nombre}
               {obligatorio && <em className="obligatorio" aria-label="obligatorio">*</em>}
             </span>
             {control}
