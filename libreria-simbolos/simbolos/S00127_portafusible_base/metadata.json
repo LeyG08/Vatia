@@ -1,0 +1,13 @@
+{
+  "codigo_iec": "S00127",
+  "nombre": "Seccionador fusible",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "seccionador_fusible" },
+  "puntos_conexion": [
+    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
+    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/10_fuses/porte_fusible_bi.elmt (polo único)"
+}

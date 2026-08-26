@@ -4,10 +4,10 @@ Tabla de control de verificación manual contra la norma AEA (Asociación
 Electrotécnica Argentina) e IEC 60617-11. El usuario ingeniero revisa cada
 símbolo visualmente (galería: `libreria-simbolos/simbolos/index.html`) y marca
 el estado. Un símbolo recién está "cerrado" cuando su estado es
-`verificado_aea` o `corregido`.
+`verificado` o `corregido`.
 
 Estados posibles (`estado_revision` en metadata.json):
-`pendiente_revision` → `verificado_aea` | `corregido`
+`pendiente_revision` → `verificado` | `corregido`
 
 ## Convención unifilar (regla general del lote)
 

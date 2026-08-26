@@ -15,7 +15,7 @@ from pathlib import Path
 
 BADGE = {
     "pendiente_revision": ("pendiente de revisión", "#b45309", "#fef3c7"),
-    "verificado_aea": ("verificado AEA", "#15803d", "#dcfce7"),
+    "verificado": ("verificado", "#15803d", "#dcfce7"),
     "corregido": ("corregido", "#1d4ed8", "#dbeafe"),
 }
 

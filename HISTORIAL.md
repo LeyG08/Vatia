@@ -1473,5 +1473,74 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     símbolos · proyecto real · E2E 21 checks) y MERGE de la Fase C a
     main por orden expresa del usuario (PR #11, --merge
     --delete-branch); main sincronizada después del merge.
-- Próximo paso acordado: nueva simbología MCCB/caja moldeada (Ir/Im)
-  para reemplazar el placeholder S00110 del QG del TGBT.
+  · C32: lote grande de simbología ampliada (12 nuevos símbolos unifilares
+    con trazo único conforme IEC 60617 / IEC 60947 / IRAM, schemas
+    discriminados por subtipo en aparato.schema.json y anotaciones en
+    anotaciones.ts):
+    1. S00121 MCCB / caja moldeada (Ir_min, Ir_max, Im, pdcc_kA, IEC 60947-2) —
+       reemplaza el placeholder S00110 del QG (n4/n5) en el proyecto TGBT real.
+    2. S00122 Guardamotor termomagnético (Ue_V, Ir_min/max, Ii, Icu_kA, Ics_kA, AC-3).
+    3. S00123 Relé térmico RT (Ue_V, Ir_min/max, clase_disparo 10A/10/20/30).
+    4. S00124 Contacto auxiliar NA/NC (entidad de conexión separada, Ith_A).
+    5. S00125 Transformador de corriente TI (relación 600/5, S_VA, clase_precisión, FS, Ue_kV).
+    6. S00126 Banco de capacitores (Ue_V, Q_kvar, conexión delta/estrella).
+    7. S00127 Portafusible / base (entidad separada del fusible, Ue_V, categoría).
+    8. S00128 Interruptor diferencial ID/RCD (IΔn_mA, In_A, tipo AC/A/B/F, IEC 61008/9).
+    9. S00129 Relé de protección de tensión (Ue_V, subtensión %, sobretensión %, asimetría %, retardo_s).
+    10. S00130 Relé/contactor auxiliar completo (bobina_V, 2PDT/3PDT/4PDT, Ith_A).
+    11. S00131 Sirena / alarma sonora (Ue_V, tipo_señal continua/intermitente/multitono).
+    12. S00132 Instrumento de medición (voltímetro/amperímetro/multifunción, escala).
+    Fuentes: 8 símbolos importados de QElectroTech
+    (qelectrotech/qelectrotech-elements@b9e1020) via convertir_qet.py;
+    4 símbolos creados manualmente siguiendo IEC 60617
+    (TI, banco capacitores, relé protección tensión, relé auxiliar).
+    Galería de símbolos regenerada (index.html con 20 símbolos).
+    Verificación completa aprobada (build · lint · alineación · símbolos ·
+    proyecto real · E2E 21 checks).
+  · C32 (2/2): Rediseño unifilar completo de8 símbolos que estaban como
+    multifilar (SVGs importados sin recortar de QET de3 polos):
+    - S00121 MCCB: SVG rediseñado como polo único con interruptor
+      termomagnético + caja moldeada (rectángulo IEC). Terminal IDs
+      normalizados a in/out.
+    - S00122 Guardamotor: SVG rediseñado como polo único con interruptor
+      termomagnético + liberación térmica (arco IEC). in/out.
+    - S00123 Relé térmico RT: SVG rediseñado como polo único con
+      bimetal (H con rectángulo punteado). in/out.
+    - S00127 Seccionador fusible (antes "portafusible base"): renombrado
+      conceptualmente, SVG rediseñado como cuchilla + fusible
+      (rectángulo). in/out.
+    - S00128 ID/RCD: SVG rediseñado como polo único con interruptor +
+      CT diferencial (círculo punteado). in/out.
+    - S00129 Relé protección tensión: SVG rediseñado con bobina (rect
+      con "V>") + contacto NA enlazado por línea punteada. viewBox
+      ajustado a 30 ancho para pasar lint 180°. in/out.
+    - S00130 Relé auxiliar: SVG rediseñado con bobina + contacto NA
+      enlazado por línea punteada (patrón S00112). in/out.
+    - S00132 Voltímetro: texto "V" agregado dentro del círculo. in/out.
+    Todos los terminal IDs normalizados a in/out (antes variaban:
+    t1/t2, 1/2, 3/5, etc.). atributos_base agregado a los 8 metadata.
+    Verificación completa aprobada (lint 20/20 · galería 20 ·
+    alineación · proyecto real · E2E 21 checks · build OK).
+  · C32 (3/3): Tercer intento de rediseño de 8 símbolos rechazados por
+    el usuario. Geometría corregida basada en SVGs exportados desde
+    AutoCAD (Acme CAD Converter) del DWG original del usuario:
+    - S00121 MCCB: interruptor con caja moldeada (rect IEC centrado
+      en eje, switch arm diagonal, sin curva térmica compleja).
+    - S00122 Guardamotor: interruptor con liberación magnética
+      (rectángulo IEC debajo del switch arm, viewBox 20×60).
+    - S00123 RT: rele térmico con bimetal (rectángulo con diagonal
+      a la izquierda del eje, viewBox 30×60, terminal in movido a
+      y=-30). Metadata actualizado.
+    - S00128 ID/RCD: interruptor diferencial con CT diferencial
+      (círculo punteado, sin cambios significativos).
+    - S00129 Relé sobretensión: texto cambiado de "V>" a "U<>"
+      según pedido del usuario. Metadata actualizado.
+    - S00130 Relé auxiliar: bobina + contacto NA enlazado (sin
+      cambios significativos).
+    - S00127 Portafusible: base con fusible (sin cambios).
+    - S00132 Voltímetro: círculo con "V" (sin cambios).
+    Verificación completa aprobada (lint 20/20 · alineación ·
+    proyecto real · gallery 20 · build OK · oxlint OK).
+- Próximo paso acordado: revisión por parte del usuario del lote de
+  12 símbolos rediseñados (3er intento, PR #12, rama
+  proyecto/simbologia-ampliada-20260825).

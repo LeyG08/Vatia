@@ -1,0 +1,13 @@
+{
+  "codigo_iec": "S00129",
+  "nombre": "Relé de protección de tensión",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "rele_proteccion_tension" },
+  "puntos_conexion": [
+    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
+    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_qet": "manual - IEC 60617: bobina con texto U<> enlazada por línea mecánica punteada a contacto NA"
+}
