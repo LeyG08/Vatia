@@ -1544,3 +1544,11 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
 - Próximo paso acordado: revisión por parte del usuario del lote de
   12 símbolos rediseñados (3er intento, PR #12, rama
   proyecto/simbologia-ampliada-20260825).
+  · C32 (merge): PR #12 mergeado a main por orden expresa del usuario
+    (gh pr merge 12 --merge --delete-branch). Rama eliminada.
+    Rename global verificado_aea → verificado (6 archivos: tipos.ts,
+    validadorMetadata.ts, metadata.schema.json, generar_galeria.py,
+    convertir_qet.py, estado-revision-aea.md). S00124/S00125/S00126/
+    S00131 marcados verificado; S00121–S00123/S00127–S00130/S00132
+    quedan pendiente_revision (pendientes de revisión visual del
+    usuario).
