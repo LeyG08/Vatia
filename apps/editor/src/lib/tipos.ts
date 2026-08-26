@@ -7,7 +7,7 @@ export type FamiliaAtributos =
   | "sin_ficha_tecnica";
 export type EstadoRevision =
   | "pendiente_revision"
-  | "verificado_aea"
+  | "verificado"
   | "corregido";
 
 export interface PuntoConexion {

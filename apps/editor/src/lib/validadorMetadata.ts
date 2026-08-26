@@ -1,7 +1,7 @@
 import type { MetadataSimbolo } from "./tipos";
 
 const FAMILIAS = ["aparato", "conductor", "barra", "carga", "sin_ficha_tecnica"];
-const ESTADOS = ["pendiente_revision", "verificado_aea", "corregido"];
+const ESTADOS = ["pendiente_revision", "verificado", "corregido"];
 const ROLES = ["entrada", "salida", "tierra"];
 
 export function validarMetadata(d: unknown): string[] {

@@ -364,7 +364,7 @@ def validar_metadata(ruta_meta: Path, schema_path: Path | None) -> list[str]:
             errores.append(f"falta campo obligatorio: {campo}")
     if "codigo_iec" in datos and not re.fullmatch(r"S[0-9]{5}", datos["codigo_iec"]):
         errores.append("codigo_iec no coincide con ^S[0-9]{5}$")
-    estados_validos = {"pendiente_revision", "verificado_aea", "corregido"}
+    estados_validos = {"pendiente_revision", "verificado", "corregido"}
     if datos.get("estado_revision") not in estados_validos:
         errores.append("estado_revision inválido")
     if schema_path is not None:
