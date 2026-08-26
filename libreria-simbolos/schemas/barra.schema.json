@@ -10,44 +10,55 @@
     "dimensiones": {
       "type": "string",
       "x-obligatorio": true,
-      "description": "Dimensiones del perfil de la barra (alto x ancho x espesor en mm). Plano: \"3x30x10mm\", \"3x50x5mm\"."
+      "description": "Dimensiones del perfil de la barra (alto x ancho x espesor en mm). Plano: \"3x30x10mm\", \"3x50x5mm\".",
+      "title": "Dimensiones del perfil"
     },
     "es_conjunto": {
       "type": "boolean",
-      "description": "C11: true si la línea representa el CONJUNTO / juego de barras dibujadas como una sola línea; false o ausente = barra única. En el plano se anota como \"Juego de barras\" (con su composición, C15) delante de las dimensiones."
+      "description": "C11: true si la línea representa el CONJUNTO / juego de barras dibujadas como una sola línea; false o ausente = barra única. En el plano se anota como \"Juego de barras\" (con su composición, C15) delante de las dimensiones.",
+      "title": "Es juego de barras"
     },
     "cantidad_fases": {
       "type": "integer",
       "minimum": 1,
       "maximum": 3,
       "x-visible-si": "es_conjunto",
-      "description": "C15: cuántas barras de FASE representa el juego (1 a 3). Plano: \"Juego de barras 3P+N+PE\"."
+      "description": "C15: cuántas barras de FASE representa el juego (1 a 3). Plano: \"Juego de barras 3P+N+PE\".",
+      "title": "Fases del juego"
     },
     "incluye_neutro": {
       "type": "boolean",
       "x-visible-si": "es_conjunto",
-      "description": "C15: true si el juego incluye una barra de NEUTRO. Plano: \"+N\" en la composición."
+      "description": "C15: true si el juego incluye una barra de NEUTRO. Plano: \"+N\" en la composición.",
+      "title": "Incluye neutro"
     },
     "incluye_tierra": {
       "type": "boolean",
       "x-visible-si": "es_conjunto",
-      "description": "C15: true si el juego incluye una barra de TIERRA (PE). Plano: \"+PE\" en la composición."
+      "description": "C15: true si el juego incluye una barra de TIERRA (PE). Plano: \"+PE\" en la composición.",
+      "title": "Incluye tierra (PE)"
     },
     "material": {
-      "enum": ["Cu", "Al"],
+      "enum": [
+        "Cu",
+        "Al"
+      ],
       "x-obligatorio": true,
-      "description": "Plano: \"Cu\" (cobre desnudo)."
+      "description": "Plano: \"Cu\" (cobre desnudo).",
+      "title": "Material"
     },
     "norma_iram": {
       "type": "string",
       "x-obligatorio": true,
-      "description": "Norma del material de barras. Plano: \"IRAM 2181-1\"."
+      "description": "Norma del material de barras. Plano: \"IRAM 2181-1\".",
+      "title": "Norma IRAM"
     },
     "corriente_admisible_A": {
       "type": "number",
       "exclusiveMinimum": 0,
       "x-obligatorio": true,
-      "description": "Corriente admisible de la barra en amperes."
+      "description": "Corriente admisible de la barra en amperes.",
+      "title": "Corriente admisible (A)"
     }
   }
 }

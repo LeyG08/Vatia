@@ -3,7 +3,7 @@
   "nombre": "Interruptor diferencial (ID/RCD)",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "id_rcd" },
+  "atributos_base": { "tipo_aparato": "interruptor_diferencial" },
   "puntos_conexion": [
     { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
     { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }

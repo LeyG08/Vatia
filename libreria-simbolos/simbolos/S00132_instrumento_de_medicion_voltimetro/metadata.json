@@ -3,7 +3,7 @@
   "nombre": "Instrumento de medición (voltímetro)",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "voltimetro" },
+  "atributos_base": { "tipo_aparato": "instrumento_medicion" },
   "puntos_conexion": [
     { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
     { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }

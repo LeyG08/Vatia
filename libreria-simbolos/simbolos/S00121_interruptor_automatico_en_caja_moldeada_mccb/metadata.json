@@ -3,7 +3,7 @@
   "nombre": "Interruptor automático en caja moldeada (MCCB)",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "mccb" },
+  "atributos_base": { "tipo_aparato": "mccb_caja_moldeada" },
   "puntos_conexion": [
     { "id": "in", "rol": "entrada", "x": 0.0, "y": -30.0 },
     { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }

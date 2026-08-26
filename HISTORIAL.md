@@ -1552,3 +1552,134 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     S00131 marcados verificado; S00121–S00123/S00127–S00130/S00132
     quedan pendiente_revision (pendientes de revisión visual del
     usuario).
+- **D1 (títulos legibles en JSON Schema):** Se agregó `title` a todas
+  las propiedades de los 4 archivos de schema: aparato.schema.json
+  (17 subtipos + base_comun), conductor.schema.json, barra.schema.json,
+  carga.schema.json. Cada propiedad ahora tiene un título legible en
+  español (ej: "Cantidad de polos", "Corriente nominal (A)",
+  "Tensión de operación (V)"). Se actualizaron los tipos en esquemas.ts
+  (`EsquemaCampo.title`, `CampoDescriptor.title`) y el generador de
+  formularios en FormularioAtributos.tsx para mostrar el título como
+  etiqueta, con fallback al nombre técnico. Build + lint OK.
+- **Task 1 (fix carga de símbolos):** Investigación: la causa NO fue
+  D1 (los schemas no se usan en validación de metadata). Causa real:
+  `import.meta.glob` con `eager: true` cachea en el start del dev
+  server; los 12 símbolos se agregaron mientras el server corría, así
+  que nunca entraron en `metasRaw`. Fix: reiniciar dev server. Además:
+  - Corregidos 5 `tipo_aparato` en metadata.json que no matcheaban
+    `$defs` del schema: S00121 (`mccb` → `mccb_caja_moldeada`),
+    S00122 (`guardamotor` → `guardamotor_termomagnetico`),
+    S00127 (`seccionador_fusible` → `portafusible`),
+    S00128 (`id_rcd` → `interruptor_diferencial`),
+    S00132 (`voltimetro` → `instrumento_medicion`).
+  - Agregado conteo de símbolos cargados en `libreria.ts`: si
+    `simbolos.size < totalMeta`, se emite aviso en PanelProblemas
+    indicando cuántos se cargaron y sugiriendo reiniciar el server.
+    Build + lint OK.
+- **D2 (modo oscuro):** Paleta oscura completa vía CSS custom
+  properties. Cambios:
+  - `estilos.css`: Variables CSS expandidas (`--bg-canvas`,
+    `--bg-surface`, `--text-primary`, etc.) con bloque
+    `[data-theme="dark"]` que redefine ~40 propiedades. Overrides para
+    paleta, paneles, formularios, pestañas, chips, toast, checklist,
+    nodos alimentador/barra, formulario de conexión.
+  - `BarraSuperior.tsx`: Botón de toggle (☀/🌙) con `useState` +
+    `useEffect` que aplica `data-theme="dark"` en `<html>` y guarda
+    preferencia en `localStorage("vatia-tema")`.
+  - `libreria.ts`: `svgLimpio()` ahora reemplaza `#000000`/`#000` por
+    `currentColor` en strokes/fills de SVGs, preservando `#e11d48`
+    (puntos de conexión).
+  - CSS: `.simbolo-svg` y `.paleta-thumb svg` reciben `color` que
+    define el `currentColor`; dark mode lo cambia a `#e4e4e7`.
+  - `App.tsx`: Edge style default usa `currentColor` en vez de
+    `#1e293b`.
+  - `AlimentadorNode.tsx` / `ConexionEdge.tsx`: Strokes de cables y
+    marcas de conductor cambiados a `currentColor`.
+  - Hoja/rótulo se mantienen con fondo blanco y texto oscuro
+    (representan papel físico). Build + lint OK.
+- **D2 fix (hoja responde al tema):** La hoja, el rótulo IRAM y las
+  anotaciones ahora responden al tema activo. Cambios:
+  - `HojaNode.tsx`: Todos los colores hardcodeados (`#fff`, `#111827`,
+    `#374151`) reemplazados por CSS variables (`var(--bg-surface)`,
+    `var(--text-primary)`, `var(--text-secondary)`). Tanto el fondo de
+    la hoja como el rótulo y las celdas usan las mismas variables que
+    el resto de la UI.
+  - `estilos.css`: `.hoja` usa `var(--bg-surface)` en background y
+    `var(--text-faint)` en el puntillado. `.hoja-marco` usa
+    `var(--text-primary)` para el borde. Anotaciones usan
+    `color-mix(in srgb, var(--bg-surface) 94%, transparent)` para el
+    fondo plaqueta. Eliminados overrides dark mode redundantes para
+    anotaciones/alimentador/barra (ya usan var()). Nota: la exportación
+    PDF futura debe forzar tema claro (documentado en
+    `docs/estado-revision-aea.md`).
+- **D3 (modo administrador):** Estado global `modoAdmin: boolean` en
+  el store (Zustand), persistido en `localStorage("vatia-admin")`, no
+  en el JSON del proyecto. Atajo: Ctrl+Shift+A activa/desactiva. Badge
+  "ADMIN" rojo en BarraSuperior cuando está activo. Build + lint OK.
+- **D4.1 (hot reload de símbolos):** Investigación: `eager: false` NO
+  resuelve el problema de carpetas nuevas — ambos modos re-evalúan el
+  glob solo cuando el módulo padre se re-transforma. Causa raíz:
+  Vite's watcher no seguía `libreria-simbolos/` porque está fuera del
+  root. El `ignored: ["!**/libreria-simbolos/**"]` solo "des-ignora"
+  archivos pero chokidar nunca escanea esos directorios. Fix
+  definitivo: plugin `watchLibreria()` en `vite.config.ts` que agrega
+  `libreria-simbolos` al watcher existente de Vite con
+  `server.watcher.add()` y envía `full-reload` (debounce 300ms) ante
+  cambios en .json/.svg. Eliminado el `server.watch.ignored` obsoleto.
+  Build + lint OK. El usuario debe verificar manualmente en el browser.
+- **D4.2 (editor de símbolos — panel admin + Fabric.js):** Nuevo
+  componente `EditorSimbolos.tsx` visible solo en modo admin (reemplaza
+  la paleta). Panel lateral izquierdo con búsqueda por código/nombre de
+  todos los símbolos de la librería, con badge de estado (verificado ✓,
+  pendiente …, corregido ✎). Canvas de Fabric.js 7.4.0 que carga el SVG
+  del símbolo seleccionado via `loadSVGFromString`, con zoom automático
+  para ajustar al canvas. Puntos de conexión marcados con:
+  - Cruz punteada de referencia (+)
+  - Círculo coloreado por rol: entrada=#e11d48, salida=#2563eb,
+    tierra=#16a34a
+  - Etiqueta con id y rol (monospace 8px)
+  Meta info en badge inferior: código, nombre, viewBox, cantidad de puntos.
+  CSS en `estilos.css` (~180 líneas): responsive, dark mode, badges de
+  estado, panel colapsable. Integrado en `App.tsx` con `modoAdmin`:
+  `EditorSimbolos` reemplaza `Paleta` cuando admin está activo.
+  Dependencia: `fabric@7.4.0` instalada. tsc --noEmit + vite build OK.
+- **D4.2+ (cambio de estado de verificación):** Agregado dropdown de
+  `estado_revision` en la meta info del editor de símbolos. Valores:
+  pendiente_revision / verificado / corregido. Al cambiar, el frontend
+  llama `POST /api/metadata` con `{ codigo, estado }`. Plugin Vite
+  `watchLibreria` expone el endpoint: lee metadata.json, actualiza el
+  campo, escribe a disco, ejecuta `git add + git commit` con mensaje
+  descriptivo (ej. "simbolos: S00124 estado pendiente_revision →
+  verificado"). Responde con `{ ok, anterior, nuevo }`. El dropdown
+  muestra feedback inline ("Guardando...", resultado). Los 4 símbolos
+  ya conformes (S00124 contacto auxiliar, S00125 TI, S00126 banco de
+  capacitores, S00131 sirena) ya están en estado `verificado`. Los otros
+  8 quedan `pendiente_revision` hasta D4.3/D4.4. CSS: dropdown, label,
+   mensaje inline, flex layout en `.editor-simbolos-meta`. tsc + build OK.
+- **C35 — Fix HMR regression + type errors + dropdown persist:**
+  - **D4.1 fix (hot reload):** Eliminado `full-reload` del plugin
+    `watchLibreria` (que causaba recarga total y perdía estado admin).
+    Para cambios manuales de metadata.json, el watcher envía un evento
+    WebSocket `metadata-update` con el contenido parseado del archivo.
+    `libreria.ts` escucha vía `import.meta.hot.on()` y muta `SIMBOLOS`
+    in-place + despacha DOM event `vatia:metadata-update`.
+    `EditorSimbolos` escucha el DOM event y actualiza `seleccionado`.
+    NO se invalida el módulo `libreria.ts` (porque `import.meta.glob`
+    eager no soporta content HMR y reconstruiría SIMBOLOS con cache
+    stale). Agregado `.git` al `unwatch` del watcher.
+  - **D4.1 fix (accept handler):** Corregido `import.meta.hot.accept()` en
+    `libreria.ts` — `Object.assign(SIMBOLOS, mod.SIMBOLOS)` no funciona
+    con Map. Reemplazado por `SIMBOLOS.clear()` + loop `set()`.
+  - **D4.2 fix (dropdown):** La API ahora devuelve `metadata: <objeto
+    completo actualizado>` en la respuesta. `cambiarEstado()` muta
+    `SIMBOLOS` in-place (`prev.metadata = data.metadata`) +
+    `setSeleccionado({ ...prev, metadata })` para crear nueva referencia
+    React. Ya no depende de HMR para reflejar el cambio. Soporta
+    múltiples cambios consecutivos sobre el mismo símbolo.
+  - **D4.2 fix (badge no refrescaba):** `lista` (useMemo que renderiza
+    badges ✓/✎/…) solo dependía de `[filtro]`. Agregado `tick` state
+    que se incrementa tras API response y DOM event, forzando
+    recomputación de la lista para que los badges reflejen el estado.
+  - **Type errors corregidos:** `FabricObject` import de `fabric`, null
+    check para `svgEl`, `_next` en middleware.
+  - Build (`tsc -b && vite build`) OK.
