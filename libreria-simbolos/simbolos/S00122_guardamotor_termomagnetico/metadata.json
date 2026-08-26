@@ -3,20 +3,11 @@
   "nombre": "Guardamotor termomagnético",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
+  "atributos_base": { "tipo_aparato": "guardamotor" },
   "puntos_conexion": [
-    {
-      "id": "5",
-      "rol": "entrada",
-      "x": 20.0,
-      "y": -40.0
-    },
-    {
-      "id": "6",
-      "rol": "salida",
-      "x": 20.0,
-      "y": 40.0
-    }
+    { "id": "in", "rol": "entrada", "x": 0.0, "y": -30.0 },
+    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/12_magneto_thermal_circuit_breakers/gv2p.elmt"
+  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/11_circuit_breakers/disjonct-m_1f.elmt (polo único) + liberación térmica IEC agregada"
 }

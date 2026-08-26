@@ -1497,6 +1497,30 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     Galería de símbolos regenerada (index.html con 20 símbolos).
     Verificación completa aprobada (build · lint · alineación · símbolos ·
     proyecto real · E2E 21 checks).
+  · C32 (2/2): Rediseño unifilar completo de8 símbolos que estaban como
+    multifilar (SVGs importados sin recortar de QET de3 polos):
+    - S00121 MCCB: SVG rediseñado como polo único con interruptor
+      termomagnético + caja moldeada (rectángulo IEC). Terminal IDs
+      normalizados a in/out.
+    - S00122 Guardamotor: SVG rediseñado como polo único con interruptor
+      termomagnético + liberación térmica (arco IEC). in/out.
+    - S00123 Relé térmico RT: SVG rediseñado como polo único con
+      bimetal (H con rectángulo punteado). in/out.
+    - S00127 Seccionador fusible (antes "portafusible base"): renombrado
+      conceptualmente, SVG rediseñado como cuchilla + fusible
+      (rectángulo). in/out.
+    - S00128 ID/RCD: SVG rediseñado como polo único con interruptor +
+      CT diferencial (círculo punteado). in/out.
+    - S00129 Relé protección tensión: SVG rediseñado con bobina (rect
+      con "V>") + contacto NA enlazado por línea punteada. viewBox
+      ajustado a 30 ancho para pasar lint 180°. in/out.
+    - S00130 Relé auxiliar: SVG rediseñado con bobina + contacto NA
+      enlazado por línea punteada (patrón S00112). in/out.
+    - S00132 Voltímetro: texto "V" agregado dentro del círculo. in/out.
+    Todos los terminal IDs normalizados a in/out (antes variaban:
+    t1/t2, 1/2, 3/5, etc.). atributos_base agregado a los 8 metadata.
+    Verificación completa aprobada (lint 20/20 · galería 20 ·
+    alineación · proyecto real · E2E 21 checks · build OK).
 - Próximo paso acordado: revisión por parte del usuario del lote de 12
-  símbolos y sus esquemas (PR abierto en la rama
+  símbolos rediseñados (PR #12, rama
   proyecto/simbologia-ampliada-20260825).
