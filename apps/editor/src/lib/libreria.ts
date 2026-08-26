@@ -122,6 +122,13 @@ if (import.meta.hot) {
       new CustomEvent("vatia:metadata-update", { detail: { codigo, metadata } }),
     );
   });
+  import.meta.hot.on("svg-update", ({ codigo, svg, viewBox }: { codigo: string; svg: string; viewBox: any }) => {
+    const prev = SIMBOLOS.get(codigo);
+    if (prev) { prev.svgRaw = svg; prev.viewBox = viewBox; }
+    window.dispatchEvent(
+      new CustomEvent("vatia:svg-update", { detail: { codigo, svg, viewBox } }),
+    );
+  });
   import.meta.hot.accept((mod) => {
     if (mod) {
       SIMBOLOS.clear();

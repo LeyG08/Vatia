@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas as FabricCanvas, Circle, FabricObject, Group, Line, Textbox, loadSVGFromString } from "fabric";
 import { SIMBOLOS } from "../lib/libreria";
+import { historialCanvas } from "../lib/historialCanvas";
 import type { SimboloDef } from "../lib/tipos";
 
 const ESCALA_EDICION = 20;
@@ -22,6 +23,9 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const [editando, setEditando] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [, forceRender] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<FabricCanvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,7 +44,10 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
   }, [filtro, tick]);
 
   const seleccionar = useCallback((s: SimboloDef) => {
+    historialCanvas.limpiar();
     setSeleccionado(s);
+    setEditando(false);
+    setDirty(false);
     setMensaje(null);
   }, []);
 
@@ -78,6 +85,56 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     }
   }, [seleccionado, guardando]);
 
+  const guardarGeometria = useCallback(async () => {
+    if (!seleccionado || guardando) return;
+    setGuardando(true);
+    setMensaje(null);
+    try {
+      const svg = fabricRef.current?.toSVG() ?? "";
+      const res = await fetch("/api/geometry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: seleccionado.codigo_iec, svg }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const prev = SIMBOLOS.get(seleccionado.codigo_iec);
+        if (prev) { prev.svgRaw = data.svg; prev.viewBox = data.viewBox; }
+        setSeleccionado(prev ? { ...prev, svgRaw: data.svg, viewBox: data.viewBox } as SimboloDef : null);
+        setTick((t) => t + 1);
+        setDirty(false);
+        setEditando(false);
+        historialCanvas.limpiar();
+        setMensaje("Geometría guardada");
+      } else {
+        setMensaje(`Lint: ${data.errores.join("; ")}`);
+      }
+    } catch (err) {
+      setMensaje(`Error: ${String(err)}`);
+    } finally {
+      setGuardando(false);
+    }
+  }, [seleccionado, guardando]);
+
+  const cancelarEdicion = useCallback(() => {
+    historialCanvas.limpiar();
+    setEditando(false);
+    setDirty(false);
+    setMensaje(null);
+    setSeleccionado((sel) => sel ? { ...sel } : null);
+  }, []);
+
+  const toggleEdicion = useCallback(() => {
+    if (editando) {
+      cancelarEdicion();
+    } else {
+      historialCanvas.limpiar();
+      setEditando(true);
+      setDirty(false);
+    }
+  }, [editando, cancelarEdicion]);
+
+  // Metadata update listener (external edits)
   useEffect(() => {
     const handler = (e: Event) => {
       const { codigo, metadata } = (e as CustomEvent).detail;
@@ -92,6 +149,38 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     return () => window.removeEventListener("vatia:metadata-update", handler);
   }, []);
 
+  // SVG update listener (external edits)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { codigo, svg, viewBox } = (e as CustomEvent).detail;
+      const prev = SIMBOLOS.get(codigo);
+      if (prev) { prev.svgRaw = svg; prev.viewBox = viewBox; }
+      setSeleccionado((sel) =>
+        sel?.codigo_iec === codigo ? { ...sel, svgRaw: svg, viewBox } as SimboloDef : sel,
+      );
+      setTick((t) => t + 1);
+    };
+    window.addEventListener("vatia:svg-update", handler);
+    return () => window.removeEventListener("vatia:svg-update", handler);
+  }, []);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    if (!editando) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) historialCanvas.rehacerFn();
+        else historialCanvas.deshacerFn();
+        forceRender((n) => n + 1);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editando]);
+
+  // Canvas initialization
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -120,11 +209,16 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     };
   }, []);
 
+  // SVG rendering + edit mode handlers
   useEffect(() => {
     const fc = fabricRef.current;
     if (!fc || !seleccionado) return;
 
     fc.clear();
+    historialCanvas.limpiar();
+    setEditando(false);
+    setDirty(false);
+
     const vb = seleccionado.viewBox;
     const svg = seleccionado.svgRaw;
 
@@ -162,6 +256,70 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       fc.renderAll();
     });
   }, [seleccionado]);
+
+  // Toggle edit mode on canvas objects
+  useEffect(() => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+
+    if (editando) {
+      // Make SVG group objects selectable
+      fc.getObjects().forEach((obj) => {
+        obj.set({ selectable: true, evented: true });
+      });
+      fc.selection = false;
+
+      // Track position before drag
+      const prevPositions = new Map<FabricObject, { left: number; top: number }>();
+
+      const movingHandler = (e: any) => {
+        const obj = e.target as FabricObject;
+        if (!prevPositions.has(obj)) {
+          prevPositions.set(obj, { left: obj.left ?? 0, top: obj.top ?? 0 });
+        }
+      };
+
+      // Create undo command on modification
+      const modifiedHandler = (e: any) => {
+        const obj = e.target as FabricObject;
+        const prev = prevPositions.get(obj);
+        if (!prev) return;
+        const leftAntes = prev.left;
+        const topAntes = prev.top;
+        const leftNuevo = obj.left ?? 0;
+        const topNuevo = obj.top ?? 0;
+
+        prevPositions.delete(obj);
+
+        // Only record if position actually changed
+        if (leftAntes !== leftNuevo || topAntes !== topNuevo) {
+          const cmd = {
+            descripcion: `Mover ${obj.type ?? "objeto"}`,
+            do: () => { obj.set({ left: leftNuevo, top: topNuevo }); fc.renderAll(); },
+            undo: () => { obj.set({ left: leftAntes, top: topAntes }); fc.renderAll(); },
+          };
+          historialCanvas.ejecutar(cmd);
+          setDirty(true);
+          forceRender((n) => n + 1);
+        }
+      };
+
+      fc.on("object:moving", movingHandler);
+      fc.on("object:modified", modifiedHandler);
+
+      return () => {
+        fc.off("object:moving", movingHandler);
+        fc.off("object:modified", modifiedHandler);
+      };
+    } else {
+      // Make everything non-interactive when not editing
+      fc.getObjects().forEach((obj) => {
+        obj.set({ selectable: false, evented: false });
+      });
+      fc.selection = false;
+      fc.renderAll();
+    }
+  }, [editando]);
 
   return (
     <div className="editor-simbolos">
@@ -212,6 +370,47 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
                 {seleccionado.viewBox.ancho}×{seleccionado.viewBox.alto} ·{" "}
                 {seleccionado.metadata.puntos_conexion.length} puntos de conexión
               </small>
+            </div>
+            <div className="editor-simbolos-toolbar">
+              <button
+                type="button"
+                onClick={toggleEdicion}
+                className={editando ? "activo" : ""}
+              >
+                {editando ? "Salir edición" : "Editar geometría"}
+              </button>
+              {editando && (
+                <>
+                  <span className="separador" />
+                  <button
+                    type="button"
+                    onClick={() => { historialCanvas.deshacerFn(); forceRender((n) => n + 1); }}
+                    disabled={!historialCanvas.puedeDeshacer}
+                    title="Deshacer (Ctrl+Z)"
+                  >
+                    ↶
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { historialCanvas.rehacerFn(); forceRender((n) => n + 1); }}
+                    disabled={!historialCanvas.puedeRehacer}
+                    title="Rehacer (Ctrl+Shift+Z)"
+                  >
+                    ↷
+                  </button>
+                  <span className="separador" />
+                  <button
+                    type="button"
+                    onClick={guardarGeometria}
+                    disabled={!dirty || guardando}
+                  >
+                    Guardar
+                  </button>
+                  <button type="button" onClick={cancelarEdicion}>
+                    Cancelar
+                  </button>
+                </>
+              )}
             </div>
             <div className="editor-simbolos-estado">
               <label className="editor-simbolos-estado-label">Estado:</label>

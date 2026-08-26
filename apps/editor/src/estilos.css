@@ -2092,6 +2092,27 @@ body.arrastrando .paleta-item {
   color: #60a5fa;
 }
 
+[data-theme="dark"] .editor-simbolos-toolbar button {
+  background: var(--bg-surface);
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .editor-simbolos-toolbar button:hover:not(:disabled) {
+  color: var(--acento);
+  border-color: var(--acento);
+}
+
+[data-theme="dark"] .editor-simbolos-toolbar button.activo {
+  background: var(--acento);
+  color: #fff;
+  border-color: var(--acento);
+}
+
+[data-theme="dark"] .editor-simbolos-toolbar .separador {
+  background: var(--borde);
+}
+
 .editor-simbolos-canvas-wrap {
   flex: 1;
   position: relative;
@@ -2128,6 +2149,46 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-meta-info strong {
   color: var(--text-primary);
+}
+
+.editor-simbolos-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--borde);
+}
+
+.editor-simbolos-toolbar button {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.editor-simbolos-toolbar button:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.editor-simbolos-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.editor-simbolos-toolbar button.activo {
+  background: var(--acento);
+  color: #fff;
+  border-color: var(--acento);
+}
+
+.editor-simbolos-toolbar .separador {
+  width: 1px;
+  align-self: stretch;
+  background: var(--borde);
+  margin: 0 2px;
 }
 
 .editor-simbolos-estado {

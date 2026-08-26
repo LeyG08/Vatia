@@ -14,10 +14,12 @@ borrosas por antialiasing). Eso exige:
   4. Los puntos dentro del viewBox.
 
 Uso:
-  python scripts/lint_simbolos.py [--raiz E:\\Vatia] [--escala 4]
+  python scripts/lint_simbolos.py [--raiz E:\\Vatia] [--escala 4] [--symbol S00110]
 
 La ESCALA se lee automáticamente de apps/editor/src/lib/store.ts; el
-parámetro --escala la fuerza a mano. Exit code 1 si hay errores.
+parámetro --escala la fuerza a mano. Con --symbol se valida un solo
+símbolo (útil para validación antes de guardar desde el editor).
+Exit code 1 si hay errores.
 """
 
 from __future__ import annotations
@@ -125,6 +127,8 @@ def main() -> int:
     parser.add_argument("--raiz", type=Path, default=raiz_script)
     parser.add_argument("--escala", type=int, default=None,
                         help="fuerza la ESCALA (por defecto se lee de store.ts)")
+    parser.add_argument("--symbol", type=str, default=None,
+                        help="valida un solo símbolo (ej. S00110)")
     args = parser.parse_args()
 
     escala = args.escala or escala_desde_store(args.raiz)
@@ -134,6 +138,13 @@ def main() -> int:
 
     libreria = args.raiz / "libreria-simbolos" / "simbolos"
     carpetas = sorted(c for c in libreria.iterdir() if c.is_dir()) if libreria.is_dir() else []
+
+    if args.symbol:
+        carpetas = [c for c in carpetas if c.name.startswith(args.symbol + "_")]
+        if not carpetas:
+            print(f"error: símbolo {args.symbol} no encontrado en {libreria}")
+            return 1
+
     if not carpetas:
         print(f"error: no encontré símbolos en {libreria}")
         return 1

@@ -1697,3 +1697,25 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   - Endpoint /api/metadata: confirma que commitea sobre la rama activa
     del repo (usa `cwd: raizRepo` sin branch explícito). Desde ahora
     el dev server debe correr sobre `proyecto/editor-simbolos-20260826`.
+- **D4.3 (edición de geometría):**
+  - `lint_simbolos.py`: Nuevo argumento `--symbol S00110` para validar
+    un solo símbolo (usado por el endpoint antes de guardar).
+  - `historialCanvas.ts`: Clase `HistorialCanvas` con patrón
+    `{do, undo}` idéntico a `historial.ts`. Límite 100 pasos. Singleton
+    `historialCanvas`. Se resetea al cambiar símbolo, se vacía tras
+    guardar exitoso.
+  - `vite.config.ts`: Nuevo endpoint `POST /api/geometry` con
+    validación lint previa al guardado. Flujo: backup → write SVG →
+    lint → si falla restaura backup + responde errores específicos
+    (qué punto, qué cálculo falló) → si pasa git commit. Watcher de
+    `simbolo.svg` envía evento WebSocket `svg-update`.
+  - `EditorSimbolos.tsx`: Modo edición con botón "Editar geometría".
+    Canvas interactivo: objetos seleccionables + drag. Handlers
+    `object:moving`/`object:modified` crean comandos de undo/redo.
+    Toolbar con ↶↷ (undo/redo) + Guardar/Cancelar. Atajos
+    Ctrl+Z/Ctrl+Shift+Z. SVG-update listener para ediciones manuales.
+    Lint errors se muestran específicos en el panel.
+  - `libreria.ts`: Listener `svg-update` muta SIMBOLOS in-place +
+    despacha DOM event.
+  - `estilos.css`: Estilos toolbar de edición (mismo patrón que
+    `.barra-superior button`), dark mode overrides.
