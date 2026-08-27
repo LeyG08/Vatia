@@ -1719,3 +1719,22 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     despacha DOM event.
   - `estilos.css`: Estilos toolbar de edición (mismo patrón que
     `.barra-superior button`), dark mode overrides.
+- **C37 (fixes D4.3):**
+  - Fix selección individual: `inlineSvgGroups()` function strips `<g>`
+    wrappers from SVG and inlines their attributes onto children before
+    `loadSVGFromString`, producing flat primitives instead of a single
+    Group. Each primitive is individually selectable in edit mode.
+    `_esPrimitiva` flag tags symbol primitives; connection markers stay
+    non-interactive.
+  - Fix guardado: `guardarGeometria` now transforms primitives from
+    fabric space back to SVG coordinate space before `toSVG()`:
+    `svgX = (fabricX - offsetX) / ESCALA`. Resets viewport to identity,
+    exports with viewBox, restores viewport + positions. Markers hidden
+    during export.
+  - `offsetRef`: stores offsetX, offsetY, zoom for coordinate transforms.
+  - Grid overlay: dotted grid at MULTIPLO (10 SVG units) intervals
+    during edit mode. `Circle` objects tagged `_esGrilla`, added/removed
+    when editando toggles.
+  - Análisis viewBox 20 símbolos: caja canónica propuesta
+    `minX=-15, minY=-35, W=30, H=60` (cubre 18/20). Outliers:
+    S00119 barra (60×20 horizontal), S00131 sirena (50×50).

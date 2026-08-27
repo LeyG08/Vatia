@@ -1,10 +1,43 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas as FabricCanvas, Circle, FabricObject, Group, Line, Textbox, loadSVGFromString } from "fabric";
+import { Canvas as FabricCanvas, Circle, FabricObject, Line, Textbox, loadSVGFromString } from "fabric";
 import { SIMBOLOS } from "../lib/libreria";
 import { historialCanvas } from "../lib/historialCanvas";
 import type { SimboloDef } from "../lib/tipos";
 
 const ESCALA_EDICION = 20;
+
+/** Strip <g> wrappers, inlining their attributes onto children. */
+function inlineSvgGroups(svgStr: string): string {
+  const doc = new DOMParser().parseFromString(svgStr, "image/svg+xml");
+  const svg = doc.querySelector("svg");
+  if (!svg) return svgStr;
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const g of Array.from(svg.querySelectorAll("g"))) {
+      if (g.querySelector("g")) continue;
+      changed = true;
+      const ga: Record<string, string> = {};
+      for (const a of Array.from(g.attributes)) ga[a.name] = a.value;
+      const parent = g.parentNode!;
+      while (g.firstChild) {
+        const ch = g.firstChild;
+        if (ch.nodeType === Node.ELEMENT_NODE) {
+          for (const [k, v] of Object.entries(ga)) {
+            if (!(ch as Element).hasAttribute(k)) (ch as Element).setAttribute(k, v);
+          }
+        }
+        parent.insertBefore(ch, g);
+      }
+      g.remove();
+    }
+  }
+
+  const full = new XMLSerializer().serializeToString(svg);
+  return full.replace(/<svg[^>]*>/, "").replace(/<\/svg>$/, "").trim();
+}
+
 const ESTADOS: Array<{ valor: string; etiqueta: string }> = [
   { valor: "pendiente_revision", etiqueta: "Pendiente" },
   { valor: "verificado", etiqueta: "Verificado" },
@@ -29,6 +62,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<FabricCanvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef({ x: 0, y: 0, zoom: 1 });
 
   const lista = useMemo(() => {
     const todos = [...SIMBOLOS.values()].sort((a, b) =>
@@ -86,11 +120,53 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
   }, [seleccionado, guardando]);
 
   const guardarGeometria = useCallback(async () => {
-    if (!seleccionado || guardando) return;
+    const fc = fabricRef.current;
+    if (!fc || !seleccionado || guardando) return;
     setGuardando(true);
     setMensaje(null);
     try {
-      const svg = fabricRef.current?.toSVG() ?? "";
+      const vb = seleccionado.viewBox;
+      const { x: offsetX, y: offsetY } = offsetRef.current;
+
+      const allObjs = fc.getObjects();
+      const primitives = allObjs.filter((o) => (o as any)._esPrimitiva);
+      const markers = allObjs.filter((o) => !(o as any)._esPrimitiva);
+
+      const savedPrims = primitives.map((p) => ({
+        obj: p, left: p.left, top: p.top, scaleX: p.scaleX, scaleY: p.scaleY,
+      }));
+      const savedMarkers = markers.map((m) => ({ obj: m, visible: m.visible }));
+
+      markers.forEach((m) => m.set("visible", false));
+
+      for (const p of primitives) {
+        p.set({
+          left: ((p.left ?? 0) - offsetX) / ESCALA_EDICION,
+          top: ((p.top ?? 0) - offsetY) / ESCALA_EDICION,
+          scaleX: 1, scaleY: 1,
+        });
+      }
+
+      fc.setViewportTransform([1, 0, 0, 1, 0, 0]);
+      fc.renderAll();
+
+      let rawSvg = fc.toSVG();
+      rawSvg = rawSvg.replace(/<svg[^>]*>/, "").replace(/<\/svg>$/, "").trim();
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.minX} ${vb.minY} ${vb.ancho} ${vb.alto}">${rawSvg}</svg>`;
+
+      for (const s of savedPrims) {
+        s.obj.set({ left: s.left, top: s.top, scaleX: s.scaleX, scaleY: s.scaleY });
+      }
+      for (const s of savedMarkers) {
+        s.obj.set("visible", s.visible);
+      }
+
+      const zoomX = (fc.getWidth() - 60) / (vb.ancho * ESCALA_EDICION);
+      const zoomY = (fc.getHeight() - 60) / (vb.alto * ESCALA_EDICION);
+      const zoom = Math.min(zoomX, zoomY, 1);
+      fc.setViewportTransform([zoom, 0, 0, zoom, 0, 0]);
+      fc.renderAll();
+
       const res = await fetch("/api/geometry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -232,7 +308,8 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     const offsetY = (fc.getHeight!() / zoom - vb.alto * ESCALA_EDICION) / 2 - vb.minY * ESCALA_EDICION;
 
     const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${svg.replace(/<svg[^>]*>/, "").replace(/<\/svg>/, "")}</svg>`;
+    const cleanInner = inlineSvgGroups(svg);
+    tempDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${cleanInner}</svg>`;
     const svgEl = tempDiv.querySelector("svg");
     if (!svgEl) return;
     svgEl.setAttribute("viewBox", `${vb.minX} ${vb.minY} ${vb.ancho} ${vb.alto}`);
@@ -241,17 +318,19 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       const objs = result.objects.filter(Boolean) as FabricObject[];
       if (objs.length === 0) return;
 
-      const svgGroup = new Group(objs, {
-        selectable: false,
-        evented: false,
-      });
-      svgGroup.set({
-        left: offsetX,
-        top: offsetY,
-        scaleX: ESCALA_EDICION,
-        scaleY: ESCALA_EDICION,
-      });
-      fc.add(svgGroup);
+      for (const obj of objs) {
+        obj.set({
+          left: (obj.left ?? 0) * ESCALA_EDICION + offsetX,
+          top: (obj.top ?? 0) * ESCALA_EDICION + offsetY,
+          scaleX: ESCALA_EDICION,
+          scaleY: ESCALA_EDICION,
+          selectable: false,
+          evented: false,
+        });
+        (obj as any)._esPrimitiva = true;
+        fc.add(obj);
+      }
+      offsetRef.current = { x: offsetX, y: offsetY, zoom };
       dibujarPuntosConexion(fc, seleccionado, offsetX, offsetY);
       fc.renderAll();
     });
@@ -263,9 +342,10 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     if (!fc) return;
 
     if (editando) {
-      // Make SVG group objects selectable
       fc.getObjects().forEach((obj) => {
-        obj.set({ selectable: true, evented: true });
+        if ((obj as any)._esPrimitiva) {
+          obj.set({ selectable: true, evented: true });
+        }
       });
       fc.selection = false;
 
@@ -320,6 +400,43 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       fc.renderAll();
     }
   }, [editando]);
+
+  // Grid overlay: dotted grid at MULTIPLO (10 SVG units) intervals, visible only in edit mode
+  useEffect(() => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+
+    fc.getObjects().forEach((o) => { if ((o as any)._esGrilla) fc.remove(o); });
+
+    if (!editando || !seleccionado) { fc.renderAll(); return; }
+
+    const vb = seleccionado.viewBox;
+    const { x: offsetX, y: offsetY } = offsetRef.current;
+    const MULTIPLO = 10;
+    const DOT_R = 1.2;
+
+    const svgLeft = vb.minX;
+    const svgRight = vb.minX + vb.ancho;
+    const svgTop = vb.minY;
+    const svgBottom = vb.minY + vb.alto;
+    const x0 = Math.floor(svgLeft / MULTIPLO) * MULTIPLO;
+    const y0 = Math.floor(svgTop / MULTIPLO) * MULTIPLO;
+
+    for (let x = x0; x <= svgRight; x += MULTIPLO) {
+      for (let y = y0; y <= svgBottom; y += MULTIPLO) {
+        const fx = x * ESCALA_EDICION + offsetX;
+        const fy = y * ESCALA_EDICION + offsetY;
+        const dot = new Circle({
+          left: fx - DOT_R, top: fy - DOT_R, radius: DOT_R,
+          fill: "#94a3b8", selectable: false, evented: false,
+          stroke: null, strokeWidth: 0,
+        } as any);
+        (dot as any)._esGrilla = true;
+        fc.add(dot);
+      }
+    }
+    fc.renderAll();
+  }, [editando, seleccionado]);
 
   return (
     <div className="editor-simbolos">
