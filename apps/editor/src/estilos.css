@@ -2124,6 +2124,13 @@ body.arrastrando .paleta-item {
   display: block;
 }
 
+.editor-simbolos-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
 .editor-simbolos-meta {
   position: absolute;
   bottom: 10px;

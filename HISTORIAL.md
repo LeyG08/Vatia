@@ -1738,3 +1738,13 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
   - Análisis viewBox 20 símbolos: caja canónica propuesta
     `minX=-15, minY=-35, W=30, H=60` (cubre 18/20). Outliers:
     S00119 barra (60×20 horizontal), S00131 sirena (50×50).
+- **C38 (fix grid + pan):**
+  - Grid: replaced Fabric-object-based grid (hundreds of Circle objects
+    interfering with interaction) with a pure Canvas2D overlay. Grid
+    dots drawn on a separate `<canvas>` with `pointer-events: none`.
+    Covers the full visible area (not just viewBox), recalculates
+    visible SVG range from viewport transform. Redraws on pan/resize.
+  - Panning: Space+drag modifies `fc.viewportTransform` (translate).
+    Grid redraws on every pan via `gridVersion` state counter.
+  - Fix grid coordinate formula: `sx = a * (x * ESCALA + offsetX) + e`
+    to properly align with symbol primitives.

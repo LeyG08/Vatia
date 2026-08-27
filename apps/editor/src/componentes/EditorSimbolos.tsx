@@ -63,6 +63,8 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
   const fabricRef = useRef<FabricCanvas | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef({ x: 0, y: 0, zoom: 1 });
+  const gridCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [gridVersion, setGridVersion] = useState(0);
 
   const lista = useMemo(() => {
     const todos = [...SIMBOLOS.values()].sort((a, b) =>
@@ -274,6 +276,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
         const { width, height } = entry.contentRect;
         fc.setDimensions({ width, height });
         fc.renderAll();
+        setGridVersion((v) => v + 1);
       }
     });
     ro.observe(containerRef.current);
@@ -401,42 +404,110 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     }
   }, [editando]);
 
-  // Grid overlay: dotted grid at MULTIPLO (10 SVG units) intervals, visible only in edit mode
+  // Grid overlay via Canvas2D (no Fabric objects — zero interference)
   useEffect(() => {
+    const gridCanvas = gridCanvasRef.current;
     const fc = fabricRef.current;
-    if (!fc) return;
+    if (!gridCanvas || !fc) return;
 
-    fc.getObjects().forEach((o) => { if ((o as any)._esGrilla) fc.remove(o); });
+    const w = fc.getWidth();
+    const h = fc.getHeight();
+    gridCanvas.width = w;
+    gridCanvas.height = h;
+    const ctx = gridCanvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
 
-    if (!editando || !seleccionado) { fc.renderAll(); return; }
+    if (!editando || !seleccionado) return;
 
-    const vb = seleccionado.viewBox;
-    const { x: offsetX, y: offsetY } = offsetRef.current;
+    const vt = fc.viewportTransform!;
+    const [a, , , d, e, f] = vt;
     const MULTIPLO = 10;
-    const DOT_R = 1.2;
+    const { x: offsetX, y: offsetY } = offsetRef.current;
 
-    const svgLeft = vb.minX;
-    const svgRight = vb.minX + vb.ancho;
-    const svgTop = vb.minY;
-    const svgBottom = vb.minY + vb.alto;
+    // Screen offset = viewport(a,e) × fabric offset
+    const sxOff = a * offsetX + e;
+    const syOff = d * offsetY + f;
+
+    // Visible SVG area → grid range
+    const svgLeft = -sxOff / (a * ESCALA_EDICION);
+    const svgRight = (w - sxOff) / (a * ESCALA_EDICION);
+    const svgTop = -syOff / (d * ESCALA_EDICION);
+    const svgBottom = (h - syOff) / (d * ESCALA_EDICION);
     const x0 = Math.floor(svgLeft / MULTIPLO) * MULTIPLO;
     const y0 = Math.floor(svgTop / MULTIPLO) * MULTIPLO;
 
+    ctx.fillStyle = "rgba(100,116,139,0.5)";
     for (let x = x0; x <= svgRight; x += MULTIPLO) {
       for (let y = y0; y <= svgBottom; y += MULTIPLO) {
-        const fx = x * ESCALA_EDICION + offsetX;
-        const fy = y * ESCALA_EDICION + offsetY;
-        const dot = new Circle({
-          left: fx - DOT_R, top: fy - DOT_R, radius: DOT_R,
-          fill: "#94a3b8", selectable: false, evented: false,
-          stroke: null, strokeWidth: 0,
-        } as any);
-        (dot as any)._esGrilla = true;
-        fc.add(dot);
+        const sx = a * x * ESCALA_EDICION + sxOff;
+        const sy = d * y * ESCALA_EDICION + syOff;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
-    fc.renderAll();
-  }, [editando, seleccionado]);
+  }, [editando, seleccionado, gridVersion]);
+
+  // Panning: hold Space + drag
+  useEffect(() => {
+    if (!editando) return;
+    const fc = fabricRef.current;
+    if (!fc) return;
+
+    let spaceHeld = false;
+    let active = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        spaceHeld = true;
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") { spaceHeld = false; active = false; }
+    };
+
+    const onMouseDown = (opt: any) => {
+      if (spaceHeld) {
+        active = true;
+        lastX = opt.e.clientX;
+        lastY = opt.e.clientY;
+        fc.selection = false;
+        opt.e.preventDefault();
+      }
+    };
+    const onMouseMove = (opt: any) => {
+      if (!active) return;
+      const dx = opt.e.clientX - lastX;
+      const dy = opt.e.clientY - lastY;
+      lastX = opt.e.clientX;
+      lastY = opt.e.clientY;
+      const vt = fc.viewportTransform!;
+      vt[4] += dx;
+      vt[5] += dy;
+      fc.setViewportTransform(vt);
+      fc.renderAll();
+      setGridVersion((v) => v + 1);
+    };
+    const onMouseUp = () => { active = false; };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    fc.on("mouse:down", onMouseDown);
+    fc.on("mouse:move", onMouseMove);
+    fc.on("mouse:up", onMouseUp);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      fc.off("mouse:down", onMouseDown);
+      fc.off("mouse:move", onMouseMove);
+      fc.off("mouse:up", onMouseUp);
+    };
+  }, [editando]);
 
   return (
     <div className="editor-simbolos">
@@ -477,6 +548,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       </div>
       <div className="editor-simbolos-canvas-wrap" ref={containerRef}>
         <canvas ref={canvasRef} />
+        <canvas ref={gridCanvasRef} className="editor-simbolos-grid" />
         {seleccionado && (
           <div className="editor-simbolos-meta">
             <div className="editor-simbolos-meta-info">
