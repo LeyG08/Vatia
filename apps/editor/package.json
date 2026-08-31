@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "e2e": "node e2e/conexiones.mjs"
+    "e2e": "node e2e/conexiones.mjs",
+    "e2e:simbolos": "node e2e/editor-simbolos.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.3",

@@ -2031,3 +2031,95 @@ describía el contenido y no seguía la convención de `AGENTS.md`.
 mensaje de commit, leerla de `git rev-parse --abbrev-ref HEAD`, no de un
 documento. La guarda `commitearSeguro()` que se agregó en E2 protege `main`,
 pero no advierte nada si la rama activa es simplemente la equivocada.
+
+---
+
+## E3 — El editor de símbolos, verificado por fin: dos bugs de render y arnés E2E propio (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826` (leída de `git rev-parse`, según la
+lección de E2.1).
+
+E2 dejó anotado que el editor seguía sin verificación visual. Se hizo esa
+verificación levantando el dev server y manejando Chromium con el Playwright que
+el proyecto ya tenía. **El editor estaba roto**, pese a que C40 se dio por bueno
+con "Build passes, TS clean".
+
+### Bug 1 — el offset ignoraba el origen del viewBox
+
+La conversión de coordenadas SVG a canvas era
+`canvasX = svgX * ESCALA_EDICION + offset`, con
+
+```
+ox = (ancho_canvas / zoom - vb.ancho * ESCALA_EDICION) / 2
+```
+
+es decir, solo el término de centrado. **Faltaba restar el origen del viewBox.**
+Para S00110 (`viewBox="-10 -35 20 60"`) eso desplazaba el dibujo 200 px a la
+izquierda y 700 px hacia arriba: el terminal de entrada, en SVG y=-30, caía en
+-557 px y el símbolo aparecía cortado por arriba.
+
+Arreglado con una función única `offsetDeEncuadre(fc, vb, zoom)` que suma los dos
+términos. Como las cuatro conversiones del componente (carga de primitivas,
+guardado, puntos de conexión y grilla) leen el mismo `offsetRef`, corregir el
+offset las corrigió a todas de forma coherente, sin tocar los consumidores.
+
+### Bug 2 — el origen de las primitivas (el que oscilaba desde C37)
+
+Con el offset ya corregido los marcadores caían bien, pero el símbolo seguía
+apareciendo **partido en dos fragmentos**. Se instrumentó el componente con una
+sonda temporal para volcar lo que devuelve Fabric, en vez de seguir razonando a
+ciegas:
+
+`loadSVGFromString` entrega las primitivas con `originX`/`originY` = `"center"`
+y `left`/`top` apuntando al **centro** de su caja. Comprobado en el volcado: la
+polilínea del elemento térmico llegaba con `top` = -4,75, que es exactamente el
+centro de su rango y (-20 a 10,5), no su borde superior.
+
+El código hacía `obj.set({ ..., originX: "left", originY: "top" })`. Fabric **no
+reposiciona** al cambiar el origen: se limita a reinterpretar `left`/`top` como
+esquina, y cada primitiva se corre media caja hacia abajo. Con esa polilínea:
+centro en pantalla y=453 y altura 427 px ⇒ ocupaba 453→880 en vez de 240→667,
+que es exactamente el fragmento inferior que mostraba la captura.
+
+**La corrección es quitar el override**: se conserva el origen que trae Fabric.
+Esto es lo que las cuatro iteraciones C37 → C38 → C39 → C40 no acertaron; C39
+había diagnosticado bien que el problema eran "coordenadas locales distintas",
+pero atacó el envoltorio `<g>` en vez del origen.
+
+### Arnés E2E propio del editor
+
+Nuevo `apps/editor/e2e/editor-simbolos.mjs` (`npm run e2e:simbolos`). El arnés
+existente, `e2e/conexiones.mjs`, no tocaba el editor de símbolos: por eso cuatro
+iteraciones rotas pasaron los controles.
+
+Mira los píxeles del canvas, separando la tinta oscura del dibujo de los
+marcadores de color, y para cada uno de los 20 símbolos exige:
+
+1. que se dibuje algo;
+2. que la tinta quede a más de 20 px del borde del canvas — el encuadre reserva
+   60 px (30 por lado), así que acercarse más significa que el símbolo se
+   escapó del área visible;
+3. que el centro de cada marcador caiga sobre la caja de tinta, con 40 px de
+   tolerancia.
+
+Sobre la tolerancia: necesita holgura porque el círculo rojo del terminal
+**tapa** el extremo negro de la línea (la tinta "empieza" un par de unidades más
+adentro) y porque la etiqueta del punto corre el centroide del marcador. Se
+descartó un umbral de 24 px que daba 15 falsos positivos por ese motivo.
+
+**El arnés se verificó contra el bug**, que es lo que le faltó a C37–C40:
+reintroduciendo a propósito el override de origen, falla en los 20 símbolos con
+exit 1. Un test que pasa pero no atraparía el defecto no sirve de nada.
+
+### Verificaciones corridas
+
+`npm run build` (verde), `npm run lint` (dos warnings preexistentes),
+`npm run e2e:simbolos` (20/20), `python scripts/lint_simbolos.py` (20/20),
+`node scripts/verificar_alineacion.mjs` y
+`node scripts/verificar_proyecto_real.mjs` (verdes).
+
+### Pendiente
+
+- El arnés nuevo necesita el dev server levantado a mano; todavía no lo arranca
+  solo, igual que `conexiones.mjs`.
+- La rama sigue sin pushear y sin PR.

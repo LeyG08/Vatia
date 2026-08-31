@@ -6,6 +6,34 @@ import type { SimboloDef } from "../lib/tipos";
 
 const ESCALA_EDICION = 20;
 
+/**
+ * Offset que lleva las coordenadas del SVG a las del canvas de edición:
+ *
+ *   canvasX = svgX * ESCALA_EDICION + offset.x
+ *
+ * Lleva DOS términos y omitir el segundo era el bug que arrastraban C37–C40:
+ *
+ *  1. el centrado del símbolo dentro del área visible, y
+ *  2. el ORIGEN DEL VIEWBOX. Un símbolo cuyo viewBox arranca en (-10, -35)
+ *     —como S00110— dibuja en coordenadas negativas; sin restar el origen,
+ *     su terminal de entrada en y=-30 caía en -557 px y el símbolo aparecía
+ *     cortado por arriba.
+ *
+ * Todas las conversiones SVG↔canvas del editor (carga de primitivas, guardado,
+ * puntos de conexión y grilla) leen este mismo offset desde offsetRef, así que
+ * corregirlo acá las corrige a todas de forma coherente.
+ */
+function offsetDeEncuadre(
+  fc: FabricCanvas,
+  vb: SimboloDef["viewBox"],
+  zoom: number,
+): { x: number; y: number } {
+  return {
+    x: (fc.getWidth() / zoom - vb.ancho * ESCALA_EDICION) / 2 - vb.minX * ESCALA_EDICION,
+    y: (fc.getHeight() / zoom - vb.alto * ESCALA_EDICION) / 2 - vb.minY * ESCALA_EDICION,
+  };
+}
+
 const ESTADOS: Array<{ valor: string; etiqueta: string }> = [
   { valor: "pendiente_revision", etiqueta: "Pendiente" },
   { valor: "verificado", etiqueta: "Verificado" },
@@ -223,8 +251,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     const zx = (fc.getWidth() - 60) / (vb.ancho * ESCALA_EDICION);
     const zy = (fc.getHeight() - 60) / (vb.alto * ESCALA_EDICION);
     const zoom = Math.min(zx, zy, 1);
-    const ox = (fc.getWidth() / zoom - vb.ancho * ESCALA_EDICION) / 2;
-    const oy = (fc.getHeight() / zoom - vb.alto * ESCALA_EDICION) / 2;
+    const { x: ox, y: oy } = offsetDeEncuadre(fc, vb, zoom);
     fc.setViewportTransform([zoom, 0, 0, zoom, ox, oy]);
     offsetRef.current = { x: ox, y: oy, zoom };
     fc.renderAll();
@@ -347,10 +374,15 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       const zoom = Math.min(zx, zy, 1);
       fc.setZoom(zoom);
 
-      const ox = (fc.getWidth() / zoom - vb.ancho * ESCALA_EDICION) / 2;
-      const oy = (fc.getHeight() / zoom - vb.alto * ESCALA_EDICION) / 2;
+      const { x: ox, y: oy } = offsetDeEncuadre(fc, vb, zoom);
 
       for (const obj of objs) {
+        // OJO con el origen: loadSVGFromString devuelve las primitivas con
+        // originX/originY = "center" y left/top apuntando al CENTRO de su caja.
+        // Forzar aquí originX:"left"/originY:"top" NO reposiciona nada — Fabric
+        // se limita a reinterpretar left/top como esquina, y cada primitiva se
+        // corre media caja. Ese era el desfase que partía el símbolo en dos
+        // fragmentos (C37–C40). Se conserva el origen que trae Fabric.
         obj.set({
           left: (obj.left ?? 0) * ESCALA_EDICION + ox,
           top: (obj.top ?? 0) * ESCALA_EDICION + oy,
@@ -358,8 +390,6 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
           scaleY: ESCALA_EDICION,
           selectable: false,
           evented: false,
-          originX: "left",
-          originY: "top",
         });
         (obj as any)._esPrimitiva = true;
         fc.add(obj);
