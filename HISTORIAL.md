@@ -2251,3 +2251,22 @@ de commitear:
 
 `npm run e2e:simbolos` corrido completo: 20/20 símbolos + guardado real,
 todo verde.
+
+---
+
+## E5 — Nota: falla preexistente en el arnés E2E original, no introducida por esta sesión
+
+Al correr la batería completa como cierre, `npm run e2e` (el arnés
+`e2e/conexiones.mjs`, del editor de diagrama principal, no del de símbolos)
+falló en el caso `[punta fuente] c1/ini → n1.210a` con
+`✗ clic no seleccionó c4 (c5) o el grip no apareció`.
+
+Ninguno de los cambios de E1–E4 tocó `App.tsx` ni `ConexionEdge.tsx`, así que
+se verificó si era preexistente: se hizo checkout temporal (detached HEAD, sin
+tocar la rama) al commit `f5d901e` — el estado de la rama antes de todo el
+trabajo de esta sesión — y se corrió el mismo arnés. **La misma falla aparece
+ahí también.** No es una regresión de esta sesión; es deuda ya presente.
+
+Queda fuera de alcance de esta etapa (el pedido del usuario fue terminar el
+editor de símbolos). Se registra para que quede visible en la próxima pasada
+sobre el editor de diagrama principal.
