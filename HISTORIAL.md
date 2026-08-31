@@ -1748,3 +1748,158 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     Grid redraws on every pan via `gridVersion` state counter.
   - Fix grid coordinate formula: `sx = a * (x * ESCALA + offsetX) + e`
     to properly align with symbol primitives.
+- **C39 (fix rendering bug — revert inlineSvgGroups → Group + subTargetCheck):**
+  - `inlineSvgGroups()` stripped `<g>` wrappers from SVG before
+    `loadSVGFromString`. This broke the SVG coordinate system —
+    Fabric.js returned primitives with wrong positions, rendering
+    symbols as a tiny speck.
+  - **Root cause:** Without the `<g>` wrapper, Fabric's SVG parser
+    assigns different local coordinates to individual elements.
+    The flat primitives had their `left`/`top` in a coordinate space
+    that didn't match our `ESCALA_EDICION` transform.
+  - **Reverted** to Group approach: `loadSVGFromString` loads SVG as-is,
+    wraps in `Group(objs, { subTargetCheck: true })`, positioned at
+    `(offsetX, offsetY)` with `scaleX/Y: ESCALA_EDICION`.
+  - `subTargetCheck: true` on the Group allows clicking/dragging
+    individual children within the Group (the original issue that
+    motivated `inlineSvgGroups` in the first place).
+  - Removed `inlineSvgGroups()` function entirely.
+  - Updated `guardarGeometria`: finds `_esGrupoSimbolo` Group, extracts
+    children's local coords (which = SVG coords within viewBox),
+    converts to canvas space (`svgX * ESCALA + offsetX`), resets
+    Group transform, exports, restores. Markers hidden during export.
+  - Updated edit mode effect: toggles `_esGrupoSimbolo` selectable
+    instead of `_esPrimitiva`.
+  - Undo/redo unchanged — `object:moving`/`object:modified` fire
+    on child targets within Group (subTargetCheck), storing local
+    coords which are restored correctly.
+  - Build passes, TS clean.
+- **C40 (major rewrite — flat primitives, zoom, pan, fixed save):**
+  - **Root cause of all issues**: Group wrapping made symbols a single
+    block; `loadSVGFromString` with viewBox caused double-scaling;
+    save function didn't reverse transforms correctly.
+  - **New SVG loading approach**: `inlineSvgGroups()` strips `<g>`
+    wrappers, inlining shared attributes (fill, stroke, etc.) onto
+    children. SVG viewBox is stripped before loading (prevents
+    Fabric.js from applying its own viewBox transform). Result:
+    flat array of primitives from `loadSVGFromString` with no Groups.
+  - Each primitive gets `originX: "left", originY: "top"` for
+    consistent positioning. Positioned at `svgX * ESCALA_EDICION + offsetX`.
+  - **Individual primitive editing**: Each `_esPrimitiva` is
+    independently selectable and draggable in edit mode.
+  - **Fixed save** (`guardarGeometria`): converts canvas coords
+    back to SVG: `svgX = (canvasLeft - offsetX) / ESCALA_EDICION`.
+    Resets viewport to identity, exports with `toSVG()`, wraps
+    with original viewBox, restores everything.
+  - **Zoom**: Mouse wheel centered on cursor, toolbar buttons
+    (−/+), Ctrl+=/Ctrl+-/Ctrl+0 shortcuts. `aplicarZoom()` adjusts
+    viewport transform maintaining cursor position.
+  - **Pan**: Space+drag (existing) + middle-click drag (new).
+    Works in both view and edit modes.
+  - **Zoom display**: Clickable percentage in toolbar, click
+    to reset to fit-to-view.
+  - CSS: `.editor-simbolos-zoom` styled as clickable label.
+  - **Note**: S00110 SVG was corrupted by previous bad save
+    (Fabric canvas coordinates leaked into SVG). It renders
+    off-screen. Needs regeneration from QET source.
+  - Build passes, TS clean.
+
+---
+
+## E1 — Revisión general del proyecto y limpieza del andamiaje (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826` · sin commitear al momento de
+escribir esta entrada.
+
+### Revisión general pedida por el usuario
+
+Se auditó el proyecto completo con vistas al objetivo declarado (base de datos
+de dispositivos + motor de verificación de filiación, selectividad,
+cortocircuito y corriente admisible). Conclusiones principales:
+
+- **Vatia hoy es un CAD documental, no una herramienta de cálculo.** Búsqueda en
+  todo el repo: cero menciones a selectividad, filiación, IEC 60909 o IEC 60364.
+  Los únicos cálculos son `S=√3·V·I` (`FormularioCarga.tsx:23-37`),
+  `potencia_va × ku` (`utilizacion.ts:38-42`) y la estimación de In de motor
+  (`FormularioAtributos.tsx:36-55`). El "Checklist AEA" valida completitud de
+  ficha, no dimensionamiento.
+- **Tres bloqueantes estructurales:** (1) no se recorre el grafo — las
+  conexiones se serializan como strings `"nodo.handle"` (`store.ts:294-306`) y
+  no hay noción de aguas arriba/abajo; (2) faltan datos de entrada —
+  `longitud`, método de instalación, temperatura, agrupamiento, tensión de
+  sistema (hardcodeada 220/380), esquema de puesta a tierra, Scc de fuente,
+  cosφ, Ks; (3) los atributos son `Record<string, unknown>` sin tipar.
+- **Advertencia de diseño:** filiación y selectividad no se calculan, se leen de
+  tablas de ensayo del fabricante. La futura BD necesita pares aguas
+  arriba/abajo con Icc reforzada y curvas t-I digitalizadas, no solo datos de
+  chapa.
+- **Inconsistencias detectadas:** `pdcc_kA` vs `icu_kA`/`ics_kA` según subtipo;
+  el MCCB no declara Ics; `pdcc_kA: 2500` en `proyecto-real-pps.json` son
+  amperes crudos donde el schema pide kA; `migrar_tgbt.mjs:159-187` quedó
+  desincronizado del JSON y revertiría la corrección de C32 si se vuelve a
+  correr; S00124/S00125/S00126/S00131 no declaran `atributos_base`, por lo que
+  al instanciarlos no muestran ningún campo.
+- **Riesgos abiertos:** S00110 corrupto y commiteado (`f5d901e`); el lint no
+  valida XML ni geometría fuera de viewBox; los endpoints del dev server
+  commitean sin rama explícita; 8 commits sin pushear.
+
+Documento completo de la revisión en
+`C:\Users\augug\.claude\plans\nesecito-que-revises-mi-shiny-tome.md`.
+
+### Limpieza del andamiaje de documentación
+
+Un intento previo de andamiaje dejó archivos que describían un proyecto
+distinto al real. Decisión del usuario: **seguir sobre este proyecto, no
+empezar de cero** — no había código tocado ni commits sucios.
+
+Acciones:
+
+- `AGENTS.md` **recuperado** con `git checkout --` (había sido borrado del
+  working tree; estaba intacto en HEAD).
+- `mnt/user-data/outputs/vatia-andamiaje/…` **borrado**: era un path de sandbox
+  creado literalmente dentro del repo, con una copia byte a byte de
+  `tests/selectividad/README.md`.
+- **Descartados** (respaldados fuera del repo, en el scratchpad de la sesión):
+  - `docs/adr/0001-stack-frontend.md` — decide FastAPI como backend, decisión
+    que nunca se tomó; `apps/api/` está vacío.
+  - `docs/adr/0002-libreria-de-simbolos-propia.md` — registra como "descartada"
+    la importación desde QElectroTech, que es exactamente lo que el proyecto
+    hizo (`convertir_qet.py`, `fuente_qet` en cada metadata, atribución
+    GPL-2.0). Afirma además campos que no existen (`norma_ref`, puntos de
+    conexión tipados).
+  - `docs/adr/0003-plan-de-fases.md` — cinco fases que no se corresponden con
+    las reales (F0–F6, C1–C40, D1–D4.3).
+  - `docs/domain-model.md` — se declaraba "vocabulario único" con un modelo
+    paralelo que contradice los schemas vigentes (`cobre|aluminio` vs `Cu|Al`,
+    `aislante` vs `aislacion`, `seccion_mm2` vs `seccion_fase_mm2`,
+    4 tipos de protección vs 17 `tipo_aparato`), y prohibía los términos
+    `interruptor` y `cable`, que son los que usan los schemas reales.
+  - `docs/devlog/` — describe una sesión en la rama `docs/andamiaje-inicial`,
+    que nunca se creó, y declara adoptados Conventional Commits, en conflicto
+    con el formato de commits ya definido en `AGENTS.md`.
+- **Conservados** por ser correctos y mirar hacia adelante sin afirmar nada
+  falso sobre el pasado: `docs/normativa/README.md` (criterio de no versionar
+  normas con derechos de autor), `data/catalogo/README.md` (versionar el
+  catálogo como archivos planos y sembrar la BD desde ahí) y
+  `tests/selectividad/README.md`.
+- `CLAUDE.md` reescrito: se le sacó la referencia a `docs/devlog/` y se dejó
+  explícito que **la bitácora única es `HISTORIAL.md`**.
+
+### Decisiones tomadas
+
+- **Bitácora única: `HISTORIAL.md`.** Se descarta el devlog por sesión para no
+  repetir el patrón que dejó `docs/estado-revision-aea.md` documentando 7 de
+  20 símbolos.
+- **Normativa: AEA e IEC seleccionables por proyecto.** Implica que las tablas
+  de Iz, los factores de corrección y los límites de caída de tensión son datos
+  parametrizados, no constantes en el código, y que el proyecto necesita un
+  campo `normativa` (migración v2 → v3).
+- **Backend: sin decidir.** `apps/api/` queda vacío hasta encarar la etapa de
+  base de datos.
+- Los ADR reales se escribirán más adelante a partir de este historial, que sí
+  tiene las decisiones verdaderas con fecha y motivo.
+
+### Próximo paso
+
+Terminar el editor de símbolos (C39/C40 sin commitear, S00110 corrupto,
+lint insuficiente), según el orden pedido por el usuario.
