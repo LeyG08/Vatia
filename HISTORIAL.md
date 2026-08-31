@@ -2000,3 +2000,34 @@ falsos positivos), `python scripts/lint_simbolos.py` (20/20),
 - El editor de símbolos sigue **sin verificación visual del usuario** y sin
   cobertura E2E; el arnés `e2e/conexiones.mjs` no lo toca.
 - La rama sigue sin pushear y sin PR.
+
+### E2.1 — Corrección: la rama de trabajo no era la que E1 y E2 declaran
+
+Las entradas E1 y E2 dicen "Rama: `proyecto/editor-simbolos-20260826`". **Es
+incorrecto.** El trabajo se hizo sobre `docs/andamiaje-inicial`, una rama que
+el intento de andamiaje sí había creado desde `f5d901e`.
+
+E1 afirma además que esa rama "nunca se creó", tomando el dato del devlog. La
+verificación fue insuficiente: se leyó el devlog y se dio por sentado que la
+rama no existía, sin correr `git branch`. Existía, y era la rama activa.
+
+Consecuencia: los commits `67350b5` (limpieza del andamiaje) y `4ab8972`
+(S00110 + lint + guarda de rama) cayeron en `docs/andamiaje-inicial`, mientras
+`proyecto/editor-simbolos-20260826` seguía en `f5d901e`.
+
+Resuelto sin perder nada, porque `4ab8972` desciende de `f5d901e`:
+
+```
+git branch -f proyecto/editor-simbolos-20260826 4ab8972
+git checkout proyecto/editor-simbolos-20260826
+git branch -d docs/andamiaje-inicial
+```
+
+`proyecto/editor-simbolos-20260826` queda como única rama de este trabajo, con
+los 10 commits (C35 → E2). `docs/andamiaje-inicial` borrada: su nombre ya no
+describía el contenido y no seguía la convención de `AGENTS.md`.
+
+**Lección para el flujo:** antes de escribir la rama en el historial o en un
+mensaje de commit, leerla de `git rev-parse --abbrev-ref HEAD`, no de un
+documento. La guarda `commitearSeguro()` que se agregó en E2 protege `main`,
+pero no advierte nada si la rama activa es simplemente la equivocada.
