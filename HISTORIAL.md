@@ -2123,3 +2123,93 @@ exit 1. Un test que pasa pero no atraparía el defecto no sirve de nada.
 - El arnés nuevo necesita el dev server levantado a mano; todavía no lo arranca
   solo, igual que `conexiones.mjs`.
 - La rama sigue sin pushear y sin PR.
+
+---
+
+## E3 — El guardado de geometría estaba realmente roto: encontrado y corregido con prueba end-to-end (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Cómo se encontró
+
+E2 dio por buena la reescritura C40 del editor de símbolos basándose en que
+compilaba y en una captura de pantalla del **modo vista** (el símbolo se
+renderiza bien). Nunca se probó el **guardado real**. Al hacerlo con un
+arnés propio de Playwright contra el dev server real:
+
+1. Se activó modo admin, se abrió S00110, se entró a "Editar geometría".
+2. Se arrastró una primitiva una distancia chica y controlada.
+3. Se apretó "Guardar" y se inspeccionó la respuesta real de
+   `POST /api/geometry`.
+
+**El primer intento reprodujo exactamente la corrupción original de
+`f5d901e`**: mismo prólogo `<?xml?>` y `<!DOCTYPE>` después de `<svg>`, mismo
+`<desc>Created with Fabric.js</desc>`, mismos marcadores con
+`visibility: hidden` y los rótulos "in (entrada)"/"out (salida)". El endpoint
+respondió `ok: true`.
+
+Antes de sospechar del código, se comprobó que el lint endurecido de E2 sí
+rechaza ese contenido corriéndolo a mano (`exit 1`). Eso descartó el lint como
+causa y apuntó al dev server: **llevaba corriendo desde antes de todos los
+cambios de E2 y nunca se había reiniciado**, así que el endpoint que atendía
+la petición era el código viejo. Con el servidor reiniciado, el endpoint
+rechazó correctamente el intento (`ok: false`, con el error del lint) y no
+tocó el archivo — ahí quedó confirmado que la corrupción no era un problema
+del lint sino del código de guardado en sí.
+
+### La causa real
+
+`guardarGeometria()` en `EditorSimbolos.tsx`, dos bugs:
+
+1. **Extracción de `fc.toSVG()` incompleta.** Fabric.js 7.4.0 devuelve un
+   documento completo (prólogo `<?xml?>` + `<!DOCTYPE>` + `<desc>` + `<defs>`
+   + la etiqueta `<svg>` recién después). El código hacía
+   `.replace(/<svg[^>]*>/, "")`, que borra **solo esa etiqueta**, dejando el
+   prólogo y el DOCTYPE de *antes* intactos. Ese texto sobrante quedaba
+   embebido dentro del `<svg>` nuevo que se armaba — la corrupción exacta de
+   S00110.
+2. **Ocultar marcadores con `visible: false` no alcanza.** Fabric igual los
+   serializa en `toSVG()`, como un elemento con
+   `style="...visibility: hidden"`. Por eso los rótulos "in (entrada)" /
+   "out (salida)" terminaban en el archivo pese a estar "ocultos".
+
+### La corrección
+
+- Ubicar la apertura real de `<svg ...>` con `match()` y cortar desde el
+  final de esa coincidencia hasta el último `</svg>`, en vez de un
+  `.replace()` de la etiqueta sola. Se descartan además `<desc>` y
+  `<defs></defs>` vacíos que agrega Fabric.
+- Sacar los marcadores del canvas con `fc.remove()` antes de exportar y
+  volver a agregarlos con `fc.add()` después, en vez de solo ocultarlos.
+
+### Verificación end-to-end (no solo build)
+
+Con el dev server reiniciado y el fix aplicado, se repitió la prueba
+completa: la respuesta de `/api/geometry` volvió `ok: true` con un SVG limpio
+(sin prólogo, sin DOCTYPE, sin `<desc>`, sin marcadores) y el campo
+`commit: {commiteado: true, rama: "proyecto/editor-simbolos-20260826"}` de la
+guarda de E2 confirmando que reconoció la rama correcta.
+
+**Efecto colateral de la propia prueba:** al estar en una rama no protegida,
+el guardado de prueba generó un commit automático real
+(`simbolos: S00110 geometria actualizada`) con el arrastre de prueba. Se
+deshizo con `git reset --soft HEAD^` + `git checkout HEAD -- <ruta>` (al
+alcance de la mano porque era el tope de la rama y no estaba pusheado) para
+no dejar en la librería un cambio sin sentido — la corrección de código es lo
+que vale, no ese arrastre.
+
+### Lección para el flujo de verificación
+
+Un build en verde y una captura del modo vista **no prueban que una función
+de guardado funcione**: hay que ejercitar la ruta de escritura real contra el
+servidor corriendo. Y antes de correr esa prueba, confirmar que el servidor
+en pie está sirviendo el código que se acaba de cambiar — un dev server viejo
+sirviendo código stale puede hacer que una verificación "confirme" un bug ya
+corregido.
+
+### Verificaciones corridas
+
+`npm run build` (verde), `npm run lint` (dos warnings preexistentes),
+`python scripts/lint_simbolos.py` (20/20), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` (verdes), y la prueba end-to-end de guardado
+real descripta arriba.

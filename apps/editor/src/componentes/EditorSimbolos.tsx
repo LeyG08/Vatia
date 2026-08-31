@@ -142,9 +142,12 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       const savedPrims = prims.map((p) => ({
         obj: p, left: p.left ?? 0, top: p.top ?? 0, scaleX: p.scaleX ?? 1, scaleY: p.scaleY ?? 1,
       }));
-      const savedMarkers = markers.map((m) => ({ obj: m, visible: m.visible }));
 
-      markers.forEach((m) => m.set("visible", false));
+      // Sacar los marcadores del canvas en vez de solo ocultarlos: Fabric
+      // igual serializa un objeto con visible:false (como
+      // style="...visibility: hidden") en toSVG(), así que "ocultar" no
+      // alcanza para que no aparezcan en el archivo exportado.
+      for (const m of markers) fc.remove(m);
 
       for (const p of prims) {
         const svgX = ((p.left ?? 0) - offsetX) / ESCALA_EDICION;
@@ -155,16 +158,32 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       fc.setViewportTransform([1, 0, 0, 1, 0, 0]);
       fc.renderAll();
 
-      let rawSvg = fc.toSVG();
-      rawSvg = rawSvg.replace(/<svg[^>]*>/, "").replace(/<\/svg>$/, "").trim();
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.minX} ${vb.minY} ${vb.ancho} ${vb.alto}">${rawSvg}</svg>`;
+      const rawSvg = fc.toSVG();
+      // fc.toSVG() devuelve un DOCUMENTO completo: prólogo <?xml?>, DOCTYPE,
+      // <desc>Created with Fabric.js…</desc>, <defs> y recién después la
+      // etiqueta <svg ...> de apertura con el contenido real. Un
+      // .replace(/<svg[^>]*>/, "") borra SOLO esa etiqueta y deja el
+      // prólogo/DOCTYPE/desc de antes intactos como si fueran contenido —
+      // eso es exactamente lo que corrompió S00110 en el commit f5d901e.
+      // Hay que cortar desde el CIERRE de la apertura real hasta el último
+      // </svg>, y descartar el <desc> y los <defs> vacíos que Fabric agrega.
+      const apertura = rawSvg.match(/<svg[^>]*>/);
+      const cierre = rawSvg.lastIndexOf("</svg>");
+      if (!apertura || cierre < 0) {
+        throw new Error("fc.toSVG() no devolvió un documento SVG reconocible");
+      }
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.minX} ${vb.minY} ${vb.ancho} ${vb.alto}">${
+        rawSvg
+          .slice(apertura.index! + apertura[0].length, cierre)
+          .replace(/<desc>[\s\S]*?<\/desc>/, "")
+          .replace(/<defs>\s*<\/defs>/, "")
+          .trim()
+      }</svg>`;
 
       for (const s of savedPrims) {
         s.obj.set({ left: s.left, top: s.top, scaleX: s.scaleX, scaleY: s.scaleY });
       }
-      for (const s of savedMarkers) {
-        s.obj.set("visible", s.visible);
-      }
+      for (const m of markers) fc.add(m);
 
       const zoomX = (fc.getWidth() - 60) / (vb.ancho * ESCALA_EDICION);
       const zoomY = (fc.getHeight() - 60) / (vb.alto * ESCALA_EDICION);
