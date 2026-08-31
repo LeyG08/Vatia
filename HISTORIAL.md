@@ -1903,3 +1903,100 @@ Acciones:
 
 Terminar el editor de símbolos (C39/C40 sin commitear, S00110 corrupto,
 lint insuficiente), según el orden pedido por el usuario.
+
+---
+
+## E2 — Editor de símbolos: S00110 recuperado, lint endurecido y guarda de rama (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### S00110 recuperado
+
+El commit `f5d901e` ("simbolos: S00110 geometria actualizada") había dejado el
+símbolo más usado del proyecto inservible. Diagnóstico del archivo:
+
+- Coordenadas de canvas de Fabric filtradas al SVG
+  (`matrix(1 0 0 1 882 1230)`): el dibujo caía en (875,168)–(924,1276) cuando
+  el viewBox es (-10,-35)–(10,25).
+- XML inválido: un `<?xml?>` y un `<!DOCTYPE>` **después** de la etiqueta
+  `<svg>` de apertura.
+- Marcadores del editor dentro del archivo de librería: cruces, círculos de
+  handle y los textos "in (entrada)" / "out (salida)" con `visibility: hidden`,
+  más el `<desc>Created with Fabric.js</desc>`.
+- Perdidos los `class="punto-conexion"` y la estructura original.
+
+**No hizo falta regenerar desde QET:** se restauró el archivo exacto anterior
+al commit con `git checkout f5d901e^ -- <ruta>`. Verificado además que ningún
+otro símbolo estaba contaminado (búsqueda de rastros de Fabric en los 22 SVG de
+la librería) y que los 22 son XML válido.
+
+### `lint_simbolos.py` endurecido
+
+El lint validaba viewBox y `puntos_conexion` del metadata, pero **nunca miraba
+el dibujo**: por eso el guardado corrupto pasó el hook pre-commit y el gate de
+`/api/geometry`. Se agregaron tres comprobaciones:
+
+1. **XML bien formado** (`ET.fromstring`). Si falla, se corta ahí: el resto
+   daría ruido.
+2. **Prólogo mal ubicado**: `<?xml?>` o `<!DOCTYPE>` después de `<svg>`.
+3. **Rastros del editor**: `Created with Fabric.js`, `visibility: hidden`, y
+   los rótulos `(entrada)` / `(salida)`.
+4. **Geometría dentro del viewBox**: se recorre el árbol acumulando los
+   `transform` (soporta `matrix`, `translate` y `scale`) y se calcula la caja
+   real de `line`, `polyline`, `polygon`, `circle`, `ellipse` y `rect`.
+   Tolerancia `TOLERANCIA_VIEWBOX = 1.0` unidades.
+
+**Descartada una regla que resultó incorrecta:** rechazar todo `<text>`. Dio
+tres falsos positivos porque hay letras que son parte de la norma IEC 60617 y
+no anotación del editor — "V" en el voltímetro (S00132), "U<>" en el relé de
+tensión (S00129) y "M 3~" en el motor (S00115). Los rótulos del editor ya los
+detecta la regla de rastros por su contenido.
+
+**Verificación:** los 20 símbolos pasan. Reinyectando el SVG corrupto, el lint
+lo rechaza por XML inválido; y quitándole solo el prólogo (para que el XML sea
+válido y no corte antes), lo rechaza igual por rastro de Fabric y por geometría
+fuera del viewBox. Margen mínimo real de la librería sana: 2.0 unidades, salvo
+S00123 que toca el borde exacto (0.00) de forma legítima.
+
+### Guarda de rama en los endpoints del dev server
+
+`POST /api/metadata` y `POST /api/geometry` hacían `git add` + `git commit` con
+`cwd: raizRepo` y **sin rama explícita**, lo que ya contaminó `main` con 18
+commits (revertidos en C36) y contradice la regla de `AGENTS.md`.
+
+- Nueva función `commitearSeguro(archivo, mensaje)` con `RAMAS_PROTEGIDAS`
+  (`main`, `master`, `HEAD` desprendido): si la rama activa está protegida, **el
+  archivo se guarda igual pero no se commitea**, y el motivo vuelve al cliente.
+- Ambos endpoints devuelven ahora un campo `commit` con `{commiteado, rama,
+  motivo}` en vez de tragarse el error en silencio.
+- Los commits pasaron de `execSync` con interpolación de string a
+  `execFileSync` con argumentos en array: sin shell de por medio, que además
+  resuelve el paso del carácter "→" del mensaje en Windows.
+
+### Fixes del editor (C40)
+
+- **El trabajo de C40 no compilaba**, pese a que el historial decía "Build
+  passes, TS clean": `tsc -b` fallaba con
+  `TS6133: 'zoomVersion' is declared but its value is never read`.
+- `zoomVersion` era un contador de estado usado solo para forzar re-render,
+  mientras `zoomActual` se leía de `fabricRef.current.viewportTransform[0]`
+  **durante el render** — un anti-patrón que devuelve el valor de la pasada
+  anterior. Se eliminó el contador y `zoomActual` pasó a ser estado real,
+  actualizado en los tres sitios que ya tenían el zoom nuevo a mano
+  (`aplicarZoom`, `zoomFit` y la carga del símbolo).
+- Documentado por qué `tick` **no** sobra en el `useMemo` de `lista`, aunque
+  oxlint lo marque: `SIMBOLOS` es un Map de módulo que el HMR muta en el lugar,
+  así que su identidad nunca cambia y el memo no se recalcularía solo.
+
+### Verificaciones corridas
+
+`npm run build` (verde), `npm run lint` (solo dos warnings preexistentes, ambos
+falsos positivos), `python scripts/lint_simbolos.py` (20/20),
+`node scripts/verificar_alineacion.mjs` (verde),
+`node scripts/verificar_proyecto_real.mjs` (verde).
+
+### Pendiente de esta etapa
+
+- El editor de símbolos sigue **sin verificación visual del usuario** y sin
+  cobertura E2E; el arnés `e2e/conexiones.mjs` no lo toca.
+- La rama sigue sin pushear y sin PR.

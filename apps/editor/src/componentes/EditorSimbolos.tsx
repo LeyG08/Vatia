@@ -6,38 +6,6 @@ import type { SimboloDef } from "../lib/tipos";
 
 const ESCALA_EDICION = 20;
 
-/** Strip <g> wrappers, inlining their attributes onto children. */
-function inlineSvgGroups(svgStr: string): string {
-  const doc = new DOMParser().parseFromString(svgStr, "image/svg+xml");
-  const svg = doc.querySelector("svg");
-  if (!svg) return svgStr;
-
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const g of Array.from(svg.querySelectorAll("g"))) {
-      if (g.querySelector("g")) continue;
-      changed = true;
-      const ga: Record<string, string> = {};
-      for (const a of Array.from(g.attributes)) ga[a.name] = a.value;
-      const parent = g.parentNode!;
-      while (g.firstChild) {
-        const ch = g.firstChild;
-        if (ch.nodeType === Node.ELEMENT_NODE) {
-          for (const [k, v] of Object.entries(ga)) {
-            if (!(ch as Element).hasAttribute(k)) (ch as Element).setAttribute(k, v);
-          }
-        }
-        parent.insertBefore(ch, g);
-      }
-      g.remove();
-    }
-  }
-
-  const full = new XMLSerializer().serializeToString(svg);
-  return full.replace(/<svg[^>]*>/, "").replace(/<\/svg>$/, "").trim();
-}
-
 const ESTADOS: Array<{ valor: string; etiqueta: string }> = [
   { valor: "pendiente_revision", etiqueta: "Pendiente" },
   { valor: "verificado", etiqueta: "Verificado" },
@@ -66,6 +34,11 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
   const gridCanvasRef = useRef<HTMLCanvasElement>(null);
   const [gridVersion, setGridVersion] = useState(0);
 
+  // Zoom mostrado en la toolbar. Es estado y no una lectura de
+  // fabricRef.current durante el render: leer un ref mutable mientras se
+  // renderiza devuelve el valor de la pasada anterior.
+  const [zoomActual, setZoomActual] = useState(1);
+
   const lista = useMemo(() => {
     const todos = [...SIMBOLOS.values()].sort((a, b) =>
       a.codigo_iec.localeCompare(b.codigo_iec),
@@ -77,6 +50,10 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
         s.codigo_iec.toLowerCase().includes(q) ||
         s.metadata.nombre.toLowerCase().includes(q),
     );
+    // `tick` es deliberado y NO sobra, aunque oxlint lo marque: SIMBOLOS es un
+    // Map de módulo que el HMR de la librería muta EN EL LUGAR, así que su
+    // identidad nunca cambia y el memo no se recalcularía solo. `tick` es lo
+    // que fuerza el recálculo cuando llega un metadata-update o un svg-update.
   }, [filtro, tick]);
 
   const seleccionar = useCallback((s: SimboloDef) => {
@@ -130,23 +107,21 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       const vb = seleccionado.viewBox;
       const { x: offsetX, y: offsetY } = offsetRef.current;
 
-      const allObjs = fc.getObjects();
-      const primitives = allObjs.filter((o) => (o as any)._esPrimitiva);
-      const markers = allObjs.filter((o) => !(o as any)._esPrimitiva);
+      const prims = fc.getObjects().filter((o) => (o as any)._esPrimitiva);
+      if (prims.length === 0) { setMensaje("No hay primitivas"); setGuardando(false); return; }
 
-      const savedPrims = primitives.map((p) => ({
-        obj: p, left: p.left, top: p.top, scaleX: p.scaleX, scaleY: p.scaleY,
+      const markers = fc.getObjects().filter((o) => !(o as any)._esPrimitiva);
+      const savedPrims = prims.map((p) => ({
+        obj: p, left: p.left ?? 0, top: p.top ?? 0, scaleX: p.scaleX ?? 1, scaleY: p.scaleY ?? 1,
       }));
       const savedMarkers = markers.map((m) => ({ obj: m, visible: m.visible }));
 
       markers.forEach((m) => m.set("visible", false));
 
-      for (const p of primitives) {
-        p.set({
-          left: ((p.left ?? 0) - offsetX) / ESCALA_EDICION,
-          top: ((p.top ?? 0) - offsetY) / ESCALA_EDICION,
-          scaleX: 1, scaleY: 1,
-        });
+      for (const p of prims) {
+        const svgX = ((p.left ?? 0) - offsetX) / ESCALA_EDICION;
+        const svgY = ((p.top ?? 0) - offsetY) / ESCALA_EDICION;
+        p.set({ left: svgX, top: svgY, scaleX: 1, scaleY: 1 });
       }
 
       fc.setViewportTransform([1, 0, 0, 1, 0, 0]);
@@ -212,6 +187,51 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     }
   }, [editando, cancelarEdicion]);
 
+  const aplicarZoom = useCallback((factor: number, cx: number, cy: number) => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+    const vt = fc.viewportTransform!;
+    const oldZoom = vt[0];
+    const newZoom = Math.max(0.05, Math.min(20, oldZoom * factor));
+    const r = newZoom / oldZoom;
+    vt[0] = newZoom;
+    vt[3] = newZoom;
+    vt[4] = cx - (cx - vt[4]) * r;
+    vt[5] = cy - (cy - vt[5]) * r;
+    fc.setViewportTransform(vt);
+    fc.renderAll();
+    setGridVersion((v) => v + 1);
+    setZoomActual(newZoom);
+  }, []);
+
+  const zoomIn = useCallback(() => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+    aplicarZoom(1.25, fc.getWidth() / 2, fc.getHeight() / 2);
+  }, [aplicarZoom]);
+
+  const zoomOut = useCallback(() => {
+    const fc = fabricRef.current;
+    if (!fc) return;
+    aplicarZoom(0.8, fc.getWidth() / 2, fc.getHeight() / 2);
+  }, [aplicarZoom]);
+
+  const zoomFit = useCallback(() => {
+    const fc = fabricRef.current;
+    if (!fc || !seleccionado) return;
+    const vb = seleccionado.viewBox;
+    const zx = (fc.getWidth() - 60) / (vb.ancho * ESCALA_EDICION);
+    const zy = (fc.getHeight() - 60) / (vb.alto * ESCALA_EDICION);
+    const zoom = Math.min(zx, zy, 1);
+    const ox = (fc.getWidth() / zoom - vb.ancho * ESCALA_EDICION) / 2;
+    const oy = (fc.getHeight() / zoom - vb.alto * ESCALA_EDICION) / 2;
+    fc.setViewportTransform([zoom, 0, 0, zoom, ox, oy]);
+    offsetRef.current = { x: ox, y: oy, zoom };
+    fc.renderAll();
+    setGridVersion((v) => v + 1);
+    setZoomActual(zoom);
+  }, [seleccionado]);
+
   // Metadata update listener (external edits)
   useEffect(() => {
     const handler = (e: Event) => {
@@ -242,9 +262,8 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     return () => window.removeEventListener("vatia:svg-update", handler);
   }, []);
 
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts
   useEffect(() => {
-    if (!editando) return;
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -253,10 +272,22 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
         else historialCanvas.deshacerFn();
         forceRender((n) => n + 1);
       }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "=" || e.key === "+")) {
+        e.preventDefault();
+        zoomIn();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        zoomOut();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        zoomFit();
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [editando]);
+  }, [editando, zoomIn, zoomOut, zoomFit]);
 
   // Canvas initialization
   useEffect(() => {
@@ -288,7 +319,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     };
   }, []);
 
-  // SVG rendering + edit mode handlers
+  // SVG rendering: strip viewBox, inline <g>, load flat primitives
   useEffect(() => {
     const fc = fabricRef.current;
     if (!fc || !seleccionado) return;
@@ -299,43 +330,46 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     setDirty(false);
 
     const vb = seleccionado.viewBox;
-    const svg = seleccionado.svgRaw;
-
-    const zoomX = (fc.getWidth!() - 60) / (vb.ancho * ESCALA_EDICION);
-    const zoomY = (fc.getHeight!() - 60) / (vb.alto * ESCALA_EDICION);
-    const zoom = Math.min(zoomX, zoomY, 1);
-    fc.setZoom(zoom);
-    fc.setViewportTransform([zoom, 0, 0, zoom, 0, 0]);
-
-    const offsetX = (fc.getWidth!() / zoom - vb.ancho * ESCALA_EDICION) / 2 - vb.minX * ESCALA_EDICION;
-    const offsetY = (fc.getHeight!() / zoom - vb.alto * ESCALA_EDICION) / 2 - vb.minY * ESCALA_EDICION;
+    const svgRaw = seleccionado.svgRaw;
 
     const tempDiv = document.createElement("div");
-    const cleanInner = inlineSvgGroups(svg);
-    tempDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${cleanInner}</svg>`;
+    const cleanInner = inlineSvgGroups(svgRaw);
+    tempDiv.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">${cleanInner}</svg>`;
     const svgEl = tempDiv.querySelector("svg");
     if (!svgEl) return;
-    svgEl.setAttribute("viewBox", `${vb.minX} ${vb.minY} ${vb.ancho} ${vb.alto}`);
 
     loadSVGFromString(svgEl.outerHTML).then((result) => {
       const objs = result.objects.filter(Boolean) as FabricObject[];
       if (objs.length === 0) return;
 
+      const zx = (fc.getWidth() - 60) / (vb.ancho * ESCALA_EDICION);
+      const zy = (fc.getHeight() - 60) / (vb.alto * ESCALA_EDICION);
+      const zoom = Math.min(zx, zy, 1);
+      fc.setZoom(zoom);
+
+      const ox = (fc.getWidth() / zoom - vb.ancho * ESCALA_EDICION) / 2;
+      const oy = (fc.getHeight() / zoom - vb.alto * ESCALA_EDICION) / 2;
+
       for (const obj of objs) {
         obj.set({
-          left: (obj.left ?? 0) * ESCALA_EDICION + offsetX,
-          top: (obj.top ?? 0) * ESCALA_EDICION + offsetY,
+          left: (obj.left ?? 0) * ESCALA_EDICION + ox,
+          top: (obj.top ?? 0) * ESCALA_EDICION + oy,
           scaleX: ESCALA_EDICION,
           scaleY: ESCALA_EDICION,
           selectable: false,
           evented: false,
+          originX: "left",
+          originY: "top",
         });
         (obj as any)._esPrimitiva = true;
         fc.add(obj);
       }
-      offsetRef.current = { x: offsetX, y: offsetY, zoom };
-      dibujarPuntosConexion(fc, seleccionado, offsetX, offsetY);
+
+      offsetRef.current = { x: ox, y: oy, zoom };
+      dibujarPuntosConexion(fc, seleccionado, ox, oy);
+      fc.setViewportTransform([zoom, 0, 0, zoom, 0, 0]);
       fc.renderAll();
+      setZoomActual(zoom);
     });
   }, [seleccionado]);
 
@@ -352,19 +386,18 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       });
       fc.selection = false;
 
-      // Track position before drag
       const prevPositions = new Map<FabricObject, { left: number; top: number }>();
 
       const movingHandler = (e: any) => {
         const obj = e.target as FabricObject;
-        if (!prevPositions.has(obj)) {
+        if ((obj as any)._esPrimitiva && !prevPositions.has(obj)) {
           prevPositions.set(obj, { left: obj.left ?? 0, top: obj.top ?? 0 });
         }
       };
 
-      // Create undo command on modification
       const modifiedHandler = (e: any) => {
         const obj = e.target as FabricObject;
+        if (!(obj as any)._esPrimitiva) return;
         const prev = prevPositions.get(obj);
         if (!prev) return;
         const leftAntes = prev.left;
@@ -374,7 +407,6 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
 
         prevPositions.delete(obj);
 
-        // Only record if position actually changed
         if (leftAntes !== leftNuevo || topAntes !== topNuevo) {
           const cmd = {
             descripcion: `Mover ${obj.type ?? "objeto"}`,
@@ -395,7 +427,6 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
         fc.off("object:modified", modifiedHandler);
       };
     } else {
-      // Make everything non-interactive when not editing
       fc.getObjects().forEach((obj) => {
         obj.set({ selectable: false, evented: false });
       });
@@ -404,7 +435,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     }
   }, [editando]);
 
-  // Grid overlay via Canvas2D (no Fabric objects — zero interference)
+  // Grid overlay via Canvas2D
   useEffect(() => {
     const gridCanvas = gridCanvasRef.current;
     const fc = fabricRef.current;
@@ -425,11 +456,9 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     const MULTIPLO = 10;
     const { x: offsetX, y: offsetY } = offsetRef.current;
 
-    // Screen offset = viewport(a,e) × fabric offset
     const sxOff = a * offsetX + e;
     const syOff = d * offsetY + f;
 
-    // Visible SVG area → grid range
     const svgLeft = -sxOff / (a * ESCALA_EDICION);
     const svgRight = (w - sxOff) / (a * ESCALA_EDICION);
     const svgTop = -syOff / (d * ESCALA_EDICION);
@@ -449,11 +478,28 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     }
   }, [editando, seleccionado, gridVersion]);
 
-  // Panning: hold Space + drag
+  // Zoom: mouse wheel (works when symbol selected, regardless of edit mode)
   useEffect(() => {
-    if (!editando) return;
     const fc = fabricRef.current;
-    if (!fc) return;
+    if (!fc || !seleccionado) return;
+
+    const onWheel = (opt: any) => {
+      const e = opt.e as WheelEvent;
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = -e.deltaY;
+      const factor = delta > 0 ? 1.1 : 1 / 1.1;
+      aplicarZoom(factor, e.offsetX, e.offsetY);
+    };
+
+    fc.on("mouse:wheel", onWheel);
+    return () => { fc.off("mouse:wheel", onWheel); };
+  }, [seleccionado, aplicarZoom]);
+
+  // Panning: Space+drag OR middle-click drag (works when symbol selected)
+  useEffect(() => {
+    const fc = fabricRef.current;
+    if (!fc || !seleccionado) return;
 
     let spaceHeld = false;
     let active = false;
@@ -471,7 +517,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
     };
 
     const onMouseDown = (opt: any) => {
-      if (spaceHeld) {
+      if (spaceHeld || opt.e.button === 1) {
         active = true;
         lastX = opt.e.clientX;
         lastY = opt.e.clientY;
@@ -507,7 +553,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       fc.off("mouse:move", onMouseMove);
       fc.off("mouse:up", onMouseUp);
     };
-  }, [editando]);
+  }, [seleccionado]);
 
   return (
     <div className="editor-simbolos">
@@ -600,6 +646,12 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
                   </button>
                 </>
               )}
+              <span className="separador" />
+              <button type="button" onClick={zoomOut} title="Zoom out (Ctrl+-)">−</button>
+              <span className="editor-simbolos-zoom" onClick={zoomFit} title="Ajustar vista (Ctrl+0)">
+                {Math.round(zoomActual * 100)}%
+              </span>
+              <button type="button" onClick={zoomIn} title="Zoom in (Ctrl+=)">+</button>
             </div>
             <div className="editor-simbolos-estado">
               <label className="editor-simbolos-estado-label">Estado:</label>
@@ -628,6 +680,37 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       </div>
     </div>
   );
+}
+
+function inlineSvgGroups(svgStr: string): string {
+  const doc = new DOMParser().parseFromString(svgStr, "image/svg+xml");
+  const svg = doc.querySelector("svg");
+  if (!svg) return svgStr;
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const g of Array.from(svg.querySelectorAll("g"))) {
+      if (g.querySelector("g")) continue;
+      changed = true;
+      const ga: Record<string, string> = {};
+      for (const a of Array.from(g.attributes)) ga[a.name] = a.value;
+      const parent = g.parentNode!;
+      while (g.firstChild) {
+        const ch = g.firstChild;
+        if (ch.nodeType === Node.ELEMENT_NODE) {
+          for (const [k, v] of Object.entries(ga)) {
+            if (!(ch as Element).hasAttribute(k)) (ch as Element).setAttribute(k, v);
+          }
+        }
+        parent.insertBefore(ch, g);
+      }
+      g.remove();
+    }
+  }
+
+  const full = new XMLSerializer().serializeToString(svg);
+  return full.replace(/<svg[^>]*>/, "").replace(/<\/svg>$/, "").trim();
 }
 
 function dibujarPuntosConexion(

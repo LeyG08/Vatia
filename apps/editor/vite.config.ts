@@ -2,12 +2,69 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import fs from "node:fs";
-import { execSync, execFileSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const raizEditor = path.dirname(fileURLToPath(import.meta.url));
 const raizRepo = path.resolve(raizEditor, "../..");
 const libRoot = path.resolve(raizRepo, "libreria-simbolos", "simbolos");
+
+/**
+ * Ramas en las que estos endpoints NO deben commitear.
+ *
+ * AGENTS.md prohíbe el commit directo a main, y estos endpoints operan sobre
+ * la rama que esté activa en el repo (usan `cwd: raizRepo` sin indicar rama).
+ * En C36 hubo que revertir 18 commits automáticos que cayeron en main por esta
+ * vía. La guarda evita que vuelva a pasar: el archivo se guarda igual, lo que
+ * no ocurre es el commit.
+ */
+const RAMAS_PROTEGIDAS = new Set(["main", "master", "HEAD"]);
+
+function ramaActiva(): string | null {
+  try {
+    return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd: raizRepo,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+interface ResultadoCommit {
+  commiteado: boolean;
+  rama?: string;
+  motivo?: string;
+}
+
+/**
+ * Commitea un único archivo, salvo que la rama activa esté protegida.
+ * Usa execFileSync (sin shell) porque el mensaje lleva caracteres como "→"
+ * que el shell de Windows no pasa de forma confiable.
+ */
+function commitearSeguro(archivo: string, mensaje: string): ResultadoCommit {
+  const rama = ramaActiva();
+  if (rama === null) {
+    return { commiteado: false, motivo: "no pude leer la rama activa de git" };
+  }
+  if (RAMAS_PROTEGIDAS.has(rama)) {
+    return {
+      commiteado: false,
+      rama,
+      motivo:
+        `rama protegida "${rama}": el archivo se guardó pero NO se commiteó. ` +
+        "Cambiá a una rama de trabajo (AGENTS.md: simbolo/<codigo>-<AAAAMMDD>).",
+    };
+  }
+  try {
+    execFileSync("git", ["add", "--", archivo], { cwd: raizRepo, stdio: "pipe" });
+    execFileSync("git", ["commit", "-m", mensaje], { cwd: raizRepo, stdio: "pipe" });
+    return { commiteado: true, rama };
+  } catch {
+    return { commiteado: false, rama, motivo: "git no disponible o nada para commitear" };
+  }
+}
 
 /**
  * Plugin que extiende el watcher de Vite para cubrir libreria-simbolos/
@@ -127,18 +184,14 @@ function watchLibreria(): Plugin {
             meta.estado_revision = estado;
             fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + "\n", "utf8");
 
-            // Git commit (best-effort)
-            try {
-              execSync(`git add "${metaPath}"`, { cwd: raizRepo, stdio: "pipe" });
-              execSync(
-                `git commit -m "simbolos: ${codigo} estado ${anterior} → ${estado}"`,
-                { cwd: raizRepo, stdio: "pipe" },
-              );
-            } catch {
-              // git not available or nothing to commit — not fatal
-            }
+            const commit = commitearSeguro(
+              metaPath,
+              `simbolos: ${codigo} estado ${anterior} → ${estado}`,
+            );
 
-            res.end(JSON.stringify({ ok: true, anterior, nuevo: estado, metadata: meta }));
+            res.end(
+              JSON.stringify({ ok: true, anterior, nuevo: estado, metadata: meta, commit }),
+            );
           } catch (err) {
             res.statusCode = 500;
             res.end(JSON.stringify({ error: String(err) }));
@@ -241,21 +294,15 @@ function watchLibreria(): Plugin {
               }
             }
 
-            // Git commit
-            try {
-              execSync(`git add "${svgPath}"`, { cwd: raizRepo, stdio: "pipe" });
-              execSync(
-                `git commit -m "simbolos: ${codigo} geometria actualizada"`,
-                { cwd: raizRepo, stdio: "pipe" },
-              );
-            } catch {
-              // not fatal
-            }
+            const commit = commitearSeguro(
+              svgPath,
+              `simbolos: ${codigo} geometria actualizada`,
+            );
 
             // Cleanup backup
             try { fs.unlinkSync(backupPath); } catch { /* ok */ }
 
-            res.end(JSON.stringify({ ok: true, svg, viewBox }));
+            res.end(JSON.stringify({ ok: true, svg, viewBox, commit }));
           } catch (err) {
             res.statusCode = 500;
             res.end(JSON.stringify({ error: String(err) }));
