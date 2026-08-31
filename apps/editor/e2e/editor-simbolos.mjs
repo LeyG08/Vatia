@@ -17,6 +17,11 @@
  * Uso: node e2e/editor-simbolos.mjs
  */
 import { chromium } from "playwright";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const raizRepo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const URL = process.env.VATIA_URL ?? "http://localhost:5173/";
 // Distancia mínima al borde del canvas. El encuadre reserva 60 px (30 por
@@ -137,6 +142,86 @@ for (const codigo of codigos) {
   } else {
     console.log(`  ✓ ${codigo} (${r.tinta.n} px de tinta, ${r.centros.length} marcadores)`);
   }
+}
+
+/**
+ * Prueba de guardado real (E3): entre C37 y C40 nadie ejerció esta ruta.
+ * Un guardado corrupto pasaba el "build" y hasta el render en modo vista
+ * sin que nada lo notara — así se corrompió S00110 en el commit f5d901e.
+ * Se prueba contra el endpoint real, y como el endpoint commitea sobre la
+ * rama activa cuando no es main, se deja el repo EXACTO como estaba: si el
+ * guardado generó un commit, se deshace al final (git reset --soft +
+ * checkout desde el HEAD anterior), sin importar si la prueba pasó o no.
+ */
+async function probarGuardadoReal() {
+  const fs = await import("node:fs");
+  const codigoPrueba = "S00110";
+  const headAntes = execFileSync("git", ["rev-parse", "HEAD"], { cwd: raizRepo, encoding: "utf8" }).trim();
+  const dirSimbolo = fs.readdirSync(path.join(raizRepo, "libreria-simbolos", "simbolos"))
+    .find((d) => d.startsWith(codigoPrueba + "_"));
+  const rutaSvg = path.join(raizRepo, "libreria-simbolos", "simbolos", dirSimbolo, "simbolo.svg");
+  const svgAntes = fs.readFileSync(rutaSvg, "utf8");
+
+  let resultado = { ok: false, problemas: ["no se pudo ejecutar la prueba"] };
+  try {
+    await pagina.locator(`text=${codigoPrueba}`).first().click();
+    await pagina.waitForTimeout(500);
+    await pagina.getByRole("button", { name: "Editar geometría" }).click();
+    await pagina.waitForTimeout(500);
+
+    const caja = await pagina.locator("canvas").first().boundingBox();
+    await pagina.mouse.click(caja.x + caja.width / 2, caja.y + 100);
+    await pagina.waitForTimeout(150);
+    await pagina.mouse.down();
+    await pagina.mouse.move(caja.x + caja.width / 2 + 5, caja.y + 100, { steps: 5 });
+    await pagina.mouse.up();
+    await pagina.waitForTimeout(200);
+
+    const [respuesta] = await Promise.all([
+      pagina.waitForResponse((r) => r.url().includes("/api/geometry")),
+      pagina.getByRole("button", { name: "Guardar", exact: true }).click(),
+    ]);
+    const cuerpo = await respuesta.json();
+
+    const problemas = [];
+    if (!cuerpo.ok) {
+      problemas.push(`el guardado devolvió ok:false — ${JSON.stringify(cuerpo.errores)}`);
+    } else {
+      const svg = cuerpo.svg ?? "";
+      if (svg.includes("<?xml")) problemas.push("el SVG guardado tiene un prólogo <?xml?>");
+      if (svg.includes("<!DOCTYPE")) problemas.push("el SVG guardado tiene un <!DOCTYPE>");
+      if (svg.includes("Fabric.js")) problemas.push("el SVG guardado tiene el <desc> de Fabric.js");
+      if (svg.includes("visibility: hidden") || svg.includes("visibility:hidden")) {
+        problemas.push("el SVG guardado tiene marcadores del editor (visibility: hidden)");
+      }
+      if (svg.includes("(entrada)") || svg.includes("(salida)")) {
+        problemas.push("el SVG guardado tiene los rótulos del editor");
+      }
+    }
+    resultado = { ok: problemas.length === 0, problemas };
+  } catch (err) {
+    resultado = { ok: false, problemas: [`excepción durante la prueba: ${err.message}`] };
+  } finally {
+    // Dejar el repo tal cual estaba, haya pasado o no la prueba.
+    fs.writeFileSync(rutaSvg, svgAntes, "utf8");
+    const headDespues = execFileSync("git", ["rev-parse", "HEAD"], { cwd: raizRepo, encoding: "utf8" }).trim();
+    if (headDespues !== headAntes) {
+      execFileSync("git", ["reset", "--soft", headAntes], { cwd: raizRepo, stdio: "pipe" });
+    }
+    try {
+      execFileSync("git", ["checkout", "HEAD", "--", rutaSvg], { cwd: raizRepo, stdio: "pipe" });
+    } catch { /* si no estaba trackeado con cambios, no hace falta */ }
+  }
+  return resultado;
+}
+
+console.log();
+const guardado = await probarGuardadoReal();
+if (guardado.ok) {
+  console.log("  ✓ guardado real de geometría (S00110): SVG limpio, sin rastros del editor");
+} else {
+  fallos.push("guardado-geometria");
+  for (const p of guardado.problemas) console.log(`  ✗ guardado de geometría: ${p}`);
 }
 
 await navegador.close();

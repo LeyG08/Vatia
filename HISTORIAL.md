@@ -2213,3 +2213,41 @@ corregido.
 `python scripts/lint_simbolos.py` (20/20), `verificar_alineacion.mjs` y
 `verificar_proyecto_real.mjs` (verdes), y la prueba end-to-end de guardado
 real descripta arriba.
+
+---
+
+## E4 — Arnés E2E extendido para cubrir el guardado real (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+El arnés `e2e/editor-simbolos.mjs` (de antes del corte por límite de uso,
+commit `3eadc35`) solo cubría render, que es exactamente el hueco que dejó
+pasar los bugs de guardado de E3. Se le agregó `probarGuardadoReal()`:
+abre S00110 en modo edición, arrastra una primitiva, guarda contra el
+endpoint real y verifica en la respuesta que el SVG no tenga prólogo `<?xml?>`,
+`<!DOCTYPE>`, el `<desc>` de Fabric.js, marcadores `visibility: hidden` ni los
+rótulos "in (entrada)"/"out (salida)" — la misma lista de rastros que detecta
+el lint endurecido de E2, pero ejercitada de punta a punta contra el servidor
+real.
+
+**Riesgo aparte que había que resolver:** el endpoint commitea sobre la rama
+activa cuando no es `main` (guarda de E2), así que correr esta prueba sobre
+una rama de trabajo generaría un commit real en cada corrida. La prueba
+registra el `HEAD` antes de guardar y, en un `finally` que corre pase o no la
+prueba, restaura el contenido original del archivo y, si el guardado generó
+un commit, lo deshace con `git reset --soft <head-anterior>` seguido de
+`git checkout HEAD -- <archivo>` (el reset solo mueve el puntero de rama y dejaría el índice con el
+contenido corrupto todavía en stage; el checkout final es el que deja índice
+y working tree alineados con el HEAD restaurado). Verificado: tras correr el
+arnés completo, `HEAD` no se movió y `git diff` del SVG de S00110 quedó vacío.
+
+Dos errores propios encontrados y corregidos al escribir esta prueba, antes
+de commitear:
+- Una función placeholder (`probarGuardado`) con una expresión sin sentido
+  que quedó pegada por error de edición — eliminada, no se llegó a usar.
+- Un `${codigoPrueba}` referenciado fuera de su scope en el mensaje de éxito,
+  que habría lanzado `ReferenceError` la primera vez que el guardado
+  funcionara — cambiado por un literal.
+
+`npm run e2e:simbolos` corrido completo: 20/20 símbolos + guardado real,
+todo verde.
