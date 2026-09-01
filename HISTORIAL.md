@@ -3262,3 +3262,79 @@ existente (incluida la rama "Desde PAT" → símbolo de tierra), y al cargar
 10 A en n6 y n7 (3F con neutro, 380 V por defecto) la barra n1 mostró
 "Σ cargas: 13164 VA" — exactamente √3×380×10 × 2, confirmando que la
 agregación multi-camino no duplica.
+
+## E14 — Retomar el editor: revisión general + arreglo de la falla preexistente en e2e/conexiones.mjs
+
+El usuario frenó el avance hacia el motor de cálculo: antes quiere revisar
+lo que hay, y además terminar el editor completamente (símbolos nuevos,
+parte de comando, pestañas) antes de seguir con cálculo. Primer pedido
+concreto acordado: arreglar la falla de `e2e/conexiones.mjs` registrada
+como deuda en E5, ya confirmada como preexistente (no introducida por el
+trabajo de esta sesión).
+
+### Revisión general (antes del arreglo)
+
+Corrida completa: `tsc --noEmit`, build, oxlint (mismos 2 warnings de
+siempre), `lint_simbolos` 20/20 (todos con `estado_revision` cerrado, ya
+no hay pendientes), `verificar_alineacion`, `verificar_proyecto_real`,
+tipos sincronizados, y los dos arneses E2E. Además se limpiaron ~10
+procesos `vite dev`/`preview` de sesiones anteriores que habían quedado
+vivos ocupando puertos 4173–4174 y 5173–5179.
+
+Hallazgos relevantes para la reprioritización que pidió el usuario:
+- **Cero símbolos de comando**: de 20 símbolos, 17 aparato + 1 barra +
+  1 carga + 1 sin ficha — toda la librería es de fuerza. Confirma que
+  "parte de comando" es contenido nuevo, no una ampliación.
+- **`modo_vista: "unifilar_simple" | "multifilar"`** existe en el tipo
+  `ProyectoJSON` pero ningún componente lo lee — es un campo fantasma.
+- **Sigue sin autosave**: el proyecto vive solo en memoria + descarga
+  manual de JSON, exactamente como se diagnosticó al principio del
+  proyecto.
+- **6 commits sin pushear** en esta rama, sin PR abierto.
+- `PestanasHoja.tsx` es hoy un array plano (`proyecto.hojas: Hoja[]`),
+  sin ningún campo de relación entre hojas — confirma que la idea de
+  jerarquía que trajo el usuario es un cambio de modelo de datos, no solo
+  de UI. Se acordó con el usuario: la jerarquía cuelga cada hoja hija de
+  la carga `seccional` de la hoja padre que la origina (no una jerarquía
+  libre) — pendiente de diseñar/implementar, no se tocó en esta entrada.
+
+### La falla real: dos cables desde el mismo handle rutean idéntico
+
+`e2e/conexiones.mjs` prueba el grip de quiebre (C29) clickeando el punto
+medio del segmento más largo del cable `c4`. En el escenario del
+fixture, un paso anterior del mismo test crea `c5` desde el MISMO handle
+de origen que `c4` (`n5.2`), en la misma dirección — React Flow rutea
+ambos idénticos hasta que divergen, así que su primer tramo es
+geométricamente el mismo. El punto que el test elegía caía justo en ese
+tramo compartido, dentro del círculo invisible de reconexión (radio 10,
+offset del extremo por dirección de salida — `EdgeAnchor`/`shiftX`/
+`shiftY` de `@xyflow/react`) que ambos cables tienen superpuesto en el
+mismo punto. Como los dos círculos están exactamente en el mismo lugar,
+gana el que esté encima en el DOM — `c5`, no `c4` — y el test fallaba
+"clic no seleccionó c4 (c5)".
+
+No es un bug de la app: un usuario real que clickee sobre el tramo
+compartido de dos cables que salen del mismo punto en la misma dirección
+tiene la misma ambigüedad geométrica (dos líneas perfectamente
+superpuestas no se pueden distinguir por posición), y es un caso poco
+frecuente — normalmente cada circuito sale de un punto distinto de la
+barra. Se evaluó agregar `elevateEdgesOnSelect` a `<ReactFlow>` para
+subir el cable seleccionado por encima de sus hermanos, pero introdujo
+una regresión nueva (el arrastre del grip de quiebre dejaba de doblar el
+cable — probablemente por cómo React Flow reordena el DOM al elevar un
+edge) sin resolver el caso general (la ambigüedad es previa a la
+selección), así que se descartó.
+
+El arreglo real fue en el test: en vez de "medio segmento más largo", el
+punto de clic ahora excluye cualquier segmento que otro cable también
+recorra (comparando extremos de segmento con tolerancia de 0,5 px contra
+todas las demás conexiones renderizadas), y elige el más largo de los
+que quedan — el mismo criterio que aplicaría un usuario real evitando el
+tramo ambiguo.
+
+### Verificaciones
+
+`npm run e2e` (conexiones): OK, incluido el caso completo del quiebre
+(4→5 vértices, deshacer). `npm run e2e:simbolos`: 20/20 sin cambios.
+`tsc --noEmit`, build y oxlint sin novedad respecto de la revisión
+general de arriba.

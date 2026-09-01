@@ -266,13 +266,33 @@ await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
     .first();
   const d0 = await pathC4.getAttribute("d");
   const v0 = (d0?.match(/-?\d+(?:\.\d+)?/g)?.length ?? 0) / 2;
-  // punto sobre la línea: mitad del segmento más largo, a coords pantalla
+  // Punto sobre la línea: mitad del segmento más largo QUE NO COMPARTA
+  // TRAZO con ningún otro cable. Dos conexiones que salen del mismo
+  // handle en la misma dirección (como c4/c5, ambas desde n5.2) rutean
+  // idéntico hasta que divergen — un clic en ese tramo compartido cae
+  // dentro del círculo invisible de reconexión de AMBOS cables, y gana
+  // el que esté encima en el DOM (no necesariamente el que se quiso
+  // clickear). El segmento elegido tiene que ser exclusivo de c4.
   const punto = await pathC4.evaluate((p) => {
-    const nums = (p.getAttribute("d") ?? "").match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-    const pts = [];
-    for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+    const leerPts = (d) => {
+      const nums = (d ?? "").match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+      const pts = [];
+      for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+      return pts;
+    };
+    const cerca = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.5;
+    const otrasPts = [...document.querySelectorAll(".react-flow__edge")]
+      .filter((el) => el.getAttribute("data-id") !== "c4")
+      .map((el) => leerPts(el.querySelector(".react-flow__edge-path")?.getAttribute("d")));
+    const compartido = (a, b) =>
+      otrasPts.some((pts) =>
+        pts.some((p2, i) => i + 1 < pts.length && cerca(p2, a) && cerca(pts[i + 1], b)),
+      );
+
+    const pts = leerPts(p.getAttribute("d"));
     let mejor = [pts[0], pts[1]], largo = -1;
     for (let i = 0; i + 1 < pts.length; i++) {
+      if (compartido(pts[i], pts[i + 1])) continue;
       const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
       if (l > largo) { largo = l; mejor = [pts[i], pts[i + 1]]; }
     }
