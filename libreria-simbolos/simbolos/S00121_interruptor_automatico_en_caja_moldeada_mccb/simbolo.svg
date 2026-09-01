@@ -5,7 +5,7 @@
   <circle cx="0.0" cy="-12.0" r="3.0"/>
   <line x1="0.0" y1="0.0" x2="-5.0" y2="-13.0"/>
   <line x1="0.0" y1="0.0" x2="0.0" y2="20.0"/>
-  <polygon points="-3.074,-8.69 -7.274,-7.074 -5.659,-2.874 -1.459,-4.49" fill="#000000"/>
+  <polygon points="-3.204,-9.444 -8.804,-7.29 -6.65,-1.69 -1.05,-3.844" fill="#000000"/>
   <circle class="punto-conexion" cx="0.0" cy="-30.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
   <circle class="punto-conexion" cx="0.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
   </g>

@@ -123,6 +123,36 @@ def rect_sobre_recta(p0, p1, t, largo, ancho, corrimiento=0.0, relleno=False):
     return poligono(pts, ' fill="#000000"' if relleno else "")
 
 
+def efecto_termico(cx, cy, m=5.0):
+    """03-30-37 Efecto termico: el "pulso cuadrado", una S en angulos rectos.
+
+    Es el simbolo que identifica la actuacion TERMICA (bimetal) dentro de la
+    caja de un disparador o de un rele termico.
+    """
+    a = m / 2.0
+    return polilinea([
+        (cx - a, cy + a), (cx - a, cy), (cx + a, cy), (cx + a, cy - a),
+    ])
+
+
+def efecto_electromagnetico(cx, cy, m=5.0):
+    """03-30-38 Efecto electromagnetico: el gancho curvo.
+
+    Identifica la actuacion MAGNETICA (disparo instantaneo por cortocircuito)
+    dentro de la caja de un disparador. Se aproxima el arco con una polilinea
+    porque el resto de la libreria no usa <path>.
+    """
+    import math as _m
+    a = m / 2.0
+    pasos = 9
+    pts = []
+    for i in range(pasos + 1):
+        ang = -_m.pi / 2 + _m.pi * i / pasos       # de arriba a abajo, panza a la derecha
+        pts.append((cx + a * _m.cos(ang) * 0.85, cy + a * _m.sin(ang)))
+    pts.append((cx - a * 0.1, cy + a * 1.5))       # cola inferior
+    return polilinea(pts)
+
+
 # ---------------------------------------------------------------------------
 # Definicion de cada simbolo.
 # Cada funcion devuelve (viewBox, cuerpo_svg, nombre, referencia normativa).
@@ -143,36 +173,70 @@ def s00121():
     c += circulo(0, -12, 3)                    # circulo (07-70-04)
     c += linea(p0[0], p0[1], p1[0], p1[1])     # cuchilla
     c += linea(0, 0, 0, 20)                    # salida
-    c += rect_sobre_recta(p0, p1, 0.5, 4.5, 4.5, corrimiento=-2.0, relleno=True)
+    c += rect_sobre_recta(p0, p1, 0.5, 6.0, 6.0, corrimiento=-2.6, relleno=True)
     return hoja, c, "Interruptor automático en caja moldeada (MCCB)", "IEC 60617 07-72-25"
 
 
 def s00122():
-    """Guardamotor - contacto de corte con funcion de interruptor automatico
-    (aspa, 07-70-02) MAS el cuadrado de disparo incorporado (07-70-05). El
-    aspa lo distingue del MCCB (que lleva circulo+barra) y el cuadrado lo
-    distingue del termomagnetico simple S00110."""
+    """Guardamotor TERMOMAGNETICO - interruptor automatico (contacto de corte
+    con aspa 07-70-02) mas DOS cajas de disparador en serie sobre el
+    conductor: la de actuacion termica (03-30-37) y la de actuacion magnetica
+    (03-30-38).
+
+    Criterio del usuario (ingeniero): hay dos guardamotores y se distinguen
+    justamente por eso. El magnetico lleva UNA caja (ver s00133) y el
+    termomagnetico lleva LAS DOS.
+    """
     hoja = "-10.0 -35.0 20.0 60.0"
-    p0, p1 = (0.0, 0.0), (-5.0, -13.0)
+    p0, p1 = (0.0, -10.0), (-5.0, -20.0)
     c = ""
-    c += linea(0, -30, 0, -15)
-    c += linea(-2, -20, 2, -16)                # aspa 07-70-02
-    c += linea(2, -20, -2, -16)
+    c += linea(0, -30, 0, -20)                 # contacto fijo
+    c += linea(-2, -27, 2, -23)                # aspa 07-70-02
+    c += linea(2, -27, -2, -23)
+    c += linea(p0[0], p0[1], p1[0], p1[1])     # cuchilla
+    c += linea(0, -10, 0, 20)                  # conductor de salida
+    c += rectangulo(-4, -6, 8, 8)              # caja del disparador termico
+    c += efecto_termico(0, -2)
+    c += rectangulo(-4, 6, 8, 8)               # caja del disparador magnetico
+    c += efecto_electromagnetico(0, 10)
+    return hoja, c, "Guardamotor termomagnético", "IEC 60617 07-72-21 + 03-30-37 + 03-30-38"
+
+
+def s00133():
+    """Guardamotor MAGNETICO - igual que el termomagnetico pero con UNA sola
+    caja de disparador, la de actuacion magnetica (03-30-38): protege solo
+    contra cortocircuito, no contra sobrecarga."""
+    hoja = "-10.0 -35.0 20.0 60.0"
+    p0, p1 = (0.0, -10.0), (-5.0, -20.0)
+    c = ""
+    c += linea(0, -30, 0, -20)
+    c += linea(-2, -27, 2, -23)
+    c += linea(2, -27, -2, -23)
     c += linea(p0[0], p0[1], p1[0], p1[1])
-    c += linea(0, 0, 0, 20)
-    c += rect_sobre_recta(p0, p1, 0.5, 4.5, 4.5, corrimiento=-2.0, relleno=True)
-    return hoja, c, "Guardamotor termomagnético", "IEC 60617 07-72-21 + 07-70-05"
+    c += linea(0, -10, 0, 20)
+    c += rectangulo(-4, 0, 8, 8)               # unica caja: actuacion magnetica
+    c += efecto_electromagnetico(0, 4)
+    return hoja, c, "Guardamotor magnético", "IEC 60617 07-72-21 + 03-30-38"
 
 
 def s00123():
-    """Rele termico - elemento sensible al efecto termico (bimetal) de
-    07-72-13. En el circuito de potencia el RT va EN SERIE, sin contacto de
-    corte: lo que se dibuja es el bimetal, el pulso cuadrado de un modulo."""
-    hoja = "-15.0 -35.0 30.0 60.0"
+    """Rele termico (RT) - caja de rele con el simbolo de efecto termico
+    (03-30-37) adentro.
+
+    Correccion del usuario: no va el pulso cuadrado suelto sobre la linea,
+    va DENTRO de una cajita. La caja es el rele; el pulso identifica que su
+    actuacion es termica. Es el que le manda la senal al contactor para que
+    abra ante una sobrecarga.
+    """
+    # El viewBox tiene que contener los terminales, que en este simbolo estan
+    # en y=-30 e y=+20 (mismo par que el resto de la familia de proteccion).
+    hoja = "-10.0 -35.0 20.0 60.0"
     c = ""
-    c += linea(0, -30, 0, 20)                  # conductor pasante
-    c += polilinea([(-15, 0), (-10, 0), (-10, -5), (-5, -5), (-5, 0), (0, 0)])
-    return hoja, c, "Relé térmico (RT)", "IEC 60617 07-72-13"
+    c += linea(0, -30, 0, -7.5)
+    c += rectangulo(-6, -7.5, 12, 15)
+    c += efecto_termico(0, 0, 7.0)
+    c += linea(0, 7.5, 0, 20)
+    return hoja, c, "Relé térmico (RT)", "IEC 60617 07-76-01 + 03-30-37"
 
 
 def s00127():
@@ -234,7 +298,7 @@ def s00130():
 
 SIMBOLOS = {
     "S00121": s00121, "S00122": s00122, "S00123": s00123, "S00127": s00127,
-    "S00128": s00128, "S00129": s00129, "S00130": s00130,
+    "S00128": s00128, "S00129": s00129, "S00130": s00130, "S00133": s00133,
 }
 
 

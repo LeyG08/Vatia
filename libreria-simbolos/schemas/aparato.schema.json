@@ -263,6 +263,21 @@
       "then": {
         "$ref": "#/$defs/instrumento_medicion"
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "guardamotor_magnetico"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/guardamotor_magnetico"
+      }
     }
   ],
   "$defs": {
@@ -1130,6 +1145,63 @@
           "title": "Clase de precisión"
         }
       }
+    },
+    "guardamotor_magnetico": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "guardamotor_magnetico"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "title": "Cantidad de polos"
+        },
+        "ue_V": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión de operación (V)"
+        },
+        "categoria_empleo": {
+          "enum": [
+            "AC-3",
+            "AC-4",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "title": "Categoría de empleo"
+        },
+        "ii_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Disparo magnético instantáneo Ii.",
+          "title": "Disparo magnético instantáneo (A)"
+        },
+        "icu_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Poder de corte en cortocircuito Icu en kA.",
+          "title": "Poder de corte Icu (kA)"
+        },
+        "ics_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Poder de corte de servicio Ics en kA.",
+          "title": "Poder de corte servicio Ics (A)"
+        }
+      },
+      "description": "Guardamotor magnético (IEC 60947-2/4-1): protege SOLO contra cortocircuito, con disparo magnético instantáneo. No lleva disparador térmico, por eso no declara rango de ajuste térmico Ir; la protección contra sobrecarga la aporta un relé térmico aparte. Simbólicamente se distingue del termomagnético en que lleva una sola caja de disparador."
     }
   }
 }

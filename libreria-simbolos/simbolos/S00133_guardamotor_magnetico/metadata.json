@@ -1,10 +1,10 @@
 {
-  "codigo_iec": "S00122",
-  "nombre": "Guardamotor termomagnético",
+  "codigo_iec": "S00133",
+  "nombre": "Guardamotor magnético",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
   "atributos_base": {
-    "tipo_aparato": "guardamotor_termomagnetico"
+    "tipo_aparato": "guardamotor_magnetico"
   },
   "puntos_conexion": [
     {
@@ -21,5 +21,5 @@
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_norma": "IEC 60617 07-72-21 + 03-30-37 + 03-30-38"
+  "fuente_norma": "IEC 60617 07-72-21 + 03-30-38"
 }

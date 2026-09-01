@@ -2589,3 +2589,85 @@ archivos están bien).
   visual del usuario, que es lo único que los cierra.
 - Quedan por revisar los 13 símbolos restantes de la librería contra la misma
   norma; el usuario dijo que hay varios más fuera de normativa.
+
+---
+
+## E5 — Correcciones del ingeniero sobre los símbolos de protección (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+Revisión de E4 por parte del usuario. Tres correcciones técnicas y una
+pregunta de alcance que queda abierta.
+
+### El relé térmico va en una caja
+
+El usuario: *"el relé es una cajita con el pulso cuadrado que le suele enviar
+la señal al contactor para desactivarlo o activarlo"*. En E4 se había dibujado
+el pulso cuadrado **suelto sobre la línea**. Va **dentro** de un rectángulo: la
+caja es el relé, y el pulso identifica que su actuación es térmica.
+
+`S00123` pasa a ser rectángulo 12×15 con el símbolo de efecto térmico adentro
+(07-76-01 + 03-30-37).
+
+### Los guardamotores son dos, y se distinguen por las cajas de disparo
+
+El usuario: *"tenemos 2 tipos pero simbológicamente muy parecido; el magnético
+es un interruptor con una cajita identificando la actuación magnética, y el
+termomagnético tiene dos cajitas, una con la actuación térmica y otra con la
+actuación magnética"*.
+
+Eso tiene respaldo directo en la norma, en la sección de símbolos distintivos
+generales (no en la Sección 7):
+
+| Código | Símbolo | Significado |
+|---|---|---|
+| 03-30-37 | pulso cuadrado (una "S" en ángulos rectos) | efecto térmico |
+| 03-30-38 | gancho curvo | efecto electromagnético |
+
+- `S00122` **guardamotor termomagnético**: interruptor automático (contacto de
+  corte + aspa) más **dos** cajas de disparador en serie, la térmica y la
+  magnética.
+- `S00133` **guardamotor magnético** (NUEVO): el mismo interruptor con **una
+  sola** caja, la magnética. Protege solo contra cortocircuito.
+
+`aparato.schema.json` gana el subtipo `guardamotor_magnetico`, clonado del
+termomagnético pero **sin** `ir_min_a` / `ir_max_a` (no tiene disparador
+térmico, así que no hay rango de ajuste térmico que declarar) y con `ii_a`
+—el disparo magnético instantáneo— pasado a obligatorio.
+
+La librería queda en **21 símbolos**.
+
+### MCCB: no hay símbolo propio en la norma
+
+El usuario: *"para el MCCB que es un interruptor de caja moldeada no vi una
+simbología para él… yo lo pondría como lo hiciste pero con la caja más grande
+quizás"*. Es correcto que no aparezca: **la norma no distingue por construcción
+del envolvente**. Un interruptor en caja moldeada es un interruptor automático;
+que su caja sea moldeada es un dato de catálogo (`tipo_aparato`), no algo que
+el símbolo represente. Se mantiene 07-72-25 y se agrandó el cuadrado de disparo
+de 4,5 a 6 unidades, como pidió.
+
+### Bug encontrado por el lint endurecido
+
+Al reubicar `S00123` se le puso un viewBox `-10 -25 20 50` que **no contenía**
+su terminal de entrada en y=-30. El lint reforzado en E2 lo detectó en el acto
+("la geometría se sale del viewBox" + "punto 'in' fuera del viewBox"). Antes de
+E2 esto habría pasado silenciosamente al commit. Corregido a `-10 -35 20 60`.
+
+### Pregunta abierta: ¿los relés van en fuerza o en comando?
+
+El usuario planteó: *"los relés tienen entrada dependiendo de su utilidad pero
+generalmente son las líneas y neutro y tiene una salida para darle la orden al
+contactor, pero no sé si ponerlo a eso en la parte de fuerza; me parece que
+esto está más para la parte de comando"*.
+
+Afecta a `S00129` (relé de protección de tensión) y `S00130` (relé/contactor
+auxiliar), que hoy están modelados como aparatos en serie sobre el conductor de
+potencia, con un `in` y un `out` — que es justamente lo que el usuario pone en
+duda. **Queda sin resolver**, pendiente de su decisión; ver la recomendación
+registrada en la conversación.
+
+### Verificaciones
+
+`lint_simbolos` 21/21, galería regenerada, `verificar_alineacion` y
+`verificar_proyecto_real` verdes, `npm run build` verde.
