@@ -474,11 +474,13 @@ interface EstadoEditor {
   problemasProyecto: string[];
   paletaVisible: boolean;
   panelHojaAbierto: boolean;
+  modoAdmin: boolean;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
+  alternarAdmin: () => void;
   actualizarHoja: (
     patch: Partial<Omit<HojaConfig, "rotulo" | "notasGabinete">> & {
       rotulo?: Partial<RotuloConfig>;
@@ -725,6 +727,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     problemasProyecto: [],
     paletaVisible: true,
     panelHojaAbierto: false,
+    modoAdmin: localStorage.getItem("vatia-admin") === "true",
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
 
@@ -734,6 +737,14 @@ export const useEditor = create<EstadoEditor>((set, get) => {
 
     alternarPanelHoja() {
       set((s) => ({ panelHojaAbierto: !s.panelHojaAbierto }));
+    },
+
+    alternarAdmin() {
+      set((s) => {
+        const siguiente = !s.modoAdmin;
+        localStorage.setItem("vatia-admin", String(siguiente));
+        return { modoAdmin: siguiente };
+      });
     },
 
     actualizarHoja(patch) {

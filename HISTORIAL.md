@@ -1552,3 +1552,1315 @@ y puntas de cable más fáciles de mover (feedback del usuario):**
     S00131 marcados verificado; S00121–S00123/S00127–S00130/S00132
     quedan pendiente_revision (pendientes de revisión visual del
     usuario).
+- **D1 (títulos legibles en JSON Schema):** Se agregó `title` a todas
+  las propiedades de los 4 archivos de schema: aparato.schema.json
+  (17 subtipos + base_comun), conductor.schema.json, barra.schema.json,
+  carga.schema.json. Cada propiedad ahora tiene un título legible en
+  español (ej: "Cantidad de polos", "Corriente nominal (A)",
+  "Tensión de operación (V)"). Se actualizaron los tipos en esquemas.ts
+  (`EsquemaCampo.title`, `CampoDescriptor.title`) y el generador de
+  formularios en FormularioAtributos.tsx para mostrar el título como
+  etiqueta, con fallback al nombre técnico. Build + lint OK.
+- **Task 1 (fix carga de símbolos):** Investigación: la causa NO fue
+  D1 (los schemas no se usan en validación de metadata). Causa real:
+  `import.meta.glob` con `eager: true` cachea en el start del dev
+  server; los 12 símbolos se agregaron mientras el server corría, así
+  que nunca entraron en `metasRaw`. Fix: reiniciar dev server. Además:
+  - Corregidos 5 `tipo_aparato` en metadata.json que no matcheaban
+    `$defs` del schema: S00121 (`mccb` → `mccb_caja_moldeada`),
+    S00122 (`guardamotor` → `guardamotor_termomagnetico`),
+    S00127 (`seccionador_fusible` → `portafusible`),
+    S00128 (`id_rcd` → `interruptor_diferencial`),
+    S00132 (`voltimetro` → `instrumento_medicion`).
+  - Agregado conteo de símbolos cargados en `libreria.ts`: si
+    `simbolos.size < totalMeta`, se emite aviso en PanelProblemas
+    indicando cuántos se cargaron y sugiriendo reiniciar el server.
+    Build + lint OK.
+- **D2 (modo oscuro):** Paleta oscura completa vía CSS custom
+  properties. Cambios:
+  - `estilos.css`: Variables CSS expandidas (`--bg-canvas`,
+    `--bg-surface`, `--text-primary`, etc.) con bloque
+    `[data-theme="dark"]` que redefine ~40 propiedades. Overrides para
+    paleta, paneles, formularios, pestañas, chips, toast, checklist,
+    nodos alimentador/barra, formulario de conexión.
+  - `BarraSuperior.tsx`: Botón de toggle (☀/🌙) con `useState` +
+    `useEffect` que aplica `data-theme="dark"` en `<html>` y guarda
+    preferencia en `localStorage("vatia-tema")`.
+  - `libreria.ts`: `svgLimpio()` ahora reemplaza `#000000`/`#000` por
+    `currentColor` en strokes/fills de SVGs, preservando `#e11d48`
+    (puntos de conexión).
+  - CSS: `.simbolo-svg` y `.paleta-thumb svg` reciben `color` que
+    define el `currentColor`; dark mode lo cambia a `#e4e4e7`.
+  - `App.tsx`: Edge style default usa `currentColor` en vez de
+    `#1e293b`.
+  - `AlimentadorNode.tsx` / `ConexionEdge.tsx`: Strokes de cables y
+    marcas de conductor cambiados a `currentColor`.
+  - Hoja/rótulo se mantienen con fondo blanco y texto oscuro
+    (representan papel físico). Build + lint OK.
+- **D2 fix (hoja responde al tema):** La hoja, el rótulo IRAM y las
+  anotaciones ahora responden al tema activo. Cambios:
+  - `HojaNode.tsx`: Todos los colores hardcodeados (`#fff`, `#111827`,
+    `#374151`) reemplazados por CSS variables (`var(--bg-surface)`,
+    `var(--text-primary)`, `var(--text-secondary)`). Tanto el fondo de
+    la hoja como el rótulo y las celdas usan las mismas variables que
+    el resto de la UI.
+  - `estilos.css`: `.hoja` usa `var(--bg-surface)` en background y
+    `var(--text-faint)` en el puntillado. `.hoja-marco` usa
+    `var(--text-primary)` para el borde. Anotaciones usan
+    `color-mix(in srgb, var(--bg-surface) 94%, transparent)` para el
+    fondo plaqueta. Eliminados overrides dark mode redundantes para
+    anotaciones/alimentador/barra (ya usan var()). Nota: la exportación
+    PDF futura debe forzar tema claro (documentado en
+    `docs/estado-revision-aea.md`).
+- **D3 (modo administrador):** Estado global `modoAdmin: boolean` en
+  el store (Zustand), persistido en `localStorage("vatia-admin")`, no
+  en el JSON del proyecto. Atajo: Ctrl+Shift+A activa/desactiva. Badge
+  "ADMIN" rojo en BarraSuperior cuando está activo. Build + lint OK.
+- **D4.1 (hot reload de símbolos):** Investigación: `eager: false` NO
+  resuelve el problema de carpetas nuevas — ambos modos re-evalúan el
+  glob solo cuando el módulo padre se re-transforma. Causa raíz:
+  Vite's watcher no seguía `libreria-simbolos/` porque está fuera del
+  root. El `ignored: ["!**/libreria-simbolos/**"]` solo "des-ignora"
+  archivos pero chokidar nunca escanea esos directorios. Fix
+  definitivo: plugin `watchLibreria()` en `vite.config.ts` que agrega
+  `libreria-simbolos` al watcher existente de Vite con
+  `server.watcher.add()` y envía `full-reload` (debounce 300ms) ante
+  cambios en .json/.svg. Eliminado el `server.watch.ignored` obsoleto.
+  Build + lint OK. El usuario debe verificar manualmente en el browser.
+- **D4.2 (editor de símbolos — panel admin + Fabric.js):** Nuevo
+  componente `EditorSimbolos.tsx` visible solo en modo admin (reemplaza
+  la paleta). Panel lateral izquierdo con búsqueda por código/nombre de
+  todos los símbolos de la librería, con badge de estado (verificado ✓,
+  pendiente …, corregido ✎). Canvas de Fabric.js 7.4.0 que carga el SVG
+  del símbolo seleccionado via `loadSVGFromString`, con zoom automático
+  para ajustar al canvas. Puntos de conexión marcados con:
+  - Cruz punteada de referencia (+)
+  - Círculo coloreado por rol: entrada=#e11d48, salida=#2563eb,
+    tierra=#16a34a
+  - Etiqueta con id y rol (monospace 8px)
+  Meta info en badge inferior: código, nombre, viewBox, cantidad de puntos.
+  CSS en `estilos.css` (~180 líneas): responsive, dark mode, badges de
+  estado, panel colapsable. Integrado en `App.tsx` con `modoAdmin`:
+  `EditorSimbolos` reemplaza `Paleta` cuando admin está activo.
+  Dependencia: `fabric@7.4.0` instalada. tsc --noEmit + vite build OK.
+- **D4.2+ (cambio de estado de verificación):** Agregado dropdown de
+  `estado_revision` en la meta info del editor de símbolos. Valores:
+  pendiente_revision / verificado / corregido. Al cambiar, el frontend
+  llama `POST /api/metadata` con `{ codigo, estado }`. Plugin Vite
+  `watchLibreria` expone el endpoint: lee metadata.json, actualiza el
+  campo, escribe a disco, ejecuta `git add + git commit` con mensaje
+  descriptivo (ej. "simbolos: S00124 estado pendiente_revision →
+  verificado"). Responde con `{ ok, anterior, nuevo }`. El dropdown
+  muestra feedback inline ("Guardando...", resultado). Los 4 símbolos
+  ya conformes (S00124 contacto auxiliar, S00125 TI, S00126 banco de
+  capacitores, S00131 sirena) ya están en estado `verificado`. Los otros
+  8 quedan `pendiente_revision` hasta D4.3/D4.4. CSS: dropdown, label,
+   mensaje inline, flex layout en `.editor-simbolos-meta`. tsc + build OK.
+- **C35 — Fix HMR regression + type errors + dropdown persist:**
+  - **D4.1 fix (hot reload):** Eliminado `full-reload` del plugin
+    `watchLibreria` (que causaba recarga total y perdía estado admin).
+    Para cambios manuales de metadata.json, el watcher envía un evento
+    WebSocket `metadata-update` con el contenido parseado del archivo.
+    `libreria.ts` escucha vía `import.meta.hot.on()` y muta `SIMBOLOS`
+    in-place + despacha DOM event `vatia:metadata-update`.
+    `EditorSimbolos` escucha el DOM event y actualiza `seleccionado`.
+    NO se invalida el módulo `libreria.ts` (porque `import.meta.glob`
+    eager no soporta content HMR y reconstruiría SIMBOLOS con cache
+    stale). Agregado `.git` al `unwatch` del watcher.
+  - **D4.1 fix (accept handler):** Corregido `import.meta.hot.accept()` en
+    `libreria.ts` — `Object.assign(SIMBOLOS, mod.SIMBOLOS)` no funciona
+    con Map. Reemplazado por `SIMBOLOS.clear()` + loop `set()`.
+  - **D4.2 fix (dropdown):** La API ahora devuelve `metadata: <objeto
+    completo actualizado>` en la respuesta. `cambiarEstado()` muta
+    `SIMBOLOS` in-place (`prev.metadata = data.metadata`) +
+    `setSeleccionado({ ...prev, metadata })` para crear nueva referencia
+    React. Ya no depende de HMR para reflejar el cambio. Soporta
+    múltiples cambios consecutivos sobre el mismo símbolo.
+  - **D4.2 fix (badge no refrescaba):** `lista` (useMemo que renderiza
+    badges ✓/✎/…) solo dependía de `[filtro]`. Agregado `tick` state
+    que se incrementa tras API response y DOM event, forzando
+    recomputación de la lista para que los badges reflejen el estado.
+  - **Type errors corregidos:** `FabricObject` import de `fabric`, null
+    check para `svgEl`, `_next` en middleware.
+  - Build (`tsc -b && vite build`) OK.
+- **C36 — Branch management + revert commits de prueba:**
+  - Revertidos 18 commits automáticos del endpoint /api/metadata que
+    estaban en main (commits de prueba de S00110/S00112). Usado
+    `git reset --soft` para no perder cambios del working tree.
+  - S00110 verificado: `estado_revision: "pendiente_revision"`
+    (confirmado en archivo).
+  - Creada rama `proyecto/editor-simbolos-20260826` desde `5cf4317`.
+  - Commiteada en 3 grupos lógicos:
+    1. `6b6ed42` C35: fix HMR + modo oscuro + modo admin
+    2. `09a0849` C35: editor de símbolos (Fabric.js + dropdown estado)
+    3. `998f244` C32-C35: fix tipo_aparato + schema titles + historial
+  - Endpoint /api/metadata: confirma que commitea sobre la rama activa
+    del repo (usa `cwd: raizRepo` sin branch explícito). Desde ahora
+    el dev server debe correr sobre `proyecto/editor-simbolos-20260826`.
+- **D4.3 (edición de geometría):**
+  - `lint_simbolos.py`: Nuevo argumento `--symbol S00110` para validar
+    un solo símbolo (usado por el endpoint antes de guardar).
+  - `historialCanvas.ts`: Clase `HistorialCanvas` con patrón
+    `{do, undo}` idéntico a `historial.ts`. Límite 100 pasos. Singleton
+    `historialCanvas`. Se resetea al cambiar símbolo, se vacía tras
+    guardar exitoso.
+  - `vite.config.ts`: Nuevo endpoint `POST /api/geometry` con
+    validación lint previa al guardado. Flujo: backup → write SVG →
+    lint → si falla restaura backup + responde errores específicos
+    (qué punto, qué cálculo falló) → si pasa git commit. Watcher de
+    `simbolo.svg` envía evento WebSocket `svg-update`.
+  - `EditorSimbolos.tsx`: Modo edición con botón "Editar geometría".
+    Canvas interactivo: objetos seleccionables + drag. Handlers
+    `object:moving`/`object:modified` crean comandos de undo/redo.
+    Toolbar con ↶↷ (undo/redo) + Guardar/Cancelar. Atajos
+    Ctrl+Z/Ctrl+Shift+Z. SVG-update listener para ediciones manuales.
+    Lint errors se muestran específicos en el panel.
+  - `libreria.ts`: Listener `svg-update` muta SIMBOLOS in-place +
+    despacha DOM event.
+  - `estilos.css`: Estilos toolbar de edición (mismo patrón que
+    `.barra-superior button`), dark mode overrides.
+- **C37 (fixes D4.3):**
+  - Fix selección individual: `inlineSvgGroups()` function strips `<g>`
+    wrappers from SVG and inlines their attributes onto children before
+    `loadSVGFromString`, producing flat primitives instead of a single
+    Group. Each primitive is individually selectable in edit mode.
+    `_esPrimitiva` flag tags symbol primitives; connection markers stay
+    non-interactive.
+  - Fix guardado: `guardarGeometria` now transforms primitives from
+    fabric space back to SVG coordinate space before `toSVG()`:
+    `svgX = (fabricX - offsetX) / ESCALA`. Resets viewport to identity,
+    exports with viewBox, restores viewport + positions. Markers hidden
+    during export.
+  - `offsetRef`: stores offsetX, offsetY, zoom for coordinate transforms.
+  - Grid overlay: dotted grid at MULTIPLO (10 SVG units) intervals
+    during edit mode. `Circle` objects tagged `_esGrilla`, added/removed
+    when editando toggles.
+  - Análisis viewBox 20 símbolos: caja canónica propuesta
+    `minX=-15, minY=-35, W=30, H=60` (cubre 18/20). Outliers:
+    S00119 barra (60×20 horizontal), S00131 sirena (50×50).
+- **C38 (fix grid + pan):**
+  - Grid: replaced Fabric-object-based grid (hundreds of Circle objects
+    interfering with interaction) with a pure Canvas2D overlay. Grid
+    dots drawn on a separate `<canvas>` with `pointer-events: none`.
+    Covers the full visible area (not just viewBox), recalculates
+    visible SVG range from viewport transform. Redraws on pan/resize.
+  - Panning: Space+drag modifies `fc.viewportTransform` (translate).
+    Grid redraws on every pan via `gridVersion` state counter.
+  - Fix grid coordinate formula: `sx = a * (x * ESCALA + offsetX) + e`
+    to properly align with symbol primitives.
+- **C39 (fix rendering bug — revert inlineSvgGroups → Group + subTargetCheck):**
+  - `inlineSvgGroups()` stripped `<g>` wrappers from SVG before
+    `loadSVGFromString`. This broke the SVG coordinate system —
+    Fabric.js returned primitives with wrong positions, rendering
+    symbols as a tiny speck.
+  - **Root cause:** Without the `<g>` wrapper, Fabric's SVG parser
+    assigns different local coordinates to individual elements.
+    The flat primitives had their `left`/`top` in a coordinate space
+    that didn't match our `ESCALA_EDICION` transform.
+  - **Reverted** to Group approach: `loadSVGFromString` loads SVG as-is,
+    wraps in `Group(objs, { subTargetCheck: true })`, positioned at
+    `(offsetX, offsetY)` with `scaleX/Y: ESCALA_EDICION`.
+  - `subTargetCheck: true` on the Group allows clicking/dragging
+    individual children within the Group (the original issue that
+    motivated `inlineSvgGroups` in the first place).
+  - Removed `inlineSvgGroups()` function entirely.
+  - Updated `guardarGeometria`: finds `_esGrupoSimbolo` Group, extracts
+    children's local coords (which = SVG coords within viewBox),
+    converts to canvas space (`svgX * ESCALA + offsetX`), resets
+    Group transform, exports, restores. Markers hidden during export.
+  - Updated edit mode effect: toggles `_esGrupoSimbolo` selectable
+    instead of `_esPrimitiva`.
+  - Undo/redo unchanged — `object:moving`/`object:modified` fire
+    on child targets within Group (subTargetCheck), storing local
+    coords which are restored correctly.
+  - Build passes, TS clean.
+- **C40 (major rewrite — flat primitives, zoom, pan, fixed save):**
+  - **Root cause of all issues**: Group wrapping made symbols a single
+    block; `loadSVGFromString` with viewBox caused double-scaling;
+    save function didn't reverse transforms correctly.
+  - **New SVG loading approach**: `inlineSvgGroups()` strips `<g>`
+    wrappers, inlining shared attributes (fill, stroke, etc.) onto
+    children. SVG viewBox is stripped before loading (prevents
+    Fabric.js from applying its own viewBox transform). Result:
+    flat array of primitives from `loadSVGFromString` with no Groups.
+  - Each primitive gets `originX: "left", originY: "top"` for
+    consistent positioning. Positioned at `svgX * ESCALA_EDICION + offsetX`.
+  - **Individual primitive editing**: Each `_esPrimitiva` is
+    independently selectable and draggable in edit mode.
+  - **Fixed save** (`guardarGeometria`): converts canvas coords
+    back to SVG: `svgX = (canvasLeft - offsetX) / ESCALA_EDICION`.
+    Resets viewport to identity, exports with `toSVG()`, wraps
+    with original viewBox, restores everything.
+  - **Zoom**: Mouse wheel centered on cursor, toolbar buttons
+    (−/+), Ctrl+=/Ctrl+-/Ctrl+0 shortcuts. `aplicarZoom()` adjusts
+    viewport transform maintaining cursor position.
+  - **Pan**: Space+drag (existing) + middle-click drag (new).
+    Works in both view and edit modes.
+  - **Zoom display**: Clickable percentage in toolbar, click
+    to reset to fit-to-view.
+  - CSS: `.editor-simbolos-zoom` styled as clickable label.
+  - **Note**: S00110 SVG was corrupted by previous bad save
+    (Fabric canvas coordinates leaked into SVG). It renders
+    off-screen. Needs regeneration from QET source.
+  - Build passes, TS clean.
+
+---
+
+## E1 — Revisión general del proyecto y limpieza del andamiaje (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826` · sin commitear al momento de
+escribir esta entrada.
+
+### Revisión general pedida por el usuario
+
+Se auditó el proyecto completo con vistas al objetivo declarado (base de datos
+de dispositivos + motor de verificación de filiación, selectividad,
+cortocircuito y corriente admisible). Conclusiones principales:
+
+- **Vatia hoy es un CAD documental, no una herramienta de cálculo.** Búsqueda en
+  todo el repo: cero menciones a selectividad, filiación, IEC 60909 o IEC 60364.
+  Los únicos cálculos son `S=√3·V·I` (`FormularioCarga.tsx:23-37`),
+  `potencia_va × ku` (`utilizacion.ts:38-42`) y la estimación de In de motor
+  (`FormularioAtributos.tsx:36-55`). El "Checklist AEA" valida completitud de
+  ficha, no dimensionamiento.
+- **Tres bloqueantes estructurales:** (1) no se recorre el grafo — las
+  conexiones se serializan como strings `"nodo.handle"` (`store.ts:294-306`) y
+  no hay noción de aguas arriba/abajo; (2) faltan datos de entrada —
+  `longitud`, método de instalación, temperatura, agrupamiento, tensión de
+  sistema (hardcodeada 220/380), esquema de puesta a tierra, Scc de fuente,
+  cosφ, Ks; (3) los atributos son `Record<string, unknown>` sin tipar.
+- **Advertencia de diseño:** filiación y selectividad no se calculan, se leen de
+  tablas de ensayo del fabricante. La futura BD necesita pares aguas
+  arriba/abajo con Icc reforzada y curvas t-I digitalizadas, no solo datos de
+  chapa.
+- **Inconsistencias detectadas:** `pdcc_kA` vs `icu_kA`/`ics_kA` según subtipo;
+  el MCCB no declara Ics; `pdcc_kA: 2500` en `proyecto-real-pps.json` son
+  amperes crudos donde el schema pide kA; `migrar_tgbt.mjs:159-187` quedó
+  desincronizado del JSON y revertiría la corrección de C32 si se vuelve a
+  correr; S00124/S00125/S00126/S00131 no declaran `atributos_base`, por lo que
+  al instanciarlos no muestran ningún campo.
+- **Riesgos abiertos:** S00110 corrupto y commiteado (`f5d901e`); el lint no
+  valida XML ni geometría fuera de viewBox; los endpoints del dev server
+  commitean sin rama explícita; 8 commits sin pushear.
+
+Documento completo de la revisión en
+`C:\Users\augug\.claude\plans\nesecito-que-revises-mi-shiny-tome.md`.
+
+### Limpieza del andamiaje de documentación
+
+Un intento previo de andamiaje dejó archivos que describían un proyecto
+distinto al real. Decisión del usuario: **seguir sobre este proyecto, no
+empezar de cero** — no había código tocado ni commits sucios.
+
+Acciones:
+
+- `AGENTS.md` **recuperado** con `git checkout --` (había sido borrado del
+  working tree; estaba intacto en HEAD).
+- `mnt/user-data/outputs/vatia-andamiaje/…` **borrado**: era un path de sandbox
+  creado literalmente dentro del repo, con una copia byte a byte de
+  `tests/selectividad/README.md`.
+- **Descartados** (respaldados fuera del repo, en el scratchpad de la sesión):
+  - `docs/adr/0001-stack-frontend.md` — decide FastAPI como backend, decisión
+    que nunca se tomó; `apps/api/` está vacío.
+  - `docs/adr/0002-libreria-de-simbolos-propia.md` — registra como "descartada"
+    la importación desde QElectroTech, que es exactamente lo que el proyecto
+    hizo (`convertir_qet.py`, `fuente_qet` en cada metadata, atribución
+    GPL-2.0). Afirma además campos que no existen (`norma_ref`, puntos de
+    conexión tipados).
+  - `docs/adr/0003-plan-de-fases.md` — cinco fases que no se corresponden con
+    las reales (F0–F6, C1–C40, D1–D4.3).
+  - `docs/domain-model.md` — se declaraba "vocabulario único" con un modelo
+    paralelo que contradice los schemas vigentes (`cobre|aluminio` vs `Cu|Al`,
+    `aislante` vs `aislacion`, `seccion_mm2` vs `seccion_fase_mm2`,
+    4 tipos de protección vs 17 `tipo_aparato`), y prohibía los términos
+    `interruptor` y `cable`, que son los que usan los schemas reales.
+  - `docs/devlog/` — describe una sesión en la rama `docs/andamiaje-inicial`,
+    que nunca se creó, y declara adoptados Conventional Commits, en conflicto
+    con el formato de commits ya definido en `AGENTS.md`.
+- **Conservados** por ser correctos y mirar hacia adelante sin afirmar nada
+  falso sobre el pasado: `docs/normativa/README.md` (criterio de no versionar
+  normas con derechos de autor), `data/catalogo/README.md` (versionar el
+  catálogo como archivos planos y sembrar la BD desde ahí) y
+  `tests/selectividad/README.md`.
+- `CLAUDE.md` reescrito: se le sacó la referencia a `docs/devlog/` y se dejó
+  explícito que **la bitácora única es `HISTORIAL.md`**.
+
+### Decisiones tomadas
+
+- **Bitácora única: `HISTORIAL.md`.** Se descarta el devlog por sesión para no
+  repetir el patrón que dejó `docs/estado-revision-aea.md` documentando 7 de
+  20 símbolos.
+- **Normativa: AEA e IEC seleccionables por proyecto.** Implica que las tablas
+  de Iz, los factores de corrección y los límites de caída de tensión son datos
+  parametrizados, no constantes en el código, y que el proyecto necesita un
+  campo `normativa` (migración v2 → v3).
+- **Backend: sin decidir.** `apps/api/` queda vacío hasta encarar la etapa de
+  base de datos.
+- Los ADR reales se escribirán más adelante a partir de este historial, que sí
+  tiene las decisiones verdaderas con fecha y motivo.
+
+### Próximo paso
+
+Terminar el editor de símbolos (C39/C40 sin commitear, S00110 corrupto,
+lint insuficiente), según el orden pedido por el usuario.
+
+---
+
+## E2 — Editor de símbolos: S00110 recuperado, lint endurecido y guarda de rama (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### S00110 recuperado
+
+El commit `f5d901e` ("simbolos: S00110 geometria actualizada") había dejado el
+símbolo más usado del proyecto inservible. Diagnóstico del archivo:
+
+- Coordenadas de canvas de Fabric filtradas al SVG
+  (`matrix(1 0 0 1 882 1230)`): el dibujo caía en (875,168)–(924,1276) cuando
+  el viewBox es (-10,-35)–(10,25).
+- XML inválido: un `<?xml?>` y un `<!DOCTYPE>` **después** de la etiqueta
+  `<svg>` de apertura.
+- Marcadores del editor dentro del archivo de librería: cruces, círculos de
+  handle y los textos "in (entrada)" / "out (salida)" con `visibility: hidden`,
+  más el `<desc>Created with Fabric.js</desc>`.
+- Perdidos los `class="punto-conexion"` y la estructura original.
+
+**No hizo falta regenerar desde QET:** se restauró el archivo exacto anterior
+al commit con `git checkout f5d901e^ -- <ruta>`. Verificado además que ningún
+otro símbolo estaba contaminado (búsqueda de rastros de Fabric en los 22 SVG de
+la librería) y que los 22 son XML válido.
+
+### `lint_simbolos.py` endurecido
+
+El lint validaba viewBox y `puntos_conexion` del metadata, pero **nunca miraba
+el dibujo**: por eso el guardado corrupto pasó el hook pre-commit y el gate de
+`/api/geometry`. Se agregaron tres comprobaciones:
+
+1. **XML bien formado** (`ET.fromstring`). Si falla, se corta ahí: el resto
+   daría ruido.
+2. **Prólogo mal ubicado**: `<?xml?>` o `<!DOCTYPE>` después de `<svg>`.
+3. **Rastros del editor**: `Created with Fabric.js`, `visibility: hidden`, y
+   los rótulos `(entrada)` / `(salida)`.
+4. **Geometría dentro del viewBox**: se recorre el árbol acumulando los
+   `transform` (soporta `matrix`, `translate` y `scale`) y se calcula la caja
+   real de `line`, `polyline`, `polygon`, `circle`, `ellipse` y `rect`.
+   Tolerancia `TOLERANCIA_VIEWBOX = 1.0` unidades.
+
+**Descartada una regla que resultó incorrecta:** rechazar todo `<text>`. Dio
+tres falsos positivos porque hay letras que son parte de la norma IEC 60617 y
+no anotación del editor — "V" en el voltímetro (S00132), "U<>" en el relé de
+tensión (S00129) y "M 3~" en el motor (S00115). Los rótulos del editor ya los
+detecta la regla de rastros por su contenido.
+
+**Verificación:** los 20 símbolos pasan. Reinyectando el SVG corrupto, el lint
+lo rechaza por XML inválido; y quitándole solo el prólogo (para que el XML sea
+válido y no corte antes), lo rechaza igual por rastro de Fabric y por geometría
+fuera del viewBox. Margen mínimo real de la librería sana: 2.0 unidades, salvo
+S00123 que toca el borde exacto (0.00) de forma legítima.
+
+### Guarda de rama en los endpoints del dev server
+
+`POST /api/metadata` y `POST /api/geometry` hacían `git add` + `git commit` con
+`cwd: raizRepo` y **sin rama explícita**, lo que ya contaminó `main` con 18
+commits (revertidos en C36) y contradice la regla de `AGENTS.md`.
+
+- Nueva función `commitearSeguro(archivo, mensaje)` con `RAMAS_PROTEGIDAS`
+  (`main`, `master`, `HEAD` desprendido): si la rama activa está protegida, **el
+  archivo se guarda igual pero no se commitea**, y el motivo vuelve al cliente.
+- Ambos endpoints devuelven ahora un campo `commit` con `{commiteado, rama,
+  motivo}` en vez de tragarse el error en silencio.
+- Los commits pasaron de `execSync` con interpolación de string a
+  `execFileSync` con argumentos en array: sin shell de por medio, que además
+  resuelve el paso del carácter "→" del mensaje en Windows.
+
+### Fixes del editor (C40)
+
+- **El trabajo de C40 no compilaba**, pese a que el historial decía "Build
+  passes, TS clean": `tsc -b` fallaba con
+  `TS6133: 'zoomVersion' is declared but its value is never read`.
+- `zoomVersion` era un contador de estado usado solo para forzar re-render,
+  mientras `zoomActual` se leía de `fabricRef.current.viewportTransform[0]`
+  **durante el render** — un anti-patrón que devuelve el valor de la pasada
+  anterior. Se eliminó el contador y `zoomActual` pasó a ser estado real,
+  actualizado en los tres sitios que ya tenían el zoom nuevo a mano
+  (`aplicarZoom`, `zoomFit` y la carga del símbolo).
+- Documentado por qué `tick` **no** sobra en el `useMemo` de `lista`, aunque
+  oxlint lo marque: `SIMBOLOS` es un Map de módulo que el HMR muta en el lugar,
+  así que su identidad nunca cambia y el memo no se recalcularía solo.
+
+### Verificaciones corridas
+
+`npm run build` (verde), `npm run lint` (solo dos warnings preexistentes, ambos
+falsos positivos), `python scripts/lint_simbolos.py` (20/20),
+`node scripts/verificar_alineacion.mjs` (verde),
+`node scripts/verificar_proyecto_real.mjs` (verde).
+
+### Pendiente de esta etapa
+
+- El editor de símbolos sigue **sin verificación visual del usuario** y sin
+  cobertura E2E; el arnés `e2e/conexiones.mjs` no lo toca.
+- La rama sigue sin pushear y sin PR.
+
+### E2.1 — Corrección: la rama de trabajo no era la que E1 y E2 declaran
+
+Las entradas E1 y E2 dicen "Rama: `proyecto/editor-simbolos-20260826`". **Es
+incorrecto.** El trabajo se hizo sobre `docs/andamiaje-inicial`, una rama que
+el intento de andamiaje sí había creado desde `f5d901e`.
+
+E1 afirma además que esa rama "nunca se creó", tomando el dato del devlog. La
+verificación fue insuficiente: se leyó el devlog y se dio por sentado que la
+rama no existía, sin correr `git branch`. Existía, y era la rama activa.
+
+Consecuencia: los commits `67350b5` (limpieza del andamiaje) y `4ab8972`
+(S00110 + lint + guarda de rama) cayeron en `docs/andamiaje-inicial`, mientras
+`proyecto/editor-simbolos-20260826` seguía en `f5d901e`.
+
+Resuelto sin perder nada, porque `4ab8972` desciende de `f5d901e`:
+
+```
+git branch -f proyecto/editor-simbolos-20260826 4ab8972
+git checkout proyecto/editor-simbolos-20260826
+git branch -d docs/andamiaje-inicial
+```
+
+`proyecto/editor-simbolos-20260826` queda como única rama de este trabajo, con
+los 10 commits (C35 → E2). `docs/andamiaje-inicial` borrada: su nombre ya no
+describía el contenido y no seguía la convención de `AGENTS.md`.
+
+**Lección para el flujo:** antes de escribir la rama en el historial o en un
+mensaje de commit, leerla de `git rev-parse --abbrev-ref HEAD`, no de un
+documento. La guarda `commitearSeguro()` que se agregó en E2 protege `main`,
+pero no advierte nada si la rama activa es simplemente la equivocada.
+
+---
+
+## E3 — El editor de símbolos, verificado por fin: dos bugs de render y arnés E2E propio (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826` (leída de `git rev-parse`, según la
+lección de E2.1).
+
+E2 dejó anotado que el editor seguía sin verificación visual. Se hizo esa
+verificación levantando el dev server y manejando Chromium con el Playwright que
+el proyecto ya tenía. **El editor estaba roto**, pese a que C40 se dio por bueno
+con "Build passes, TS clean".
+
+### Bug 1 — el offset ignoraba el origen del viewBox
+
+La conversión de coordenadas SVG a canvas era
+`canvasX = svgX * ESCALA_EDICION + offset`, con
+
+```
+ox = (ancho_canvas / zoom - vb.ancho * ESCALA_EDICION) / 2
+```
+
+es decir, solo el término de centrado. **Faltaba restar el origen del viewBox.**
+Para S00110 (`viewBox="-10 -35 20 60"`) eso desplazaba el dibujo 200 px a la
+izquierda y 700 px hacia arriba: el terminal de entrada, en SVG y=-30, caía en
+-557 px y el símbolo aparecía cortado por arriba.
+
+Arreglado con una función única `offsetDeEncuadre(fc, vb, zoom)` que suma los dos
+términos. Como las cuatro conversiones del componente (carga de primitivas,
+guardado, puntos de conexión y grilla) leen el mismo `offsetRef`, corregir el
+offset las corrigió a todas de forma coherente, sin tocar los consumidores.
+
+### Bug 2 — el origen de las primitivas (el que oscilaba desde C37)
+
+Con el offset ya corregido los marcadores caían bien, pero el símbolo seguía
+apareciendo **partido en dos fragmentos**. Se instrumentó el componente con una
+sonda temporal para volcar lo que devuelve Fabric, en vez de seguir razonando a
+ciegas:
+
+`loadSVGFromString` entrega las primitivas con `originX`/`originY` = `"center"`
+y `left`/`top` apuntando al **centro** de su caja. Comprobado en el volcado: la
+polilínea del elemento térmico llegaba con `top` = -4,75, que es exactamente el
+centro de su rango y (-20 a 10,5), no su borde superior.
+
+El código hacía `obj.set({ ..., originX: "left", originY: "top" })`. Fabric **no
+reposiciona** al cambiar el origen: se limita a reinterpretar `left`/`top` como
+esquina, y cada primitiva se corre media caja hacia abajo. Con esa polilínea:
+centro en pantalla y=453 y altura 427 px ⇒ ocupaba 453→880 en vez de 240→667,
+que es exactamente el fragmento inferior que mostraba la captura.
+
+**La corrección es quitar el override**: se conserva el origen que trae Fabric.
+Esto es lo que las cuatro iteraciones C37 → C38 → C39 → C40 no acertaron; C39
+había diagnosticado bien que el problema eran "coordenadas locales distintas",
+pero atacó el envoltorio `<g>` en vez del origen.
+
+### Arnés E2E propio del editor
+
+Nuevo `apps/editor/e2e/editor-simbolos.mjs` (`npm run e2e:simbolos`). El arnés
+existente, `e2e/conexiones.mjs`, no tocaba el editor de símbolos: por eso cuatro
+iteraciones rotas pasaron los controles.
+
+Mira los píxeles del canvas, separando la tinta oscura del dibujo de los
+marcadores de color, y para cada uno de los 20 símbolos exige:
+
+1. que se dibuje algo;
+2. que la tinta quede a más de 20 px del borde del canvas — el encuadre reserva
+   60 px (30 por lado), así que acercarse más significa que el símbolo se
+   escapó del área visible;
+3. que el centro de cada marcador caiga sobre la caja de tinta, con 40 px de
+   tolerancia.
+
+Sobre la tolerancia: necesita holgura porque el círculo rojo del terminal
+**tapa** el extremo negro de la línea (la tinta "empieza" un par de unidades más
+adentro) y porque la etiqueta del punto corre el centroide del marcador. Se
+descartó un umbral de 24 px que daba 15 falsos positivos por ese motivo.
+
+**El arnés se verificó contra el bug**, que es lo que le faltó a C37–C40:
+reintroduciendo a propósito el override de origen, falla en los 20 símbolos con
+exit 1. Un test que pasa pero no atraparía el defecto no sirve de nada.
+
+### Verificaciones corridas
+
+`npm run build` (verde), `npm run lint` (dos warnings preexistentes),
+`npm run e2e:simbolos` (20/20), `python scripts/lint_simbolos.py` (20/20),
+`node scripts/verificar_alineacion.mjs` y
+`node scripts/verificar_proyecto_real.mjs` (verdes).
+
+### Pendiente
+
+- El arnés nuevo necesita el dev server levantado a mano; todavía no lo arranca
+  solo, igual que `conexiones.mjs`.
+- La rama sigue sin pushear y sin PR.
+
+---
+
+## E3 — El guardado de geometría estaba realmente roto: encontrado y corregido con prueba end-to-end (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Cómo se encontró
+
+E2 dio por buena la reescritura C40 del editor de símbolos basándose en que
+compilaba y en una captura de pantalla del **modo vista** (el símbolo se
+renderiza bien). Nunca se probó el **guardado real**. Al hacerlo con un
+arnés propio de Playwright contra el dev server real:
+
+1. Se activó modo admin, se abrió S00110, se entró a "Editar geometría".
+2. Se arrastró una primitiva una distancia chica y controlada.
+3. Se apretó "Guardar" y se inspeccionó la respuesta real de
+   `POST /api/geometry`.
+
+**El primer intento reprodujo exactamente la corrupción original de
+`f5d901e`**: mismo prólogo `<?xml?>` y `<!DOCTYPE>` después de `<svg>`, mismo
+`<desc>Created with Fabric.js</desc>`, mismos marcadores con
+`visibility: hidden` y los rótulos "in (entrada)"/"out (salida)". El endpoint
+respondió `ok: true`.
+
+Antes de sospechar del código, se comprobó que el lint endurecido de E2 sí
+rechaza ese contenido corriéndolo a mano (`exit 1`). Eso descartó el lint como
+causa y apuntó al dev server: **llevaba corriendo desde antes de todos los
+cambios de E2 y nunca se había reiniciado**, así que el endpoint que atendía
+la petición era el código viejo. Con el servidor reiniciado, el endpoint
+rechazó correctamente el intento (`ok: false`, con el error del lint) y no
+tocó el archivo — ahí quedó confirmado que la corrupción no era un problema
+del lint sino del código de guardado en sí.
+
+### La causa real
+
+`guardarGeometria()` en `EditorSimbolos.tsx`, dos bugs:
+
+1. **Extracción de `fc.toSVG()` incompleta.** Fabric.js 7.4.0 devuelve un
+   documento completo (prólogo `<?xml?>` + `<!DOCTYPE>` + `<desc>` + `<defs>`
+   + la etiqueta `<svg>` recién después). El código hacía
+   `.replace(/<svg[^>]*>/, "")`, que borra **solo esa etiqueta**, dejando el
+   prólogo y el DOCTYPE de *antes* intactos. Ese texto sobrante quedaba
+   embebido dentro del `<svg>` nuevo que se armaba — la corrupción exacta de
+   S00110.
+2. **Ocultar marcadores con `visible: false` no alcanza.** Fabric igual los
+   serializa en `toSVG()`, como un elemento con
+   `style="...visibility: hidden"`. Por eso los rótulos "in (entrada)" /
+   "out (salida)" terminaban en el archivo pese a estar "ocultos".
+
+### La corrección
+
+- Ubicar la apertura real de `<svg ...>` con `match()` y cortar desde el
+  final de esa coincidencia hasta el último `</svg>`, en vez de un
+  `.replace()` de la etiqueta sola. Se descartan además `<desc>` y
+  `<defs></defs>` vacíos que agrega Fabric.
+- Sacar los marcadores del canvas con `fc.remove()` antes de exportar y
+  volver a agregarlos con `fc.add()` después, en vez de solo ocultarlos.
+
+### Verificación end-to-end (no solo build)
+
+Con el dev server reiniciado y el fix aplicado, se repitió la prueba
+completa: la respuesta de `/api/geometry` volvió `ok: true` con un SVG limpio
+(sin prólogo, sin DOCTYPE, sin `<desc>`, sin marcadores) y el campo
+`commit: {commiteado: true, rama: "proyecto/editor-simbolos-20260826"}` de la
+guarda de E2 confirmando que reconoció la rama correcta.
+
+**Efecto colateral de la propia prueba:** al estar en una rama no protegida,
+el guardado de prueba generó un commit automático real
+(`simbolos: S00110 geometria actualizada`) con el arrastre de prueba. Se
+deshizo con `git reset --soft HEAD^` + `git checkout HEAD -- <ruta>` (al
+alcance de la mano porque era el tope de la rama y no estaba pusheado) para
+no dejar en la librería un cambio sin sentido — la corrección de código es lo
+que vale, no ese arrastre.
+
+### Lección para el flujo de verificación
+
+Un build en verde y una captura del modo vista **no prueban que una función
+de guardado funcione**: hay que ejercitar la ruta de escritura real contra el
+servidor corriendo. Y antes de correr esa prueba, confirmar que el servidor
+en pie está sirviendo el código que se acaba de cambiar — un dev server viejo
+sirviendo código stale puede hacer que una verificación "confirme" un bug ya
+corregido.
+
+### Verificaciones corridas
+
+`npm run build` (verde), `npm run lint` (dos warnings preexistentes),
+`python scripts/lint_simbolos.py` (20/20), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` (verdes), y la prueba end-to-end de guardado
+real descripta arriba.
+
+---
+
+## E4 — Arnés E2E extendido para cubrir el guardado real (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+El arnés `e2e/editor-simbolos.mjs` (de antes del corte por límite de uso,
+commit `3eadc35`) solo cubría render, que es exactamente el hueco que dejó
+pasar los bugs de guardado de E3. Se le agregó `probarGuardadoReal()`:
+abre S00110 en modo edición, arrastra una primitiva, guarda contra el
+endpoint real y verifica en la respuesta que el SVG no tenga prólogo `<?xml?>`,
+`<!DOCTYPE>`, el `<desc>` de Fabric.js, marcadores `visibility: hidden` ni los
+rótulos "in (entrada)"/"out (salida)" — la misma lista de rastros que detecta
+el lint endurecido de E2, pero ejercitada de punta a punta contra el servidor
+real.
+
+**Riesgo aparte que había que resolver:** el endpoint commitea sobre la rama
+activa cuando no es `main` (guarda de E2), así que correr esta prueba sobre
+una rama de trabajo generaría un commit real en cada corrida. La prueba
+registra el `HEAD` antes de guardar y, en un `finally` que corre pase o no la
+prueba, restaura el contenido original del archivo y, si el guardado generó
+un commit, lo deshace con `git reset --soft <head-anterior>` seguido de
+`git checkout HEAD -- <archivo>` (el reset solo mueve el puntero de rama y dejaría el índice con el
+contenido corrupto todavía en stage; el checkout final es el que deja índice
+y working tree alineados con el HEAD restaurado). Verificado: tras correr el
+arnés completo, `HEAD` no se movió y `git diff` del SVG de S00110 quedó vacío.
+
+Dos errores propios encontrados y corregidos al escribir esta prueba, antes
+de commitear:
+- Una función placeholder (`probarGuardado`) con una expresión sin sentido
+  que quedó pegada por error de edición — eliminada, no se llegó a usar.
+- Un `${codigoPrueba}` referenciado fuera de su scope en el mensaje de éxito,
+  que habría lanzado `ReferenceError` la primera vez que el guardado
+  funcionara — cambiado por un literal.
+
+`npm run e2e:simbolos` corrido completo: 20/20 símbolos + guardado real,
+todo verde.
+
+---
+
+## E5 — Nota: falla preexistente en el arnés E2E original, no introducida por esta sesión
+
+Al correr la batería completa como cierre, `npm run e2e` (el arnés
+`e2e/conexiones.mjs`, del editor de diagrama principal, no del de símbolos)
+falló en el caso `[punta fuente] c1/ini → n1.210a` con
+`✗ clic no seleccionó c4 (c5) o el grip no apareció`.
+
+Ninguno de los cambios de E1–E4 tocó `App.tsx` ni `ConexionEdge.tsx`, así que
+se verificó si era preexistente: se hizo checkout temporal (detached HEAD, sin
+tocar la rama) al commit `f5d901e` — el estado de la rama antes de todo el
+trabajo de esta sesión — y se corrió el mismo arnés. **La misma falla aparece
+ahí también.** No es una regresión de esta sesión; es deuda ya presente.
+
+Queda fuera de alcance de esta etapa (el pedido del usuario fue terminar el
+editor de símbolos). Se registra para que quede visible en la próxima pasada
+sobre el editor de diagrama principal.
+
+---
+
+## E6 — El bug real de "el elemento se va a otra posición": metadata.json nunca se sincronizaba (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Reporte del usuario
+
+Además de señalar 7 símbolos con geometría incorrecta (§ver E7), el usuario
+reportó: *"cuando guardás en determinada posición luego el elemento que se
+desplazó se va a otra posición"*. Mientras se investigaba, apareció un diff
+sin commitear en `S00132` que **no generó ninguno de mis scripts** — todo
+indica que salió de que el propio usuario probó la app en el dev server que
+había quedado corriendo. Es evidencia en vivo del bug, guardada en
+`scratchpad/evidencia-bug/` antes de descartarla del working tree.
+
+### Diagnóstico
+
+`apps/editor/src/componentes/NodoSimbolo.tsx:79` arma los `Handle` de React
+Flow (donde engancha un cable en el diagrama) leyendo **única y
+exclusivamente** `simbolo.metadata.puntos_conexion` — nunca el SVG. El
+círculo rojo/azul dibujado dentro del símbolo es geometría aparte.
+
+El editor de geometría (`EditorSimbolos.tsx`) permite arrastrar ese círculo
+(está cargado como una primitiva más, seleccionable). El guardado
+(`POST /api/geometry`) escribía el SVG con el círculo en su nueva posición
+— pero **nunca tocaba `metadata.json`**. Consecuencia: el dibujo se movía,
+`metadata.json.puntos_conexion` quedaba intacto, y como el diagrama usa
+exclusivamente ese archivo, el cable seguía enganchando en la posición
+vieja. **La función no tenía ningún efecto real**: mover un terminal en el
+editor nunca cambiaba dónde conecta el cable en el diagrama — solo corría
+un dibujo decorativo.
+
+Prueba controlada que lo confirmó: arrastré el terminal "in" de S00110
+40 px de pantalla (2,857 unidades SVG, fuera de grilla) → el SVG guardó
+la nueva posición del círculo con exactitud matemática, pero
+`metadata.json` siguió en `x: 0.0` sin cambios.
+
+### La corrección
+
+**Carga** (`EditorSimbolos.tsx`): al cargar cada primitiva, si su posición
+SVG original coincide (tolerancia 0,5 u) con un `puntos_conexion[i]` del
+metadata, se la etiqueta con `_idPuntoConexion` y se guarda su posición
+original en `_origPuntoConexion`.
+
+**Guardado** (`guardarGeometria`): durante la conversión canvas→SVG, para
+cada primitiva etiquetada se compara su posición final contra la original;
+solo si difiere se agrega a un mapa de "puntos movidos". Se arma un
+`puntos_conexion` actualizado (solo si hubo algún movimiento real — ver
+más abajo por qué) y se manda al servidor junto con el SVG.
+
+**Servidor** (`vite.config.ts`, `POST /api/geometry`): acepta un campo
+opcional `puntos_conexion`. Si viene, hace backup de `metadata.json`
+también (no solo del SVG), escribe ambos archivos, corre el lint — que
+**de paso valida que la nueva posición siga alineada a grilla**, la misma
+regla que ya rige para todo lo demás en `AGENTS.md` — y si falla restaura
+**ambos** backups. Si pasa, commitea SVG + metadata.json **juntos, en un
+solo commit** (`commitearSeguro()` se extendió para aceptar una lista de
+archivos). La respuesta incluye el `metadata` actualizado, que el cliente
+aplica de inmediato al caché `SIMBOLOS` — sin esto, el diagrama seguiría
+mostrando el handle viejo hasta recargar la página.
+
+**Ajuste posterior, encontrado al probar:** la primera versión mandaba el
+`puntos_conexion` completo en **cada** guardado, aunque nadie hubiera
+tocado un terminal — porque el loop marcaba "movido" a cualquier primitiva
+etiquetada, sin comparar contra su posición original. Eso reescribía
+`metadata.json` en cada guardado, con el mismo contenido pero reformateado
+por `JSON.stringify(..., 2)` (ruido de diff puro). Corregido comparando
+contra `_origPuntoConexion`: ahora solo se manda (y solo se commitea
+`metadata.json`) cuando un punto realmente cambió de posición.
+
+### Bug secundario encontrado en el camino: texto sin ancla
+
+La evidencia del usuario en S00132 mostró que `fc.toSVG()` también
+descarta `text-anchor="middle"` y `dominant-baseline="central"` de
+cualquier `<text>`. El original centra la letra ("V", "M 3~", "U<>")
+sobre su punto con esos dos atributos; el SVG re-exportado por Fabric
+emite `<tspan x=... y=...>` sin ellos, así que **cualquier visor que no
+sea Fabric** (el diagrama, un navegador común, esta misma galería) dibuja
+el glifo con ancla-inicio/línea-base-alfabética por defecto — en otra
+posición. Afecta a los tres símbolos con texto: S00115, S00129, S00132.
+
+Corregido reinyectando ambos atributos a cualquier `<text>` del SVG
+exportado (todos los textos de esta librería usan la misma convención
+centrada, así que no hace falta distinguir casos).
+
+### Verificación
+
+Con un dev server recién levantado (ver E3: los cambios de
+`vite.config.ts` necesitan reinicio, no alcanza con HMR):
+
+- Arrastré el terminal "in" de S00110 exactamente 5 unidades SVG
+  (alineado a grilla) → `metadata.json` quedó con `x: 5` — coincide
+  exacto con el arrastre, confirmado en la respuesta HTTP y releído del
+  disco.
+- El mismo arrastre pero fuera de grilla (40 px de pantalla) → el lint lo
+  **rechazó** con el mismo mensaje específico que usa para cualquier otro
+  desalineamiento, y no tocó ningún archivo. Es el comportamiento
+  correcto: la regla de grilla de `AGENTS.md` se aplica igual acá.
+- Arrastrar una primitiva que NO es un punto de conexión (la elipse de
+  S00132) → `metadata.json` no se toca, la respuesta no trae `metadata`.
+- S00132 con drag: el `<text>` guardado incluye
+  `text-anchor="middle" dominant-baseline="central"`.
+
+**Arnés E2E actualizado** (`e2e/editor-simbolos.mjs`): nueva
+`probarPuntoConexion()` — arrastra el terminal "in" de S00110 5 unidades
+exactas y verifica que `metadata.json` (respuesta HTTP y disco) quede con
+la coordenada nueva. `probarGuardadoReal()` reubicada: su arrastre de
+prueba agarraba por casualidad el mismo terminal con una distancia
+arbitraria no alineada a grilla, y con la validación nueva eso ahora
+falla el lint correctamente — se movió el punto de agarre a una zona del
+cuerpo del símbolo que no es un punto de conexión, ya que esa prueba
+verifica limpieza del SVG, no alineación. Ambas pruebas respaldan y
+restauran `metadata.json` además del SVG en su `finally`.
+
+`npm run build`, `npm run lint`, `lint_simbolos.py` (20/20),
+`verificar_alineacion.mjs`, `verificar_proyecto_real.mjs` y
+`npm run e2e:simbolos` (20 símbolos + guardado + punto de conexión):
+todo verde. Repo verificado limpio tras cada corrida del arnés (HEAD sin
+moverse, `git status` vacío).
+
+---
+
+## E7 — Rediseño de 7 símbolos con fuente QET real (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Reporte del usuario
+
+*"s0121, s0122, s0123, s0127, s0128, s0129 y s0130 estan mal"*. Son
+exactamente los 8 símbolos del "3er intento de rediseño" de C32 (menos
+S00126, que sí quedó bien) — HISTORIAL ya registraba que ese intento
+"nunca fue aprobado por el usuario".
+
+### Decisión de método
+
+Redibujar a mano de nuevo hubiera repetido el patrón que ya falló 3 veces
+en C32. Antes de tocar geometría se verificó acceso de red
+(`git ls-remote` a qelectrotech-elements: sí hay acceso) y se clonó la
+colección al **mismo commit citado en los símbolos ya aprobados**
+(`b9e1020`), con sparse-checkout limitado a las carpetas relevantes — el
+clon completo choca con el límite de longitud de path de Windows en
+`98_graphics/99_assembly_plan/`.
+
+Hallazgo importante: **ningún `.elmt` de la colección tiene una variante
+reducida a un solo polo** para MCCB, guardamotor, relé térmico,
+portafusible o diferencial (a diferencia de `disjonct-m_1f.elmt`, la
+fuente de S00110). La reducción a trazo único de Vatia se hizo a mano en
+los 7 casos, pero **basada en la geometría real** de la fuente QET
+correspondiente — no inventada, que es la diferencia con el intento
+anterior (S00129/S00130 estaban documentados como "manual - IEC 60617"
+sin ninguna fuente real detrás).
+
+### Diagnóstico y corrección por símbolo
+
+- **S00121 (MCCB):** la caja moldeada quedaba flotando debajo del
+  mecanismo de seccionamiento sin encerrarlo. Fuente real:
+  `12_magneto_thermal_circuit_breakers/disjoncteur_magneto-thermique.elmt`
+  — ahí el rectángulo se SOLAPA con la hoja de seccionamiento. Corregido
+  para que la caja encierre el mecanismo (mismo mecanismo que S00110).
+- **S00122 (guardamotor):** le faltaba la cruz de apertura por completo —
+  no se leía que el aparato secciona. Fuente real: `gv2p.elmt` (GV2 de
+  Schneider, geométricamente casi idéntico al MCCB genérico en QET — son
+  la misma familia de símbolo). Se agregó además una flecha de
+  ajustabilidad (IEC 60617-2, símbolo 07-01-02) cruzando la caja, para
+  distinguirlo del MCCB de ajuste fijo — el guardamotor tiene disparo
+  térmico ajustable (`ir_min_a`/`ir_max_a` de la ficha), el MCCB no.
+- **S00123 (relé térmico):** caja + diagonal sin ninguna fuente real,
+  casi ilegible. Fuente real: `30_thermal_relays/relais_therm4.elmt`, que
+  usa un "gancho" (el trazo se corre en escalón y vuelve) para
+  representar la lámina bimetálica en serie — es la convención IEC real,
+  reemplaza la caja+diagonal anterior.
+- **S00127 (portafusible/seccionador fusible):** proporciones sin
+  relación con el fusible simple (S00113) ya aprobado. Fuente real:
+  `10_fuses/sectionneur_fusible_bi.elmt` (brazo de seccionamiento
+  articulado + fusible montado en la hoja). El rectángulo del fusible
+  ahora usa las mismas proporciones que S00113, por consistencia de
+  librería.
+- **S00128 (diferencial ID/RCD):** el toroide punteado (`circle r=5`
+  centrado en 0,0) y el conductor (diagonal de (0,-5) a (-5,5), punto
+  medio (-2.5,0)) no compartían centro — el conductor quedaba corrido a
+  la izquierda del toroide. Corregido: el conductor ahora pasa recto por
+  el centro exacto del círculo.
+- **S00129/S00130 (relés):** el contacto NA no seguía la misma
+  convención probada que **S00112** (contactor, ya aprobado) — le
+  faltaba el arco de resorte de retorno y la diagonal iba en sentido
+  opuesto. Reemplazado por la geometría exacta de S00112 (línea + arco +
+  hoja), conservando la caja de bobina + texto que distingue a cada
+  relé. Esto también corrige una inconsistencia de estilo dentro de la
+  propia librería, no solo un problema aislado.
+
+### Otro hallazgo corregido de paso
+
+Al recorrer `metadata.json` de todos los símbolos para escribir la tabla
+de `docs/estado-revision-aea.md`, se confirmó el problema que la revisión
+general del proyecto ya había marcado: **S00124, S00125, S00126 y S00131
+están `estado_revision: "verificado"` pero sin `atributos_base`** — al
+instanciarlos, el formulario no mostraba ningún campo. Corregido
+agregando el `tipo_aparato` correcto a cada uno (no afecta su geometría
+ni su estado de revisión).
+
+### `docs/estado-revision-aea.md` puesto al día
+
+La tabla documentaba solo 7 de 20 símbolos (S00110–S00119). Se agregaron
+las 13 filas faltantes (S00120–S00132) con su fuente QET real, familia y
+estado, se corrigió la familia de S00118 (decía "aparato", el
+`metadata.json` real dice `sin_ficha_tecnica`), y se agregaron dos notas
+nuevas en "Notas pendientes de la Fase C" documentando este rediseño y el
+fix de `atributos_base`.
+
+### Estado de revisión: sin cambios
+
+Los 7 símbolos **siguen en `pendiente_revision`** — la corrección es una
+propuesta con fuente real detrás, no un cierre. El procedimiento de
+cierre de `docs/estado-revision-aea.md` exige revisión visual del
+usuario antes de pasar a `verificado`/`corregido`, y dado que este mismo
+tipo de símbolo ya fue rechazado 3 veces, no corresponde que una IA se
+autoapruebe acá.
+
+### Verificación
+
+`lint_simbolos.py` (20/20), `verificar_alineacion.mjs`,
+`verificar_proyecto_real.mjs`, `npm run build`, `npm run lint`,
+`npm run e2e:simbolos` (20 símbolos incluidos los 7 nuevos, render real
+vía React/Fabric — no solo la galería SVG estática): todo verde. Galería
+regenerada y comparada visualmente contra el estado anterior
+(capturas en `scratchpad/`, no versionadas).
+
+### Pendiente para la próxima etapa
+
+Definido con el usuario, alcance de nueva simbología a agregar:
+**protección/maniobra** (seccionador sin fusible, interruptor de carga,
+llave de transferencia automática/ATS, relé de sobrecorriente/diferencial
+de tierra, descargador de sobretensión) y **fuentes y generación** (grupo
+electrógeno, UPS, banco de baterías, generador fotovoltaico, transformador
+con tomas/regulación). Sin encarar todavía.
+
+---
+
+## E4 — Los 7 símbolos rechazados, redibujados desde la norma IEC 60617 (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Por qué se cambió de método
+
+`49115d7` rehizo S00121, S00122, S00123, S00127, S00128, S00129 y S00130
+importando la geometría real de QElectroTech. El usuario rechazó también esa
+tanda —la cuarta— con una indicación que cambia el criterio de raíz: **no hay
+que sacar la simbología de QElectroTech**, porque su colección mezcla dibujos
+hechos bajo otras normas. La fuente pasa a ser el PDF de la norma
+(`Simbologia_iec_60617_completa.pdf`, 138 páginas escaneadas, sin capa de
+texto) y los símbolos se **dibujan**, no se importan.
+
+### Cómo se leyó la norma
+
+Se renderizaron las páginas con pymupdf y se ubicó la **Sección 7 (Dispositivos
+de maniobra, control y protección), páginas 48 a 64**. La página 48 es la clave:
+define los **símbolos calificadores** con los que se arma casi todo lo demás.
+
+| Código | Símbolo | Función |
+|---|---|---|
+| 07-70-01 | semicírculo | contactor |
+| 07-70-02 | aspa | interruptor automático |
+| 07-70-03 | barra corta | seccionador (aislador) |
+| 07-70-04 | círculo + barra | interruptor-seccionador |
+| 07-70-05 | cuadrado relleno | disparo iniciado por relé de medida o disparador incorporado |
+
+La construcción general es siempre la misma: **contacto de corte** (cuchilla que
+pivota en el borne inferior) **más el calificador encima**.
+
+### Escala adoptada
+
+La norma dibuja sobre retícula modular de 2,5 mm. Se adoptó
+**1 módulo = 5 unidades de viewBox**, que es justo la equivalencia que deja
+todos los puntos de conexión sobre múltiplos de 5, como exige
+`scripts/lint_simbolos.py`.
+
+### Nuevo generador
+
+`scripts/generar_simbolos_iec.py`: la geometría de los 7 símbolos vive en
+código, parametrizada y comentada con el número normativo del que sale cada
+uno. Se eligió un generador en vez de editar SVG a mano porque el método manual
+ya falló tres veces; así la decisión de diseño queda auditable y reproducible.
+Incluye `rect_sobre_recta()`, que resuelve los rectángulos que la norma dibuja
+**girados con la cuchilla** (el cuadrado de disparo y el cartucho del fusible).
+
+| Símbolo | Norma | Qué cambió |
+|---|---|---|
+| S00121 MCCB | 07-72-25 | círculo+barra y **cuadrado de disparo sobre la cuchilla**; se eliminó la caja moldeada que encerraba el mecanismo, que no es normativa |
+| S00122 Guardamotor | 07-72-21 + 07-70-05 | aspa de interruptor automático + cuadrado de disparo incorporado |
+| S00123 Relé térmico | 07-72-13 | el bimetal como **pulso cuadrado de un módulo** sobre el conductor pasante; el RT va en serie, sin contacto de corte |
+| S00127 Seccionador fusible | 07-75-08 | barra de seccionador arriba y **cartucho del fusible montado sobre la cuchilla** |
+| S00128 Diferencial | 07-72-17 | aspa + toroide sumador atravesado por el conductor + enlace mecánico punteado |
+| S00129 Relé de tensión | 07-73-18 | caja de relé de medición con la magnitud vigilada (U<>) adentro |
+| S00130 Relé auxiliar | 07-76-01 | rectángulo liso de bobina de relé, símbolo general |
+
+### Trazabilidad
+
+`metadata.schema.json` gana el campo **`fuente_norma`** (por ejemplo
+`"IEC 60617 07-72-25"`), alternativo a `fuente_qet`. Los 7 símbolos dejan de
+declarar `fuente_qet` y pasan a declarar `fuente_norma`: la procedencia queda
+en el archivo, no en la memoria de nadie.
+
+### Verificaciones
+
+`python scripts/lint_simbolos.py` (20/20, incluidas las comprobaciones de
+integridad y geometría dentro del viewBox agregadas en E2), galería
+regenerada, `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`npm run build` verde. Los metadata quedaron en UTF-8 con acentos correctos
+(verificado a nivel de bytes; la consola de Windows los muestra mal, los
+archivos están bien).
+
+### Pendiente
+
+- Los 7 siguen en `estado_revision: "pendiente_revision"`: falta la aprobación
+  visual del usuario, que es lo único que los cierra.
+- Quedan por revisar los 13 símbolos restantes de la librería contra la misma
+  norma; el usuario dijo que hay varios más fuera de normativa.
+
+---
+
+## E5 — Correcciones del ingeniero sobre los símbolos de protección (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+Revisión de E4 por parte del usuario. Tres correcciones técnicas y una
+pregunta de alcance que queda abierta.
+
+### El relé térmico va en una caja
+
+El usuario: *"el relé es una cajita con el pulso cuadrado que le suele enviar
+la señal al contactor para desactivarlo o activarlo"*. En E4 se había dibujado
+el pulso cuadrado **suelto sobre la línea**. Va **dentro** de un rectángulo: la
+caja es el relé, y el pulso identifica que su actuación es térmica.
+
+`S00123` pasa a ser rectángulo 12×15 con el símbolo de efecto térmico adentro
+(07-76-01 + 03-30-37).
+
+### Los guardamotores son dos, y se distinguen por las cajas de disparo
+
+El usuario: *"tenemos 2 tipos pero simbológicamente muy parecido; el magnético
+es un interruptor con una cajita identificando la actuación magnética, y el
+termomagnético tiene dos cajitas, una con la actuación térmica y otra con la
+actuación magnética"*.
+
+Eso tiene respaldo directo en la norma, en la sección de símbolos distintivos
+generales (no en la Sección 7):
+
+| Código | Símbolo | Significado |
+|---|---|---|
+| 03-30-37 | pulso cuadrado (una "S" en ángulos rectos) | efecto térmico |
+| 03-30-38 | gancho curvo | efecto electromagnético |
+
+- `S00122` **guardamotor termomagnético**: interruptor automático (contacto de
+  corte + aspa) más **dos** cajas de disparador en serie, la térmica y la
+  magnética.
+- `S00133` **guardamotor magnético** (NUEVO): el mismo interruptor con **una
+  sola** caja, la magnética. Protege solo contra cortocircuito.
+
+`aparato.schema.json` gana el subtipo `guardamotor_magnetico`, clonado del
+termomagnético pero **sin** `ir_min_a` / `ir_max_a` (no tiene disparador
+térmico, así que no hay rango de ajuste térmico que declarar) y con `ii_a`
+—el disparo magnético instantáneo— pasado a obligatorio.
+
+La librería queda en **21 símbolos**.
+
+### MCCB: no hay símbolo propio en la norma
+
+El usuario: *"para el MCCB que es un interruptor de caja moldeada no vi una
+simbología para él… yo lo pondría como lo hiciste pero con la caja más grande
+quizás"*. Es correcto que no aparezca: **la norma no distingue por construcción
+del envolvente**. Un interruptor en caja moldeada es un interruptor automático;
+que su caja sea moldeada es un dato de catálogo (`tipo_aparato`), no algo que
+el símbolo represente. Se mantiene 07-72-25 y se agrandó el cuadrado de disparo
+de 4,5 a 6 unidades, como pidió.
+
+### Bug encontrado por el lint endurecido
+
+Al reubicar `S00123` se le puso un viewBox `-10 -25 20 50` que **no contenía**
+su terminal de entrada en y=-30. El lint reforzado en E2 lo detectó en el acto
+("la geometría se sale del viewBox" + "punto 'in' fuera del viewBox"). Antes de
+E2 esto habría pasado silenciosamente al commit. Corregido a `-10 -35 20 60`.
+
+### Pregunta abierta: ¿los relés van en fuerza o en comando?
+
+El usuario planteó: *"los relés tienen entrada dependiendo de su utilidad pero
+generalmente son las líneas y neutro y tiene una salida para darle la orden al
+contactor, pero no sé si ponerlo a eso en la parte de fuerza; me parece que
+esto está más para la parte de comando"*.
+
+Afecta a `S00129` (relé de protección de tensión) y `S00130` (relé/contactor
+auxiliar), que hoy están modelados como aparatos en serie sobre el conductor de
+potencia, con un `in` y un `out` — que es justamente lo que el usuario pone en
+duda. **Queda sin resolver**, pendiente de su decisión; ver la recomendación
+registrada en la conversación.
+
+### Verificaciones
+
+`lint_simbolos` 21/21, galería regenerada, `verificar_alineacion` y
+`verificar_proyecto_real` verdes, `npm run build` verde.
+
+---
+
+## E6 — Los glifos de actuación, bien trazados esta vez (01/09/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+El usuario revisó E5 y marcó tres errores de trazado y una insatisfacción con
+el MCCB.
+
+### Los dos glifos son un par, y los dos estaban mal
+
+*"la parte térmica es un pulso cuadrado no un impulso como lo hiciste, y además
+el símbolo de disparo magnético no es como lo pusiste"*.
+
+Se volvió a la lámina con zoom de 900 dpi sobre cada glifo, en vez de
+aproximarlos de memoria. Medidos sobre la retícula:
+
+- **03-30-37 efecto térmico**: una línea **vertical** con un salto
+  **rectangular** hacia la derecha en el medio, que vuelve al mismo eje. El
+  salto ocupa 1 módulo de ancho y 0,76 de alto; el glifo entero, 2 módulos.
+  En E5 se había dibujado como una "S" horizontal: mal en forma y en
+  orientación.
+- **03-30-38 efecto electromagnético**: la **misma** línea vertical, pero con
+  el salto del medio **semicircular**, de radio 1/4 del alto. Es una espira
+  vista de canto.
+
+Lo importante es que **forman pareja**: idéntico trazo, salto cuadrado contra
+salto redondo. Esa oposición es exactamente lo que distingue la actuación
+térmica de la magnética, y perderla era lo que hacía irreconocibles a los dos
+guardamotores.
+
+### La línea no atraviesa la caja
+
+*"evita que la línea traspase la caja donde están esos símbolos"*. La línea de
+potencia ahora **llega** a cada caja y **sale** de ella; dentro de la caja solo
+está el glifo de la actuación. Aplicado a `S00123`, `S00122` y `S00133`, que
+además pasaron a cajas de 10×10 (12×12 en el relé térmico) para que el glifo
+sea legible.
+
+### MCCB: se dejó de adivinar
+
+*"la simbología del interruptor de caja moldeada revisalo porque no me gusta"*.
+Es el segundo rechazo del mismo símbolo, así que en vez de proponer una tercera
+versión a ciegas se prepararon **cinco variantes** renderizadas para que el
+usuario elija (`scratchpad/opciones.png`):
+
+| | |
+|---|---|
+| A | la actual, 07-72-25: círculo+barra y cuadrado de disparo sobre la cuchilla |
+| B | interruptor + cajas térmica y magnética, todo dentro de un envolvente punteado |
+| C | interruptor solo, dentro del envolvente punteado |
+| D | interruptor + una caja con el cuadrado de disparo incorporado (07-70-05) |
+| E | interruptor + cajas térmica y magnética, sin envolvente |
+
+`S00121` queda **sin tocar** hasta que el usuario elija.
+
+### Verificaciones
+
+`lint_simbolos` 21/21, galería regenerada, `verificar_alineacion` y
+`verificar_proyecto_real` verdes.
+
+---
+
+## E7 — MCCB con envolvente y tipo de disparo; los relés a su lugar (01/09/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+Dos decisiones del usuario, tomadas sobre las variantes renderizadas en E6.
+
+### MCCB: envolvente en el dibujo, tipo de disparo en la ficha
+
+*"hagamos que sea un interruptor rodeado por una caja negra y en su descripción
+del texto pongamos el tipo de disparo y allí se habilitarán los campos
+correspondientes a completar según eso"*.
+
+La norma no tiene símbolo propio del interruptor en caja moldeada porque **no
+distingue aparatos por la construcción del envolvente**. La solución adoptada
+separa las dos cosas:
+
+- **En el dibujo**: `S00121` es el interruptor automático (contacto de corte con
+  aspa 07-70-02) **dentro de un rectángulo** que representa el moldeado. Un
+  único símbolo para las tres tecnologías de disparo.
+- **En la ficha**: nuevo campo `tipo_disparo` en `mccb_caja_moldeada`
+  (`termomagnetico` | `magnetico` | `electronico`), obligatorio, que habilita
+  los campos de ajuste que correspondan.
+
+### `x-visible-si` ahora admite condición por valor
+
+Para lo anterior hizo falta extender el mecanismo de campos condicionales, que
+hasta ahora solo sabía preguntar si un booleano era `true` (`"es_conjunto"`,
+C15). Se agregó la forma `"campo:valor1|valor2"`, y el ajuste térmico
+(`ir_a_min` / `ir_a_max`) queda visible solo con
+`tipo_disparo:termomagnetico|electronico` — un MCCB magnético no tiene
+disparador térmico, así que no hay rango de ajuste que pedirle.
+
+Nuevo helper `campoVisible()` en `lib/esquemas.ts`, usado por **dos**
+consumidores:
+
+- `FormularioAtributos.tsx`, para ocultar el campo;
+- `lib/checklist.ts`, para **no exigirlo** cuando está oculto. Sin esto el
+  checklist reclamaría campos que el formulario ni siquiera muestra.
+
+Espejado en `scripts/verificar_proyecto_real.mjs`, que duplica esa lógica
+(deuda ya señalada en E1).
+
+### Los relés, a donde corresponden
+
+- **`S00130` relé/contactor auxiliar → `pendiente-multifilar/`.** Es un aparato
+  de **comando**: su bobina la energiza el circuito de control y sus contactos
+  actúan en el control. No lleva corriente de potencia, así que no tiene lugar
+  en un unifilar de fuerza. La librería activa queda en **20 símbolos**.
+- **`S00129` relé de protección de tensión: corregido, no movido.** Se queda en
+  el unifilar porque es un aparato de protección, pero **no es de paso**: no
+  lleva la corriente de carga. Pasó de tener `in`/`out` en serie a tener **una
+  sola toma de medición** más un **enlace mecánico punteado** hacia el
+  interruptor sobre el que actúa.
+
+### Efecto colateral del campo nuevo
+
+Al volverse obligatorio `tipo_disparo`, los dos MCCB del proyecto real (n4 y n5,
+EMA SACE ISOL Z500) quedaron incompletos. Se les cargó
+`tipo_disparo: "termomagnetico"`, que es **una suposición** por no tener el
+catálogo del fabricante a mano: **queda para que el usuario confirme**.
+
+Aprovechando eso se corrigió por fin la desincronización que E1 había señalado:
+`scripts/migrar_tgbt.mjs` seguía generando esos nodos como `S00110` /
+`interruptor_termomagnetico` con `norma_fabricacion: "IEC 60947"`, de modo que
+volver a correrlo revertía la corrección de C32. Ahora genera `S00121` /
+`mccb_caja_moldeada` con `ir_a_min` / `ir_a_max` y la norma correcta,
+consistente con el JSON.
+
+> Sigue pendiente el `pdcc_kA: 2500` de esos nodos, que son amperes crudos donde
+> el schema pide kA (deberían ser 2,5). No se tocó: es un dato de ingeniería del
+> usuario, no una inconsistencia de formato.
+
+### Verificaciones
+
+`lint_simbolos` 20/20, galería regenerada, `verificar_alineacion` y
+`verificar_proyecto_real` verdes, `npm run build` verde, oxlint con los dos
+warnings preexistentes.
+
+---
+
+## E8 — Librería cerrada: 20 símbolos verificados (01/09/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+El usuario revisó la librería completa **desde el editor** y marcó los 20
+símbolos como `verificado`, cerrando la Fase 0 de simbología. Confirmó además
+que los EMA SACE ISOL Z500 del proyecto real **son MCCB**, con lo que queda
+validada la clasificación `S00121` / `mccb_caja_moldeada`.
+
+> El `tipo_disparo: "termomagnetico"` de esos dos nodos sigue siendo una
+> suposición del asistente, no un dato de catálogo. Queda anotado.
+
+### La tabla de control ahora se genera, no se escribe
+
+`docs/estado-revision-aea.md` se había desfasado **dos veces** por mantenerse a
+mano: llegó a documentar 7 de 20 símbolos, listaba `S00130` como si siguiera en
+la librería activa y no conocía `S00133` ni el campo `fuente_norma`. Se
+regeneró desde los `metadata.json` reales y se dejó la advertencia de
+regenerarla en vez de editarla renglón por renglón.
+
+### El editor guardó geometría, y esta vez salió bien
+
+Mientras revisaba, el usuario dejó el dev server corriendo y el editor reescribió
+tres SVG en formato Fabric. **Es la misma operación que destruyó el S00110**, y
+esta vez el resultado pasó el lint: XML válido, geometría dentro del viewBox,
+sin marcadores del editor filtrados. El trabajo de E2 y E3 hizo su efecto.
+
+Comparando la geometría contra HEAD se separaron dos casos distintos:
+
+- **`S00127`**: geometría **realmente modificada** (el extremo izquierdo pasó de
+  -4,64 a -6,79). Es una edición deliberada del usuario y se conservó.
+- **`S00129` y `S00132`**: geometría **idéntica**, solo reformateadas. Se
+  restauraron al formato canónico, que es 2,4 veces más compacto.
+
+### Bug nuevo: el guardado del editor es válido pero LOSSY
+
+Al exportar, Fabric **no preserva el atributo `class`**, así que los terminales
+pierden `class="punto-conexion"` — que es lo que `estilos.css:296` usa para
+estilarlos en el canvas. Los archivos además engordan 2,4× (2236 bytes contra
+896) por el `style=` completo que Fabric escribe en cada primitiva.
+
+Se le devolvió la clase a mano a los terminales de `S00127`. **La corrección de
+fondo queda pendiente**: el guardado debería reinyectar los terminales desde el
+`metadata.json` después de exportar, en vez de confiar en lo que devuelve
+Fabric. El lint no lo detecta porque no es un error de geometría.
+
+### Verificaciones
+
+`lint_simbolos` 20/20, galería regenerada, `verificar_proyecto_real` verde.

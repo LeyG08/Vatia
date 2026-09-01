@@ -1,25 +1,25 @@
 {
-  "codigo_iec": "S00113",
-  "nombre": "Fusible 1P",
+  "codigo_iec": "S00133",
+  "nombre": "Guardamotor magnético",
   "familia_atributos": "aparato",
   "estado_revision": "verificado",
   "atributos_base": {
-    "tipo_aparato": "fusible"
+    "tipo_aparato": "guardamotor_magnetico"
   },
   "puntos_conexion": [
     {
-      "id": "1",
+      "id": "in",
       "rol": "entrada",
       "x": 0,
-      "y": -20
+      "y": -30
     },
     {
-      "id": "2",
+      "id": "out",
       "rol": "salida",
       "x": 0,
       "y": 20
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:200_fuses_protective_gears/10_fuses/pojistka1p.elmt"
+  "fuente_norma": "IEC 60617 07-72-21 + 03-30-38"
 }

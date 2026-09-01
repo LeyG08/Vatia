@@ -19,6 +19,7 @@ import AlimentadorNode from "./componentes/AlimentadorNode";
 import BarraNode from "./componentes/BarraNode";
 import HojaNode from "./componentes/HojaNode";
 import ConexionEdge from "./componentes/ConexionEdge";
+import EditorSimbolos from "./componentes/EditorSimbolos";
 import { ESCALA, useEditor, tamanoNodoPx, esDatosAlimentador, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
 import { dimensionesHoja, rectanguloUtil } from "./lib/tipos";
@@ -98,6 +99,7 @@ function Editor() {
   }, []);
   const hoja = useEditor((s) => s.hoja);
   const paletaVisible = useEditor((s) => s.paletaVisible);
+  const modoAdmin = useEditor((s) => s.modoAdmin);
   const onNodesChange = useEditor((s) => s.onNodesChange);
   const onEdgesChange = useEditor((s) => s.onEdgesChange);
   const onConnect = useEditor((s) => s.onConnect);
@@ -112,6 +114,7 @@ function Editor() {
   const pegarFn = useEditor((s) => s.pegar);
   const deshacerFn = useEditor((s) => s.deshacer);
   const rehacerFn = useEditor((s) => s.rehacer);
+  const alternarAdminFn = useEditor((s) => s.alternarAdmin);
   const hojaActivaId = useEditor((s) => s.hojaActivaId);
   const guardarViewportFn = useEditor((s) => s.guardarViewport);
   const agregarHojaFn = useEditor((s) => s.agregarHoja);
@@ -259,6 +262,11 @@ function Editor() {
         else deshacerFn();
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        alternarAdminFn();
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         copiarSeleccion();
         return;
@@ -279,6 +287,7 @@ function Editor() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
+    alternarAdminFn,
     copiarSeleccion,
     deshacerFn,
     eliminarSeleccion,
@@ -492,7 +501,8 @@ function Editor() {
 
   return (
     <div className="cuerpo">
-      {paletaVisible && <Paleta onIniciarArrastre={iniciarArrastre} />}
+      {modoAdmin && <EditorSimbolos />}
+      {paletaVisible && !modoAdmin && <Paleta onIniciarArrastre={iniciarArrastre} />}
       <div className="lienzo">
         {idsFuera.size > 0 && (
           <div className="aviso-fuera-hoja" role="alert">
@@ -634,7 +644,7 @@ function Editor() {
           nodeExtent={extensionNodos}
           defaultEdgeOptions={{
             type: "conexion",
-            style: { strokeWidth: 1.5, stroke: "#1e293b" },
+            style: { strokeWidth: 1.5, stroke: "currentColor" },
           }}
           /* C17: radio de imán generoso — al soltar una punta de cable
            * (o al conectar) agarra el handle MÁS CERCANO sin apuntar

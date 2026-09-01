@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import { useEditor, historial } from "../lib/store";
 
 function BarraSuperior() {
@@ -11,10 +11,22 @@ function BarraSuperior() {
   const alternarPaleta = useEditor((s) => s.alternarPaleta);
   const paletaVisible = useEditor((s) => s.paletaVisible);
   const alternarHoja = useEditor((s) => s.alternarPanelHoja);
+  const modoAdmin = useEditor((s) => s.modoAdmin);
   const version = useEditor((s) => s.version);
   const puedeDeshacer = version >= 0 && historial.puedeDeshacer;
   const puedeRehacer = version >= 0 && historial.puedeRehacer;
   const inputArchivo = useRef<HTMLInputElement>(null);
+
+  const [oscuro, setOscuro] = useState(() => {
+    return localStorage.getItem("vatia-tema") === "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = oscuro ? "dark" : "";
+    localStorage.setItem("vatia-tema", oscuro ? "dark" : "light");
+  }, [oscuro]);
+
+  const toggleTema = useCallback(() => setOscuro((v) => !v), []);
 
   function guardar() {
     const proyecto = serializar();
@@ -52,6 +64,11 @@ function BarraSuperior() {
   return (
     <header className="barra-superior">
       <strong className="marca">Vatia</strong>
+      {modoAdmin && (
+        <span className="badge-admin" title="Modo administrador activo (Ctrl+Shift+A)">
+          ADMIN
+        </span>
+      )}
       <button
         type="button"
         className={paletaVisible ? "activo" : ""}
@@ -106,6 +123,14 @@ function BarraSuperior() {
         title="Rehacer (Ctrl+Shift+Z)"
       >
         ↷
+      </button>
+      <button
+        type="button"
+        className="btn-tema"
+        onClick={toggleTema}
+        title={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+      >
+        {oscuro ? "☀" : "🌙"}
       </button>
       <span className="ayuda">
         Arrastrar con rueda: desplazar · Clic izq. y arrastrar: seleccionar ·

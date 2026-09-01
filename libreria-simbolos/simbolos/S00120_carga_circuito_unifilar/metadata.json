@@ -2,14 +2,14 @@
   "codigo_iec": "S00120",
   "nombre": "Carga de circuito",
   "familia_atributos": "carga",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "atributos_base": {},
   "puntos_conexion": [
     {
       "id": "in",
       "rol": "entrada",
-      "x": 0.0,
-      "y": -10.0
+      "x": 0,
+      "y": -10
     }
   ],
   "version_libreria": "0.1.0",

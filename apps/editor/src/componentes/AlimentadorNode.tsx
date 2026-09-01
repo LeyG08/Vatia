@@ -72,7 +72,7 @@ function AlimentadorNode({
             y1={0}
             x2={15}
             y2={ALTO_LINEA - 4}
-            stroke="#1e293b"
+            stroke="currentColor"
             strokeWidth={1.5}
           />
           {total > 0 &&
@@ -81,7 +81,7 @@ function AlimentadorNode({
               const bx = 15 + wx * h;
               const by = cy + wy * h;
               return (
-                <g key={i} stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
+                <g key={i} stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" fill="none">
                   <line x1={15 - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
                   {neutro && i === fases && (
                     <circle cx={bx} cy={by} r={2.6} fill="#fdfdfd" />

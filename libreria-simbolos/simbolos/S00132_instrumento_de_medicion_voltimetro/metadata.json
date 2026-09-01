@@ -2,11 +2,23 @@
   "codigo_iec": "S00132",
   "nombre": "Instrumento de medición (voltímetro)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "voltimetro" },
+  "estado_revision": "verificado",
+  "atributos_base": {
+    "tipo_aparato": "instrumento_medicion"
+  },
   "puntos_conexion": [
-    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
-    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0,
+      "y": -20
+    },
+    {
+      "id": "out",
+      "rol": "salida",
+      "x": 0,
+      "y": 20
+    }
   ],
   "version_libreria": "0.1.0",
   "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/390_sensors_instruments/70_meters_measuring_indicators/voltmetre-v.elmt (polo único)"

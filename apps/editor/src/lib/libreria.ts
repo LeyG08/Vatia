@@ -95,6 +95,15 @@ function construir(): { simbolos: Map<string, SimboloDef>; problemas: ProblemaCa
     }
   }
 
+  const totalMeta = Object.keys(metasRaw).length;
+  const totalSvg = Object.keys(svgsRaw).length;
+  if (simbolos.size < totalMeta) {
+    problemas.push({
+      nivel: "aviso",
+      mensaje: `Carga: ${simbolos.size}/${totalMeta} metadata leídos, ${totalSvg} SVGs. Si faltan símbolos, reiniciá el dev server (import.meta.glob eager cache).`,
+    });
+  }
+
   return { simbolos, problemas };
 }
 
@@ -102,10 +111,46 @@ export const LIBRERIA = construir();
 export const SIMBOLOS = LIBRERIA.simbolos;
 export const PROBLEMAS_LIBRERIA = LIBRERIA.problemas;
 
+/* HMR: cuando Vite detecta create/delete de archivos que matchean los
+ * globs (metadata.json / simbolo.svg), re-transforma este módulo.
+ * El accept() actualiza los exports en caliente sin full page reload. */
+if (import.meta.hot) {
+  import.meta.hot.on("metadata-update", ({ codigo, metadata }: { codigo: string; metadata: any }) => {
+    const prev = SIMBOLOS.get(codigo);
+    if (prev) prev.metadata = metadata;
+    window.dispatchEvent(
+      new CustomEvent("vatia:metadata-update", { detail: { codigo, metadata } }),
+    );
+  });
+  import.meta.hot.on("svg-update", ({ codigo, svg, viewBox }: { codigo: string; svg: string; viewBox: any }) => {
+    const prev = SIMBOLOS.get(codigo);
+    if (prev) { prev.svgRaw = svg; prev.viewBox = viewBox; }
+    window.dispatchEvent(
+      new CustomEvent("vatia:svg-update", { detail: { codigo, svg, viewBox } }),
+    );
+  });
+  import.meta.hot.accept((mod) => {
+    if (mod) {
+      SIMBOLOS.clear();
+      for (const [k, v] of mod.SIMBOLOS) SIMBOLOS.set(k, v);
+      PROBLEMAS_LIBRERIA.length = 0;
+      PROBLEMAS_LIBRERIA.push(...mod.PROBLEMAS_LIBRERIA);
+    }
+  });
+}
+
 export function obtenerSimbolo(codigo: string): SimboloDef | null {
   return SIMBOLOS.get(codigo) ?? null;
 }
 
 export function svgLimpio(svg: string): string {
-  return svg.replace(/<\?xml[\s\S]*?\?>/g, "").trim();
+  let s = svg.replace(/<\?xml[\s\S]*?\?>/g, "").trim();
+  /* Reemplazar negro hardcodeado por currentColor para que los símbolos
+   * se adapten al tema (claro/oscuro). Los fill/stroke de los puntos
+   * de conexión (#e11d48) se preservan. */
+  s = s.replace(/stroke="#000000"/g, 'stroke="currentColor"');
+  s = s.replace(/fill="#000000"/g, 'fill="currentColor"');
+  s = s.replace(/stroke="#000"/g, 'stroke="currentColor"');
+  s = s.replace(/fill="#000"/g, 'fill="currentColor"');
+  return s;
 }

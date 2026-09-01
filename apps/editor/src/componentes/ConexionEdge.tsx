@@ -281,7 +281,7 @@ export default function ConexionEdge({
     <>
       <BaseEdge path={d} {...props} />
       {geo && totalMarcas > 0 && (
-        <g stroke="#334155" strokeWidth={1.3} strokeLinecap="round" fill="none">
+        <g stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" fill="none">
           {Array.from({ length: totalMarcas }, (_, i) => {
             const t = (i - (totalMarcas - 1) / 2) * geo.sep;
             const cx = geo.x + t * geo.ux;

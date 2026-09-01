@@ -4,76 +4,280 @@
   "title": "Vatia · Atributos de familia aparato",
   "description": "Fase C / Simbología ampliada. Discriminado por tipo_aparato: cada subtipo define su propio juego de campos cerrado. Los campos con x-obligatorio son advertidos por el Checklist AEA (§C5): no bloquean el guardado, solo advierten.",
   "type": "object",
-  "required": ["tipo_aparato"],
+  "required": [
+    "tipo_aparato"
+  ],
   "properties": {},
   "allOf": [
     {
-      "if": { "properties": { "tipo_aparato": { "const": "interruptor_termomagnetico" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/interruptor_termomagnetico" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "interruptor_termomagnetico"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/interruptor_termomagnetico"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "contactor" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/contactor" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "contactor"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/contactor"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "fusible" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/fusible" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "fusible"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/fusible"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "motor_trifasico" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/motor_trifasico" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "motor_trifasico"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/motor_trifasico"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "transformador" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/transformador" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "transformador"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/transformador"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "mccb_caja_moldeada" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/mccb_caja_moldeada" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "mccb_caja_moldeada"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/mccb_caja_moldeada"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "guardamotor_termomagnetico" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/guardamotor_termomagnetico" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "guardamotor_termomagnetico"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/guardamotor_termomagnetico"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "rele_termico" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/rele_termico" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "rele_termico"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/rele_termico"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "contacto_auxiliar" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/contacto_auxiliar" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "contacto_auxiliar"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/contacto_auxiliar"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "transformador_corriente" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/transformador_corriente" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "transformador_corriente"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/transformador_corriente"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "banco_capacitores" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/banco_capacitores" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "banco_capacitores"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/banco_capacitores"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "portafusible" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/portafusible" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "portafusible"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/portafusible"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "interruptor_diferencial" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/interruptor_diferencial" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "interruptor_diferencial"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/interruptor_diferencial"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "rele_proteccion_tension" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/rele_proteccion_tension" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "rele_proteccion_tension"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/rele_proteccion_tension"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "rele_auxiliar" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/rele_auxiliar" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "rele_auxiliar"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/rele_auxiliar"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "sirena_alarma" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/sirena_alarma" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "sirena_alarma"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/sirena_alarma"
+      }
     },
     {
-      "if": { "properties": { "tipo_aparato": { "const": "instrumento_medicion" } }, "required": ["tipo_aparato"] },
-      "then": { "$ref": "#/$defs/instrumento_medicion" }
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "instrumento_medicion"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/instrumento_medicion"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "guardamotor_magnetico"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/guardamotor_magnetico"
+      }
     }
   ],
   "$defs": {
@@ -81,252 +285,936 @@
       "description": "Campos comunes a todos los subtipos.",
       "properties": {
         "tipo_aparato": true,
-        "marca": { "type": "string", "x-obligatorio": false, "description": "Ej: SICA, Siemens, WEG, Schneider." },
-        "modelo": { "type": "string", "x-obligatorio": false, "description": "Ej: 3TF57, ComPact NSX100." }
+        "marca": {
+          "type": "string",
+          "x-obligatorio": false,
+          "description": "Ej: SICA, Siemens, WEG, Schneider.",
+          "title": "Marca"
+        },
+        "modelo": {
+          "type": "string",
+          "x-obligatorio": false,
+          "description": "Ej: 3TF57, ComPact NSX100.",
+          "title": "Modelo"
+        }
       }
     },
-
     "interruptor_termomagnetico": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "interruptor_termomagnetico" },
-        "cantidad_polos": { "type": "integer", "minimum": 1, "maximum": 4, "x-obligatorio": true, "description": "Polos que interrumpe, incluido el neutro si lo conmuta. Plano: \"3\", \"4\"." },
-        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Corriente nominal en amperes. Plano: \"50A\"." },
-        "curva_disparo": { "enum": ["B", "C", "D", "K", "Z", "otra"], "x-obligatorio": false, "description": "Plano: \"C\", \"D\"." },
-        "pdcc_kA": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Poder de corte en kiloamperes. El plano lo anota en amperes (\"3000 A\"); se normaliza a kA (3000 A → 3 kA)." },
-        "norma_fabricacion": { "type": "string", "x-obligatorio": true, "description": "Plano: \"IEC 60898-1\"." }
+        "tipo_aparato": {
+          "const": "interruptor_termomagnetico",
+          "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "x-obligatorio": true,
+          "description": "Polos que interrumpe, incluido el neutro si lo conmuta. Plano: \"3\", \"4\".",
+          "title": "Cantidad de polos"
+        },
+        "in_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Corriente nominal en amperes. Plano: \"50A\".",
+          "title": "Corriente nominal (A)"
+        },
+        "curva_disparo": {
+          "enum": [
+            "B",
+            "C",
+            "D",
+            "K",
+            "Z",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "description": "Plano: \"C\", \"D\".",
+          "title": "Curva de disparo"
+        },
+        "pdcc_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Poder de corte en kiloamperes. El plano lo anota en amperes (\"3000 A\"); se normaliza a kA (3000 A → 3 kA).",
+          "title": "Poder de corte (kA)"
+        },
+        "norma_fabricacion": {
+          "type": "string",
+          "x-obligatorio": true,
+          "description": "Plano: \"IEC 60898-1\".",
+          "title": "Norma de fabricación"
+        }
       }
     },
-
     "contactor": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "contactor" },
-        "cantidad_polos": { "type": "integer", "minimum": 1, "x-obligatorio": true, "description": "Plano KM1: \"Cantidad de polos: 3 polos\"." },
-        "ue_V": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Tensión de operación en volts. Plano: \"415 [V] CA\"." },
-        "categoria_empleo": { "enum": ["AC-1", "AC-3", "AC-4", "AC-6b", "otra"], "x-obligatorio": false, "description": "Plano: \"(AC3) 475A\", \"(AC6B)\"." },
-        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Corriente nominal a la categoría declarada. Plano: \"475A\"." },
-        "tension_bobina_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Plano: \"220 [V] AC\"." }
+        "tipo_aparato": {
+          "const": "contactor",
+          "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "description": "Plano KM1: \"Cantidad de polos: 3 polos\".",
+          "title": "Cantidad de polos"
+        },
+        "ue_V": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Tensión de operación en volts. Plano: \"415 [V] CA\".",
+          "title": "Tensión de operación (V)"
+        },
+        "categoria_empleo": {
+          "enum": [
+            "AC-1",
+            "AC-3",
+            "AC-4",
+            "AC-6b",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "description": "Plano: \"(AC3) 475A\", \"(AC6B)\".",
+          "title": "Categoría de empleo"
+        },
+        "in_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Corriente nominal a la categoría declarada. Plano: \"475A\".",
+          "title": "Corriente nominal (A)"
+        },
+        "tension_bobina_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Plano: \"220 [V] AC\".",
+          "title": "Tensión de bobina (V)"
+        }
       }
     },
-
     "fusible": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "description": "Portafusible y fusible como dos productos distintos, como en las fichas SF-* del plano.",
       "properties": {
-        "tipo_aparato": { "const": "fusible" },
-        "portafusible_tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Tensión asignada del portafusible." },
-        "portafusible_categoria": { "type": "string", "x-obligatorio": false, "description": "Categoría de empleo." },
-        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Corriente del fusible instalado." },
-        "clase_caracteristica": { "enum": ["gG", "gL", "aM", "F", "otra"], "x-obligatorio": true, "description": "Plano: \"gL/gG\", \"F2A\"." },
-        "tamano": { "type": "string", "x-obligatorio": false, "description": "Formato del fusible." },
-        "pdcc_kA": { "type": "number", "minimum": 0, "x-obligatorio": true, "description": "Poder de corte en kiloamperes." },
-        "norma_fabricacion": { "type": "string", "x-obligatorio": false, "description": "Plano: \"IEC 60269-2\"." }
+        "tipo_aparato": {
+          "const": "fusible",
+          "title": "Tipo de aparato"
+        },
+        "portafusible_tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Tensión asignada del portafusible.",
+          "title": "Tensión del portafusible (V)"
+        },
+        "portafusible_categoria": {
+          "type": "string",
+          "x-obligatorio": false,
+          "description": "Categoría de empleo.",
+          "title": "Categoría del portafusible"
+        },
+        "in_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Corriente del fusible instalado.",
+          "title": "Corriente nominal (A)"
+        },
+        "clase_caracteristica": {
+          "enum": [
+            "gG",
+            "gL",
+            "aM",
+            "F",
+            "otra"
+          ],
+          "x-obligatorio": true,
+          "description": "Plano: \"gL/gG\", \"F2A\".",
+          "title": "Clase característica"
+        },
+        "tamano": {
+          "type": "string",
+          "x-obligatorio": false,
+          "description": "Formato del fusible.",
+          "title": "Tamaño"
+        },
+        "pdcc_kA": {
+          "type": "number",
+          "minimum": 0,
+          "x-obligatorio": true,
+          "description": "Poder de corte en kiloamperes.",
+          "title": "Poder de corte (kA)"
+        },
+        "norma_fabricacion": {
+          "type": "string",
+          "x-obligatorio": false,
+          "description": "Plano: \"IEC 60269-2\".",
+          "title": "Norma de fabricación"
+        }
       }
     },
-
     "motor_trifasico": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
-      "x-alguno-obligatorio": ["potencia_kw", "potencia_hp"],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "x-alguno-obligatorio": [
+        "potencia_kw",
+        "potencia_hp"
+      ],
       "x-par-automatico": {
-        "campos": ["potencia_kw", "potencia_hp"],
+        "campos": [
+          "potencia_kw",
+          "potencia_hp"
+        ],
         "factor_hp_a_kw": 0.7457
       },
       "properties": {
-        "tipo_aparato": { "const": "motor_trifasico" },
-        "potencia_kw": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false },
-        "potencia_hp": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false },
-        "tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false },
-        "eficiencia_pct": { "type": "number", "exclusiveMinimum": 0, "maximum": 100, "x-obligatorio": false },
-        "factor_potencia": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "x-obligatorio": false },
-        "rpm": { "type": "integer", "exclusiveMinimum": 0, "x-obligatorio": false }
+        "tipo_aparato": {
+          "const": "motor_trifasico",
+          "title": "Tipo de aparato"
+        },
+        "potencia_kw": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Potencia (kW)"
+        },
+        "potencia_hp": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Potencia (HP)"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión (V)"
+        },
+        "in_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Corriente nominal (A)"
+        },
+        "eficiencia_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "x-obligatorio": false,
+          "title": "Eficiencia (%)"
+        },
+        "factor_potencia": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "x-obligatorio": false,
+          "title": "Factor de potencia (cos φ)"
+        },
+        "rpm": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Velocidad (RPM)"
+        }
       }
     },
-
     "transformador": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "transformador" },
-        "sn_kva": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "relacion": { "type": "string", "x-obligatorio": true },
-        "grupo_conexion": { "type": "string", "x-obligatorio": false },
-        "impedancia_pct": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false }
+        "tipo_aparato": {
+          "const": "transformador",
+          "title": "Tipo de aparato"
+        },
+        "sn_kva": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Potencia aparente (kVA)"
+        },
+        "relacion": {
+          "type": "string",
+          "x-obligatorio": true,
+          "title": "Relación de transformación"
+        },
+        "grupo_conexion": {
+          "type": "string",
+          "x-obligatorio": false,
+          "title": "Grupo de conexión"
+        },
+        "impedancia_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Impedancia (%)"
+        }
       }
     },
-
     "mccb_caja_moldeada": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "mccb_caja_moldeada" },
-        "cantidad_polos": { "type": "integer", "minimum": 1, "maximum": 4, "x-obligatorio": true, "description": "Cantidad de polos (3P, 4P)." },
-        "ir_a_min": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Ajuste térmico mínimo Ir en amperes." },
-        "ir_a_max": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Ajuste térmico máximo Ir en amperes." },
-        "im_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Ajuste magnético Im en amperes." },
-        "pdcc_kA": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Poder de corte en kA (IEC 60947-2 Icu/Icn)." },
-        "norma_fabricacion": { "type": "string", "x-obligatorio": true, "description": "Norma de fabricación (ej: \"IEC 60947-2\")." }
-      }
+        "tipo_aparato": {
+          "const": "mccb_caja_moldeada",
+          "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "x-obligatorio": true,
+          "description": "Cantidad de polos (3P, 4P).",
+          "title": "Cantidad de polos"
+        },
+        "tipo_disparo": {
+          "enum": [
+            "termomagnetico",
+            "magnetico",
+            "electronico"
+          ],
+          "x-obligatorio": true,
+          "description": "Tecnologia del disparador incorporado. Gobierna que campos de ajuste se habilitan: el termomagnetico y el electronico tienen ajuste termico (Ir), el magnetico solo tiene disparo instantaneo. El simbolo del MCCB es el mismo en los tres casos (interruptor dentro del envolvente moldeado); lo que cambia es la ficha.",
+          "title": "Tipo de disparo"
+        },
+        "ir_a_min": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Ajuste térmico mínimo Ir en amperes.",
+          "title": "Ajuste térmico mínimo Ir (A)",
+          "x-visible-si": "tipo_disparo:termomagnetico|electronico"
+        },
+        "ir_a_max": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Ajuste térmico máximo Ir en amperes.",
+          "title": "Ajuste térmico máximo Ir (A)",
+          "x-visible-si": "tipo_disparo:termomagnetico|electronico"
+        },
+        "im_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Ajuste magnético Im en amperes.",
+          "title": "Ajuste magnético Im (A)"
+        },
+        "pdcc_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Poder de corte en kA (IEC 60947-2 Icu/Icn).",
+          "title": "Poder de corte (kA)"
+        },
+        "norma_fabricacion": {
+          "type": "string",
+          "x-obligatorio": true,
+          "description": "Norma de fabricación (ej: \"IEC 60947-2\").",
+          "title": "Norma de fabricación"
+        }
+      },
+      "description": "Interruptor automatico en caja moldeada (IEC 60947-2). La norma no distingue aparatos por la construccion del envolvente, asi que no hay un simbolo IEC propio del MCCB: se dibuja el interruptor automatico rodeado por el envolvente moldeado, y el tipo de disparo se declara aca, en la ficha, habilitando los campos de ajuste que correspondan."
     },
-
     "guardamotor_termomagnetico": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "guardamotor_termomagnetico" },
-        "cantidad_polos": { "type": "integer", "minimum": 1, "x-obligatorio": true },
-        "ue_V": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "categoria_empleo": { "enum": ["AC-3", "AC-4", "otra"], "x-obligatorio": false },
-        "ir_min_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Rango de disparo térmico mínimo." },
-        "ir_max_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Rango de disparo térmico máximo." },
-        "ii_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Disparo magnético instantáneo Ii." },
-        "icu_kA": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Poder de corte en cortocircuito Icu en kA." },
-        "ics_kA": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Poder de corte de servicio Ics en kA." }
+        "tipo_aparato": {
+          "const": "guardamotor_termomagnetico",
+          "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "title": "Cantidad de polos"
+        },
+        "ue_V": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión de operación (V)"
+        },
+        "categoria_empleo": {
+          "enum": [
+            "AC-3",
+            "AC-4",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "title": "Categoría de empleo"
+        },
+        "ir_min_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Rango de disparo térmico mínimo.",
+          "title": "Disparo térmico mínimo (A)"
+        },
+        "ir_max_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Rango de disparo térmico máximo.",
+          "title": "Disparo térmico máximo (A)"
+        },
+        "ii_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Disparo magnético instantáneo Ii.",
+          "title": "Disparo magnético instantáneo (A)"
+        },
+        "icu_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Poder de corte en cortocircuito Icu en kA.",
+          "title": "Poder de corte Icu (kA)"
+        },
+        "ics_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Poder de corte de servicio Ics en kA.",
+          "title": "Poder de corte servicio Ics (A)"
+        }
       }
     },
-
     "rele_termico": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "rele_termico" },
-        "cantidad_polos": { "type": "integer", "minimum": 1, "x-obligatorio": true },
-        "ue_V": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "categoria_empleo": { "enum": ["AC-3", "AC-4", "otra"], "x-obligatorio": false },
-        "ir_min_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "ir_max_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "clase_disparo": { "type": "string", "x-obligatorio": true, "description": "Clase de disparo (ej: \"10A\", \"10\", \"20\", \"30\")." }
+        "tipo_aparato": {
+          "const": "rele_termico",
+          "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "title": "Cantidad de polos"
+        },
+        "ue_V": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión de operación (V)"
+        },
+        "categoria_empleo": {
+          "enum": [
+            "AC-3",
+            "AC-4",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "title": "Categoría de empleo"
+        },
+        "ir_min_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Disparo térmico mínimo (A)"
+        },
+        "ir_max_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Disparo térmico máximo (A)"
+        },
+        "clase_disparo": {
+          "type": "string",
+          "x-obligatorio": true,
+          "description": "Clase de disparo (ej: \"10A\", \"10\", \"20\", \"30\").",
+          "title": "Clase de disparo"
+        }
       }
     },
-
     "contacto_auxiliar": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "contacto_auxiliar" },
-        "tipo_contacto": { "enum": ["NA", "NC", "NA+NC", "otra"], "x-obligatorio": true },
-        "ith_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Capacidad térmica de contactos Ith en amperes." },
-        "ue_V": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false }
+        "tipo_aparato": {
+          "const": "contacto_auxiliar",
+          "title": "Tipo de aparato"
+        },
+        "tipo_contacto": {
+          "enum": [
+            "NA",
+            "NC",
+            "NA+NC",
+            "otra"
+          ],
+          "x-obligatorio": true,
+          "title": "Tipo de contacto"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        },
+        "ue_V": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Tensión de operación (V)"
+        }
       }
     },
-
     "transformador_corriente": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "transformador_corriente" },
-        "relacion": { "type": "string", "x-obligatorio": true, "description": "Relación de transformación (ej: \"600/5 A\")." },
-        "s_va": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Potencia de precisión en VA." },
-        "clase_precision": { "type": "string", "x-obligatorio": true, "description": "Clase de precisión (ej: \"0.5\", \"5P20\")." },
-        "fs": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Factor de seguridad FS." },
-        "ue_kv": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Tensión asignada en kV." }
+        "tipo_aparato": {
+          "const": "transformador_corriente",
+          "title": "Tipo de aparato"
+        },
+        "relacion": {
+          "type": "string",
+          "x-obligatorio": true,
+          "description": "Relación de transformación (ej: \"600/5 A\").",
+          "title": "Relación de transformación"
+        },
+        "s_va": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Potencia de precisión en VA.",
+          "title": "Potencia de precisión (VA)"
+        },
+        "clase_precision": {
+          "type": "string",
+          "x-obligatorio": true,
+          "description": "Clase de precisión (ej: \"0.5\", \"5P20\").",
+          "title": "Clase de precisión"
+        },
+        "fs": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Factor de seguridad FS.",
+          "title": "Factor de seguridad (FS)"
+        },
+        "ue_kv": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Tensión asignada en kV.",
+          "title": "Tensión asignada (kV)"
+        }
       }
     },
-
     "banco_capacitores": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "banco_capacitores" },
-        "tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "potencia_kvar": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "conexion": { "enum": ["delta", "estrella", "otra"], "x-obligatorio": false },
-        "cantidad_pasos": { "type": "integer", "minimum": 1, "x-obligatorio": false }
+        "tipo_aparato": {
+          "const": "banco_capacitores",
+          "title": "Tipo de aparato"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión (V)"
+        },
+        "potencia_kvar": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Potencia (kVAR)"
+        },
+        "conexion": {
+          "enum": [
+            "delta",
+            "estrella",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "title": "Conexión"
+        },
+        "cantidad_pasos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": false,
+          "title": "Cantidad de pasos"
+        }
       }
     },
-
     "portafusible": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "portafusible" },
-        "portafusible_marca": { "type": "string", "x-obligatorio": false },
-        "portafusible_modelo": { "type": "string", "x-obligatorio": false },
-        "portafusible_tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "portafusible_categoria": { "type": "string", "x-obligatorio": false },
-        "corriente_maxima_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false }
+        "tipo_aparato": {
+          "const": "portafusible",
+          "title": "Tipo de aparato"
+        },
+        "portafusible_marca": {
+          "type": "string",
+          "x-obligatorio": false,
+          "title": "Marca del portafusible"
+        },
+        "portafusible_modelo": {
+          "type": "string",
+          "x-obligatorio": false,
+          "title": "Modelo del portafusible"
+        },
+        "portafusible_tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión del portafusible (V)"
+        },
+        "portafusible_categoria": {
+          "type": "string",
+          "x-obligatorio": false,
+          "title": "Categoría del portafusible"
+        },
+        "corriente_maxima_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Corriente máxima (A)"
+        }
       }
     },
-
     "interruptor_diferencial": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "interruptor_diferencial" },
-        "cantidad_polos": { "type": "integer", "minimum": 1, "maximum": 4, "x-obligatorio": true },
-        "in_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "sensibilidad_ma": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Sensibilidad IΔn en mA (ej: 30, 300)." },
-        "tipo_diferencial": { "enum": ["AC", "A", "B", "F"], "x-obligatorio": false },
-        "norma_fabricacion": { "type": "string", "x-obligatorio": true, "description": "Norma (ej: \"IEC 61008\", \"IEC 61009\")." }
+        "tipo_aparato": {
+          "const": "interruptor_diferencial",
+          "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "x-obligatorio": true,
+          "title": "Cantidad de polos"
+        },
+        "in_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Corriente nominal (A)"
+        },
+        "sensibilidad_ma": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Sensibilidad IΔn en mA (ej: 30, 300).",
+          "title": "Sensibilidad (mA)"
+        },
+        "tipo_diferencial": {
+          "enum": [
+            "AC",
+            "A",
+            "B",
+            "F"
+          ],
+          "x-obligatorio": false,
+          "title": "Tipo diferencial"
+        },
+        "norma_fabricacion": {
+          "type": "string",
+          "x-obligatorio": true,
+          "description": "Norma (ej: \"IEC 61008\", \"IEC 61009\").",
+          "title": "Norma de fabricación"
+        }
       }
     },
-
     "rele_proteccion_tension": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "rele_proteccion_tension" },
-        "ue_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "subtension_pct": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Umbral de subtensión %." },
-        "sobretension_pct": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true, "description": "Umbral de sobretensión %." },
-        "asimetria_pct": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false, "description": "Umbral de asimetría %." },
-        "retardo_disparo_s": { "type": "number", "minimum": 0, "x-obligatorio": true, "description": "Retardo de disparo en segundos." }
+        "tipo_aparato": {
+          "const": "rele_proteccion_tension",
+          "title": "Tipo de aparato"
+        },
+        "ue_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión asignada (V)"
+        },
+        "subtension_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Umbral de subtensión %.",
+          "title": "Umbral subtensión (%)"
+        },
+        "sobretension_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Umbral de sobretensión %.",
+          "title": "Umbral sobretensión (%)"
+        },
+        "asimetria_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Umbral de asimetría %.",
+          "title": "Umbral de asimetría (%)"
+        },
+        "retardo_disparo_s": {
+          "type": "number",
+          "minimum": 0,
+          "x-obligatorio": true,
+          "description": "Retardo de disparo en segundos.",
+          "title": "Retardo de disparo (s)"
+        }
       }
     },
-
     "rele_auxiliar": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "rele_auxiliar" },
-        "tension_bobina_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "configuracion_contactos": { "enum": ["2PDT", "3PDT", "4PDT", "otra"], "x-obligatorio": true },
-        "capacidad_termica_contactos_a": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true }
+        "tipo_aparato": {
+          "const": "rele_auxiliar",
+          "title": "Tipo de aparato"
+        },
+        "tension_bobina_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión de bobina (V)"
+        },
+        "configuracion_contactos": {
+          "enum": [
+            "2PDT",
+            "3PDT",
+            "4PDT",
+            "otra"
+          ],
+          "x-obligatorio": true,
+          "title": "Configuración de contactos"
+        },
+        "capacidad_termica_contactos_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Capacidad térmica contactos (A)"
+        }
       }
     },
-
     "sirena_alarma": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "sirena_alarma" },
-        "tension_v": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": true },
-        "tipo_senal": { "enum": ["continua", "intermitente", "multitonos", "otra"], "x-obligatorio": true },
-        "nivel_sonoro_db": { "type": "number", "exclusiveMinimum": 0, "x-obligatorio": false }
+        "tipo_aparato": {
+          "const": "sirena_alarma",
+          "title": "Tipo de aparato"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión (V)"
+        },
+        "tipo_senal": {
+          "enum": [
+            "continua",
+            "intermitente",
+            "multitonos",
+            "otra"
+          ],
+          "x-obligatorio": true,
+          "title": "Tipo de señal"
+        },
+        "nivel_sonoro_db": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Nivel sonoro (dB)"
+        }
       }
     },
-
     "instrumento_medicion": {
       "type": "object",
       "additionalProperties": false,
-      "allOf": [{ "$ref": "#/$defs/base_comun" }],
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
       "properties": {
-        "tipo_aparato": { "const": "instrumento_medicion" },
-        "tipo_instrumento": { "enum": ["voltimetro", "amperimetro", "multifuncion", "otro"], "x-obligatorio": true },
-        "escala": { "type": "string", "x-obligatorio": true, "description": "Escala de medición (ej: \"0-600 V\", \"0-500 A\")." },
-        "clase_precision": { "type": "string", "x-obligatorio": false }
+        "tipo_aparato": {
+          "const": "instrumento_medicion",
+          "title": "Tipo de aparato"
+        },
+        "tipo_instrumento": {
+          "enum": [
+            "voltimetro",
+            "amperimetro",
+            "multifuncion",
+            "otro"
+          ],
+          "x-obligatorio": true,
+          "title": "Tipo de instrumento"
+        },
+        "escala": {
+          "type": "string",
+          "x-obligatorio": true,
+          "description": "Escala de medición (ej: \"0-600 V\", \"0-500 A\").",
+          "title": "Escala de medición"
+        },
+        "clase_precision": {
+          "type": "string",
+          "x-obligatorio": false,
+          "title": "Clase de precisión"
+        }
       }
+    },
+    "guardamotor_magnetico": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "guardamotor_magnetico"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "title": "Cantidad de polos"
+        },
+        "ue_V": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión de operación (V)"
+        },
+        "categoria_empleo": {
+          "enum": [
+            "AC-3",
+            "AC-4",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "title": "Categoría de empleo"
+        },
+        "ii_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Disparo magnético instantáneo Ii.",
+          "title": "Disparo magnético instantáneo (A)"
+        },
+        "icu_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "description": "Poder de corte en cortocircuito Icu en kA.",
+          "title": "Poder de corte Icu (kA)"
+        },
+        "ics_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Poder de corte de servicio Ics en kA.",
+          "title": "Poder de corte servicio Ics (A)"
+        }
+      },
+      "description": "Guardamotor magnético (IEC 60947-2/4-1): protege SOLO contra cortocircuito, con disparo magnético instantáneo. No lleva disparador térmico, por eso no declara rango de ajuste térmico Ir; la protección contra sobrecarga la aporta un relé térmico aparte. Simbólicamente se distingue del termomagnético en que lleva una sola caja de disparador."
     }
   }
 }

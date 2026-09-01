@@ -4,6 +4,7 @@ import {
   camposDeFamilia,
   algunoObligatorio,
   parAutomatico,
+  campoVisible,
 } from "../lib/esquemas";
 
 interface Props {
@@ -112,13 +113,12 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
         </p>
       )}
       {campos.map((campo) => {
-        const { nombre, esquema, obligatorio } = campo;
+        const { nombre, esquema, obligatorio, title } = campo;
         const valorActual = atributos[nombre];
 
-        // C15: campos condicionales (x-visible-si) solo se muestran
-        // cuando el campo que los gobierna está activo.
-        const visibleSi = esquema["x-visible-si"];
-        if (visibleSi && atributos[visibleSi] !== true) return null;
+        // Campos condicionales (x-visible-si): solo se muestran cuando su
+        // condición se cumple. Ver campoVisible() en lib/esquemas.ts.
+        if (!campoVisible(esquema, atributos)) return null;
         // Composición del juego de barras: la dibuja el bloque de
         // chips de más abajo (C16), no campos sueltos.
         if (
@@ -190,7 +190,7 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
         return (
           <label key={nombre} className="campo-atributo" title={esquema.description}>
             <span>
-              {nombre}
+              {title ?? nombre}
               {obligatorio && <em className="obligatorio" aria-label="obligatorio">*</em>}
             </span>
             {control}

@@ -15,6 +15,7 @@ type EsquemaCampo = {
   enum?: string[];
   const?: string;
   description?: string;
+  title?: string;
   exclusiveMinimum?: number;
   minimum?: number;
   maximum?: number;
@@ -48,6 +49,7 @@ export interface CampoDescriptor {
   nombre: string;
   esquema: EsquemaCampo;
   obligatorio: boolean;
+  title?: string;
 }
 
 export interface ReglaParAutomatico {
@@ -82,6 +84,35 @@ function propiedadesDeDef(raiz: EsquemaRaiz, def: EsquemaDef): Record<string, Es
   return props;
 }
 
+/**
+ * ¿Corresponde mostrar (y exigir) este campo?
+ *
+ * `x-visible-si` admite dos formas:
+ *   "es_conjunto"                              → el campo que gobierna debe valer true
+ *   "tipo_disparo:termomagnetico|electronico"  → debe valer alguno de esos
+ *
+ * La primera es la histórica (C15, composición del juego de barras). La
+ * segunda se agregó para el tipo de disparo del MCCB, donde la condición no es
+ * booleana sino por valor: según sea termomagnético, magnético o electrónico
+ * se habilitan distintos campos de ajuste.
+ *
+ * La usan TANTO el formulario (para ocultar) COMO el checklist (para no exigir
+ * un campo que está oculto); si solo la usara el formulario, el checklist
+ * pediría cargar campos que el usuario no puede ver.
+ */
+export function campoVisible(
+  esquema: { "x-visible-si"?: string },
+  atributos: Record<string, unknown>,
+): boolean {
+  const regla = esquema["x-visible-si"];
+  if (!regla) return true;
+  const sep = regla.indexOf(":");
+  if (sep === -1) return atributos[regla] === true;
+  const campo = regla.slice(0, sep);
+  const valores = regla.slice(sep + 1).split("|");
+  return valores.includes(String(atributos[campo] ?? ""));
+}
+
 export function subtiposAparato(): string[] {
   return Object.keys(schemaAparato.$defs ?? {}).filter((k) => k !== "base_comun");
 }
@@ -109,6 +140,7 @@ export function camposDeFamilia(
     nombre,
     esquema,
     obligatorio: esquema["x-obligatorio"] === true,
+    title: esquema.title,
   }));
 }
 

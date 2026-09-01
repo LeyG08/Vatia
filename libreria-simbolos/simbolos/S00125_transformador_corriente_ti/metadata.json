@@ -18,5 +18,8 @@
   "fuente_qet": "manual - IEC 60617",
   "nombre": "Transformador de corriente (TI)",
   "estado_revision": "verificado",
-  "familia_atributos": "aparato"
+  "familia_atributos": "aparato",
+  "atributos_base": {
+    "tipo_aparato": "transformador_corriente"
+  }
 }
