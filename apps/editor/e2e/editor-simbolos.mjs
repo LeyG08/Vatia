@@ -160,7 +160,9 @@ async function probarGuardadoReal() {
   const dirSimbolo = fs.readdirSync(path.join(raizRepo, "libreria-simbolos", "simbolos"))
     .find((d) => d.startsWith(codigoPrueba + "_"));
   const rutaSvg = path.join(raizRepo, "libreria-simbolos", "simbolos", dirSimbolo, "simbolo.svg");
+  const rutaMeta = path.join(raizRepo, "libreria-simbolos", "simbolos", dirSimbolo, "metadata.json");
   const svgAntes = fs.readFileSync(rutaSvg, "utf8");
+  const metaAntes = fs.readFileSync(rutaMeta, "utf8");
 
   let resultado = { ok: false, problemas: ["no se pudo ejecutar la prueba"] };
   try {
@@ -170,10 +172,15 @@ async function probarGuardadoReal() {
     await pagina.waitForTimeout(500);
 
     const caja = await pagina.locator("canvas").first().boundingBox();
-    await pagina.mouse.click(caja.x + caja.width / 2, caja.y + 100);
+    // y=400 cae sobre el cuerpo del símbolo (una polyline), lejos de los
+    // terminales "in"/"out" — no queremos agarrar un punto de conexión acá:
+    // esa alineación a grilla la cubre probarPuntoConexion() más abajo, con
+    // un desplazamiento exacto. Esta prueba solo verifica que el SVG
+    // guardado quede limpio, sin importar la magnitud del arrastre.
+    await pagina.mouse.click(caja.x + caja.width / 2, caja.y + 400);
     await pagina.waitForTimeout(150);
     await pagina.mouse.down();
-    await pagina.mouse.move(caja.x + caja.width / 2 + 5, caja.y + 100, { steps: 5 });
+    await pagina.mouse.move(caja.x + caja.width / 2 + 5, caja.y + 400, { steps: 5 });
     await pagina.mouse.up();
     await pagina.waitForTimeout(200);
 
@@ -204,12 +211,101 @@ async function probarGuardadoReal() {
   } finally {
     // Dejar el repo tal cual estaba, haya pasado o no la prueba.
     fs.writeFileSync(rutaSvg, svgAntes, "utf8");
+    fs.writeFileSync(rutaMeta, metaAntes, "utf8");
     const headDespues = execFileSync("git", ["rev-parse", "HEAD"], { cwd: raizRepo, encoding: "utf8" }).trim();
     if (headDespues !== headAntes) {
       execFileSync("git", ["reset", "--soft", headAntes], { cwd: raizRepo, stdio: "pipe" });
     }
     try {
-      execFileSync("git", ["checkout", "HEAD", "--", rutaSvg], { cwd: raizRepo, stdio: "pipe" });
+      execFileSync("git", ["checkout", "HEAD", "--", rutaSvg, rutaMeta], { cwd: raizRepo, stdio: "pipe" });
+    } catch { /* si no estaba trackeado con cambios, no hace falta */ }
+  }
+  return resultado;
+}
+
+/**
+ * Prueba del punto de conexion (E6): arrastrar un terminal en el editor
+ * de geometria y guardar cambiaba solo el dibujo del SVG. NodoSimbolo.tsx
+ * arma los handles del diagrama leyendo UNICAMENTE metadata.json, asi que
+ * el cable seguia enganchando en la posicion vieja -- el "salto" reportado.
+ * Arrastra el terminal "in" de S00110 una distancia EXACTA y alineada a
+ * grilla (5 unidades SVG) y verifica que metadata.json quede con esa
+ * coordenada nueva, no con la original.
+ */
+async function probarPuntoConexion() {
+  const fs = await import("node:fs");
+  const codigoPrueba = "S00110";
+  const headAntes = execFileSync("git", ["rev-parse", "HEAD"], { cwd: raizRepo, encoding: "utf8" }).trim();
+  const dirSimbolo = fs.readdirSync(path.join(raizRepo, "libreria-simbolos", "simbolos"))
+    .find((d) => d.startsWith(codigoPrueba + "_"));
+  const rutaSvg = path.join(raizRepo, "libreria-simbolos", "simbolos", dirSimbolo, "simbolo.svg");
+  const rutaMeta = path.join(raizRepo, "libreria-simbolos", "simbolos", dirSimbolo, "metadata.json");
+  const svgAntes = fs.readFileSync(rutaSvg, "utf8");
+  const metaAntes = fs.readFileSync(rutaMeta, "utf8");
+  const xOriginal = JSON.parse(metaAntes).puntos_conexion.find((p) => p.id === "in").x;
+
+  let resultado = { ok: false, problemas: ["no se pudo ejecutar la prueba"] };
+  try {
+    await pagina.locator(`text=${codigoPrueba}`).first().click();
+    await pagina.waitForTimeout(500);
+    await pagina.getByRole("button", { name: "Editar geometría" }).click();
+    await pagina.waitForTimeout(500);
+
+    const zoomTexto = await pagina.locator("text=/%$/").first().textContent();
+    const zoom = parseFloat(zoomTexto) / 100;
+    const ESCALA_EDICION = 20;
+    const DELTA_SVG_UNITS = 5; // alineado a grilla: x*2 debe ser multiplo de 10
+    const deltaPx = Math.round(DELTA_SVG_UNITS * ESCALA_EDICION * zoom);
+
+    const caja = await pagina.locator("canvas").first().boundingBox();
+    // El terminal "in" de S00110 queda cerca de y=95 en pantalla al zoom
+    // por defecto (ver captura de referencia en scratchpad/evidencia-bug).
+    const origen = { x: caja.x + caja.width / 2, y: caja.y + 95 };
+    await pagina.mouse.move(origen.x, origen.y);
+    await pagina.mouse.down();
+    await pagina.mouse.move(origen.x + deltaPx, origen.y, { steps: 10 });
+    await pagina.mouse.up();
+    await pagina.waitForTimeout(200);
+
+    const [respuesta] = await Promise.all([
+      pagina.waitForResponse((r) => r.url().includes("/api/geometry")),
+      pagina.getByRole("button", { name: "Guardar", exact: true }).click(),
+    ]);
+    const cuerpo = await respuesta.json();
+
+    const problemas = [];
+    if (!cuerpo.ok) {
+      problemas.push(`el guardado devolvió ok:false — ${JSON.stringify(cuerpo.errores)}`);
+    } else if (!cuerpo.metadata) {
+      problemas.push("arrastré el terminal pero la respuesta no trae metadata actualizada");
+    } else {
+      const puntoIn = cuerpo.metadata.puntos_conexion.find((pt) => pt.id === "in");
+      const xEsperado = xOriginal + DELTA_SVG_UNITS;
+      if (!puntoIn || Math.abs(puntoIn.x - xEsperado) > 1e-6) {
+        problemas.push(
+          `metadata.json quedó con x=${puntoIn?.x} para el terminal "in", ` +
+          `esperaba ${xEsperado} (original ${xOriginal} + arrastre ${DELTA_SVG_UNITS})`,
+        );
+      }
+      // Confirmar tambien en disco, no solo en la respuesta HTTP.
+      const metaDisco = JSON.parse(fs.readFileSync(rutaMeta, "utf8"));
+      const puntoDisco = metaDisco.puntos_conexion.find((pt) => pt.id === "in");
+      if (!puntoDisco || Math.abs(puntoDisco.x - xEsperado) > 1e-6) {
+        problemas.push(`metadata.json en disco no coincide con la respuesta (x=${puntoDisco?.x})`);
+      }
+    }
+    resultado = { ok: problemas.length === 0, problemas };
+  } catch (err) {
+    resultado = { ok: false, problemas: [`excepción durante la prueba: ${err.message}`] };
+  } finally {
+    fs.writeFileSync(rutaSvg, svgAntes, "utf8");
+    fs.writeFileSync(rutaMeta, metaAntes, "utf8");
+    const headDespues = execFileSync("git", ["rev-parse", "HEAD"], { cwd: raizRepo, encoding: "utf8" }).trim();
+    if (headDespues !== headAntes) {
+      execFileSync("git", ["reset", "--soft", headAntes], { cwd: raizRepo, stdio: "pipe" });
+    }
+    try {
+      execFileSync("git", ["checkout", "HEAD", "--", rutaSvg, rutaMeta], { cwd: raizRepo, stdio: "pipe" });
     } catch { /* si no estaba trackeado con cambios, no hace falta */ }
   }
   return resultado;
@@ -222,6 +318,14 @@ if (guardado.ok) {
 } else {
   fallos.push("guardado-geometria");
   for (const p of guardado.problemas) console.log(`  ✗ guardado de geometría: ${p}`);
+}
+
+const puntoConexion = await probarPuntoConexion();
+if (puntoConexion.ok) {
+  console.log("  ✓ arrastrar un terminal actualiza metadata.json (no solo el dibujo)");
+} else {
+  fallos.push("punto-conexion");
+  for (const p of puntoConexion.problemas) console.log(`  ✗ punto de conexión: ${p}`);
 }
 
 await navegador.close();

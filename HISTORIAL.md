@@ -2270,3 +2270,124 @@ ahí también.** No es una regresión de esta sesión; es deuda ya presente.
 Queda fuera de alcance de esta etapa (el pedido del usuario fue terminar el
 editor de símbolos). Se registra para que quede visible en la próxima pasada
 sobre el editor de diagrama principal.
+
+---
+
+## E6 — El bug real de "el elemento se va a otra posición": metadata.json nunca se sincronizaba (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Reporte del usuario
+
+Además de señalar 7 símbolos con geometría incorrecta (§ver E7), el usuario
+reportó: *"cuando guardás en determinada posición luego el elemento que se
+desplazó se va a otra posición"*. Mientras se investigaba, apareció un diff
+sin commitear en `S00132` que **no generó ninguno de mis scripts** — todo
+indica que salió de que el propio usuario probó la app en el dev server que
+había quedado corriendo. Es evidencia en vivo del bug, guardada en
+`scratchpad/evidencia-bug/` antes de descartarla del working tree.
+
+### Diagnóstico
+
+`apps/editor/src/componentes/NodoSimbolo.tsx:79` arma los `Handle` de React
+Flow (donde engancha un cable en el diagrama) leyendo **única y
+exclusivamente** `simbolo.metadata.puntos_conexion` — nunca el SVG. El
+círculo rojo/azul dibujado dentro del símbolo es geometría aparte.
+
+El editor de geometría (`EditorSimbolos.tsx`) permite arrastrar ese círculo
+(está cargado como una primitiva más, seleccionable). El guardado
+(`POST /api/geometry`) escribía el SVG con el círculo en su nueva posición
+— pero **nunca tocaba `metadata.json`**. Consecuencia: el dibujo se movía,
+`metadata.json.puntos_conexion` quedaba intacto, y como el diagrama usa
+exclusivamente ese archivo, el cable seguía enganchando en la posición
+vieja. **La función no tenía ningún efecto real**: mover un terminal en el
+editor nunca cambiaba dónde conecta el cable en el diagrama — solo corría
+un dibujo decorativo.
+
+Prueba controlada que lo confirmó: arrastré el terminal "in" de S00110
+40 px de pantalla (2,857 unidades SVG, fuera de grilla) → el SVG guardó
+la nueva posición del círculo con exactitud matemática, pero
+`metadata.json` siguió en `x: 0.0` sin cambios.
+
+### La corrección
+
+**Carga** (`EditorSimbolos.tsx`): al cargar cada primitiva, si su posición
+SVG original coincide (tolerancia 0,5 u) con un `puntos_conexion[i]` del
+metadata, se la etiqueta con `_idPuntoConexion` y se guarda su posición
+original en `_origPuntoConexion`.
+
+**Guardado** (`guardarGeometria`): durante la conversión canvas→SVG, para
+cada primitiva etiquetada se compara su posición final contra la original;
+solo si difiere se agrega a un mapa de "puntos movidos". Se arma un
+`puntos_conexion` actualizado (solo si hubo algún movimiento real — ver
+más abajo por qué) y se manda al servidor junto con el SVG.
+
+**Servidor** (`vite.config.ts`, `POST /api/geometry`): acepta un campo
+opcional `puntos_conexion`. Si viene, hace backup de `metadata.json`
+también (no solo del SVG), escribe ambos archivos, corre el lint — que
+**de paso valida que la nueva posición siga alineada a grilla**, la misma
+regla que ya rige para todo lo demás en `AGENTS.md` — y si falla restaura
+**ambos** backups. Si pasa, commitea SVG + metadata.json **juntos, en un
+solo commit** (`commitearSeguro()` se extendió para aceptar una lista de
+archivos). La respuesta incluye el `metadata` actualizado, que el cliente
+aplica de inmediato al caché `SIMBOLOS` — sin esto, el diagrama seguiría
+mostrando el handle viejo hasta recargar la página.
+
+**Ajuste posterior, encontrado al probar:** la primera versión mandaba el
+`puntos_conexion` completo en **cada** guardado, aunque nadie hubiera
+tocado un terminal — porque el loop marcaba "movido" a cualquier primitiva
+etiquetada, sin comparar contra su posición original. Eso reescribía
+`metadata.json` en cada guardado, con el mismo contenido pero reformateado
+por `JSON.stringify(..., 2)` (ruido de diff puro). Corregido comparando
+contra `_origPuntoConexion`: ahora solo se manda (y solo se commitea
+`metadata.json`) cuando un punto realmente cambió de posición.
+
+### Bug secundario encontrado en el camino: texto sin ancla
+
+La evidencia del usuario en S00132 mostró que `fc.toSVG()` también
+descarta `text-anchor="middle"` y `dominant-baseline="central"` de
+cualquier `<text>`. El original centra la letra ("V", "M 3~", "U<>")
+sobre su punto con esos dos atributos; el SVG re-exportado por Fabric
+emite `<tspan x=... y=...>` sin ellos, así que **cualquier visor que no
+sea Fabric** (el diagrama, un navegador común, esta misma galería) dibuja
+el glifo con ancla-inicio/línea-base-alfabética por defecto — en otra
+posición. Afecta a los tres símbolos con texto: S00115, S00129, S00132.
+
+Corregido reinyectando ambos atributos a cualquier `<text>` del SVG
+exportado (todos los textos de esta librería usan la misma convención
+centrada, así que no hace falta distinguir casos).
+
+### Verificación
+
+Con un dev server recién levantado (ver E3: los cambios de
+`vite.config.ts` necesitan reinicio, no alcanza con HMR):
+
+- Arrastré el terminal "in" de S00110 exactamente 5 unidades SVG
+  (alineado a grilla) → `metadata.json` quedó con `x: 5` — coincide
+  exacto con el arrastre, confirmado en la respuesta HTTP y releído del
+  disco.
+- El mismo arrastre pero fuera de grilla (40 px de pantalla) → el lint lo
+  **rechazó** con el mismo mensaje específico que usa para cualquier otro
+  desalineamiento, y no tocó ningún archivo. Es el comportamiento
+  correcto: la regla de grilla de `AGENTS.md` se aplica igual acá.
+- Arrastrar una primitiva que NO es un punto de conexión (la elipse de
+  S00132) → `metadata.json` no se toca, la respuesta no trae `metadata`.
+- S00132 con drag: el `<text>` guardado incluye
+  `text-anchor="middle" dominant-baseline="central"`.
+
+**Arnés E2E actualizado** (`e2e/editor-simbolos.mjs`): nueva
+`probarPuntoConexion()` — arrastra el terminal "in" de S00110 5 unidades
+exactas y verifica que `metadata.json` (respuesta HTTP y disco) quede con
+la coordenada nueva. `probarGuardadoReal()` reubicada: su arrastre de
+prueba agarraba por casualidad el mismo terminal con una distancia
+arbitraria no alineada a grilla, y con la validación nueva eso ahora
+falla el lint correctamente — se movió el punto de agarre a una zona del
+cuerpo del símbolo que no es un punto de conexión, ya que esa prueba
+verifica limpieza del SVG, no alineación. Ambas pruebas respaldan y
+restauran `metadata.json` además del SVG en su `finally`.
+
+`npm run build`, `npm run lint`, `lint_simbolos.py` (20/20),
+`verificar_alineacion.mjs`, `verificar_proyecto_real.mjs` y
+`npm run e2e:simbolos` (20 símbolos + guardado + punto de conexión):
+todo verde. Repo verificado limpio tras cada corrida del arnés (HEAD sin
+moverse, `git status` vacío).

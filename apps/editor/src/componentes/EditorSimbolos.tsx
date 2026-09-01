@@ -149,10 +149,24 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       // alcanza para que no aparezcan en el archivo exportado.
       for (const m of markers) fc.remove(m);
 
+      // Posiciones finales de los puntos de conexion que se hayan arrastrado
+      // (ver el etiquetado _idPuntoConexion al cargar). Van al servidor junto
+      // con el SVG para que metadata.json quede sincronizado: sin esto, mover
+      // un terminal solo corria el dibujo y el diagrama seguia usando la
+      // coordenada vieja de metadata.json.
+      const puntosMovidos = new Map<string, { x: number; y: number }>();
+
       for (const p of prims) {
         const svgX = ((p.left ?? 0) - offsetX) / ESCALA_EDICION;
         const svgY = ((p.top ?? 0) - offsetY) / ESCALA_EDICION;
         p.set({ left: svgX, top: svgY, scaleX: 1, scaleY: 1 });
+        const idPunto = (p as any)._idPuntoConexion as string | undefined;
+        if (idPunto) {
+          const orig = (p as any)._origPuntoConexion as { x: number; y: number } | undefined;
+          const semueve =
+            !orig || Math.abs(orig.x - svgX) > 1e-6 || Math.abs(orig.y - svgY) > 1e-6;
+          if (semueve) puntosMovidos.set(idPunto, { x: svgX, y: svgY });
+        }
       }
 
       fc.setViewportTransform([1, 0, 0, 1, 0, 0]);
@@ -177,6 +191,10 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
           .slice(apertura.index! + apertura[0].length, cierre)
           .replace(/<desc>[\s\S]*?<\/desc>/, "")
           .replace(/<defs>\s*<\/defs>/, "")
+          .replace(
+            /<text\b(?![^>]*text-anchor)/g,
+            '<text text-anchor="middle" dominant-baseline="central"',
+          )
           .trim()
       }</svg>`;
 
@@ -191,16 +209,41 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       fc.setViewportTransform([zoom, 0, 0, zoom, 0, 0]);
       fc.renderAll();
 
+      const puntosActualizados =
+        puntosMovidos.size > 0
+          ? seleccionado.metadata.puntos_conexion.map((pc) => {
+              const movido = puntosMovidos.get(pc.id);
+              return movido ? { ...pc, x: movido.x, y: movido.y } : pc;
+            })
+          : undefined;
+
       const res = await fetch("/api/geometry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codigo: seleccionado.codigo_iec, svg }),
+        body: JSON.stringify({
+          codigo: seleccionado.codigo_iec,
+          svg,
+          ...(puntosActualizados ? { puntos_conexion: puntosActualizados } : {}),
+        }),
       });
       const data = await res.json();
       if (data.ok) {
         const prev = SIMBOLOS.get(seleccionado.codigo_iec);
-        if (prev) { prev.svgRaw = data.svg; prev.viewBox = data.viewBox; }
-        setSeleccionado(prev ? { ...prev, svgRaw: data.svg, viewBox: data.viewBox } as SimboloDef : null);
+        if (prev) {
+          prev.svgRaw = data.svg;
+          prev.viewBox = data.viewBox;
+          if (data.metadata) prev.metadata = data.metadata;
+        }
+        setSeleccionado(
+          prev
+            ? ({
+                ...prev,
+                svgRaw: data.svg,
+                viewBox: data.viewBox,
+                ...(data.metadata ? { metadata: data.metadata } : {}),
+              } as SimboloDef)
+            : null,
+        );
         setTick((t) => t + 1);
         setDirty(false);
         setEditando(false);
@@ -402,15 +445,37 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
         // se limita a reinterpretar left/top como esquina, y cada primitiva se
         // corre media caja. Ese era el desfase que partía el símbolo en dos
         // fragmentos (C37–C40). Se conserva el origen que trae Fabric.
+
+        // ANTES de transformar a espacio de canvas: left/top todavía son
+        // coordenadas SVG crudas (sin viewBox en el wrapper temporal, 1:1
+        // con las unidades del archivo). Si esta primitiva es el círculo de
+        // un punto_conexion —su centro coincide con un punto del metadata—,
+        // la etiquetamos con su id. Sin esto, arrastrar el terminal en el
+        // editor movía el dibujo pero NodoSimbolo.tsx (que arma los handles
+        // del diagrama leyendo ÚNICAMENTE metadata.json, nunca el SVG) seguía
+        // enganchando el cable en la posición vieja: el punto se rompía al
+        // aparentar guardarse.
+        const svgXOriginal = obj.left ?? 0;
+        const svgYOriginal = obj.top ?? 0;
+        const puntoCoincidente = seleccionado.metadata.puntos_conexion.find(
+          (pc) =>
+            Math.abs(pc.x - svgXOriginal) < 0.5 &&
+            Math.abs(pc.y - svgYOriginal) < 0.5,
+        );
+
         obj.set({
-          left: (obj.left ?? 0) * ESCALA_EDICION + ox,
-          top: (obj.top ?? 0) * ESCALA_EDICION + oy,
+          left: svgXOriginal * ESCALA_EDICION + ox,
+          top: svgYOriginal * ESCALA_EDICION + oy,
           scaleX: ESCALA_EDICION,
           scaleY: ESCALA_EDICION,
           selectable: false,
           evented: false,
         });
         (obj as any)._esPrimitiva = true;
+        if (puntoCoincidente) {
+          (obj as any)._idPuntoConexion = puntoCoincidente.id;
+          (obj as any)._origPuntoConexion = { x: puntoCoincidente.x, y: puntoCoincidente.y };
+        }
         fc.add(obj);
       }
 

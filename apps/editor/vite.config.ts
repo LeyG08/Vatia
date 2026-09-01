@@ -39,11 +39,15 @@ interface ResultadoCommit {
 }
 
 /**
- * Commitea un único archivo, salvo que la rama activa esté protegida.
- * Usa execFileSync (sin shell) porque el mensaje lleva caracteres como "→"
- * que el shell de Windows no pasa de forma confiable.
+ * Commitea uno o varios archivos juntos, salvo que la rama activa esté
+ * protegida. Usa execFileSync (sin shell) porque el mensaje lleva caracteres
+ * como "→" que el shell de Windows no pasa de forma confiable.
  */
-function commitearSeguro(archivo: string, mensaje: string): ResultadoCommit {
+function commitearSeguro(
+  archivos: string | string[],
+  mensaje: string,
+): ResultadoCommit {
+  const lista = Array.isArray(archivos) ? archivos : [archivos];
   const rama = ramaActiva();
   if (rama === null) {
     return { commiteado: false, motivo: "no pude leer la rama activa de git" };
@@ -58,7 +62,7 @@ function commitearSeguro(archivo: string, mensaje: string): ResultadoCommit {
     };
   }
   try {
-    execFileSync("git", ["add", "--", archivo], { cwd: raizRepo, stdio: "pipe" });
+    execFileSync("git", ["add", "--", ...lista], { cwd: raizRepo, stdio: "pipe" });
     execFileSync("git", ["commit", "-m", mensaje], { cwd: raizRepo, stdio: "pipe" });
     return { commiteado: true, rama };
   } catch {
@@ -211,9 +215,19 @@ function watchLibreria(): Plugin {
         req.on("data", (chunk) => { body += chunk; });
         req.on("end", () => {
           try {
-            const { codigo, svg } = JSON.parse(body) as {
+            const { codigo, svg, puntos_conexion: puntosNuevos } = JSON.parse(body) as {
               codigo: string;
               svg: string;
+              /**
+               * Opcional: posiciones actualizadas de puntos_conexion (mismo
+               * shape que metadata.json). El editor las manda cuando el
+               * usuario arrastró el círculo de un terminal. Sin esto, mover
+               * un terminal en "Editar geometría" solo corría el dibujo:
+               * NodoSimbolo.tsx arma los handles del diagrama leyendo ÚNICA
+               * y EXCLUSIVAMENTE metadata.json, nunca el SVG, así que el
+               * cable seguía enganchando en la posición vieja.
+               */
+              puntos_conexion?: Array<{ id: string; rol: string; x: number; y: number }>;
             };
 
             if (!codigo || typeof codigo !== "string") {
@@ -240,15 +254,36 @@ function watchLibreria(): Plugin {
             }
 
             const svgPath = path.join(libRoot, dir, "simbolo.svg");
-            const backupPath = svgPath + ".bak";
+            const svgBackupPath = svgPath + ".bak";
+            const metaPath = path.join(libRoot, dir, "metadata.json");
+            const metaBackupPath = metaPath + ".bak";
 
-            // Backup original
-            fs.copyFileSync(svgPath, backupPath);
+            // Backup — SVG siempre; metadata.json solo si vamos a tocarlo.
+            fs.copyFileSync(svgPath, svgBackupPath);
+            let metaTocado = false;
+            if (Array.isArray(puntosNuevos) && puntosNuevos.length > 0) {
+              fs.copyFileSync(metaPath, metaBackupPath);
+              const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+              meta.puntos_conexion = puntosNuevos;
+              fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + "\n", "utf8");
+              metaTocado = true;
+            }
+
+            const restaurarBackups = () => {
+              fs.copyFileSync(svgBackupPath, svgPath);
+              fs.unlinkSync(svgBackupPath);
+              if (metaTocado) {
+                fs.copyFileSync(metaBackupPath, metaPath);
+                fs.unlinkSync(metaBackupPath);
+              }
+            };
 
             // Write edited SVG
             fs.writeFileSync(svgPath, svg, "utf8");
 
-            // Run lint
+            // Run lint. Como ahora puede haber tocado metadata.json también,
+            // esto valida de paso que los puntos_conexion nuevos sigan
+            // alineados a grilla (misma regla que AGENTS.md exige siempre).
             let lintOk = true;
             let lintErrores: string[] = [];
             try {
@@ -277,9 +312,7 @@ function watchLibreria(): Plugin {
             }
 
             if (!lintOk) {
-              // Restore backup
-              fs.copyFileSync(backupPath, svgPath);
-              fs.unlinkSync(backupPath);
+              restaurarBackups();
               res.end(JSON.stringify({ ok: false, errores: lintErrores }));
               return;
             }
@@ -294,15 +327,23 @@ function watchLibreria(): Plugin {
               }
             }
 
-            const commit = commitearSeguro(
-              svgPath,
-              `simbolos: ${codigo} geometria actualizada`,
-            );
+            const archivosACommitear = metaTocado ? [svgPath, metaPath] : [svgPath];
+            const mensaje = metaTocado
+              ? `simbolos: ${codigo} geometria y puntos de conexión actualizados`
+              : `simbolos: ${codigo} geometria actualizada`;
+            const commit = commitearSeguro(archivosACommitear, mensaje);
 
-            // Cleanup backup
-            try { fs.unlinkSync(backupPath); } catch { /* ok */ }
+            // Cleanup backups
+            try { fs.unlinkSync(svgBackupPath); } catch { /* ok */ }
+            if (metaTocado) {
+              try { fs.unlinkSync(metaBackupPath); } catch { /* ok */ }
+            }
 
-            res.end(JSON.stringify({ ok: true, svg, viewBox, commit }));
+            const metadataActual = metaTocado
+              ? JSON.parse(fs.readFileSync(metaPath, "utf8"))
+              : undefined;
+
+            res.end(JSON.stringify({ ok: true, svg, viewBox, commit, metadata: metadataActual }));
           } catch (err) {
             res.statusCode = 500;
             res.end(JSON.stringify({ error: String(err) }));
