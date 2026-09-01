@@ -46,6 +46,11 @@ jobs:
       - name: Lint de la librería de símbolos
         run: python scripts/lint_simbolos.py
 
+      # Los tipos de las fichas se derivan de los schemas. Si alguien toca un
+      # schema y no regenera, este paso lo caza antes del merge.
+      - name: Tipos de atributos sincronizados con los schemas
+        run: python scripts/generar_tipos_atributos.py --verificar
+
       - name: Verificar alineación de handles y rutas
         run: node scripts/verificar_alineacion.mjs
 

@@ -2940,3 +2940,69 @@ de Google Drive dentro del repo.
 
 Build verde, oxlint con los dos warnings preexistentes, `lint_simbolos` 20/20,
 `verificar_alineacion` y `verificar_proyecto_real` verdes.
+
+---
+
+## E10 — Paso 1: tipos derivados de los schemas y lectura normalizada (01/09/2026)
+
+**Rama:** `proyecto/fundaciones-datos-20260901`.
+
+### Los tipos ahora se derivan, no se escriben
+
+Nuevo `scripts/generar_tipos_atributos.py` → `apps/editor/src/lib/tiposAtributos.ts`
+(21 interfaces, commiteado para que el editor compile sin correr Python).
+
+Se generan del **mismo** schema que ya gobierna los formularios, así que no
+pueden desincronizarse. La CI lo verifica con `--verificar`, que falla si
+alguien tocó un schema sin regenerar.
+
+Decisión de diseño: **todos los campos salen opcionales salvo el discriminante
+`tipo_aparato`**. No es descuido — en el editor la ficha se completa de a poco,
+así que un aparato recién puesto en el plano tiene los atributos vacíos. La
+obligatoriedad la sigue llevando `x-obligatorio`, que el Checklist AEA reporta
+sin bloquear.
+
+### Lectura normalizada: `lib/electrico.ts`
+
+Un verificador de selectividad necesita preguntar *"¿cuál es el poder de corte
+de este aparato?"* sin saber de qué subtipo se trata. Hoy no puede, porque cada
+subtipo nombra lo mismo a su manera:
+
+| Concepto | Cómo se llama según el subtipo |
+|---|---|
+| Poder de corte | `pdcc_kA` en termomagnético, MCCB y fusible; `icu_kA` + `ics_kA` en los guardamotores |
+| Rango de ajuste | **`ir_a_min` / `ir_a_max`** en el MCCB; **`ir_min_a` / `ir_max_a`** en guardamotor y relé térmico |
+
+Lo del rango es una inconsistencia real de nomenclatura, no una distinción
+técnica: **el mismo concepto con el sufijo invertido**. Se descubrió al mapear
+los subtipos y hoy está absorbida por `rangoAjusteA()`.
+
+El módulo expone `comoAparato()`, `tipoDeAparato()`, `poderDeCorteKA()`,
+`poderDeCorteServicioKA()`, `rangoAjusteA()` y `corrienteNominalA()`. En los
+aparatos regulables, `corrienteNominalA()` devuelve el **máximo** del rango,
+que es el peor caso para verificar que la protección no supere la corriente
+admisible del conductor.
+
+### No quedó como código muerto
+
+`anotaciones.ts` duplicaba la lectura del rango en **tres** lugares (MCCB,
+guardamotor y relé térmico) y la del poder de corte en cuatro. Ahora pasa por
+los lectores normalizados.
+
+**Verificado por comparación de salida, no por "compila"**: se transpilaron con
+`tsc` la versión anterior y la nueva, y se corrieron ambas contra seis casos
+—incluidos el MCCB del proyecto real y una ficha vacía—. Las salidas son
+**idénticas**.
+
+### Bug encontrado de paso
+
+La anotación del fusible mostraba **`63 A GG`**: `capitalizar()` se aplicaba a
+`clase_caracteristica`, y `gG`, `gL` y `aM` son designaciones de IEC 60269
+**sensibles a mayúsculas**. "GG" no existe como clase de fusible. Corregido:
+ahora imprime `63 A gG`.
+
+### Verificaciones
+
+Tipos sincronizados, `lint_simbolos` 20/20, `verificar_alineacion` y
+`verificar_proyecto_real` verdes, build verde, oxlint con los dos warnings
+preexistentes.

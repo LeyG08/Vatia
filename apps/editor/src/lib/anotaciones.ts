@@ -1,5 +1,6 @@
 import type { FamiliaAtributos } from "./tipos";
 import type { DatosSimbolo } from "./store";
+import { poderDeCorteKA, rangoAjusteA } from "./electrico";
 
 /** Estética de plano: todo texto que arranca, arranca con mayúscula */
 export function capitalizar(texto: unknown): string {
@@ -9,6 +10,19 @@ export function capitalizar(texto: unknown): string {
 
 function n(v: unknown): string {
   return typeof v === "number" && Number.isFinite(v) ? String(v) : "";
+}
+
+/**
+ * "Ir min..max A" del aparato regulable.
+ *
+ * La lectura del rango va por rangoAjusteA() y no por los campos directos,
+ * porque el MCCB los nombra ir_a_min/ir_a_max y el guardamotor y el relé
+ * térmico ir_min_a/ir_max_a: el mismo dato con el sufijo invertido.
+ */
+function lineaAjuste(a: Record<string, unknown>): string {
+  const r = rangoAjusteA(a);
+  if (!r) return "";
+  return `Ir ${r.min ?? ""}..${r.max ?? ""} A`;
 }
 
 /** PdCC guardado en kA (schema); el plano lo anota en amperes */
@@ -41,7 +55,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       else if (n(a.in_a)) l.push(`${n(a.in_a)} A`);
       if (a.curva_disparo && a.curva_disparo !== "otra")
         l.push(`Curva ${a.curva_disparo}`);
-      const pdcc = pdccEnA(a.pdcc_kA);
+      const pdcc = pdccEnA(poderDeCorteKA(a));
       if (pdcc) l.push(`PdCC ${pdcc}`);
       if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
       break;
@@ -66,11 +80,13 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       if (portaDatos.length > 0) l.push(portaDatos.join(" · "));
       const f = [
         n(a.in_a) ? `${n(a.in_a)} A` : "",
-        capitalizar(a.clase_caracteristica),
+        // SIN capitalizar: gG, gL y aM son designaciones de IEC 60269
+        // sensibles a mayúsculas. "GG" no existe como clase de fusible.
+        String(a.clase_caracteristica ?? "").trim(),
       ].filter(Boolean);
       if (f.length > 0) l.push(f.join(" "));
       if (a.tamano) l.push(capitalizar(a.tamano));
-      const pdcc = pdccEnA(a.pdcc_kA);
+      const pdcc = pdccEnA(poderDeCorteKA(a));
       if (pdcc) l.push(`PdCC ${pdcc}`);
       if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
       break;
@@ -92,31 +108,28 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
     }
     case "mccb_caja_moldeada": {
       if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
-      if (n(a.ir_a_min) || n(a.ir_a_max)) {
-        l.push(`Ir ${n(a.ir_a_min)}..${n(a.ir_a_max)} A`);
-      }
+      const ajusteMccb = lineaAjuste(a);
+      if (ajusteMccb) l.push(ajusteMccb);
       if (n(a.im_a)) l.push(`Im ${n(a.im_a)} A`);
-      const pdcc = pdccEnA(a.pdcc_kA);
+      const pdcc = pdccEnA(poderDeCorteKA(a));
       if (pdcc) l.push(`PdCC ${pdcc}`);
       if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
       break;
     }
     case "guardamotor_termomagnetico": {
       if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
-      if (n(a.ir_min_a) || n(a.ir_max_a)) {
-        l.push(`Ir ${n(a.ir_min_a)}..${n(a.ir_max_a)} A`);
-      }
+      const ajusteGuardamotor = lineaAjuste(a);
+      if (ajusteGuardamotor) l.push(ajusteGuardamotor);
       if (n(a.ii_a)) l.push(`Ii ${n(a.ii_a)} A`);
-      const icu = pdccEnA(a.icu_kA);
+      const icu = pdccEnA(poderDeCorteKA(a));
       if (icu) l.push(`Icu ${icu}`);
       if (a.categoria_empleo) l.push(`Cat ${a.categoria_empleo}`);
       break;
     }
     case "rele_termico": {
       if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
-      if (n(a.ir_min_a) || n(a.ir_max_a)) {
-        l.push(`Ir ${n(a.ir_min_a)}..${n(a.ir_max_a)} A`);
-      }
+      const ajusteRele = lineaAjuste(a);
+      if (ajusteRele) l.push(ajusteRele);
       if (a.clase_disparo) l.push(`Clase ${capitalizar(a.clase_disparo)}`);
       break;
     }
