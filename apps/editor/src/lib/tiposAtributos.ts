@@ -18,12 +18,16 @@ export type TipoAparato =
   | "instrumento_medicion"
   | "interruptor_diferencial"
   | "interruptor_termomagnetico"
+  | "lampara_piloto"
   | "mccb_caja_moldeada"
   | "motor_trifasico"
   | "portafusible"
+  | "pulsador"
+  | "pulsador_emergencia"
   | "rele_auxiliar"
   | "rele_proteccion_tension"
   | "rele_termico"
+  | "selector"
   | "sirena_alarma"
   | "transformador"
   | "transformador_corriente";
@@ -206,6 +210,22 @@ export interface AparatoInterruptorTermomagnetico {
   norma_fabricacion?: string;
 }
 
+/** Lámpara piloto / de señalización, símbolo general (IEC 60617 08-80-44). */
+export interface AparatoLamparaPiloto {
+  /** Tipo de aparato */
+  tipo_aparato: "lampara_piloto";
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Color */
+  color?: "RD" | "YE" | "GN" | "BU" | "WH";
+  /** Tipo de lámpara */
+  tipo_lampara?: "LED" | "IN" | "Ne" | "FL";
+  /** Tensión (V) */
+  tension_v?: number;
+}
+
 /** Interruptor automatico en caja moldeada (IEC 60947-2). La norma no distingue aparatos por la construccion del envolvente, asi que no hay un simbolo IEC propio del MCCB: se dibuja el interruptor automatico rodeado por el envolvente moldeado, y el tipo de disparo se declara aca, en la ficha, habilitando los campos de ajuste que correspondan. */
 export interface AparatoMccbCajaMoldeada {
   /** Tipo de aparato */
@@ -278,6 +298,36 @@ export interface AparatoPortafusible {
   corriente_maxima_a?: number;
 }
 
+/** Pulsador de mando (IEC 60617 07-72-02): contacto momentáneo, retorno automático por resorte al soltar. */
+export interface AparatoPulsador {
+  /** Tipo de aparato */
+  tipo_aparato: "pulsador";
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Iluminado */
+  iluminado?: boolean;
+  /** Color */
+  color?: "RD" | "YE" | "GN" | "BU" | "WH";
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
+}
+
+/** Pulsador de parada de emergencia, cabeza de seta (IEC 60617 07-72-06): contacto NC con maniobra positiva de apertura y retención mecánica — queda enclavado hasta liberarlo a mano (girar o tirar), no vuelve solo. El contacto es siempre NC: la parada de emergencia corta, nunca cierra. */
+export interface AparatoPulsadorEmergencia {
+  /** Tipo de aparato */
+  tipo_aparato: "pulsador_emergencia";
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
+}
+
 export interface AparatoReleAuxiliar {
   /** Tipo de aparato */
   tipo_aparato: "rele_auxiliar";
@@ -331,6 +381,22 @@ export interface AparatoReleTermico {
   ir_max_a?: number;
   /** Clase de disparo */
   clase_disparo?: string;
+}
+
+/** Selector rotativo de mando (IEC 60617 07-72-04): mantiene la posición elegida, sin retorno automático salvo que se indique lo contrario. */
+export interface AparatoSelector {
+  /** Tipo de aparato */
+  tipo_aparato: "selector";
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Cantidad de posiciones */
+  posiciones?: number;
+  /** Con retorno automático */
+  con_retorno_automatico?: boolean;
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
 }
 
 export interface AparatoSirenaAlarma {
@@ -395,12 +461,16 @@ export type AtributosAparato =
   | AparatoInstrumentoMedicion
   | AparatoInterruptorDiferencial
   | AparatoInterruptorTermomagnetico
+  | AparatoLamparaPiloto
   | AparatoMccbCajaMoldeada
   | AparatoMotorTrifasico
   | AparatoPortafusible
+  | AparatoPulsador
+  | AparatoPulsadorEmergencia
   | AparatoReleAuxiliar
   | AparatoReleProteccionTension
   | AparatoReleTermico
+  | AparatoSelector
   | AparatoSirenaAlarma
   | AparatoTransformador
   | AparatoTransformadorCorriente;

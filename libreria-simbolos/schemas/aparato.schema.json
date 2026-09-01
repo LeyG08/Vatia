@@ -278,6 +278,66 @@
       "then": {
         "$ref": "#/$defs/guardamotor_magnetico"
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "pulsador"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/pulsador"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "selector"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/selector"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "pulsador_emergencia"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/pulsador_emergencia"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "lampara_piloto"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/lampara_piloto"
+      }
     }
   ],
   "$defs": {
@@ -1255,6 +1315,159 @@
         }
       },
       "description": "Guardamotor magnético (IEC 60947-2/4-1): protege SOLO contra cortocircuito, con disparo magnético instantáneo. No lleva disparador térmico, por eso no declara rango de ajuste térmico Ir; la protección contra sobrecarga la aporta un relé térmico aparte. Simbólicamente se distingue del termomagnético en que lleva una sola caja de disparador."
+    },
+    "pulsador": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "pulsador",
+          "title": "Tipo de aparato"
+        },
+        "tipo_contacto": {
+          "enum": [
+            "NA",
+            "NC"
+          ],
+          "x-obligatorio": true,
+          "description": "Lo fija el símbolo elegido (Pulsador NA / Pulsador NC): no cambia el dibujo, es para que la ficha lo declare explícito.",
+          "title": "Tipo de contacto"
+        },
+        "iluminado": {
+          "type": "boolean",
+          "x-obligatorio": false,
+          "title": "Iluminado"
+        },
+        "color": {
+          "enum": [
+            "RD",
+            "YE",
+            "GN",
+            "BU",
+            "WH"
+          ],
+          "x-obligatorio": false,
+          "x-visible-si": "iluminado",
+          "description": "Código de color IEC 60617 (RD rojo, YE amarillo, GN verde, BU azul, WH blanco). Solo aplica si el pulsador es iluminado.",
+          "title": "Color"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        }
+      },
+      "description": "Pulsador de mando (IEC 60617 07-72-02): contacto momentáneo, retorno automático por resorte al soltar."
+    },
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "selector",
+          "title": "Tipo de aparato"
+        },
+        "posiciones": {
+          "type": "integer",
+          "minimum": 2,
+          "x-obligatorio": true,
+          "title": "Cantidad de posiciones"
+        },
+        "con_retorno_automatico": {
+          "type": "boolean",
+          "x-obligatorio": false,
+          "description": "Falso (mantiene posición) es lo habitual en un selector; un selector con retorno se comporta como pulsador giratorio.",
+          "title": "Con retorno automático"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        }
+      },
+      "description": "Selector rotativo de mando (IEC 60617 07-72-04): mantiene la posición elegida, sin retorno automático salvo que se indique lo contrario."
+    },
+    "pulsador_emergencia": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "pulsador_emergencia",
+          "title": "Tipo de aparato"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        }
+      },
+      "description": "Pulsador de parada de emergencia, cabeza de seta (IEC 60617 07-72-06): contacto NC con maniobra positiva de apertura y retención mecánica — queda enclavado hasta liberarlo a mano (girar o tirar), no vuelve solo. El contacto es siempre NC: la parada de emergencia corta, nunca cierra."
+    },
+    "lampara_piloto": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "lampara_piloto",
+          "title": "Tipo de aparato"
+        },
+        "color": {
+          "enum": [
+            "RD",
+            "YE",
+            "GN",
+            "BU",
+            "WH"
+          ],
+          "x-obligatorio": true,
+          "description": "Código de color IEC 60617 (RD rojo, YE amarillo, GN verde, BU azul, WH blanco).",
+          "title": "Color"
+        },
+        "tipo_lampara": {
+          "enum": [
+            "LED",
+            "IN",
+            "Ne",
+            "FL"
+          ],
+          "x-obligatorio": false,
+          "description": "LED (diodo de emisión de luz), IN (incandescente), Ne (neón), FL (fluorescente).",
+          "title": "Tipo de lámpara"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Tensión (V)"
+        }
+      },
+      "description": "Lámpara piloto / de señalización, símbolo general (IEC 60617 08-80-44)."
     }
   }
 }

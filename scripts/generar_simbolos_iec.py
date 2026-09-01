@@ -59,8 +59,8 @@ def n(v: float) -> str:
     return f"{v:g}"
 
 
-def linea(x1, y1, x2, y2):
-    return f'  <line x1="{n(x1)}" y1="{n(y1)}" x2="{n(x2)}" y2="{n(y2)}"/>\n'
+def linea(x1, y1, x2, y2, extra=""):
+    return f'  <line x1="{n(x1)}" y1="{n(y1)}" x2="{n(x2)}" y2="{n(y2)}"{extra}/>\n'
 
 
 def polilinea(pts, extra=""):
@@ -304,26 +304,197 @@ def s00129():
     return hoja, c, "Relé de protección de tensión", "IEC 60617 07-73-18"
 
 
-# S00130 (rele/contactor auxiliar) ya NO se genera aca: por decision del
-# usuario paso a libreria-simbolos/pendiente-multifilar/, porque es un aparato
-# de COMANDO. Su bobina la energiza el circuito de control y sus contactos
-# actuan en el control; no lleva corriente de potencia, asi que no tiene lugar
-# en un unifilar de fuerza.
-
-
-SIMBOLOS = {
+SIMBOLOS_FUERZA = {
     "S00121": s00121, "S00122": s00122, "S00123": s00123, "S00127": s00127,
     "S00128": s00128, "S00129": s00129, "S00133": s00133,
+}
+
+
+# ---------------------------------------------------------------------------
+# COMANDO (Paso 1 del rediseno del editor, C42): lote piloto de 8 simbolos
+# para validar el nivel visual antes de escalar al resto de la libreria de
+# mando. Section 7 "071 Contactos" y "072 Dispositivos de Maniobra" de la
+# norma; el general de lampara sale de la Section 8 "080".
+#
+# Composicion: el contacto NA/NC es el mismo bloque "cuchilla" que ya usa la
+# libreria de fuerza (07-71-01/02), pivotando sobre el borne inferior. Los
+# aparatos accionados a mano (pulsador, selector, seta) le agregan un
+# ACTUADOR a la izquierda, unido por un enlace mecanico punteado (03-31-01) -
+# composicion HORIZONTAL, a diferencia de los calificadores de fuerza
+# (07-70-xx) que van ARRIBA de la cuchilla.
+# ---------------------------------------------------------------------------
+
+PUNTEADO = ' stroke-dasharray="1.5,1.5"'
+
+
+def contacto_na(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
+    """07-71-01 Forma 1: contacto NA, abierto en reposo.
+
+    Borne fijo arriba, cuchilla pivotando desde el borne movil (abajo) hasta
+    una punta que queda separada del borne fijo (hueco visible = abierto).
+    """
+    c = linea(cx, y_arriba, cx, -8)
+    c += linea(cx, 8, cx - 6, -8)
+    c += linea(cx, 8, cx, y_abajo)
+    return c
+
+
+def contacto_nc(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
+    """07-71-02: contacto NC, cerrado en reposo con marca de corte.
+
+    El borne fijo baja y dobla en codo hacia la izquierda; la cuchilla sale
+    de ese codo YA TOCANDO el borne movil (cerrado). La marca de "corte"
+    (este contacto abre al accionar) es un trazo corto PERPENDICULAR a la
+    cuchilla, un poco más abajo del codo -- no una X sobre el vértice, que
+    se lee confuso.
+    """
+    codo = (cx - 6, -8.0)
+    pivote = (cx, 8.0)
+    dx, dy = pivote[0] - codo[0], pivote[1] - codo[1]
+    largo = math.hypot(dx, dy)
+    ux, uy = dx / largo, dy / largo
+    px, py = -uy, ux
+    t = codo[0] + ux * 3, codo[1] + uy * 3
+    tick_h = 1.8
+
+    c = linea(cx, y_arriba, cx, -8)
+    c += linea(cx, -8, codo[0], codo[1])
+    c += linea(codo[0], codo[1], pivote[0], pivote[1])
+    c += linea(t[0] - px * tick_h, t[1] - py * tick_h, t[0] + px * tick_h, t[1] + py * tick_h)
+    c += linea(cx, 8, cx, y_abajo)
+    return c
+
+
+def actuador_pulsador(cx, cy):
+    """07-72-02: cabeza de pulsador, corchete a la izquierda del contacto."""
+    c = linea(cx, cy - 4, cx, cy + 4)
+    c += linea(cx, cy - 4, cx + 3, cy - 4)
+    c += linea(cx, cy + 4, cx + 3, cy + 4)
+    return c
+
+
+def actuador_rotativo(cx, cy):
+    """07-72-04: botón giratorio (selector), letra "F"."""
+    c = linea(cx, cy - 5, cx, cy + 5)
+    c += linea(cx, cy - 5, cx + 3, cy - 5)
+    c += linea(cx, cy, cx + 3, cy)
+    return c
+
+
+def circulo_flecha(cx, cy, r=3.5):
+    """07-70-09: maniobra positiva (flecha adentro de un círculo)."""
+    c = circulo(cx, cy, r)
+    c += linea(cx - r + 1, cy, cx + r - 1.2, cy)
+    c += linea(cx + r - 3, cy - 1.8, cx + r - 1.2, cy)
+    c += linea(cx + r - 3, cy + 1.8, cx + r - 1.2, cy)
+    return c
+
+
+def s00124():
+    hoja = "-10.0 -25.0 20.0 50.0"
+    return hoja, contacto_na(), "Contacto auxiliar NA", "IEC 60617 07-71-01 Forma 1"
+
+
+def s00134():
+    hoja = "-10.0 -25.0 20.0 50.0"
+    return hoja, contacto_nc(), "Contacto auxiliar NC", "IEC 60617 07-71-02"
+
+
+def s00135():
+    """Pulsador NA - 07-72-02: corchete de pulsador + enlace punteado hasta
+    el codo del contacto NA (mismo eje que el resto de la cuchilla)."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = actuador_pulsador(-15, -8)
+    c += linea(-12, -8, -6, -8, PUNTEADO)
+    c += contacto_na()
+    return hoja, c, "Pulsador NA", "IEC 60617 07-72-02"
+
+
+def s00136():
+    """Pulsador NC - mismo corchete, enlazado al codo del contacto NC."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = actuador_pulsador(-15, -8)
+    c += linea(-12, -8, -6, -8, PUNTEADO)
+    c += contacto_nc()
+    return hoja, c, "Pulsador NC", "IEC 60617 07-72-02 + 07-71-02"
+
+
+def s00137():
+    """Selector 2 posiciones - 07-72-04: botón giratorio "F" + contacto NA
+    (mantiene la posición, sin retorno automático)."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = actuador_rotativo(-15, -8)
+    c += linea(-12, -8, -6, -8, PUNTEADO)
+    c += contacto_na()
+    return hoja, c, "Selector 2 posiciones", "IEC 60617 07-72-04"
+
+
+def s00138():
+    """Pulsador de emergencia (seta) - 07-72-06: maniobra positiva
+    (07-70-09) arriba del enlace, cabeza de seta (semicírculo) a la
+    izquierda, marca de retención (03-31-08, "V") en el enlace, contacto NC
+    (la parada de emergencia CORTA, no cierra)."""
+    hoja = "-20.0 -30.0 30.0 60.0"
+    c = circulo_flecha(-11, -14)
+    # Cabeza de "seta" del pulsador de emergencia: medio círculo abombado
+    # hacia la izquierda (mismo truco de polilínea que efecto_electromagnetico,
+    # sin depender de comandos de arco SVG).
+    cx0, cy0, rm = -16.5, -11.5, 3.0
+    pts = [
+        (cx0 + rm * math.cos(math.pi / 2 + i * math.pi / 8), cy0 + rm * math.sin(math.pi / 2 + i * math.pi / 8))
+        for i in range(9)
+    ]
+    c += polilinea(pts)
+    c += linea(-15, -8, -13, -8, PUNTEADO)
+    c += linea(-13, -8, -10.5, -5, PUNTEADO)
+    c += linea(-10.5, -5, -8, -8, PUNTEADO)
+    c += linea(-8, -8, -6, -8, PUNTEADO)
+    c += contacto_nc()
+    return hoja, c, "Pulsador de emergencia (seta)", "IEC 60617 07-72-06"
+
+
+def s00130():
+    """Bobina de contactor/relé, símbolo general - 07-76-01 Forma 1: un
+    rectángulo con un borne saliendo de cada lado corto."""
+    hoja = "-10.0 -25.0 20.0 50.0"
+    c = linea(0, -20, 0, -7.5)
+    c += rectangulo(-5, -7.5, 10, 15)
+    c += linea(0, 7.5, 0, 20)
+    return hoja, c, "Bobina de contactor/relé", "IEC 60617 07-76-01 Forma 1"
+
+
+def s00139():
+    """Lámpara piloto, símbolo general - 08-80-44: círculo con una cruz
+    adentro."""
+    hoja = "-10.0 -25.0 20.0 50.0"
+    c = linea(0, -20, 0, -7)
+    c += circulo(0, 0, 7)
+    c += linea(-4.95, -4.95, 4.95, 4.95)
+    c += linea(-4.95, 4.95, 4.95, -4.95)
+    c += linea(0, 7, 0, 20)
+    return hoja, c, "Lámpara piloto", "IEC 60617 08-80-44"
+
+
+SIMBOLOS_COMANDO = {
+    "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
+    "S00136": s00136, "S00137": s00137, "S00138": s00138, "S00139": s00139,
 }
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raiz", type=Path, default=Path(__file__).resolve().parent.parent)
+    ap.add_argument(
+        "--carpeta",
+        type=str,
+        default="simbolos",
+        help="subcarpeta de libreria-simbolos/ a generar (simbolos = fuerza, comando = mando)",
+    )
     args = ap.parse_args()
-    base = args.raiz / "libreria-simbolos" / "simbolos"
+    base = args.raiz / "libreria-simbolos" / args.carpeta
+    simbolos = SIMBOLOS_COMANDO if args.carpeta == "comando" else SIMBOLOS_FUERZA
 
-    for codigo, fn in SIMBOLOS.items():
+    for codigo, fn in simbolos.items():
         carpeta = next(c for c in base.iterdir() if c.name.startswith(codigo + "_"))
         meta = json.loads((carpeta / "metadata.json").read_text(encoding="utf-8"))
         vb, cuerpo, nombre, norma = fn()
@@ -343,7 +514,7 @@ def main() -> int:
             json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"  {codigo}  {norma:<32}  {nombre}")
 
-    print(f"\n{len(SIMBOLOS)} simbolos generados desde la norma")
+    print(f"\n{len(simbolos)} simbolos generados desde la norma")
     return 0
 
 

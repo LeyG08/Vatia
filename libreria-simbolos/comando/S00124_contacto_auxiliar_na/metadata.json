@@ -1,8 +1,8 @@
 {
   "codigo_iec": "S00124",
-  "nombre": "Contacto auxiliar (NA/NC)",
+  "nombre": "Contacto auxiliar NA",
   "familia_atributos": "aparato",
-  "estado_revision": "verificado",
+  "estado_revision": "pendiente_revision",
   "puntos_conexion": [
     {
       "id": "t1",
@@ -18,8 +18,9 @@
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/310_relays_contactors_contacts/02_contacts_cross_referencing/01_auxiliary_contacts/con_simple.elmt",
+  "fuente_norma": "IEC 60617 07-71-01 Forma 1",
   "atributos_base": {
-    "tipo_aparato": "contacto_auxiliar"
+    "tipo_aparato": "contacto_auxiliar",
+    "tipo_contacto": "NA"
   }
 }

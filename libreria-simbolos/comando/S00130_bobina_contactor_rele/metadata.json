@@ -1,0 +1,25 @@
+{
+  "codigo_iec": "S00130",
+  "nombre": "Bobina de contactor/relé",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": {
+    "tipo_aparato": "rele_auxiliar"
+  },
+  "puntos_conexion": [
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -20.0
+    },
+    {
+      "id": "out",
+      "rol": "salida",
+      "x": 0.0,
+      "y": 20.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_norma": "IEC 60617 07-76-01 Forma 1"
+}

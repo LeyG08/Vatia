@@ -3345,3 +3345,108 @@ Rama `proyecto/fundaciones-datos-20260901` pusheada (7 commits, `d32b5b8`
 a `c62e2d3`) y PR #14 abierto hacia `main`
 (https://github.com/LeyG08/Vatia/pull/14). No mergeado — queda esperando
 aprobación explícita del usuario, según `AGENTS.md`.
+
+## E15 — Comando, Paso 1: base de esquema + lote piloto de 8 símbolos
+
+Primer paso de la etapa "finalizar el editor" (símbolos nuevos, parte de
+comando, pestañas — el usuario pidió priorizar esto sobre el motor de
+cálculo hasta terminarlo). Se acordó con el usuario arrancar por lo más
+grande/complicado entre rediseño de hojas y librería de comando, con el
+criterio de "que quede bien tanto visualmente como funcionando" — se eligió
+comando por ser librería nueva desde cero más un modo de dibujo distinto,
+mayor alcance que el rediseño de hojas.
+
+### La norma es "DGE", no literalmente "IEC 60617" — y es la misma de siempre
+
+Al abrir `Simbologia_iec_60617_completa.pdf` para buscar los símbolos de
+comando, el encabezado real del documento dice "NORMA DGE - SIMBOLOS
+GRAFICOS EN ELECTRICIDAD" (Perú, Dirección General de Electricidad), no un
+documento con el sello IEC. Es una adaptación nacional que sigue la
+estructura y numeración de IEC 60617 (Sección 7 "Dispositivos de maniobra,
+control y protección", códigos `07-70-01`, `07-71-01`, etc. — exactamente
+los mismos que ya se citan en `generar_simbolos_iec.py` para los símbolos de
+fuerza ya aprobados). No es un documento distinto del que se usó antes en
+esta sesión: es el único PDF de símbolos en Descargas y la numeración de las
+láminas ya usadas coincide. Se sigue usando sin más cambio que este.
+
+### Decisión de diseño: NO se creó una familia "comando" nueva
+
+El plan original decía "nueva familia de esquema `comando`". Al revisar el
+schema existente se encontró que `aparato.schema.json` YA tenía dos subtipos
+de comando estancados desde antes (`contacto_auxiliar` con
+`tipo_contacto: NA|NC|NA+NC|otra`, y `rele_auxiliar` con bobina/contactos) —
+`S00124` y `S00130` ya existían, uno en la librería de fuerza (mal, sacado de
+QET) y otro en `pendiente-multifilar/`. Mantener una sola familia "aparato"
+para cualquier dispositivo discreto (fuerza o comando) es más consistente
+con lo que ya había que inventar una segunda familia solo para separar por
+uso — la única distinción real entre fuerza y comando es EN QUÉ CARPETA vive
+el símbolo y en qué modo de canvas se usa, no la forma de su ficha.
+
+### Dónde viven los símbolos de comando
+
+Se creó `libreria-simbolos/comando/`, hermana de `simbolos/` (fuerza), fuera
+del glob que carga la Paleta del editor
+(`libreria.ts: import.meta.glob("../../../../libreria-simbolos/simbolos/*/...")`).
+Es deliberado: el canvas actual es unifilar-solo, no tiene todavía modo
+multifilar (Paso 3) para que estos símbolos tengan sentido de uso real. Para
+que el usuario pudiera revisarlos igual, se generó una galería estática
+aparte con `scripts/generar_galeria.py --simbolos-dir libreria-simbolos/comando`
+(mismo script que ya arma `libreria-simbolos/simbolos/index.html`, sin tocar
+la app). De paso se encontró y arregló un bug menor del script: mostraba
+siempre "Fuente QET" vacío para los símbolos ya migrados a `fuente_norma`
+(toda la tanda de fuerza redibujada en E4-E7) — ahora rotula "Fuente
+(norma)" cuando corresponde, en ambas galerías.
+
+`scripts/generar_simbolos_iec.py` y `scripts/lint_simbolos.py` ganaron un
+flag `--carpeta` (default `simbolos`) para poder generar/lintear
+`comando/` sin duplicar script.
+
+### Los 8 símbolos del piloto
+
+Todos sacados de la norma (Sección 7 "071 Contactos" / "072 Dispositivos de
+Maniobra" para los primeros seis, Sección 8 "080" para la lámpara):
+
+| Código | Símbolo | Referencia | Origen |
+|---|---|---|---|
+| S00124 | Contacto auxiliar NA | 07-71-01 Forma 1 | Redibujado — vivía en `simbolos/`, sacado de QET |
+| S00134 | Contacto auxiliar NC | 07-71-02 | Nuevo |
+| S00135 | Pulsador NA | 07-72-02 | Nuevo |
+| S00136 | Pulsador NC | 07-72-02 + 07-71-02 | Nuevo |
+| S00137 | Selector 2 posiciones | 07-72-04 | Nuevo |
+| S00138 | Pulsador de emergencia (seta) | 07-72-06 | Nuevo |
+| S00130 | Bobina de contactor/relé | 07-76-01 Forma 1 | Reubicado desde `pendiente-multifilar/`, ya estaba bien dibujado |
+| S00139 | Lámpara piloto | 08-80-44 | Nuevo |
+
+Composición geométrica (documentada en el docstring de cada función):
+- **Contacto NA/NC** es el mismo bloque "cuchilla" que ya usa la librería de
+  fuerza (pivota en el borne inferior), agregando para NC un codo hacia la
+  izquierda con una marca de corte — un trazo corto PERPENDICULAR a la
+  cuchilla un poco más abajo del vértice, no una X sobre la esquina (primer
+  intento salía confuso, se corrigió tras revisar el render).
+- **Pulsador/selector/seta** agregan un ACTUADOR a la IZQUIERDA del
+  contacto, unido por un enlace mecánico punteado — composición horizontal,
+  distinta de los calificadores de fuerza (07-70-xx) que van ARRIBA de la
+  cuchilla.
+- El **pulsador de emergencia** combina tres calificadores (maniobra
+  positiva 07-70-09, cabeza de seta como medio círculo, marca de retención
+  "V" en el enlace) sobre un contacto NC — es, con diferencia, el más
+  compuesto de los ocho. La cabeza de seta se dibuja con una polilínea que
+  aproxima el arco (mismo truco que `efecto_electromagnetico`), no con un
+  comando de arco SVG: un primer intento con `<path d="A ...">` no
+  renderizaba de forma confiable.
+
+### Verificaciones
+
+`lint_simbolos.py` verde en ambas carpetas (19 fuerza + 8 comando, sin
+contarse entre sí). `generar_tipos_atributos.py` generó 25 interfaces
+(+4: `AparatoPulsador`, `AparatoSelector`, `AparatoPulsadorEmergencia`,
+`AparatoLamparaPiloto`) y `--verificar` da OK. `tsc --noEmit`, build y
+oxlint sin novedad (mismos dos warnings preexistentes). Cada uno de los 8
+símbolos se renderizó individualmente a PNG (pymupdf) para revisión visual
+propia antes de mostrarlos — no sustituye la aprobación del usuario, que
+sigue pendiente sobre la galería de `libreria-simbolos/comando/index.html`.
+
+Los 8 quedan `estado_revision: "pendiente_revision"`: falta el mismo paso
+que ya se hizo con la librería de fuerza — mostrárselos al usuario y
+corregir lo que no le convenza antes de escalar al resto de la librería de
+comando (Paso 2).

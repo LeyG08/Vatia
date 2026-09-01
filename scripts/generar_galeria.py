@@ -32,6 +32,10 @@ def tarjeta(carpeta: Path) -> str:
         f'{html.escape(t["id"])} · {html.escape(t["rol"])} · ({t["x"]:g}, {t["y"]:g})'
         for t in datos.get("puntos_conexion", [])
     ) or "—"
+    if datos.get("fuente_norma"):
+        etiqueta_fuente, texto_fuente = "Fuente (norma)", datos["fuente_norma"]
+    else:
+        etiqueta_fuente, texto_fuente = "Fuente QET", datos.get("fuente_qet", "")
     return f"""
     <article class="tarjeta">
       <header>
@@ -44,7 +48,7 @@ def tarjeta(carpeta: Path) -> str:
         <dt>Familia</dt><dd>{html.escape(datos.get("familia_atributos", ""))}</dd>
         <dt>Terminales</dt><dd class="mono">{terminales}</dd>
         <dt>Versión librería</dt><dd>{html.escape(datos.get("version_libreria", ""))}</dd>
-        <dt>Fuente QET</dt><dd class="mono fuente">{html.escape(datos.get("fuente_qet", ""))}</dd>
+        <dt>{etiqueta_fuente}</dt><dd class="mono fuente">{html.escape(texto_fuente)}</dd>
       </dl>
     </article>"""
 
