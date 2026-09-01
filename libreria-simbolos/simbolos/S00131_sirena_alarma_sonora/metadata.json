@@ -18,5 +18,8 @@
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/380_signaling_operating/12_acoustic_signaling/avertisseur.elmt"
+  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/380_signaling_operating/12_acoustic_signaling/avertisseur.elmt",
+  "atributos_base": {
+    "tipo_aparato": "sirena_alarma"
+  }
 }

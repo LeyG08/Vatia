@@ -3,11 +3,23 @@
   "nombre": "Relé térmico (RT)",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "rele_termico" },
+  "atributos_base": {
+    "tipo_aparato": "rele_termico"
+  },
   "puntos_conexion": [
-    { "id": "in", "rol": "entrada", "x": 0.0, "y": -30.0 },
-    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -30.0
+    },
+    {
+      "id": "out",
+      "rol": "salida",
+      "x": 0.0,
+      "y": 20.0
+    }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/30_thermal_relays/relais_therm4_1.elmt (polo único)"
+  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/30_thermal_relays/relais_therm4.elmt (gancho bimetalico de una fase, reducido a trazo unico -- reemplaza la caja+diagonal ilegible del 3er intento de C32, que no referenciaba ninguna fuente real)"
 }

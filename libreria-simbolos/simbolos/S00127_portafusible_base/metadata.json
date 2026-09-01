@@ -3,11 +3,23 @@
   "nombre": "Seccionador fusible",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "portafusible" },
+  "atributos_base": {
+    "tipo_aparato": "portafusible"
+  },
   "puntos_conexion": [
-    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
-    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -20.0
+    },
+    {
+      "id": "out",
+      "rol": "salida",
+      "x": 0.0,
+      "y": 20.0
+    }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/10_fuses/porte_fusible_bi.elmt (polo único)"
+  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/10_fuses/sectionneur_fusible_bi.elmt (brazo de seccionamiento articulado + fusible montado en la hoja, un polo) + rectangulo del fusible con las mismas proporciones que S00113 (fusible simple) para consistencia de la libreria"
 }

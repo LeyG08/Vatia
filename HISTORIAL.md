@@ -2391,3 +2391,119 @@ restauran `metadata.json` además del SVG en su `finally`.
 `npm run e2e:simbolos` (20 símbolos + guardado + punto de conexión):
 todo verde. Repo verificado limpio tras cada corrida del arnés (HEAD sin
 moverse, `git status` vacío).
+
+---
+
+## E7 — Rediseño de 7 símbolos con fuente QET real (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Reporte del usuario
+
+*"s0121, s0122, s0123, s0127, s0128, s0129 y s0130 estan mal"*. Son
+exactamente los 8 símbolos del "3er intento de rediseño" de C32 (menos
+S00126, que sí quedó bien) — HISTORIAL ya registraba que ese intento
+"nunca fue aprobado por el usuario".
+
+### Decisión de método
+
+Redibujar a mano de nuevo hubiera repetido el patrón que ya falló 3 veces
+en C32. Antes de tocar geometría se verificó acceso de red
+(`git ls-remote` a qelectrotech-elements: sí hay acceso) y se clonó la
+colección al **mismo commit citado en los símbolos ya aprobados**
+(`b9e1020`), con sparse-checkout limitado a las carpetas relevantes — el
+clon completo choca con el límite de longitud de path de Windows en
+`98_graphics/99_assembly_plan/`.
+
+Hallazgo importante: **ningún `.elmt` de la colección tiene una variante
+reducida a un solo polo** para MCCB, guardamotor, relé térmico,
+portafusible o diferencial (a diferencia de `disjonct-m_1f.elmt`, la
+fuente de S00110). La reducción a trazo único de Vatia se hizo a mano en
+los 7 casos, pero **basada en la geometría real** de la fuente QET
+correspondiente — no inventada, que es la diferencia con el intento
+anterior (S00129/S00130 estaban documentados como "manual - IEC 60617"
+sin ninguna fuente real detrás).
+
+### Diagnóstico y corrección por símbolo
+
+- **S00121 (MCCB):** la caja moldeada quedaba flotando debajo del
+  mecanismo de seccionamiento sin encerrarlo. Fuente real:
+  `12_magneto_thermal_circuit_breakers/disjoncteur_magneto-thermique.elmt`
+  — ahí el rectángulo se SOLAPA con la hoja de seccionamiento. Corregido
+  para que la caja encierre el mecanismo (mismo mecanismo que S00110).
+- **S00122 (guardamotor):** le faltaba la cruz de apertura por completo —
+  no se leía que el aparato secciona. Fuente real: `gv2p.elmt` (GV2 de
+  Schneider, geométricamente casi idéntico al MCCB genérico en QET — son
+  la misma familia de símbolo). Se agregó además una flecha de
+  ajustabilidad (IEC 60617-2, símbolo 07-01-02) cruzando la caja, para
+  distinguirlo del MCCB de ajuste fijo — el guardamotor tiene disparo
+  térmico ajustable (`ir_min_a`/`ir_max_a` de la ficha), el MCCB no.
+- **S00123 (relé térmico):** caja + diagonal sin ninguna fuente real,
+  casi ilegible. Fuente real: `30_thermal_relays/relais_therm4.elmt`, que
+  usa un "gancho" (el trazo se corre en escalón y vuelve) para
+  representar la lámina bimetálica en serie — es la convención IEC real,
+  reemplaza la caja+diagonal anterior.
+- **S00127 (portafusible/seccionador fusible):** proporciones sin
+  relación con el fusible simple (S00113) ya aprobado. Fuente real:
+  `10_fuses/sectionneur_fusible_bi.elmt` (brazo de seccionamiento
+  articulado + fusible montado en la hoja). El rectángulo del fusible
+  ahora usa las mismas proporciones que S00113, por consistencia de
+  librería.
+- **S00128 (diferencial ID/RCD):** el toroide punteado (`circle r=5`
+  centrado en 0,0) y el conductor (diagonal de (0,-5) a (-5,5), punto
+  medio (-2.5,0)) no compartían centro — el conductor quedaba corrido a
+  la izquierda del toroide. Corregido: el conductor ahora pasa recto por
+  el centro exacto del círculo.
+- **S00129/S00130 (relés):** el contacto NA no seguía la misma
+  convención probada que **S00112** (contactor, ya aprobado) — le
+  faltaba el arco de resorte de retorno y la diagonal iba en sentido
+  opuesto. Reemplazado por la geometría exacta de S00112 (línea + arco +
+  hoja), conservando la caja de bobina + texto que distingue a cada
+  relé. Esto también corrige una inconsistencia de estilo dentro de la
+  propia librería, no solo un problema aislado.
+
+### Otro hallazgo corregido de paso
+
+Al recorrer `metadata.json` de todos los símbolos para escribir la tabla
+de `docs/estado-revision-aea.md`, se confirmó el problema que la revisión
+general del proyecto ya había marcado: **S00124, S00125, S00126 y S00131
+están `estado_revision: "verificado"` pero sin `atributos_base`** — al
+instanciarlos, el formulario no mostraba ningún campo. Corregido
+agregando el `tipo_aparato` correcto a cada uno (no afecta su geometría
+ni su estado de revisión).
+
+### `docs/estado-revision-aea.md` puesto al día
+
+La tabla documentaba solo 7 de 20 símbolos (S00110–S00119). Se agregaron
+las 13 filas faltantes (S00120–S00132) con su fuente QET real, familia y
+estado, se corrigió la familia de S00118 (decía "aparato", el
+`metadata.json` real dice `sin_ficha_tecnica`), y se agregaron dos notas
+nuevas en "Notas pendientes de la Fase C" documentando este rediseño y el
+fix de `atributos_base`.
+
+### Estado de revisión: sin cambios
+
+Los 7 símbolos **siguen en `pendiente_revision`** — la corrección es una
+propuesta con fuente real detrás, no un cierre. El procedimiento de
+cierre de `docs/estado-revision-aea.md` exige revisión visual del
+usuario antes de pasar a `verificado`/`corregido`, y dado que este mismo
+tipo de símbolo ya fue rechazado 3 veces, no corresponde que una IA se
+autoapruebe acá.
+
+### Verificación
+
+`lint_simbolos.py` (20/20), `verificar_alineacion.mjs`,
+`verificar_proyecto_real.mjs`, `npm run build`, `npm run lint`,
+`npm run e2e:simbolos` (20 símbolos incluidos los 7 nuevos, render real
+vía React/Fabric — no solo la galería SVG estática): todo verde. Galería
+regenerada y comparada visualmente contra el estado anterior
+(capturas en `scratchpad/`, no versionadas).
+
+### Pendiente para la próxima etapa
+
+Definido con el usuario, alcance de nueva simbología a agregar:
+**protección/maniobra** (seccionador sin fusible, interruptor de carga,
+llave de transferencia automática/ATS, relé de sobrecorriente/diferencial
+de tierra, descargador de sobretensión) y **fuentes y generación** (grupo
+electrógeno, UPS, banco de baterías, generador fotovoltaico, transformador
+con tomas/regulación). Sin encarar todavía.

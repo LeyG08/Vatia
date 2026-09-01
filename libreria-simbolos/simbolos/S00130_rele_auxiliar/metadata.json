@@ -3,11 +3,23 @@
   "nombre": "Relé/contactor auxiliar",
   "familia_atributos": "aparato",
   "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "rele_auxiliar" },
+  "atributos_base": {
+    "tipo_aparato": "rele_auxiliar"
+  },
   "puntos_conexion": [
-    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
-    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -20.0
+    },
+    {
+      "id": "out",
+      "rol": "salida",
+      "x": 0.0,
+      "y": 20.0
+    }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "manual - IEC 60617: bobina enlazada por línea mecánica punteada a contacto NA"
+  "fuente_qet": "manual - IEC 60617: bobina enlazada por linea mecanica punteada a contacto NA. Geometria del contacto (hoja + arco de resorte) tomada de S00112 (contactor, ya aprobado) para consistencia -- la version anterior no seguia esa misma convencion probada"
 }
