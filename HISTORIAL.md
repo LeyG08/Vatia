@@ -3338,3 +3338,10 @@ tramo ambiguo.
 (4→5 vértices, deshacer). `npm run e2e:simbolos`: 20/20 sin cambios.
 `tsc --noEmit`, build y oxlint sin novedad respecto de la revisión
 general de arriba.
+
+### Push + PR (19:30 01/09/2026)
+
+Rama `proyecto/fundaciones-datos-20260901` pusheada (7 commits, `d32b5b8`
+a `c62e2d3`) y PR #14 abierto hacia `main`
+(https://github.com/LeyG08/Vatia/pull/14). No mergeado — queda esperando
+aprobación explícita del usuario, según `AGENTS.md`.
