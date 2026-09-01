@@ -21,5 +21,5 @@
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/30_thermal_relays/relais_therm4.elmt (gancho bimetalico de una fase, reducido a trazo unico -- reemplaza la caja+diagonal ilegible del 3er intento de C32, que no referenciaba ninguna fuente real)"
+  "fuente_norma": "IEC 60617 07-72-13"
 }

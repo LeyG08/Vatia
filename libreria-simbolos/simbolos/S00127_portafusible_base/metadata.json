@@ -21,5 +21,5 @@
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/200_fuses_protective_gears/10_fuses/sectionneur_fusible_bi.elmt (brazo de seccionamiento articulado + fusible montado en la hoja, un polo) + rectangulo del fusible con las mismas proporciones que S00113 (fusible simple) para consistencia de la libreria"
+  "fuente_norma": "IEC 60617 07-75-08"
 }

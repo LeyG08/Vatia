@@ -15,23 +15,52 @@
       "minLength": 1
     },
     "familia_atributos": {
-      "enum": ["aparato", "conductor", "barra", "carga", "sin_ficha_tecnica"],
+      "enum": [
+        "aparato",
+        "conductor",
+        "barra",
+        "carga",
+        "sin_ficha_tecnica"
+      ],
       "description": "Familia de atributos técnicos que lleva el símbolo. 'carga' = destino de circuito (flecha IUG/TUG/ACU/seccional, §C7). 'sin_ficha_tecnica' marca símbolos decorativos/auxiliares que no llevan ficha (ej: toma a tierra PE, futuros textos o referencias de plano)."
     },
     "estado_revision": {
-      "enum": ["pendiente_revision", "verificado", "corregido"]
+      "enum": [
+        "pendiente_revision",
+        "verificado",
+        "corregido"
+      ]
     },
     "puntos_conexion": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "rol", "x", "y"],
+        "required": [
+          "id",
+          "rol",
+          "x",
+          "y"
+        ],
         "properties": {
-          "id": { "type": "string", "minLength": 1 },
-          "rol": { "enum": ["entrada", "salida", "tierra", "auxiliar"] },
-          "x": { "type": "number" },
-          "y": { "type": "number" }
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rol": {
+            "enum": [
+              "entrada",
+              "salida",
+              "tierra",
+              "auxiliar"
+            ]
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
         }
       }
     },
@@ -47,6 +76,10 @@
     "fuente_qet": {
       "type": "string",
       "description": "Trazabilidad: ruta relativa del .elmt original dentro de qelectrotech/qelectrotech-elements y commit del clon."
+    },
+    "fuente_norma": {
+      "type": "string",
+      "description": "Trazabilidad normativa: numero del simbolo en IEC 60617 del que se trazo la geometria, por ejemplo 'IEC 60617 07-72-25'. Se usa en los simbolos dibujados desde la lamina de la norma con scripts/generar_simbolos_iec.py. Es alternativo a fuente_qet, que solo aplica a los importados de QElectroTech."
     }
   },
   "required": [

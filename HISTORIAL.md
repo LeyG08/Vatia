@@ -2507,3 +2507,85 @@ llave de transferencia automática/ATS, relé de sobrecorriente/diferencial
 de tierra, descargador de sobretensión) y **fuentes y generación** (grupo
 electrógeno, UPS, banco de baterías, generador fotovoltaico, transformador
 con tomas/regulación). Sin encarar todavía.
+
+---
+
+## E4 — Los 7 símbolos rechazados, redibujados desde la norma IEC 60617 (31/08/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+### Por qué se cambió de método
+
+`49115d7` rehizo S00121, S00122, S00123, S00127, S00128, S00129 y S00130
+importando la geometría real de QElectroTech. El usuario rechazó también esa
+tanda —la cuarta— con una indicación que cambia el criterio de raíz: **no hay
+que sacar la simbología de QElectroTech**, porque su colección mezcla dibujos
+hechos bajo otras normas. La fuente pasa a ser el PDF de la norma
+(`Simbologia_iec_60617_completa.pdf`, 138 páginas escaneadas, sin capa de
+texto) y los símbolos se **dibujan**, no se importan.
+
+### Cómo se leyó la norma
+
+Se renderizaron las páginas con pymupdf y se ubicó la **Sección 7 (Dispositivos
+de maniobra, control y protección), páginas 48 a 64**. La página 48 es la clave:
+define los **símbolos calificadores** con los que se arma casi todo lo demás.
+
+| Código | Símbolo | Función |
+|---|---|---|
+| 07-70-01 | semicírculo | contactor |
+| 07-70-02 | aspa | interruptor automático |
+| 07-70-03 | barra corta | seccionador (aislador) |
+| 07-70-04 | círculo + barra | interruptor-seccionador |
+| 07-70-05 | cuadrado relleno | disparo iniciado por relé de medida o disparador incorporado |
+
+La construcción general es siempre la misma: **contacto de corte** (cuchilla que
+pivota en el borne inferior) **más el calificador encima**.
+
+### Escala adoptada
+
+La norma dibuja sobre retícula modular de 2,5 mm. Se adoptó
+**1 módulo = 5 unidades de viewBox**, que es justo la equivalencia que deja
+todos los puntos de conexión sobre múltiplos de 5, como exige
+`scripts/lint_simbolos.py`.
+
+### Nuevo generador
+
+`scripts/generar_simbolos_iec.py`: la geometría de los 7 símbolos vive en
+código, parametrizada y comentada con el número normativo del que sale cada
+uno. Se eligió un generador en vez de editar SVG a mano porque el método manual
+ya falló tres veces; así la decisión de diseño queda auditable y reproducible.
+Incluye `rect_sobre_recta()`, que resuelve los rectángulos que la norma dibuja
+**girados con la cuchilla** (el cuadrado de disparo y el cartucho del fusible).
+
+| Símbolo | Norma | Qué cambió |
+|---|---|---|
+| S00121 MCCB | 07-72-25 | círculo+barra y **cuadrado de disparo sobre la cuchilla**; se eliminó la caja moldeada que encerraba el mecanismo, que no es normativa |
+| S00122 Guardamotor | 07-72-21 + 07-70-05 | aspa de interruptor automático + cuadrado de disparo incorporado |
+| S00123 Relé térmico | 07-72-13 | el bimetal como **pulso cuadrado de un módulo** sobre el conductor pasante; el RT va en serie, sin contacto de corte |
+| S00127 Seccionador fusible | 07-75-08 | barra de seccionador arriba y **cartucho del fusible montado sobre la cuchilla** |
+| S00128 Diferencial | 07-72-17 | aspa + toroide sumador atravesado por el conductor + enlace mecánico punteado |
+| S00129 Relé de tensión | 07-73-18 | caja de relé de medición con la magnitud vigilada (U<>) adentro |
+| S00130 Relé auxiliar | 07-76-01 | rectángulo liso de bobina de relé, símbolo general |
+
+### Trazabilidad
+
+`metadata.schema.json` gana el campo **`fuente_norma`** (por ejemplo
+`"IEC 60617 07-72-25"`), alternativo a `fuente_qet`. Los 7 símbolos dejan de
+declarar `fuente_qet` y pasan a declarar `fuente_norma`: la procedencia queda
+en el archivo, no en la memoria de nadie.
+
+### Verificaciones
+
+`python scripts/lint_simbolos.py` (20/20, incluidas las comprobaciones de
+integridad y geometría dentro del viewBox agregadas en E2), galería
+regenerada, `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`npm run build` verde. Los metadata quedaron en UTF-8 con acentos correctos
+(verificado a nivel de bytes; la consola de Windows los muestra mal, los
+archivos están bien).
+
+### Pendiente
+
+- Los 7 siguen en `estado_revision: "pendiente_revision"`: falta la aprobación
+  visual del usuario, que es lo único que los cierra.
+- Quedan por revisar los 13 símbolos restantes de la librería contra la misma
+  norma; el usuario dijo que hay varios más fuera de normativa.
