@@ -3193,3 +3193,72 @@ real: el panel muestra los valores por defecto correctos (AEA, 220/380 V,
 TT), y al cambiar la tensión de línea a 400 V la potencia de una carga
 trifásica con 10 A recalculó en vivo de 6582 VA a 6928 VA — confirma que el
 dato de proyecto llega hasta el cálculo, no solo hasta el formulario.
+
+## E13 — Paso 4: topología (recorrido del grafo + agregación de cargas)
+
+Primer paso que le enseña al sistema cómo están conectados los elementos
+entre sí — hasta acá `checklist.ts` validaba cada nodo aislado, sin navegar
+nunca del grafo. No incluye cálculo eléctrico real (Ib/Iz/Icc/ΔU%): eso
+queda para el motor de cálculo (paso siguiente), que además necesita tablas
+normativas AEA/IEC que todavía no están cargadas.
+
+### `lib/topologia.ts`
+
+Módulo nuevo, `calcularTopologia(nodos, conexiones)` sobre el estado React
+Flow de la hoja activa (mismo criterio que `checklist.ts`, que ya recibe
+`nodos`/`conexiones` como parámetros). La dirección del grafo la da React
+Flow gratis: cada punto de conexión de un símbolo es `type="source"` (rol
+"salida") o `type="target"` (rol "entrada"/"tierra") — `NodoSimbolo.tsx:120`
+— y React Flow no deja conectar source↔source ni target↔target. Por eso
+`edge.source` es siempre aguas arriba de `edge.target`, sin necesidad de
+inferir nada.
+
+Calcula:
+- **Raíces**: los nodos `alimentador` son raíz de ALGO. Los que tienen
+  `fases: true` son además raíz de potencia (se guardan separado en
+  `raicesPotencia`, para cuando el motor de cálculo necesite saber por
+  dónde entra la potencia real — un alimentador "Desde PAT", con solo
+  `tierra: true`, es la puesta a tierra, no una fuente).
+- **Alcanzables / huérfanos**: BFS desde TODOS los alimentadores (potencia y
+  PAT) — un nodo solo conectado a la PAT (como el símbolo de tierra del
+  proyecto real, alimentado por "Desde PAT") es legítimo y no debe marcarse
+  huérfano.
+- **Ciclos**: DFS de 3 colores (blanco/gris/negro), reporta cada ciclo como
+  el tramo de la pila de recursión entre el nodo revisitado y el actual.
+- **Potencia agregada por barra**: para cada nodo `barra`, recorre su
+  subárbol aguas abajo (a través de los aparatos intermedios) y suma
+  `potencia_utilizacion_va × ks` de cada carga encontrada, sin cruzar hacia
+  otra barra (esa tiene su propio total). Un `visitados` por recorrido corta
+  ciclos y evita contar dos veces una carga alcanzable por más de un camino
+  — el proyecto real tiene justamente ese caso: n6/n7 tienen tanto una
+  conexión directa desde la barra n1 como el camino largo n1→MCCB→carga, y
+  el total dio la suma correcta de una sola vez cada una.
+
+### Integración
+
+`checklist.ts` (no bloqueante, mismo panel de siempre) agrega dos tipos de
+aviso nuevos: "Sin conexión a ningún alimentador" por huérfano, y "Ciclo de
+cableado: A → B → C → …" por cada ciclo. `BarraNode.tsx` calcula la topología
+en `useMemo` (dependiente de `nodos`/`conexiones`) y agrega una línea
+`Σ cargas: X VA` a la anotación de la barra cuando el total es mayor a
+cero — se recalcula en vivo del grafo, no se guarda en el JSON del
+proyecto.
+
+Decisión deliberada de alcance: `scripts/verificar_proyecto_real.mjs` NO
+recibió esta misma lógica en este paso — hacerlo bien exige reconstruir el
+grafo dirigido a partir de `desde`/`hasta` en un runtime Node aparte,
+duplicando el algoritmo. Ya hay una deuda anotada (E11) sobre la duplicación
+entre ese script y `checklist.ts`; sumarle topología ahí queda pendiente
+para cuando se decida cómo compartir código entre el navegador y el script
+standalone, en vez de repetirlo.
+
+### Verificaciones
+
+`tsc --noEmit` limpio, build verde, oxlint con los mismos dos warnings
+preexistentes (ninguno nuevo), `lint_simbolos` 20/20, `verificar_alineacion`
+y `verificar_proyecto_real` verdes. Verificado en navegador con el proyecto
+real: el checklist no reporta huérfanos ni ciclos falsos sobre el cableado
+existente (incluida la rama "Desde PAT" → símbolo de tierra), y al cargar
+10 A en n6 y n7 (3F con neutro, 380 V por defecto) la barra n1 mostró
+"Σ cargas: 13164 VA" — exactamente √3×380×10 × 2, confirmando que la
+agregación multi-camino no duplica.

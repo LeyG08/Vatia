@@ -1,12 +1,14 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import {
   BARRA_GEO,
   useEditor,
   type DatosBarra,
+  type NodoData,
 } from "../lib/store";
 import { GRILLA_PX } from "../lib/ruta";
 import { anotacionBarra } from "../lib/anotaciones";
+import { calcularTopologia } from "../lib/topologia";
 
 const DIRECCIONES = [
   Position.Top,
@@ -40,9 +42,17 @@ const ESTILO_HANDLE = {
  */
 function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
   const estirar = useEditor((s) => s.estirarBarra);
+  const nodos = useEditor((s) => s.nodos);
+  const conexiones = useEditor((s) => s.conexiones);
   const refDrag = useRef<{ x0: number; y0: number; largo0: number } | null>(
     null,
   );
+  // Paso 4: potencia agregada (Ku×Ks) de las cargas del subárbol de ESTA
+  // barra — se recalcula del grafo en vivo, no se guarda en el proyecto.
+  const potenciaVa = useMemo(() => {
+    const topo = calcularTopologia(nodos as Node<NodoData>[], conexiones);
+    return topo.potenciaBarraVa.get(id) ?? 0;
+  }, [nodos, conexiones, id]);
 
   const { largoPx, rotacion } = data;
   const giro = ((((rotacion % 360) + 360) % 360) / 90) | 0;
@@ -129,6 +139,7 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
   );
 
   const ficha = anotacionBarra(data.atributos ?? {});
+  if (potenciaVa > 0) ficha.push(`Σ cargas: ${potenciaVa} VA`);
 
   return (
     <div

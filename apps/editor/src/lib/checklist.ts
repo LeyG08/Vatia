@@ -18,6 +18,7 @@ import {
 } from "./esquemas";
 import { obtenerSimbolo } from "./libreria";
 import type { NodoData } from "./store";
+import { calcularTopologia } from "./topologia";
 
 export interface ProblemaElemento {
   /** id del nodo/conexión para poder seleccionarlo desde el panel */
@@ -207,6 +208,27 @@ export function armarChecklist(
         mensajes: msj,
       });
     }
+  }
+
+  // Topología (Paso 4): elementos sin camino a ningún alimentador, y
+  // ciclos del cableado (casi siempre un error de conexión).
+  const topo = calcularTopologia(nodos as Node<NodoData>[], conexiones);
+  for (const id of topo.huerfanos) {
+    salida.push({
+      id,
+      esConexion: false,
+      etiqueta: nombresPorId.get(id) ?? id,
+      mensajes: ["Sin conexión a ningún alimentador."],
+    });
+  }
+  for (const ciclo of topo.ciclos) {
+    const etiquetas = ciclo.map((id) => nombresPorId.get(id) ?? id);
+    salida.push({
+      id: ciclo[0],
+      esConexion: false,
+      etiqueta: nombresPorId.get(ciclo[0]) ?? ciclo[0],
+      mensajes: [`Ciclo de cableado: ${etiquetas.join(" → ")} → …`],
+    });
   }
 
   return salida;
