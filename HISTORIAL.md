@@ -2671,3 +2671,64 @@ registrada en la conversación.
 
 `lint_simbolos` 21/21, galería regenerada, `verificar_alineacion` y
 `verificar_proyecto_real` verdes, `npm run build` verde.
+
+---
+
+## E6 — Los glifos de actuación, bien trazados esta vez (01/09/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+El usuario revisó E5 y marcó tres errores de trazado y una insatisfacción con
+el MCCB.
+
+### Los dos glifos son un par, y los dos estaban mal
+
+*"la parte térmica es un pulso cuadrado no un impulso como lo hiciste, y además
+el símbolo de disparo magnético no es como lo pusiste"*.
+
+Se volvió a la lámina con zoom de 900 dpi sobre cada glifo, en vez de
+aproximarlos de memoria. Medidos sobre la retícula:
+
+- **03-30-37 efecto térmico**: una línea **vertical** con un salto
+  **rectangular** hacia la derecha en el medio, que vuelve al mismo eje. El
+  salto ocupa 1 módulo de ancho y 0,76 de alto; el glifo entero, 2 módulos.
+  En E5 se había dibujado como una "S" horizontal: mal en forma y en
+  orientación.
+- **03-30-38 efecto electromagnético**: la **misma** línea vertical, pero con
+  el salto del medio **semicircular**, de radio 1/4 del alto. Es una espira
+  vista de canto.
+
+Lo importante es que **forman pareja**: idéntico trazo, salto cuadrado contra
+salto redondo. Esa oposición es exactamente lo que distingue la actuación
+térmica de la magnética, y perderla era lo que hacía irreconocibles a los dos
+guardamotores.
+
+### La línea no atraviesa la caja
+
+*"evita que la línea traspase la caja donde están esos símbolos"*. La línea de
+potencia ahora **llega** a cada caja y **sale** de ella; dentro de la caja solo
+está el glifo de la actuación. Aplicado a `S00123`, `S00122` y `S00133`, que
+además pasaron a cajas de 10×10 (12×12 en el relé térmico) para que el glifo
+sea legible.
+
+### MCCB: se dejó de adivinar
+
+*"la simbología del interruptor de caja moldeada revisalo porque no me gusta"*.
+Es el segundo rechazo del mismo símbolo, así que en vez de proponer una tercera
+versión a ciegas se prepararon **cinco variantes** renderizadas para que el
+usuario elija (`scratchpad/opciones.png`):
+
+| | |
+|---|---|
+| A | la actual, 07-72-25: círculo+barra y cuadrado de disparo sobre la cuchilla |
+| B | interruptor + cajas térmica y magnética, todo dentro de un envolvente punteado |
+| C | interruptor solo, dentro del envolvente punteado |
+| D | interruptor + una caja con el cuadrado de disparo incorporado (07-70-05) |
+| E | interruptor + cajas térmica y magnética, sin envolvente |
+
+`S00121` queda **sin tocar** hasta que el usuario elija.
+
+### Verificaciones
+
+`lint_simbolos` 21/21, galería regenerada, `verificar_alineacion` y
+`verificar_proyecto_real` verdes.

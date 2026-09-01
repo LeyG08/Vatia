@@ -123,33 +123,42 @@ def rect_sobre_recta(p0, p1, t, largo, ancho, corrimiento=0.0, relleno=False):
     return poligono(pts, ' fill="#000000"' if relleno else "")
 
 
-def efecto_termico(cx, cy, m=5.0):
-    """03-30-37 Efecto termico: el "pulso cuadrado", una S en angulos rectos.
+def efecto_termico(cx, cy, alto=10.0):
+    """03-30-37 Efecto termico: el PULSO CUADRADO.
 
-    Es el simbolo que identifica la actuacion TERMICA (bimetal) dentro de la
-    caja de un disparador o de un rele termico.
+    Es una linea vertical con un salto RECTANGULAR hacia la derecha en el
+    medio, que vuelve al mismo eje. Medido sobre la lamina: el salto ocupa
+    1 modulo de ancho y 0,76 de alto, y el glifo entero 2 modulos.
+
+    Forma pareja con efecto_electromagnetico(): mismo trazo, salto cuadrado
+    contra salto redondo. Esa es justamente la diferencia que distingue la
+    actuacion termica de la magnetica.
     """
-    a = m / 2.0
+    a = alto / 2.0
+    bh = alto * 0.19          # media altura del salto
+    bw = alto * 0.50          # ancho del salto
     return polilinea([
-        (cx - a, cy + a), (cx - a, cy), (cx + a, cy), (cx + a, cy - a),
+        (cx, cy - a), (cx, cy - bh), (cx + bw, cy - bh),
+        (cx + bw, cy + bh), (cx, cy + bh), (cx, cy + a),
     ])
 
 
-def efecto_electromagnetico(cx, cy, m=5.0):
-    """03-30-38 Efecto electromagnetico: el gancho curvo.
+def efecto_electromagnetico(cx, cy, alto=10.0):
+    """03-30-38 Efecto electromagnetico: el salto SEMICIRCULAR.
 
-    Identifica la actuacion MAGNETICA (disparo instantaneo por cortocircuito)
-    dentro de la caja de un disparador. Se aproxima el arco con una polilinea
-    porque el resto de la libreria no usa <path>.
+    Misma linea vertical que el efecto termico, pero el salto del medio es
+    una semicircunferencia hacia la derecha de radio 1/4 del alto. Es una
+    espira vista de canto.
     """
     import math as _m
-    a = m / 2.0
-    pasos = 9
-    pts = []
+    a = alto / 2.0
+    r = alto * 0.25
+    pts = [(cx, cy - a)]
+    pasos = 12
     for i in range(pasos + 1):
-        ang = -_m.pi / 2 + _m.pi * i / pasos       # de arriba a abajo, panza a la derecha
-        pts.append((cx + a * _m.cos(ang) * 0.85, cy + a * _m.sin(ang)))
-    pts.append((cx - a * 0.1, cy + a * 1.5))       # cola inferior
+        ang = -_m.pi / 2 + _m.pi * i / pasos
+        pts.append((cx + r * _m.cos(ang), cy + r * _m.sin(ang)))
+    pts.append((cx, cy + a))
     return polilinea(pts)
 
 
@@ -179,63 +188,60 @@ def s00121():
 
 def s00122():
     """Guardamotor TERMOMAGNETICO - interruptor automatico (contacto de corte
-    con aspa 07-70-02) mas DOS cajas de disparador en serie sobre el
-    conductor: la de actuacion termica (03-30-37) y la de actuacion magnetica
-    (03-30-38).
+    con aspa 07-70-02) mas DOS cajas de disparador: actuacion termica
+    (03-30-37) y actuacion magnetica (03-30-38).
 
-    Criterio del usuario (ingeniero): hay dos guardamotores y se distinguen
-    justamente por eso. El magnetico lleva UNA caja (ver s00133) y el
-    termomagnetico lleva LAS DOS.
+    La linea de potencia LLEGA a cada caja y sale de ella, pero no la
+    atraviesa: dentro de la caja lo unico que se dibuja es el glifo de la
+    actuacion. Es criterio explicito del usuario.
     """
     hoja = "-10.0 -35.0 20.0 60.0"
-    p0, p1 = (0.0, -10.0), (-5.0, -20.0)
+    p0, p1 = (0.0, -12.0), (-5.0, -22.0)
     c = ""
-    c += linea(0, -30, 0, -20)                 # contacto fijo
-    c += linea(-2, -27, 2, -23)                # aspa 07-70-02
-    c += linea(2, -27, -2, -23)
+    c += linea(0, -30, 0, -22)                 # contacto fijo
+    c += linea(-2, -28, 2, -24)                # aspa 07-70-02
+    c += linea(2, -28, -2, -24)
     c += linea(p0[0], p0[1], p1[0], p1[1])     # cuchilla
-    c += linea(0, -10, 0, 20)                  # conductor de salida
-    c += rectangulo(-4, -6, 8, 8)              # caja del disparador termico
-    c += efecto_termico(0, -2)
-    c += rectangulo(-4, 6, 8, 8)               # caja del disparador magnetico
-    c += efecto_electromagnetico(0, 10)
+    c += linea(0, -12, 0, -10)                 # baja hasta la primera caja
+    c += rectangulo(-5, -10, 10, 10)           # disparador termico
+    c += efecto_termico(0, -5, 6.0)
+    c += linea(0, 0, 0, 2)                     # entre cajas
+    c += rectangulo(-5, 2, 10, 10)             # disparador magnetico
+    c += efecto_electromagnetico(0, 7, 6.0)
+    c += linea(0, 12, 0, 20)                   # salida
     return hoja, c, "Guardamotor termomagnético", "IEC 60617 07-72-21 + 03-30-37 + 03-30-38"
 
 
 def s00133():
-    """Guardamotor MAGNETICO - igual que el termomagnetico pero con UNA sola
-    caja de disparador, la de actuacion magnetica (03-30-38): protege solo
-    contra cortocircuito, no contra sobrecarga."""
+    """Guardamotor MAGNETICO - el mismo interruptor con UNA sola caja de
+    disparador, la de actuacion magnetica (03-30-38): protege solo contra
+    cortocircuito, no contra sobrecarga."""
     hoja = "-10.0 -35.0 20.0 60.0"
-    p0, p1 = (0.0, -10.0), (-5.0, -20.0)
+    p0, p1 = (0.0, -12.0), (-5.0, -22.0)
     c = ""
-    c += linea(0, -30, 0, -20)
-    c += linea(-2, -27, 2, -23)
-    c += linea(2, -27, -2, -23)
+    c += linea(0, -30, 0, -22)
+    c += linea(-2, -28, 2, -24)
+    c += linea(2, -28, -2, -24)
     c += linea(p0[0], p0[1], p1[0], p1[1])
-    c += linea(0, -10, 0, 20)
-    c += rectangulo(-4, 0, 8, 8)               # unica caja: actuacion magnetica
-    c += efecto_electromagnetico(0, 4)
+    c += linea(0, -12, 0, -5)
+    c += rectangulo(-5, -5, 10, 10)            # unica caja: actuacion magnetica
+    c += efecto_electromagnetico(0, 0, 6.0)
+    c += linea(0, 5, 0, 20)
     return hoja, c, "Guardamotor magnético", "IEC 60617 07-72-21 + 03-30-38"
 
 
 def s00123():
     """Rele termico (RT) - caja de rele con el simbolo de efecto termico
-    (03-30-37) adentro.
+    (03-30-37) adentro: el pulso cuadrado.
 
-    Correccion del usuario: no va el pulso cuadrado suelto sobre la linea,
-    va DENTRO de una cajita. La caja es el rele; el pulso identifica que su
-    actuacion es termica. Es el que le manda la senal al contactor para que
-    abra ante una sobrecarga.
+    La linea llega a la caja y sale de ella, sin atravesarla.
     """
-    # El viewBox tiene que contener los terminales, que en este simbolo estan
-    # en y=-30 e y=+20 (mismo par que el resto de la familia de proteccion).
     hoja = "-10.0 -35.0 20.0 60.0"
     c = ""
-    c += linea(0, -30, 0, -7.5)
-    c += rectangulo(-6, -7.5, 12, 15)
+    c += linea(0, -30, 0, -6)
+    c += rectangulo(-6, -6, 12, 12)
     c += efecto_termico(0, 0, 7.0)
-    c += linea(0, 7.5, 0, 20)
+    c += linea(0, 6, 0, 20)
     return hoja, c, "Relé térmico (RT)", "IEC 60617 07-76-01 + 03-30-37"
 
 
