@@ -2,11 +2,23 @@
   "codigo_iec": "S00112",
   "nombre": "Contactor de potencia",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "contactor" },
+  "estado_revision": "verificado",
+  "atributos_base": {
+    "tipo_aparato": "contactor"
+  },
   "puntos_conexion": [
-    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 },
-    { "id": "out", "rol": "salida", "x": 0.0, "y": 20.0 }
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0,
+      "y": -20
+    },
+    {
+      "id": "out",
+      "rol": "salida",
+      "x": 0,
+      "y": 20
+    }
   ],
   "version_libreria": "0.1.0",
   "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/310_relays_contactors_contacts/02_contacts_cross_referencing/02_power_contacts/com_puiss1.elmt (polo NA) + bobina de mando agregada como dibujo directo IEC enlazada por línea mecánica punteada; los bornes A1/A2 de la bobina no se exponen porque pertenecen al circuito de comando, fuera del unifilar de fuerza"

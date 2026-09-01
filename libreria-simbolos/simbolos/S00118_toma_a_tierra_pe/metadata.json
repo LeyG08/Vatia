@@ -2,13 +2,13 @@
   "codigo_iec": "S00118",
   "nombre": "Toma a tierra (PE)",
   "familia_atributos": "sin_ficha_tecnica",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "PE",
       "rol": "tierra",
-      "x": 0.0,
-      "y": -10.0
+      "x": 0,
+      "y": -10
     }
   ],
   "version_libreria": "0.1.0",

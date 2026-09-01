@@ -2,20 +2,22 @@
   "codigo_iec": "S00113",
   "nombre": "Fusible 1P",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
-  "atributos_base": { "tipo_aparato": "fusible" },
+  "estado_revision": "verificado",
+  "atributos_base": {
+    "tipo_aparato": "fusible"
+  },
   "puntos_conexion": [
     {
       "id": "1",
       "rol": "entrada",
-      "x": 0.0,
-      "y": -20.0
+      "x": 0,
+      "y": -20
     },
     {
       "id": "2",
       "rol": "salida",
-      "x": 0.0,
-      "y": 20.0
+      "x": 0,
+      "y": 20
     }
   ],
   "version_libreria": "0.1.0",

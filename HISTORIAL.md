@@ -2812,3 +2812,55 @@ consistente con el JSON.
 `lint_simbolos` 20/20, galería regenerada, `verificar_alineacion` y
 `verificar_proyecto_real` verdes, `npm run build` verde, oxlint con los dos
 warnings preexistentes.
+
+---
+
+## E8 — Librería cerrada: 20 símbolos verificados (01/09/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+El usuario revisó la librería completa **desde el editor** y marcó los 20
+símbolos como `verificado`, cerrando la Fase 0 de simbología. Confirmó además
+que los EMA SACE ISOL Z500 del proyecto real **son MCCB**, con lo que queda
+validada la clasificación `S00121` / `mccb_caja_moldeada`.
+
+> El `tipo_disparo: "termomagnetico"` de esos dos nodos sigue siendo una
+> suposición del asistente, no un dato de catálogo. Queda anotado.
+
+### La tabla de control ahora se genera, no se escribe
+
+`docs/estado-revision-aea.md` se había desfasado **dos veces** por mantenerse a
+mano: llegó a documentar 7 de 20 símbolos, listaba `S00130` como si siguiera en
+la librería activa y no conocía `S00133` ni el campo `fuente_norma`. Se
+regeneró desde los `metadata.json` reales y se dejó la advertencia de
+regenerarla en vez de editarla renglón por renglón.
+
+### El editor guardó geometría, y esta vez salió bien
+
+Mientras revisaba, el usuario dejó el dev server corriendo y el editor reescribió
+tres SVG en formato Fabric. **Es la misma operación que destruyó el S00110**, y
+esta vez el resultado pasó el lint: XML válido, geometría dentro del viewBox,
+sin marcadores del editor filtrados. El trabajo de E2 y E3 hizo su efecto.
+
+Comparando la geometría contra HEAD se separaron dos casos distintos:
+
+- **`S00127`**: geometría **realmente modificada** (el extremo izquierdo pasó de
+  -4,64 a -6,79). Es una edición deliberada del usuario y se conservó.
+- **`S00129` y `S00132`**: geometría **idéntica**, solo reformateadas. Se
+  restauraron al formato canónico, que es 2,4 veces más compacto.
+
+### Bug nuevo: el guardado del editor es válido pero LOSSY
+
+Al exportar, Fabric **no preserva el atributo `class`**, así que los terminales
+pierden `class="punto-conexion"` — que es lo que `estilos.css:296` usa para
+estilarlos en el canvas. Los archivos además engordan 2,4× (2236 bytes contra
+896) por el `style=` completo que Fabric escribe en cada primitiva.
+
+Se le devolvió la clase a mano a los terminales de `S00127`. **La corrección de
+fondo queda pendiente**: el guardado debería reinyectar los terminales desde el
+`metadata.json` después de exportar, en vez de confiar en lo que devuelve
+Fabric. El lint no lo detecta porque no es un error de geometría.
+
+### Verificaciones
+
+`lint_simbolos` 20/20, galería regenerada, `verificar_proyecto_real` verde.

@@ -30,28 +30,32 @@ para una etapa posterior.
 
 ## Tabla de símbolos
 
-| Código | Nombre | Fuente QET (.elmt) | Familia | Estado | Fecha revisión | Notas |
-|--------|--------|--------------------|---------|--------|----------------|-------|
-| S00110 | Interruptor termomagnético (unifilar) | 10_electric/10_allpole/200_fuses_protective_gears/11_circuit_breakers/disjonct-m_1f.elmt @ b9e1020 | aparato | pendiente_revision | — | Símbolo único y genérico: la cantidad de polos se define por instancia en `cantidad_polos` de la ficha técnica · terminales IN.1 (entrada) / OUT.2 (salida) |
-| S00112 | Contactor de potencia (bobina + polo NA) | …/02_power_contacts/com_puiss1.elmt @ b9e1020 + bobina dibujo directo IEC | aparato | pendiente_revision | — | A1/A2 no expuestos: la bobina pertenece a comando, fuera del unifilar de fuerza |
-| S00113 | Fusible 1P (unifilar) | …/200_fuses_protective_gears/10_fuses/pojistka1p.elmt @ b9e1020 | aparato | pendiente_revision | — | Sin nombre es en origen → override |
-| S00114 | Transformador dos bobinados (unifilar) | transformator_1f_2.elmt simplificado @ b9e1020 | aparato | pendiente_revision | — | Normalizado: un trazo por devanado, círculos superpuestos |
-| S00115 | Motor trifásico (unifilar) | moteur_tri.elmt simplificado @ b9e1020 | aparato | pendiente_revision | — | Círculo M·3~, alimentación única · atributos_base: cantidad_fases=3 |
-| S00118 | Toma a tierra (PE) | …/110_network_supplies/terre.elmt @ b9e1020 | sin_ficha_tecnica | pendiente_revision | — | Terminal PE rol tierra ✓ · familia corregida en esta entrada (decía "aparato", el metadata.json real dice `sin_ficha_tecnica`) |
-| S00119 | Barra (unifilar) | dibujo directo conforme IEC 60617 | barra | pendiente_revision | — | Fallback planificado: no existe .elmt unifilar de barra en QET |
-| S00120 | Carga de circuito (flecha) | autoría manual Vatia, sin fuente QET | carga | pendiente_revision | — | Flecha de destino IUG/TUG/ACU/seccional según planos PPS |
-| S00121 | Interruptor automático en caja moldeada (MCCB) | …/11_circuit_breakers/disjonct-m_1f.elmt + rectángulo de …/12_magneto_thermal_circuit_breakers/disjoncteur_magneto-thermique.elmt @ b9e1020 | aparato | pendiente_revision | 31/08/2026 | **Corregido** (rediseño E7): la caja moldeada ahora ENCIERRA el mecanismo de seccionamiento, en vez de flotar aparte como en el 3er intento de C32. Esperando aprobación visual del usuario |
-| S00122 | Guardamotor termomagnético | …/11_circuit_breakers/disjonct-m_1f.elmt + …/12_magneto_thermal_circuit_breakers/gv2p.elmt @ b9e1020 | aparato | pendiente_revision | 31/08/2026 | **Corregido** (rediseño E7): se agregó la cruz de apertura que faltaba y una flecha de ajustabilidad (IEC 60617-2, 07-01-02) para distinguirlo del MCCB de ajuste fijo. Esperando aprobación visual |
-| S00123 | Relé térmico (RT) | …/30_thermal_relays/relais_therm4.elmt @ b9e1020 | aparato | pendiente_revision | 31/08/2026 | **Corregido** (rediseño E7): reemplaza la caja+diagonal sin fuente del 3er intento de C32 por el gancho bimetálico real de la fuente QET. Esperando aprobación visual |
-| S00124 | Contacto auxiliar (NA/NC) | …/02_contacts_cross_referencing/01_auxiliary_contacts/con_simple.elmt @ b9e1020 | aparato | verificado | 25/08/2026 | `atributos_base.tipo_aparato` agregado en esta entrada (faltaba pese a estar "verificado": al instanciarlo no mostraba ningún campo del formulario) |
-| S00125 | Transformador de corriente (TI) | manual - IEC 60617 | aparato | verificado | 25/08/2026 | Idem: `atributos_base.tipo_aparato` agregado en esta entrada |
-| S00126 | Banco de capacitores | manual - IEC 60617 | aparato | verificado | 25/08/2026 | Idem: `atributos_base.tipo_aparato` agregado en esta entrada |
-| S00127 | Seccionador fusible (portafusible) | …/10_fuses/sectionneur_fusible_bi.elmt @ b9e1020 | aparato | pendiente_revision | 31/08/2026 | **Corregido** (rediseño E7): brazo de seccionamiento articulado + fusible con las mismas proporciones que S00113, en vez del rectángulo sin relación de la versión anterior. Esperando aprobación visual |
-| S00128 | Interruptor diferencial (ID/RCD) | …/50_residual_current_circuit_breaker/int_diff_1f-1.elmt @ b9e1020 (referencia de proporción) | aparato | pendiente_revision | 31/08/2026 | **Corregido** (rediseño E7): el conductor ahora pasa por el centro del toroide punteado; antes quedaba corrido. Esperando aprobación visual |
-| S00129 | Relé de protección de tensión | manual - IEC 60617, geometría del contacto tomada de S00112 | aparato | pendiente_revision | 31/08/2026 | **Corregido** (rediseño E7): el contacto NA no seguía la misma convención probada que S00112 (le faltaba el arco de resorte). Esperando aprobación visual |
-| S00130 | Relé/contactor auxiliar | manual - IEC 60617, geometría del contacto tomada de S00112 | aparato | pendiente_revision | 31/08/2026 | **Corregido** (rediseño E7): idem S00129 |
-| S00131 | Sirena / alarma sonora | …/380_signaling_operating/12_acoustic_signaling/avertisseur.elmt @ b9e1020 | aparato | verificado | 25/08/2026 | `atributos_base.tipo_aparato` agregado en esta entrada |
-| S00132 | Instrumento de medición (voltímetro) | …/390_sensors_instruments/70_meters_measuring_indicators/voltmetre-v.elmt @ b9e1020 | aparato | pendiente_revision | — | — |
+> Esta tabla se regenera desde los `metadata.json` reales. Se desfasó dos
+> veces por mantenerse a mano (documentaba 7 de 20 símbolos): si volvés a
+> tocar la librería, regenerala en vez de editarla renglón por renglón.
+
+| Código | Nombre | Fuente | Familia | Estado | Fecha revisión | Notas |
+|--------|--------|--------|---------|--------|----------------|-------|
+| S00110 | Interruptor termomagnético | QET `disjonct-m_1f.elmt` | aparato | verificado | 01/09/2026 | Símbolo único y genérico: la cantidad de polos se define por instancia en `cantidad_polos`. |
+| S00112 | Contactor de potencia | QET `A2 de la bobina no se exponen porque pertenecen al circuito de comando, fuera del unifilar de fuerza` | aparato | verificado | 01/09/2026 | A1/A2 no expuestos: la bobina pertenece a comando, fuera del unifilar de fuerza. |
+| S00113 | Fusible 1P | QET `pojistka1p.elmt` | aparato | verificado | 01/09/2026 | Sin nombre `es` en origen → override. |
+| S00114 | Transformador dos bobinados | QET `transformator_1f_2.elmt (simplificado a trazo único por devanado con círculos superpuestos conforme IEC 60617; la geometría original con dos conductores por devanado se descartó)` | aparato | verificado | 01/09/2026 | Normalizado: un trazo por devanado, círculos superpuestos. |
+| S00115 | Motor trifásico | QET `PE separados se descartó por no cumplir la convención unifilar)` | aparato | verificado | 01/09/2026 | Círculo M·3~, alimentación única · `atributos_base: cantidad_fases=3`. |
+| S00118 | Toma a tierra (PE) | QET `terre.elmt` | sin_ficha_tecnica | verificado | 01/09/2026 | Terminal PE con rol tierra. |
+| S00119 | Barra | `dibujo directo conforme IEC 60617 (sin fuente .elmt en la colección unifilar de QET)` | barra | verificado | 01/09/2026 | Dibujo directo: no existe `.elmt` unifilar de barra en QET. |
+| S00120 | Carga de circuito | `autoria manual Vatia · flecha de destino de circuito (IUG/TUG/ACU/seccional) según planos PPS` | carga | verificado | 01/09/2026 | Flecha de destino IUG/TUG/ACU/seccional según los planos del PPS. |
+| S00121 | Interruptor automático en caja moldeada (MCCB) | `IEC 60617 07-72-21 en envolvente` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E7). No hay símbolo IEC propio del MCCB: la norma no distingue por envolvente. Se dibuja el interruptor automático dentro del rectángulo moldeado y el tipo de disparo se declara en la ficha (`tipo_disparo`). |
+| S00122 | Guardamotor termomagnético | `IEC 60617 07-72-21 + 03-30-37 + 03-30-38` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E6). Interruptor + **dos** cajas de disparador: actuación térmica y magnética. |
+| S00123 | Relé térmico (RT) | `IEC 60617 07-76-01 + 03-30-37` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E6). Caja de relé con el pulso cuadrado del efecto térmico adentro; la línea no atraviesa la caja. |
+| S00124 | Contacto auxiliar (NA/NC) | QET `con_simple.elmt` | aparato | verificado | 01/09/2026 | — |
+| S00125 | Transformador de corriente (TI) | `manual - IEC 60617` | aparato | verificado | 01/09/2026 | — |
+| S00126 | Banco de capacitores | `manual - IEC 60617` | aparato | verificado | 01/09/2026 | — |
+| S00127 | Seccionador fusible | `IEC 60617 07-75-08` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E4). Barra de seccionador arriba y cartucho del fusible montado sobre la cuchilla. |
+| S00128 | Interruptor diferencial (ID/RCD) | `IEC 60617 07-72-17` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E4). Aspa + toroide sumador atravesado por el conductor + enlace mecánico punteado. |
+| S00129 | Relé de protección de tensión | `IEC 60617 07-73-18` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E7). Es un relé de **medición**, no un aparato de paso: una sola toma de medición y enlace punteado al interruptor sobre el que actúa. |
+| S00131 | Sirena / alarma sonora | QET `avertisseur.elmt` | aparato | verificado | 01/09/2026 | — |
+| S00132 | Instrumento de medición (voltímetro) | QET `voltmetre-v.elmt (polo único)` | aparato | verificado | 01/09/2026 | — |
+| S00133 | Guardamotor magnético | `IEC 60617 07-72-21 + 03-30-38` | aparato | verificado | 01/09/2026 | **Nuevo** (E6). Interruptor + **una** caja de disparador, la magnética: protege solo contra cortocircuito. |
 
 ## Fuera de alcance — pendiente-multifilar/
 

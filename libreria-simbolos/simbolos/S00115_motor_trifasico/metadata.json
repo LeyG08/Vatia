@@ -2,11 +2,18 @@
   "codigo_iec": "S00115",
   "nombre": "Motor trifásico",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
-    { "id": "in", "rol": "entrada", "x": 0.0, "y": -20.0 }
+    {
+      "id": "in",
+      "rol": "entrada",
+      "x": 0,
+      "y": -20
+    }
   ],
-  "atributos_base": { "tipo_aparato": "motor_trifasico" },
+  "atributos_base": {
+    "tipo_aparato": "motor_trifasico"
+  },
   "version_libreria": "0.1.0",
   "fuente_qet": "qelectrotech/qelectrotech-elements@b9e1020:10_electric/10_allpole/391_consumers_actuators/10_engines/moteur_tri.elmt (simplificado a círculo M·3~ con trazo único de alimentación conforme IEC 60617; la geometría original con U1/V1/W1/PE separados se descartó por no cumplir la convención unifilar)"
 }

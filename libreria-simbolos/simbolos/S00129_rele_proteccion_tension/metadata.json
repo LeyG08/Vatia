@@ -2,7 +2,7 @@
   "codigo_iec": "S00129",
   "nombre": "Relé de protección de tensión",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "atributos_base": {
     "tipo_aparato": "rele_proteccion_tension"
   },
@@ -10,8 +10,8 @@
     {
       "id": "medicion",
       "rol": "entrada",
-      "x": 0.0,
-      "y": -20.0
+      "x": 0,
+      "y": -20
     }
   ],
   "version_libreria": "0.1.0",

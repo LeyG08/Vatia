@@ -2,7 +2,7 @@
   "codigo_iec": "S00123",
   "nombre": "Relé térmico (RT)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "atributos_base": {
     "tipo_aparato": "rele_termico"
   },
@@ -10,14 +10,14 @@
     {
       "id": "in",
       "rol": "entrada",
-      "x": 0.0,
-      "y": -30.0
+      "x": 0,
+      "y": -30
     },
     {
       "id": "out",
       "rol": "salida",
-      "x": 0.0,
-      "y": 20.0
+      "x": 0,
+      "y": 20
     }
   ],
   "version_libreria": "0.1.0",
