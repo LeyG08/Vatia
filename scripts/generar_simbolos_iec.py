@@ -170,20 +170,27 @@ def efecto_electromagnetico(cx, cy, alto=10.0):
 # ---------------------------------------------------------------------------
 
 def s00121():
-    """MCCB - 07-72-25 interruptor-seccionador con corte iniciado por un rele
-    de medicion o un desenganche incorporados. El cuadrado negro sobre la
-    cuchilla ES el disparador incorporado (07-70-05); no va ninguna caja
-    encerrando el mecanismo."""
+    """MCCB - interruptor automatico rodeado por el ENVOLVENTE MOLDEADO.
+
+    La norma no tiene simbolo propio del interruptor en caja moldeada, porque
+    no distingue aparatos por la construccion del envolvente. Criterio elegido
+    por el usuario: dibujar el interruptor automatico (contacto de corte con
+    aspa 07-70-02) dentro de una caja que representa el moldeado, y declarar el
+    TIPO DE DISPARO en la ficha (campo tipo_disparo del schema), que es lo que
+    habilita los campos de ajuste correspondientes. Asi un solo simbolo cubre
+    el termomagnetico, el magnetico y el electronico.
+    """
     hoja = "-10.0 -35.0 20.0 60.0"
-    p0, p1 = (0.0, 0.0), (-5.0, -13.0)
     c = ""
-    c += linea(0, -30, 0, -15)                 # contacto fijo
-    c += linea(-3, -15, 3, -15)                # barra   (07-70-04)
-    c += circulo(0, -12, 3)                    # circulo (07-70-04)
-    c += linea(p0[0], p0[1], p1[0], p1[1])     # cuchilla
-    c += linea(0, 0, 0, 20)                    # salida
-    c += rect_sobre_recta(p0, p1, 0.5, 6.0, 6.0, corrimiento=-2.6, relleno=True)
-    return hoja, c, "Interruptor automático en caja moldeada (MCCB)", "IEC 60617 07-72-25"
+    c += linea(0, -30, 0, -24)                 # entrada, hasta el envolvente
+    c += rectangulo(-8, -24, 16, 38)           # envolvente moldeado
+    c += linea(0, -24, 0, -16)                 # contacto fijo, dentro
+    c += linea(-2, -21, 2, -17)                # aspa 07-70-02
+    c += linea(2, -21, -2, -17)
+    c += linea(0, -6, -5, -16)                 # cuchilla
+    c += linea(0, -6, 0, 14)                   # sale del envolvente
+    c += linea(0, 14, 0, 20)                   # salida
+    return hoja, c, "Interruptor automático en caja moldeada (MCCB)", "IEC 60617 07-72-21 en envolvente"
 
 
 def s00122():
@@ -279,32 +286,34 @@ def s00128():
 
 
 def s00129():
-    """Rele de proteccion de tension - 07-73-18, rele de minima tension. Es un
-    rele de medicion: caja rectangular con la magnitud vigilada adentro. Se
-    rotula U<> por cubrir minima y maxima."""
+    """Rele de proteccion de tension - 07-73-18, rele de minima tension.
+
+    Correccion del usuario: NO es un aparato de paso. Es un rele de MEDICION:
+    no lleva la corriente de carga, sino que toma tension de la linea y actua
+    sobre el interruptor que dispara. Por eso tiene una sola toma de medicion
+    (arriba) y un enlace mecanico punteado que sale hacia el interruptor, en
+    vez de entrada y salida en serie.
+    """
     hoja = "-15.0 -25.0 30.0 50.0"
+    punteado = ' stroke-dasharray="1.5,1.5"'
     c = ""
-    c += linea(0, -20, 0, -7.5)
+    c += linea(0, -20, 0, -7.5)                # toma de medicion
     c += rectangulo(-7.5, -7.5, 15, 15)
     c += texto(0, 0, "U&lt;&gt;", 6)
-    c += linea(0, 7.5, 0, 20)
+    c += polilinea([(7.5, 0), (13, 0), (13, -18)], punteado)   # enlace al interruptor
     return hoja, c, "Relé de protección de tensión", "IEC 60617 07-73-18"
 
 
-def s00130():
-    """Rele/contactor auxiliar - 07-76-01, dispositivo de maniobra / bobina de
-    rele, simbolo general: el rectangulo liso."""
-    hoja = "-10.0 -25.0 20.0 50.0"
-    c = ""
-    c += linea(0, -20, 0, -7.5)
-    c += rectangulo(-5, -7.5, 10, 15)
-    c += linea(0, 7.5, 0, 20)
-    return hoja, c, "Relé/contactor auxiliar", "IEC 60617 07-76-01"
+# S00130 (rele/contactor auxiliar) ya NO se genera aca: por decision del
+# usuario paso a libreria-simbolos/pendiente-multifilar/, porque es un aparato
+# de COMANDO. Su bobina la energiza el circuito de control y sus contactos
+# actuan en el control; no lleva corriente de potencia, asi que no tiene lugar
+# en un unifilar de fuerza.
 
 
 SIMBOLOS = {
     "S00121": s00121, "S00122": s00122, "S00123": s00123, "S00127": s00127,
-    "S00128": s00128, "S00129": s00129, "S00130": s00130, "S00133": s00133,
+    "S00128": s00128, "S00129": s00129, "S00133": s00133,
 }
 
 

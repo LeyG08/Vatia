@@ -2732,3 +2732,83 @@ usuario elija (`scratchpad/opciones.png`):
 
 `lint_simbolos` 21/21, galería regenerada, `verificar_alineacion` y
 `verificar_proyecto_real` verdes.
+
+---
+
+## E7 — MCCB con envolvente y tipo de disparo; los relés a su lugar (01/09/2026)
+
+**Rama:** `proyecto/editor-simbolos-20260826`.
+
+Dos decisiones del usuario, tomadas sobre las variantes renderizadas en E6.
+
+### MCCB: envolvente en el dibujo, tipo de disparo en la ficha
+
+*"hagamos que sea un interruptor rodeado por una caja negra y en su descripción
+del texto pongamos el tipo de disparo y allí se habilitarán los campos
+correspondientes a completar según eso"*.
+
+La norma no tiene símbolo propio del interruptor en caja moldeada porque **no
+distingue aparatos por la construcción del envolvente**. La solución adoptada
+separa las dos cosas:
+
+- **En el dibujo**: `S00121` es el interruptor automático (contacto de corte con
+  aspa 07-70-02) **dentro de un rectángulo** que representa el moldeado. Un
+  único símbolo para las tres tecnologías de disparo.
+- **En la ficha**: nuevo campo `tipo_disparo` en `mccb_caja_moldeada`
+  (`termomagnetico` | `magnetico` | `electronico`), obligatorio, que habilita
+  los campos de ajuste que correspondan.
+
+### `x-visible-si` ahora admite condición por valor
+
+Para lo anterior hizo falta extender el mecanismo de campos condicionales, que
+hasta ahora solo sabía preguntar si un booleano era `true` (`"es_conjunto"`,
+C15). Se agregó la forma `"campo:valor1|valor2"`, y el ajuste térmico
+(`ir_a_min` / `ir_a_max`) queda visible solo con
+`tipo_disparo:termomagnetico|electronico` — un MCCB magnético no tiene
+disparador térmico, así que no hay rango de ajuste que pedirle.
+
+Nuevo helper `campoVisible()` en `lib/esquemas.ts`, usado por **dos**
+consumidores:
+
+- `FormularioAtributos.tsx`, para ocultar el campo;
+- `lib/checklist.ts`, para **no exigirlo** cuando está oculto. Sin esto el
+  checklist reclamaría campos que el formulario ni siquiera muestra.
+
+Espejado en `scripts/verificar_proyecto_real.mjs`, que duplica esa lógica
+(deuda ya señalada en E1).
+
+### Los relés, a donde corresponden
+
+- **`S00130` relé/contactor auxiliar → `pendiente-multifilar/`.** Es un aparato
+  de **comando**: su bobina la energiza el circuito de control y sus contactos
+  actúan en el control. No lleva corriente de potencia, así que no tiene lugar
+  en un unifilar de fuerza. La librería activa queda en **20 símbolos**.
+- **`S00129` relé de protección de tensión: corregido, no movido.** Se queda en
+  el unifilar porque es un aparato de protección, pero **no es de paso**: no
+  lleva la corriente de carga. Pasó de tener `in`/`out` en serie a tener **una
+  sola toma de medición** más un **enlace mecánico punteado** hacia el
+  interruptor sobre el que actúa.
+
+### Efecto colateral del campo nuevo
+
+Al volverse obligatorio `tipo_disparo`, los dos MCCB del proyecto real (n4 y n5,
+EMA SACE ISOL Z500) quedaron incompletos. Se les cargó
+`tipo_disparo: "termomagnetico"`, que es **una suposición** por no tener el
+catálogo del fabricante a mano: **queda para que el usuario confirme**.
+
+Aprovechando eso se corrigió por fin la desincronización que E1 había señalado:
+`scripts/migrar_tgbt.mjs` seguía generando esos nodos como `S00110` /
+`interruptor_termomagnetico` con `norma_fabricacion: "IEC 60947"`, de modo que
+volver a correrlo revertía la corrección de C32. Ahora genera `S00121` /
+`mccb_caja_moldeada` con `ir_a_min` / `ir_a_max` y la norma correcta,
+consistente con el JSON.
+
+> Sigue pendiente el `pdcc_kA: 2500` de esos nodos, que son amperes crudos donde
+> el schema pide kA (deberían ser 2,5). No se tocó: es un dato de ingeniería del
+> usuario, no una inconsistencia de formato.
+
+### Verificaciones
+
+`lint_simbolos` 20/20, galería regenerada, `verificar_alineacion` y
+`verificar_proyecto_real` verdes, `npm run build` verde, oxlint con los dos
+warnings preexistentes.

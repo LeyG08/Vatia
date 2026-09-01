@@ -59,11 +59,28 @@ function subtipoDeAparato(tipo) {
   return null;
 }
 
+/**
+ * Espejo de campoVisible() de apps/editor/src/lib/esquemas.ts.
+ *
+ * `x-visible-si` admite dos formas: "campo" (el campo debe valer true) y
+ * "campo:valor1|valor2" (debe valer alguno de esos). Un campo oculto no se
+ * exige, porque el formulario tampoco lo muestra.
+ */
+function campoVisible(def, attrs) {
+  const regla = def && def["x-visible-si"];
+  if (!regla) return true;
+  const sep = regla.indexOf(":");
+  if (sep === -1) return attrs[regla] === true;
+  const campo = regla.slice(0, sep);
+  const valores = regla.slice(sep + 1).split("|");
+  return valores.includes(String(attrs[campo] ?? ""));
+}
+
 function reglasDeFamiliaAparato(attrs) {
   const sub = subtipoDeAparato(attrs.tipo_aparato);
   if (!sub) return null;
   const obligatorios = Object.entries(sub.properties ?? {})
-    .filter(([, d]) => d && d["x-obligatorio"] === true)
+    .filter(([, d]) => d && d["x-obligatorio"] === true && campoVisible(d, attrs))
     .map(([n]) => n);
   const alguno = Array.isArray(sub["x-alguno-obligatorio"])
     ? sub["x-alguno-obligatorio"]
@@ -72,10 +89,10 @@ function reglasDeFamiliaAparato(attrs) {
 }
 
 /** Familias sin subtipos (carga, barra, …): campos x-obligatorio de raíz */
-function reglasDeRaiz(schema) {
+function reglasDeRaiz(schema, attrs = {}) {
   return {
     obligatorios: Object.entries(schema.properties ?? {})
-      .filter(([, d]) => d && d["x-obligatorio"] === true)
+      .filter(([, d]) => d && d["x-obligatorio"] === true && campoVisible(d, attrs))
       .map(([n]) => n),
     alguno: [],
   };
@@ -102,9 +119,9 @@ function problemasFicha(familia, attrs) {
     }
     reglas = reglasDeFamiliaAparato(attrs);
   } else if (familia === "carga") {
-    reglas = reglasDeRaiz(schemaCarga);
+    reglas = reglasDeRaiz(schemaCarga, attrs);
   } else if (familia === "barra") {
-    reglas = reglasDeRaiz(schemaBarra);
+    reglas = reglasDeRaiz(schemaBarra, attrs);
   } else {
     return []; // conductor: el cable se valida por conexión
   }

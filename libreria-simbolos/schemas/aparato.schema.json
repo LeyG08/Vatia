@@ -605,19 +605,31 @@
           "description": "Cantidad de polos (3P, 4P).",
           "title": "Cantidad de polos"
         },
+        "tipo_disparo": {
+          "enum": [
+            "termomagnetico",
+            "magnetico",
+            "electronico"
+          ],
+          "x-obligatorio": true,
+          "description": "Tecnologia del disparador incorporado. Gobierna que campos de ajuste se habilitan: el termomagnetico y el electronico tienen ajuste termico (Ir), el magnetico solo tiene disparo instantaneo. El simbolo del MCCB es el mismo en los tres casos (interruptor dentro del envolvente moldeado); lo que cambia es la ficha.",
+          "title": "Tipo de disparo"
+        },
         "ir_a_min": {
           "type": "number",
           "exclusiveMinimum": 0,
           "x-obligatorio": true,
           "description": "Ajuste térmico mínimo Ir en amperes.",
-          "title": "Ajuste térmico mínimo Ir (A)"
+          "title": "Ajuste térmico mínimo Ir (A)",
+          "x-visible-si": "tipo_disparo:termomagnetico|electronico"
         },
         "ir_a_max": {
           "type": "number",
           "exclusiveMinimum": 0,
           "x-obligatorio": true,
           "description": "Ajuste térmico máximo Ir en amperes.",
-          "title": "Ajuste térmico máximo Ir (A)"
+          "title": "Ajuste térmico máximo Ir (A)",
+          "x-visible-si": "tipo_disparo:termomagnetico|electronico"
         },
         "im_a": {
           "type": "number",
@@ -639,7 +651,8 @@
           "description": "Norma de fabricación (ej: \"IEC 60947-2\").",
           "title": "Norma de fabricación"
         }
-      }
+      },
+      "description": "Interruptor automatico en caja moldeada (IEC 60947-2). La norma no distingue aparatos por la construccion del envolvente, asi que no hay un simbolo IEC propio del MCCB: se dibuja el interruptor automatico rodeado por el envolvente moldeado, y el tipo de disparo se declara aca, en la ficha, habilitando los campos de ajuste que correspondan."
     },
     "guardamotor_termomagnetico": {
       "type": "object",

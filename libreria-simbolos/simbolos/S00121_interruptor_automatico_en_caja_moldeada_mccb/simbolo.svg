@@ -1,11 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-10.0 -35.0 20.0 60.0" width="200" height="600">
   <g fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="0.0" y1="-30.0" x2="0.0" y2="-15.0"/>
-  <line x1="-3.0" y1="-15.0" x2="3.0" y2="-15.0"/>
-  <circle cx="0.0" cy="-12.0" r="3.0"/>
-  <line x1="0.0" y1="0.0" x2="-5.0" y2="-13.0"/>
-  <line x1="0.0" y1="0.0" x2="0.0" y2="20.0"/>
-  <polygon points="-3.204,-9.444 -8.804,-7.29 -6.65,-1.69 -1.05,-3.844" fill="#000000"/>
+  <line x1="0.0" y1="-30.0" x2="0.0" y2="-24.0"/>
+  <rect x="-8.0" y="-24.0" width="16.0" height="38.0"/>
+  <line x1="0.0" y1="-24.0" x2="0.0" y2="-16.0"/>
+  <line x1="-2.0" y1="-21.0" x2="2.0" y2="-17.0"/>
+  <line x1="2.0" y1="-21.0" x2="-2.0" y2="-17.0"/>
+  <line x1="0.0" y1="-6.0" x2="-5.0" y2="-16.0"/>
+  <line x1="0.0" y1="-6.0" x2="0.0" y2="14.0"/>
+  <line x1="0.0" y1="14.0" x2="0.0" y2="20.0"/>
   <circle class="punto-conexion" cx="0.0" cy="-30.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
   <circle class="punto-conexion" cx="0.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
   </g>

@@ -14,6 +14,7 @@ import {
   algunoObligatorio,
   camposDeFamilia,
   type FamiliaAtributos,
+  campoVisible,
 } from "./esquemas";
 import { obtenerSimbolo } from "./libreria";
 import type { NodoData } from "./store";
@@ -76,6 +77,9 @@ function problemasFicha(
   }
 
   for (const c of camposDeFamilia(familia, attrs) ?? []) {
+    // Un campo oculto por x-visible-si no se exige: pedirlo sería reclamar
+    // algo que el formulario ni siquiera muestra.
+    if (!campoVisible(c.esquema, attrs)) continue;
     if (c.obligatorio && vacio(attrs[c.nombre])) {
       msj.push(`Falta ${humanizarCampo(c.nombre)}.`);
     }

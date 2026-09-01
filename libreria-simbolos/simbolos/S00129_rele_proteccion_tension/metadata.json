@@ -8,16 +8,10 @@
   },
   "puntos_conexion": [
     {
-      "id": "in",
+      "id": "medicion",
       "rol": "entrada",
       "x": 0.0,
       "y": -20.0
-    },
-    {
-      "id": "out",
-      "rol": "salida",
-      "x": 0.0,
-      "y": 20.0
     }
   ],
   "version_libreria": "0.1.0",
