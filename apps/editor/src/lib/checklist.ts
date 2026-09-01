@@ -122,6 +122,12 @@ function problemasCable(a: Record<string, unknown>): string[] {
   if (vacio(a.material)) msj.push("Falta material.");
   if (vacio(a.aislacion)) msj.push("Falta aislación.");
   if (vacio(a.norma_iram)) msj.push("Falta norma IRAM.");
+  // Longitud y método de instalación son x-obligatorio en el schema (para
+  // caída de tensión y corriente admisible), pero problemasCable() es
+  // hardcodeado y no lee camposDeFamilia() para "conductor" — sin esto,
+  // marcarlos obligatorios en el schema no los hacía advertir nunca.
+  if (vacio(a.longitud_m)) msj.push("Falta la longitud del tramo.");
+  if (vacio(a.metodo_instalacion)) msj.push("Falta el método de instalación.");
 
   // Coherencia llaves ↔ secciones
   if (!neutro && sNeutro) {

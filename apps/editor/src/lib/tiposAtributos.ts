@@ -179,6 +179,10 @@ export interface AparatoInterruptorDiferencial {
   sensibilidad_ma?: number;
   /** Tipo diferencial */
   tipo_diferencial?: "AC" | "A" | "B" | "F";
+  /** Clase de disparo */
+  clase_selectivo?: "instantaneo" | "selectivo_s";
+  /** Tiempo de no respuesta (ms) */
+  tiempo_no_respuesta_ms?: number;
   /** Norma de fabricación */
   norma_fabricacion?: string;
 }
@@ -222,6 +226,12 @@ export interface AparatoMccbCajaMoldeada {
   im_a?: number;
   /** Poder de corte (kA) */
   pdcc_kA?: number;
+  /** Categoría de utilización */
+  categoria_utilizacion?: "A" | "B";
+  /** Icw (kA, 1s) */
+  icw_kA?: number;
+  /** Icm (kA cresta) */
+  icm_kA?: number;
   /** Norma de fabricación */
   norma_fabricacion?: string;
 }
@@ -411,8 +421,16 @@ export interface AtributosConductor {
   seccion_tierra_mm2?: number;
   /** Sección de fase (mm²) */
   seccion_fase_mm2?: number;
+  /** Longitud (m) */
+  longitud_m?: number;
   /** Material */
   material?: "Cu" | "Al";
+  /** Método de instalación */
+  metodo_instalacion?: "A1" | "A2" | "B1" | "B2" | "C" | "D" | "E" | "F" | "G";
+  /** Temperatura ambiente (°C) */
+  temperatura_ambiente_c?: number;
+  /** Circuitos agrupados */
+  cantidad_circuitos_agrupados?: number;
   /** Aislación */
   aislacion?: "PVC" | "XLPE" | "EPR";
   /** Norma IRAM */
@@ -437,6 +455,8 @@ export interface AtributosBarra {
   norma_iram?: string;
   /** Corriente admisible (A) */
   corriente_admisible_A?: number;
+  /** Coef. de simultaneidad (Ks) */
+  ks?: number;
 }
 
 /** Fase C7/C9. Destino de un circuito de distribución: IUG (iluminación), TUG (tomacorrientes de uso general), ACU (aire acondicionado), seccional u otra. La potencia aparente (VA) se CALCULA sola a partir de la alimentación, el neutro y la corriente; el usuario no la carga a mano. */

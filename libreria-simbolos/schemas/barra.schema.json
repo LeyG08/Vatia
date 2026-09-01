@@ -59,6 +59,14 @@
       "x-obligatorio": true,
       "description": "Corriente admisible de la barra en amperes.",
       "title": "Corriente admisible (A)"
+    },
+    "ks": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-obligatorio": false,
+      "description": "Coeficiente de simultaneidad Ks (0 a 1): fracción de la suma de las potencias de utilización de los circuitos que cuelgan de esta barra que efectivamente coincide en el tiempo. Es el dato que falta para el futuro agregador de tablero mencionado en carga.schema.json — la barra ES el punto de agregación, porque es el nodo del que cuelgan los circuitos (C8). Sin valor se asume 1 (todo simultáneo, el caso más conservador).",
+      "title": "Coef. de simultaneidad (Ks)"
     }
   }
 }

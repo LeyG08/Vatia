@@ -9,6 +9,10 @@ interface Props {
   encabezado?: React.ReactNode;
 }
 
+function valorComoTexto(v: unknown): string {
+  return v === undefined || v === null ? "" : String(v);
+}
+
 function poner(
   attrs: Record<string, unknown>,
   nombre: string,
@@ -19,6 +23,24 @@ function poner(
   else nuevos[nombre] = valor;
   return nuevos;
 }
+
+/**
+ * Referencia de los códigos de método de instalación (AEA 90364-5-52 /
+ * IEC 60364-5-52, tabla 52-C1). Notas propias y resumidas, no una
+ * transcripción de la norma — ver docs/normativa/README.md sobre por qué
+ * no se versiona el texto completo de la tabla acá.
+ */
+const METODOS_INSTALACION: { codigo: string; descripcion: string }[] = [
+  { codigo: "A1", descripcion: "Conductores aislados en tubo embutido en pared aislante térmicamente (ej. tabique de Durlock)." },
+  { codigo: "A2", descripcion: "Cable multipolar en tubo embutido en pared aislante térmicamente." },
+  { codigo: "B1", descripcion: "Conductores aislados en tubo sobre pared o embutido en mampostería (el caso más común en obra civil)." },
+  { codigo: "B2", descripcion: "Cable multipolar en tubo sobre pared o embutido en mampostería." },
+  { codigo: "C", descripcion: "Cable mono o multipolar fijado directamente sobre la pared, sin tubo." },
+  { codigo: "D", descripcion: "Cable multipolar en conducto o directamente enterrado." },
+  { codigo: "E", descripcion: "Cable multipolar al aire libre, en bandeja o escalera (no en contacto mutuo con otros cables)." },
+  { codigo: "F", descripcion: "Cables monopolares en contacto mutuo, al aire libre en bandeja." },
+  { codigo: "G", descripcion: "Cables monopolares separados entre sí (espaciados), al aire libre en bandeja." },
+];
 
 /** Llave on/off (neutro / tierra) */
 function Llave({
@@ -65,9 +87,13 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
     "seccion_tierra_mm2",
     "seccion_fase_mm2",
   ]);
-  const simples = (camposDeFamilia("conductor", atributos) ?? []).filter(
+  const camposRestantes = (camposDeFamilia("conductor", atributos) ?? []).filter(
     (c: CampoDescriptor) => !manejados.has(c.nombre),
   );
+  // Método de instalación se saca del loop genérico: lleva un recordatorio
+  // propio de códigos que no tiene ningún otro campo del schema.
+  const metodoInstalacionCampo = camposRestantes.find((c) => c.nombre === "metodo_instalacion");
+  const simples = camposRestantes.filter((c) => c.nombre !== "metodo_instalacion");
 
   const preview = lineasCable(atributos);
 
@@ -212,14 +238,21 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
         </label>
       )}
 
-      {/* ---- Resto: material / aislación / norma (desde schema) ---- */}
+      {/* ---- Resto: campos que faltan (desde schema) ----
+       * Cubre enum/número/entero/booleano/texto, igual que el renderer
+       * genérico de FormularioAtributos.tsx. Hasta acá solo entendía enum
+       * y texto: cualquier campo numérico que se agregara al schema de
+       * conductor (longitud_m, temperatura_ambiente_c, cantidad_
+       * circuitos_agrupados) se hubiera guardado como STRING en vez de
+       * number, en silencio — el <input type="text"> nunca lo convertía. */}
       {simples.map((campo) => {
         const v = atributos[campo.nombre];
+        const texto = valorComoTexto(v);
         let control: React.ReactNode;
         if (campo.esquema.enum) {
           control = (
             <select
-              value={v === undefined || v === null ? "" : String(v)}
+              value={texto}
               onChange={(e) => onChange(poner(atributos, campo.nombre, e.target.value || undefined))}
             >
               <option value="">—</option>
@@ -228,11 +261,45 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
               ))}
             </select>
           );
+        } else if (campo.esquema.type === "boolean") {
+          control = (
+            <select
+              value={v === true ? "si" : v === false ? "no" : ""}
+              onChange={(e) =>
+                onChange(
+                  poner(atributos, campo.nombre, e.target.value === "" ? undefined : e.target.value === "si"),
+                )
+              }
+            >
+              <option value="">—</option>
+              <option value="si">sí</option>
+              <option value="no">no</option>
+            </select>
+          );
+        } else if (campo.esquema.type === "number" || campo.esquema.type === "integer") {
+          control = (
+            <input
+              type="number"
+              step={campo.esquema.type === "integer" ? 1 : "any"}
+              min={campo.esquema.minimum ?? campo.esquema.exclusiveMinimum}
+              max={campo.esquema.maximum}
+              value={texto}
+              onChange={(e) =>
+                onChange(
+                  poner(
+                    atributos,
+                    campo.nombre,
+                    e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+                  ),
+                )
+              }
+            />
+          );
         } else {
           control = (
             <input
               type="text"
-              value={v === undefined || v === null ? "" : String(v)}
+              value={texto}
               onChange={(e) => onChange(poner(atributos, campo.nombre, e.target.value || undefined))}
             />
           );
@@ -240,13 +307,52 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
         return (
           <label key={campo.nombre} className="campo-atributo" title={campo.esquema.description}>
             <span>
-              {campo.nombre}
+              {/* Título humano del schema; sin esto caía en el nombre
+               * crudo del campo ("material", "aislacion", "norma_iram")
+               * en vez de "Material", "Aislación", "Norma IRAM". */}
+              {campo.title ?? campo.nombre}
               {campo.obligatorio && <em className="obligatorio">*</em>}
             </span>
             {control}
           </label>
         );
       })}
+
+      {/* ---- Método de instalación: código + recordatorio siempre visible ----
+       * Pedido del usuario: se elige SOLO por el código (A1, B2, C...),
+       * pero con un recordatorio de a qué corresponde cada uno — nadie
+       * los recuerda de memoria, y ocultarlo detrás de un hover no
+       * alcanza para consultarlo mientras se completa la ficha. */}
+      {metodoInstalacionCampo && (
+        <label className="campo-atributo" title={metodoInstalacionCampo.esquema.description}>
+          <span>
+            {metodoInstalacionCampo.title ?? "Método de instalación"}
+            {metodoInstalacionCampo.obligatorio && <em className="obligatorio">*</em>}
+          </span>
+          <select
+            value={valorComoTexto(atributos.metodo_instalacion)}
+            onChange={(e) => onChange(poner(atributos, "metodo_instalacion", e.target.value || undefined))}
+          >
+            <option value="">—</option>
+            {METODOS_INSTALACION.map(({ codigo }) => (
+              <option key={codigo} value={codigo}>{codigo}</option>
+            ))}
+          </select>
+        </label>
+      )}
+      {metodoInstalacionCampo && (
+        <details className="fc-metodos-recordatorio">
+          <summary>Qué es cada método de instalación</summary>
+          <dl>
+            {METODOS_INSTALACION.map(({ codigo, descripcion }) => (
+              <div key={codigo}>
+                <dt>{codigo}</dt>
+                <dd>{descripcion}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+      )}
 
       {/* ---- Vista previa de la notación ---- */}
       {preview.length > 0 && (

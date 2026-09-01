@@ -242,6 +242,26 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
 
       <label
         className="campo-atributo"
+        title="cosφ: IUG/TUG cercano a 1 (resistivo), ACU y cargas con motor 0,8-0,9 (inductivo). Todavía no lo consume ningún cálculo."
+      >
+        <span>Factor de potencia (cosφ)</span>
+        <input
+          type="number"
+          step="0.01"
+          min={0}
+          max={1}
+          value={valorComoTexto(atributos.factor_potencia)}
+          onChange={(e) =>
+            actualizar(
+              "factor_potencia",
+              e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+            )
+          }
+        />
+      </label>
+
+      <label
+        className="campo-atributo"
         title="Coeficiente de utilización: fracción de la nominal en uso. Sugerido por tipo de carga, siempre editable"
       >
         <span>Ku utilización</span>

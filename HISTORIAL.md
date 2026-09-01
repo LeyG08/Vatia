@@ -3006,3 +3006,103 @@ ahora imprime `63 A gG`.
 Tipos sincronizados, `lint_simbolos` 20/20, `verificar_alineacion` y
 `verificar_proyecto_real` verdes, build verde, oxlint con los dos warnings
 preexistentes.
+
+---
+
+## E11 — Paso 2: los campos de entrada que faltaban (01/09/2026)
+
+**Rama:** `proyecto/fundaciones-datos-20260901`.
+
+### Conductor
+
+Nuevos campos en `conductor.schema.json`, todos `x-obligatorio: true` salvo
+donde se indica:
+
+- **longitud_m**: base de la caída de tensión y de la impedancia del cable
+  para Icc en el extremo. Sin este dato ninguno de los dos se puede calcular.
+- **metodo_instalacion**: código de letra (A1, A2, B1, B2, C, D, E, F, G),
+  AEA 90364-5-52 / IEC 60364-5-52 tabla 52-C1. Determina de qué columna de
+  tabla sale Iz.
+- **temperatura_ambiente_c** (opcional) y **cantidad_circuitos_agrupados**
+  (opcional): factores de corrección de Iz por temperatura y por agrupamiento.
+
+Pedido del usuario: el método se elige solo por el código, pero con un
+recordatorio siempre visible de a qué corresponde cada uno — un `<details>`
+con las nueve descripciones, no oculto detrás de un hover. Notas propias y
+resumidas, no transcripción de la norma (criterio ya establecido en
+`docs/normativa/README.md`).
+
+### Barra: ks
+
+`barra.schema.json` gana **ks** (coeficiente de simultaneidad, 0 a 1,
+opcional). Es el dato que faltaba para el futuro agregador de tablero que
+`utilizacion.ts` ya menciona desde hace tiempo — la barra es el punto de
+agregación, porque es el nodo del que cuelgan los circuitos (C8).
+
+### Carga: factor_potencia
+
+`carga.schema.json` gana **factor_potencia** (cosφ, opcional). Hoy no lo
+consume ningún cálculo — el proyecto trabaja en VA, no en W — pero es el dato
+que falta para derivar potencia activa cuando haga falta.
+
+### Aparatos: Icw, Icm, categoría de utilización, clase selectivo
+
+- `mccb_caja_moldeada` gana **categoria_utilizacion** (A/B, IEC 60947-2),
+  **icw_kA** (corriente admisible de corta duración) e **icm_kA** (capacidad
+  de cierre). Son datos de filiación/selectividad reales.
+- `interruptor_diferencial` gana **clase_selectivo** (instantaneo /
+  selectivo_s) y **tiempo_no_respuesta_ms** (visible solo si es selectivo).
+  Es el dato que decide si dos diferenciales en cascada son selectivos entre
+  sí — el caso más común de selectividad en un tablero doméstico o comercial.
+
+Corrección de un supuesto propio: la revisión inicial daba por sentado que "el
+MCCB no declara curva" era un hueco a llenar. No lo es: a diferencia del
+termomagnético (IEC 60898-1, curva de letra fija), el MCCB (IEC 60947-2) se
+caracteriza por su rango de ajuste Ir/Im — que ya estaba modelado —, no por
+una curva de letra. No se agregó el campo.
+
+### Dos bugs de la UI encontrados al agregar los campos, no al buscarlos
+
+1. `FormularioConductor.tsx` guardaba número como texto. El renderer genérico
+   de campos "restantes" solo distinguía enum de texto — nunca
+   number/integer/boolean. Con los campos nuevos, longitud_m y
+   cantidad_circuitos_agrupados se hubieran guardado como string, en
+   silencio, exactamente el mismo tipo de bug de tipado que el Paso 1 vino a
+   cerrar. Corregido para cubrir los cuatro tipos, igual que
+   `FormularioAtributos.tsx`.
+2. Los títulos de campo nunca se mostraban. El mismo renderer mostraba el
+   nombre crudo del campo ("material", "aislacion", "norma_iram") en vez de
+   su title ("Material", "Aislación", "Norma IRAM"), pese a que el schema ya
+   los declaraba. Estaba así desde que existe el formulario. Corregido.
+
+Verificado en navegador, cargando el proyecto real y abriendo el panel de una
+conexión y de un MCCB: los campos nuevos aparecen, con los títulos correctos,
+y el recordatorio de métodos de instalación se despliega.
+
+### verificar_proyecto_real.mjs: pendientes bloqueantes vs. informativos
+
+Al volverse obligatorios longitud_m y metodo_instalacion, las 10 conexiones y
+4 alimentadores del proyecto real —migrado desde un DWG que nunca tuvo esos
+datos— pasaron a reportar 24 pendientes, lo que hubiera dejado la CI agregada
+en E9 permanentemente en rojo hasta que alguien mida la instalación real.
+
+Se decidió no inventar esos valores. A diferencia de tipo_disparo en E7 (una
+clasificación técnica de 3 opciones razonables, corregible barato), una
+longitud de cable es un dato físico sin cota: adivinarlo mal es peor que no
+tenerlo, y contaminaría en silencio cualquier cálculo de caída de tensión
+futuro.
+
+En cambio, `verificar_proyecto_real.mjs` distingue ahora pendientes
+bloqueantes de informativos: los campos que dependen de la instalación física
+(no del plano) se imprimen con ⚠ y se cuentan aparte, pero no hacen fallar el
+script. `checklist.ts` no necesitó el mismo cambio — ya era no bloqueante por
+diseño, solo el script standalone tenía `process.exit(1)` duro. Salida
+actual: "OK … (+ 24 dato(s) de sitio pendientes de medir en obra, no
+bloquean)".
+
+### Verificaciones
+
+Tipos sincronizados, `lint_simbolos` 20/20, `verificar_alineacion` y
+`verificar_proyecto_real` verdes (con el aviso informativo), build verde,
+oxlint con los dos warnings preexistentes. Panel de conexión y panel de MCCB
+verificados en navegador con el proyecto real.

@@ -59,6 +59,13 @@
       "description": "Sección de cada conductor de fase. Plano: \"25mm²\".",
       "title": "Sección de fase (mm²)"
     },
+    "longitud_m": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-obligatorio": true,
+      "description": "Longitud del tramo en metros. Es la base de la caída de tensión (ΔU% ∝ longitud) y de la impedancia del cable para el cálculo de cortocircuito en el extremo. Sin este dato ninguno de los dos se puede calcular.",
+      "title": "Longitud (m)"
+    },
     "material": {
       "enum": [
         "Cu",
@@ -67,6 +74,35 @@
       "x-obligatorio": true,
       "description": "De todo el cable. Plano: \"Cu\".",
       "title": "Material"
+    },
+    "metodo_instalacion": {
+      "enum": [
+        "A1",
+        "A2",
+        "B1",
+        "B2",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G"
+      ],
+      "x-obligatorio": true,
+      "description": "Código de método de instalación (AEA 90364-5-52 / IEC 60364-5-52 tabla 52-C1). Determina de qué tabla de corriente admisible sale Iz para esta sección y aislación: cada método corresponde a una columna distinta de la tabla, aunque el cable sea idéntico. Se elige por código; el formulario muestra un recordatorio de a qué corresponde cada uno.",
+      "title": "Método de instalación"
+    },
+    "temperatura_ambiente_c": {
+      "type": "number",
+      "x-obligatorio": false,
+      "description": "Temperatura ambiente en °C. Corrige la corriente admisible de tabla (factor de corrección por temperatura): a mayor temperatura, menor Iz. Sin valor se asume la de referencia de la tabla (30°C en instalación enterrada, 40°C al aire, según AEA/IEC).",
+      "title": "Temperatura ambiente (°C)"
+    },
+    "cantidad_circuitos_agrupados": {
+      "type": "integer",
+      "minimum": 1,
+      "x-obligatorio": false,
+      "description": "Cantidad de circuitos o cables multiconductores agrupados en la misma canalización, incluido este. Corrige la corriente admisible por agrupamiento (factor de corrección): a más circuitos juntos, menor Iz por calentamiento mutuo. Sin valor se asume 1 (sin agrupamiento).",
+      "title": "Circuitos agrupados"
     },
     "aislacion": {
       "enum": [

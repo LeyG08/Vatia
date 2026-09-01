@@ -645,6 +645,29 @@
           "description": "Poder de corte en kA (IEC 60947-2 Icu/Icn).",
           "title": "Poder de corte (kA)"
         },
+        "categoria_utilizacion": {
+          "enum": [
+            "A",
+            "B"
+          ],
+          "x-obligatorio": false,
+          "description": "Categoría de utilización IEC 60947-2: A = sin retardo intencional de disparo (protección directa); B = con retardo intencional ajustable, admite selectividad cronométrica con la protección aguas abajo. La mayoría de los MCCB de uso general son categoría A.",
+          "title": "Categoría de utilización"
+        },
+        "icw_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Icw: corriente admisible de corta duración en kA (1 s), solo aplica a categoría B. Es la corriente de cortocircuito que el aparato soporta sin abrir mientras espera el retardo, para dejar actuar primero a la protección aguas abajo.",
+          "title": "Icw (kA, 1s)"
+        },
+        "icm_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Icm: capacidad de cierre en cortocircuito, en kA cresta. Es la corriente de pico que el aparato puede cerrar sin soldarse los contactos, aunque no la despeje; siempre es mayor que Icu.",
+          "title": "Icm (kA cresta)"
+        },
         "norma_fabricacion": {
           "type": "string",
           "x-obligatorio": true,
@@ -991,6 +1014,23 @@
           ],
           "x-obligatorio": false,
           "title": "Tipo diferencial"
+        },
+        "clase_selectivo": {
+          "enum": [
+            "instantaneo",
+            "selectivo_s"
+          ],
+          "x-obligatorio": false,
+          "description": "'instantaneo' es el diferencial común. 'selectivo_s' es el tipo S de IEC 60947-2/61008-1 (marcado con una S en el aparato real): retarda intencionalmente el disparo para que el diferencial aguas abajo actúe primero. Es EL dato que decide si dos diferenciales en cascada son selectivos entre sí — el caso más común de selectividad en un tablero doméstico o comercial.",
+          "title": "Clase de disparo"
+        },
+        "tiempo_no_respuesta_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "x-visible-si": "clase_selectivo:selectivo_s",
+          "description": "Tiempo mínimo de no actuación en ms, solo para clase selectivo S. Tiene que ser mayor que el tiempo total de despeje del diferencial aguas abajo para que la selectividad sea real.",
+          "title": "Tiempo de no respuesta (ms)"
         },
         "norma_fabricacion": {
           "type": "string",
