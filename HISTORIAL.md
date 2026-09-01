@@ -2864,3 +2864,79 @@ Fabric. El lint no lo detecta porque no es un error de geometría.
 ### Verificaciones
 
 `lint_simbolos` 20/20, galería regenerada, `verificar_proyecto_real` verde.
+
+---
+
+# FASE E — Motor de verificación
+
+## E9 — Paso 0: CI y guardado del editor sin pérdida (01/09/2026)
+
+**Rama:** `proyecto/fundaciones-datos-20260901`, desde `main` con el PR #13 ya
+mergeado.
+
+Arranca la etapa de **fundaciones de datos** para el motor de verificación. Los
+parámetros base los definió el usuario:
+
+| Dato | Valor |
+|---|---|
+| Tensión nominal | **380/220 V ±5 %** (no se adoptó 400/231, se mantiene lo que ya usaba el proyecto del PPS) |
+| Esquema de puesta a tierra | los **cuatro** (TT, TN-S, TN-C, IT), **TT por defecto** |
+| Normativa por defecto | **AEA**, modificable por proyecto |
+| Método de instalación | por **código de letra** (A1, A2, B1, B2, C, D, E, F, G), con un recordatorio visible de a qué corresponde cada uno |
+| Formato de archivo | se aprueba el salto a **v3** |
+
+Sobre el cortocircuito, el usuario propuso un mecanismo propio: definida la
+**fuente principal** una sola vez, cuando una carga se marca como `seccional`
+el programa debería **crear automáticamente su alimentador**, para poder
+verificar el cortocircuito aguas abajo en ese tablero. Es decir, una carga
+seccional no es un punto terminal sino el arranque de otro tablero. Queda
+anotado para la etapa de topología.
+
+### CI mínima
+
+Nuevo `.github/workflows/verificacion.yml`, con dos jobs:
+
+- **`basico`**: `npm ci`, build, oxlint, `lint_simbolos.py`,
+  `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`.
+- **`editor`**: instala Chromium y corre `npm run e2e:simbolos`.
+
+Existe porque hasta ahora **nada obligaba** a correr esos controles: cuatro
+iteraciones del editor se dieron por buenas sin abrirlo, y un guardado
+defectuoso llegó a commitear un símbolo corrupto.
+
+Detalle de implementación: el dev server y el arnés van en **un solo paso**. Un
+proceso lanzado en segundo plano en un paso previo no sobrevive de forma
+confiable al siguiente, y el arnés necesita el server porque los endpoints
+`/api/*` son middlewares de Vite y no existen en el build de producción.
+
+### El guardado del editor ya no pierde información
+
+El bug detectado en E8: Fabric no preserva atributos ajenos a su modelo, así que
+al exportar los terminales perdían `class="punto-conexion"` —que `estilos.css`
+usa para darles formato— y quedaban con un `style=` que triplicaba el tamaño del
+archivo.
+
+La corrección es la que se había anotado: **los terminales ya no se exportan
+desde Fabric**. Se los saca del canvas antes de `toSVG()`, igual que a los
+marcadores, y se los vuelve a emitir en su forma canónica tomando la posición
+final (que puede haber cambiado si el usuario arrastró un terminal). El orden
+sigue al de `metadata.json`, para que el archivo quede estable entre guardados
+sucesivos.
+
+**Verificado en el navegador, no solo compilando**: se abrió el editor, se
+arrastró una primitiva de S00132 para habilitar Guardar, se guardó, y el archivo
+resultante trae los dos terminales con su clase y las coordenadas correctas.
+El símbolo se restauró después de la prueba.
+
+> Observación menor: en esa prueba el endpoint escribió el archivo pero **no
+> commiteó**, pese a estar en una rama no protegida. `commitearSeguro()` es
+> best-effort y se traga el error; ahora al menos devuelve el motivo al cliente
+> en el campo `commit` de la respuesta. Queda para mirar.
+
+También se agregó `.tmp.driveupload/` al `.gitignore`: es ruido de sincronización
+de Google Drive dentro del repo.
+
+### Verificaciones
+
+Build verde, oxlint con los dos warnings preexistentes, `lint_simbolos` 20/20,
+`verificar_alineacion` y `verificar_proyecto_real` verdes.

@@ -18,3 +18,7 @@ Desktop.ini
 
 # Temporales de trabajo (colección QET clonada, exports)
 tmp/
+
+# Artefactos de sincronizacion de Google Drive
+.tmp.driveupload/
+.tmp.drivedownload/
