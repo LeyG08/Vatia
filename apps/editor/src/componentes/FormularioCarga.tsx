@@ -281,6 +281,27 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
         />
       </label>
 
+      <label
+        className="campo-atributo"
+        title="Simultaneidad de ESTA carga respecto de las demás del mismo tablero (distinto de Ku, que ajusta la potencia propia). En ACU o máquinas compuestas, la potencia ya puede venir afectada por la simultaneidad interna de sus propios elementos — acá va la simultaneidad ADICIONAL con el resto."
+      >
+        <span>Ks simultaneidad</span>
+        <input
+          type="number"
+          step="0.05"
+          min={0}
+          max={1}
+          placeholder="1"
+          value={valorComoTexto(atributos.ks)}
+          onChange={(e) =>
+            actualizar(
+              "ks",
+              e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+            )
+          }
+        />
+      </label>
+
       {/* C16: la potencia y la utilización se CALCULAN solas — ya no
        * van como campos del formulario (confundían); solo un aviso de
        * qué está quedando. En el plano se anotan igual. */}

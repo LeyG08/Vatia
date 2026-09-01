@@ -75,10 +75,18 @@
       "description": "Coeficiente de utilización Ku (0 a 1): fracción de la potencia nominal que el circuito usa en realidad. Sugerido según tipo de carga (IUG cercano a 1, TUG más bajo, ACU/seccional entre 0,75 y 1) y siempre editable a mano. Sin valor se asume 1.",
       "title": "Coef. utilización (Ku)"
     },
+    "ks": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "x-obligatorio": false,
+      "description": "Coeficiente de simultaneidad Ks (0 a 1) DE ESTA CARGA respecto de las demás que cuelgan del mismo punto: no toda carga conectada coincide en el tiempo con las otras. Es distinto de Ku: Ku ajusta la potencia PROPIA de la carga (cuánto de su nominal usa en realidad); Ks ajusta cuánto de esa potencia ya ajustada aporta cuando se suma junto con las demás cargas del tablero. Corrección del usuario: NO es un dato del punto de agregación (la barra), es un dato de cada carga — cada tipo de circuito tiene su propia simultaneidad característica (IUG cercano a 1, TUG y ACU más bajo). En cargas compuestas (ACU, máquinas con varios motores) la potencia declarada puede YA venir afectada por la simultaneidad interna de sus propios elementos; Ks acá es la simultaneidad ADICIONAL respecto de las otras cargas del tablero, no una repetición de esa. Sin valor se asume 1 (carga totalmente simultánea, el caso más conservador). Sigue sin existir el nodo agregador que lo consuma (ver potencia_utilizacion_va); es el mismo hueco de topología que ya estaba anotado.",
+      "title": "Coef. de simultaneidad (Ks)"
+    },
     "potencia_utilizacion_va": {
       "type": "number",
       "exclusiveMinimum": 0,
-      "description": "Potencia de utilización en VA = potencia_va × ku (ku ausente ⇒ iguala a la nominal). CALCULADA y de solo lectura. Se guarda para el futuro nodo agregador de tablero, que la sumará junto con el coeficiente de simultaneidad Ks.",
+      "description": "Potencia de utilización en VA = potencia_va × ku (ku ausente ⇒ iguala a la nominal). CALCULADA y de solo lectura. Es la que sumará el futuro nodo agregador de tablero junto con el Ks de cada carga — ver ks.",
       "title": "Potencia de utilización (VA)"
     },
     "descripcion": {

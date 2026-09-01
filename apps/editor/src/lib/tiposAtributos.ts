@@ -455,8 +455,6 @@ export interface AtributosBarra {
   norma_iram?: string;
   /** Corriente admisible (A) */
   corriente_admisible_A?: number;
-  /** Coef. de simultaneidad (Ks) */
-  ks?: number;
 }
 
 /** Fase C7/C9. Destino de un circuito de distribución: IUG (iluminación), TUG (tomacorrientes de uso general), ACU (aire acondicionado), seccional u otra. La potencia aparente (VA) se CALCULA sola a partir de la alimentación, el neutro y la corriente; el usuario no la carga a mano. */
@@ -479,6 +477,8 @@ export interface AtributosCarga {
   potencia_va?: number;
   /** Coef. utilización (Ku) */
   ku?: number;
+  /** Coef. de simultaneidad (Ks) */
+  ks?: number;
   /** Potencia de utilización (VA) */
   potencia_utilizacion_va?: number;
   /** Descripción de la carga */

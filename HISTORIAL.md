@@ -3106,3 +3106,33 @@ Tipos sincronizados, `lint_simbolos` 20/20, `verificar_alineacion` y
 `verificar_proyecto_real` verdes (con el aviso informativo), build verde,
 oxlint con los dos warnings preexistentes. Panel de conexión y panel de MCCB
 verificados en navegador con el proyecto real.
+
+### E11.1 — Corrección: Ks es de la carga, no de la barra
+
+El usuario corrigió el lugar del coeficiente de simultaneidad apenas se
+propuso el paso siguiente: Ks no describe el punto de agregación, describe
+**cada carga** — cuán simultánea es esa carga particular respecto de las
+demás que cuelgan del mismo punto. Puesto en la barra, quedaba mezclado con
+la geometría física del embarrado, que es de lo que trata ese schema.
+
+El usuario agregó además un matiz que no estaba contemplado: en cargas
+compuestas —ACU, máquinas con varios motores— la potencia declarada **ya
+puede venir afectada** por la simultaneidad interna de sus propios
+elementos. El Ks del schema es la simultaneidad **adicional** respecto de
+las demás cargas del tablero, no una repetición de esa.
+
+Revertido: `ks` sale de `barra.schema.json`. Agregado: `ks` en
+`carga.schema.json`, al lado de `ku` (son un par — Ku ajusta la potencia
+propia de la carga, Ks ajusta cuánto de esa potencia ya ajustada entra
+cuando se suma con las demás), con la descripción incorporando el matiz de
+las cargas compuestas. Campo nuevo en `FormularioCarga.tsx`, mismo patrón que
+Ku (número 0–1, sugerido "1" si está vacío).
+
+Sigue sin existir el nodo agregador que consuma Ku y Ks juntos — es el mismo
+hueco de topología ya anotado en `utilizacion.ts` y en la revisión inicial;
+acá solo se corrigió dónde vive el dato de entrada.
+
+Verificado en navegador con el proyecto real (carga TS-G1, S00120): el campo
+Ks aparece en el panel, junto a Ku, y el resto de los controles
+(`lint_simbolos`, `verificar_alineacion`, `verificar_proyecto_real`, build)
+siguen verdes.
