@@ -14,14 +14,17 @@ import { obtenerSimbolo } from "./libreria";
 import { GRILLA_PX } from "./ruta";
 import {
   ALIMENTADOR_POR_DEFECTO,
+  DATOS_PROYECTO_POR_DEFECTO,
   HOJA_POR_DEFECTO,
   NOTAS_GABINETE_POR_DEFECTO,
   ROTULO_POR_DEFECTO,
   hojaNuevaDesde,
-  migrarAProyectoV2,
+  migrarAProyectoV3,
   rectanguloUtil,
   type AlimentadorConfig,
   type ConexionProyecto,
+  type DatosProyecto,
+  type FuenteCortocircuito,
   type Hoja,
   type HojaConfig,
   type NodoProyecto,
@@ -474,17 +477,25 @@ interface EstadoEditor {
   problemasProyecto: string[];
   paletaVisible: boolean;
   panelHojaAbierto: boolean;
+  panelProyectoAbierto: boolean;
   modoAdmin: boolean;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
+  alternarPanelProyecto: () => void;
   alternarAdmin: () => void;
   actualizarHoja: (
     patch: Partial<Omit<HojaConfig, "rotulo" | "notasGabinete">> & {
       rotulo?: Partial<RotuloConfig>;
       notasGabinete?: Partial<NotasGabineteConfig>;
+    },
+  ) => void;
+  /** Datos eléctricos base del proyecto (tensión, esquema PAT, normativa) */
+  actualizarDatosProyecto: (
+    patch: Partial<Omit<DatosProyecto, "fuente_cortocircuito">> & {
+      fuente_cortocircuito?: Partial<FuenteCortocircuito>;
     },
   ) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
@@ -640,13 +651,14 @@ function proyectoInicial(): { proyecto: Proyecto; hojaId: string } {
   const hoja = hojaNuevaDesde(HOJA_POR_DEFECTO(), "Hoja 1");
   return {
     proyecto: {
-      version: 2,
+      version: 3,
       meta: {
         nombre: "proyecto_sin_nombre",
         fechaCreacion: new Date().toISOString(),
         ultimaModificacion: new Date().toISOString(),
       },
       hojas: [hoja],
+      datosProyecto: DATOS_PROYECTO_POR_DEFECTO(),
     },
     hojaId: hoja.id,
   };
@@ -727,6 +739,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     problemasProyecto: [],
     paletaVisible: true,
     panelHojaAbierto: false,
+    panelProyectoAbierto: false,
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
@@ -737,6 +750,29 @@ export const useEditor = create<EstadoEditor>((set, get) => {
 
     alternarPanelHoja() {
       set((s) => ({ panelHojaAbierto: !s.panelHojaAbierto }));
+    },
+
+    alternarPanelProyecto() {
+      set((s) => ({ panelProyectoAbierto: !s.panelProyectoAbierto }));
+    },
+
+    actualizarDatosProyecto(patch) {
+      set((s) => ({
+        proyecto: {
+          ...s.proyecto,
+          datosProyecto: {
+            ...s.proyecto.datosProyecto,
+            ...patch,
+            fuente_cortocircuito:
+              patch.fuente_cortocircuito !== undefined
+                ? {
+                    ...s.proyecto.datosProyecto.fuente_cortocircuito,
+                    ...patch.fuente_cortocircuito,
+                  }
+                : s.proyecto.datosProyecto.fuente_cortocircuito,
+          },
+        },
+      }));
     },
 
     alternarAdmin() {
@@ -1690,12 +1726,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
 
     cargarProyecto(entrada) {
-      const bruto =
-        typeof entrada === "string"
-          ? migrarAProyectoV2(entrada)
-          : ("version" in entrada && entrada.version === 2
-              ? (entrada as Proyecto)
-              : migrarAProyectoV2(entrada));
+      const bruto = migrarAProyectoV3(entrada);
 
       const problemas: string[] = [];
       const hojasNormalizadas: Hoja[] = bruto.hojas.map((h) => {
@@ -1716,13 +1747,14 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       }
 
       const proyecto: Proyecto = {
-        version: 2,
+        version: 3,
         meta: bruto.meta ?? {
           nombre: "proyecto_sin_nombre",
           fechaCreacion: new Date().toISOString(),
           ultimaModificacion: new Date().toISOString(),
         },
         hojas: hojasNormalizadas,
+        datosProyecto: bruto.datosProyecto ?? DATOS_PROYECTO_POR_DEFECTO(),
       };
 
       const primera = proyecto.hojas[0];

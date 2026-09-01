@@ -233,13 +233,17 @@ export function anotacionBarra(a: Record<string, unknown>): string[] {
  * La utilización (C10/C13) va como línea SECUNDARIA: más chica y
  * gris, sin ensuciar la nominal.
  */
-function anotacionCarga(a: Record<string, unknown>): LineaAnotacion[] {
+function anotacionCarga(
+  a: Record<string, unknown>,
+  tensionFaseV: number,
+  tensionLineaV: number,
+): LineaAnotacion[] {
   const l: LineaAnotacion[] = [];
   if (a.codigo_circuito) l.push({ texto: String(a.codigo_circuito) });
   if (a.tipo_carga) l.push({ texto: String(a.tipo_carga) });
   if (a.alimentacion) {
     const tri = a.alimentacion === "trifasica";
-    const v = tri || a.lleva_neutro === false ? "380 V" : "220 V";
+    const v = `${tri || a.lleva_neutro === false ? tensionLineaV : tensionFaseV} V`;
     // C15: el NEUTRO se declara en la línea ("1F N", "3F N") para
     // distinguirlo de un circuito entre fases a simple vista.
     const conN = a.lleva_neutro === true ? " N" : "";
@@ -275,12 +279,14 @@ export interface LineaAnotacion {
 export function anotacionNodo(
   familia: FamiliaAtributos,
   data: DatosSimbolo,
+  tensionFaseV = 220,
+  tensionLineaV = 380,
 ): LineaAnotacion[] {
   const a = (data.atributos ?? {}) as Record<string, unknown>;
   const planas = (ss: string[]): LineaAnotacion[] => ss.map((t) => ({ texto: t }));
   if (familia === "aparato") return planas(anotacionAparato(a));
   if (familia === "barra") return planas(anotacionBarra(a));
-  if (familia === "carga") return anotacionCarga(a);
+  if (familia === "carga") return anotacionCarga(a, tensionFaseV, tensionLineaV);
   return [];
 }
 

@@ -3136,3 +3136,60 @@ Verificado en navegador con el proyecto real (carga TS-G1, S00120): el campo
 Ks aparece en el panel, junto a Ku, y el resto de los controles
 (`lint_simbolos`, `verificar_alineacion`, `verificar_proyecto_real`, build)
 siguen verdes.
+
+## E12 — Paso 3: datos de proyecto y migración v2 → v3
+
+Tercer paso del plan de fundaciones de datos (después de E9 CI/guardado, E10
+tipos, E11 campos faltantes): parámetros eléctricos base del proyecto —
+normativa, tensión, esquema de puesta a tierra y fuente de cortocircuito—
+como dato del proyecto en vez de constantes hardcodeadas, según lo acordado
+con el usuario al cierre de E11 (380/220 V, TT por defecto, AEA por defecto,
+modificable por proyecto).
+
+### Formato v3
+
+`Proyecto` gana `datosProyecto: DatosProyecto` (`normativa: "AEA" | "IEC"`,
+`tension_fase_v`, `tension_linea_v`, `esquema_pat: "TT" | "TN-S" | "TN-C" |
+"IT"`, `fuente_cortocircuito?: { scc_mva?, icc_ka? }`) y `version` pasa de 2
+a 3. `migrarAProyectoV2` se partió en `migrarEstructuraHojas` (la cadena
+v0→v1→v2 tal cual estaba) más `migrarAProyectoV3`, que le agrega
+`datosProyecto` por defecto (AEA, 220/380 V, TT) si no existe. Un proyecto
+v2 real (`proyecto-real-pps.json`) sigue cargando sin tocarlo: la migración
+es transparente.
+
+La fuente de cortocircuito solo se guarda por ahora — no la consume ningún
+cálculo todavía. Es el mismo dato que el usuario había anticipado en las
+preguntas de cierre de E11 (5.): la idea de crear automáticamente el
+alimentador de una carga marcada `seccional` a partir de esta fuente
+pertenece a la etapa de topología (recorrido del grafo), no a esta.
+
+### Tensión hardcodeada eliminada
+
+`FormularioCarga.tsx` tenía 220/380 V escritos a mano en `calcularPotenciaVa`
+(regla C9: S = tensión × I). Pasa a recibir `tensionFaseV`/`tensionLineaV`
+como parámetros, leídos del store (`proyecto.datosProyecto`) en el
+componente. `anotaciones.ts` tenía el mismo hardcodeo en la etiqueta de la
+carga sobre el plano (`anotacionCarga`) — se corrigió también, encadenando el
+parámetro a través de `anotacionNodo` hasta `NodoSimbolo.tsx`, que ahora lee
+la tensión del store antes del `return` temprano (los hooks no pueden ir
+después de un return condicional).
+
+### Panel "Datos del proyecto"
+
+Nuevo `PanelProyecto.tsx`, mismo patrón que `PanelHoja.tsx` (modal +
+`useEditor`, sin pasar por el historial de deshacer — igual que
+`actualizarHoja`): selector de normativa, dos campos de tensión, selector de
+esquema PAT y los dos campos opcionales de fuente de cortocircuito, con una
+nota explícita de que ese dato no se consume todavía. Botón nuevo "⚡
+Proyecto…" en `BarraSuperior.tsx`, al lado de "📐 Hoja…".
+
+### Verificaciones
+
+`generar_tipos_atributos.py --verificar` OK (schemas sin cambios), `tsc
+--noEmit` limpio, build verde, oxlint con los mismos dos warnings
+preexistentes (ninguno nuevo), `lint_simbolos` 20/20, `verificar_alineacion`
+y `verificar_proyecto_real` verdes. Verificado en navegador con el proyecto
+real: el panel muestra los valores por defecto correctos (AEA, 220/380 V,
+TT), y al cambiar la tensión de línea a 400 V la potencia de una carga
+trifásica con 10 A recalculó en vivo de 6582 VA a 6928 VA — confirma que el
+dato de proyecto llega hasta el cálculo, no solo hasta el formulario.

@@ -11,6 +11,7 @@ function BarraSuperior() {
   const alternarPaleta = useEditor((s) => s.alternarPaleta);
   const paletaVisible = useEditor((s) => s.paletaVisible);
   const alternarHoja = useEditor((s) => s.alternarPanelHoja);
+  const alternarProyecto = useEditor((s) => s.alternarPanelProyecto);
   const modoAdmin = useEditor((s) => s.modoAdmin);
   const version = useEditor((s) => s.version);
   const puedeDeshacer = version >= 0 && historial.puedeDeshacer;
@@ -46,7 +47,7 @@ function BarraSuperior() {
     if (!file) return;
     try {
       const texto = await file.text();
-      // Acepta v0/v1 ({nodos}) y v2 ({hojas}); migrarAProyectoV2 decide
+      // Acepta v0/v1 ({nodos}) y v2/v3 ({hojas}); migrarAProyectoV3 decide
       const bruto = JSON.parse(texto) as {
         nodos?: unknown;
         hojas?: unknown;
@@ -83,6 +84,13 @@ function BarraSuperior() {
         title="Configuración de hoja (formato, orientación, rótulo)"
       >
         📐 Hoja…
+      </button>
+      <button
+        type="button"
+        onClick={() => alternarProyecto()}
+        title="Datos del proyecto (normativa, tensión, esquema PAT, cortocircuito)"
+      >
+        ⚡ Proyecto…
       </button>
       <input
         className="nombre-proyecto"
