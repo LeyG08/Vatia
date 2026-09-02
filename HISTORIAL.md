@@ -3450,3 +3450,44 @@ Los 8 quedan `estado_revision: "pendiente_revision"`: falta el mismo paso
 que ya se hizo con la librería de fuerza — mostrárselos al usuario y
 corregir lo que no le convenza antes de escalar al resto de la librería de
 comando (Paso 2).
+
+### E15.1 — Corrección: NC no convencía, selector rehecho, seta en espera
+
+Devolución del usuario sobre la galería (publicada como Artifact para
+revisión visual, no solo `index.html`): aprobó S00124, S00130, S00135 y
+S00139 tal cual. Rechazó tres:
+
+- **S00134/S00136 (contacto NC)**: "no me termina de convencer la parte que
+  representa que es normal cerrado". Se volvió a medir la lámina 07-71-02 a
+  600 dpi (recorte bien ajustado, la primera medición había quedado
+  imprecisa) — la marca de corte sale pegada AL VÉRTICE del codo, apuntando
+  arriba-derecha, no cruzando la cuchilla más abajo como en la primera
+  versión. `contacto_nc()` corregido; el fix se propaga solo a los tres
+  símbolos que comparten esa función (S00134, S00136, y S00138 de forma
+  incidental).
+- **S00137 (selector 2 posiciones)**: "no creo que sea correcto que tenga 2
+  nodos únicamente a no ser que sea un pulsador donde una de sus posiciones
+  en abierto". Tenía razón — 2 bornes con contacto simple es exactamente el
+  caso del pulsador (S00135/S00136), no el de un selector real, que conmuta
+  entre dos circuitos distintos. Rehecho como contacto conmutador de 3
+  bornes (07-71-03: común + posición 1 cerrada con marca de corte +
+  posición 2 abierta), con el botón giratorio "F" arriba y el enlace
+  bajando por el centro para no cruzarse con ninguno de los dos bornes
+  fijos. `metadata.json` pasó de 2 a 3 `puntos_conexion`.
+- **S00138 (pulsador de emergencia)**: "nunca vi esa simbología". Lo que se
+  dibujó SÍ es lo que muestra la norma (07-72-06: maniobra positiva + seta +
+  retención + NC), pero si el usuario nunca lo vio en la práctica no tiene
+  sentido insistir con la lectura literal de la lámina sin más información.
+  Queda sin tocar, marcado "en espera" en la galería, hasta preguntarle qué
+  usa habitualmente en el campo.
+
+También quedó pendiente un pedido más grande, todavía sin alcance definido:
+variantes de los símbolos existentes por cantidad de polos y otras
+salvedades ("habría que crear las variantes de todos los símbolos en caso
+de existir con las diferentes cantidades de polos"). Se le preguntó al
+usuario para acotar el alcance antes de tocar código.
+
+Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
+`generar_tipos_atributos.py --verificar` OK (sin cambios de schema en esta
+ronda). Los tres símbolos corregidos se volvieron a renderizar a PNG
+(pymupdf) antes de subir la corrección a la galería.
