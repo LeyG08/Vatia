@@ -17,6 +17,7 @@ export type TipoAparato =
   | "guardamotor_termomagnetico"
   | "instrumento_medicion"
   | "interruptor_diferencial"
+  | "interruptor_posicion"
   | "interruptor_termomagnetico"
   | "lampara_piloto"
   | "mccb_caja_moldeada"
@@ -29,6 +30,7 @@ export type TipoAparato =
   | "rele_termico"
   | "selector"
   | "sirena_alarma"
+  | "temporizador"
   | "transformador"
   | "transformador_corriente";
 
@@ -189,6 +191,20 @@ export interface AparatoInterruptorDiferencial {
   tiempo_no_respuesta_ms?: number;
   /** Norma de fabricación */
   norma_fabricacion?: string;
+}
+
+/** Interruptor de posición / fin de carrera (IEC 60617 07-72-07/08): contacto accionado mecánicamente (leva, rodillo, vástago), no por mando eléctrico ni manual. */
+export interface AparatoInterruptorPosicion {
+  /** Tipo de aparato */
+  tipo_aparato: "interruptor_posicion";
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
 }
 
 export interface AparatoInterruptorTermomagnetico {
@@ -416,6 +432,22 @@ export interface AparatoSirenaAlarma {
   nivel_sonoro_db?: number;
 }
 
+/** Relé temporizador (IEC 60617 07-76-08): bobina con retardo a la conexión. Sus contactos (NA/NC) se dibujan por separado con los símbolos de contacto temporizado (07-71-15/17). */
+export interface AparatoTemporizador {
+  /** Tipo de aparato */
+  tipo_aparato: "temporizador";
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de retardo */
+  tipo_retardo?: "a_la_conexion";
+  /** Tiempo de retardo (s) */
+  tiempo_retardo_s?: number;
+  /** Tensión de bobina (V) */
+  tension_bobina_v?: number;
+}
+
 export interface AparatoTransformador {
   /** Tipo de aparato */
   tipo_aparato: "transformador";
@@ -462,6 +494,7 @@ export type AtributosAparato =
   | AparatoGuardamotorTermomagnetico
   | AparatoInstrumentoMedicion
   | AparatoInterruptorDiferencial
+  | AparatoInterruptorPosicion
   | AparatoInterruptorTermomagnetico
   | AparatoLamparaPiloto
   | AparatoMccbCajaMoldeada
@@ -474,6 +507,7 @@ export type AtributosAparato =
   | AparatoReleTermico
   | AparatoSelector
   | AparatoSirenaAlarma
+  | AparatoTemporizador
   | AparatoTransformador
   | AparatoTransformadorCorriente;
 

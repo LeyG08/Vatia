@@ -338,6 +338,36 @@
       "then": {
         "$ref": "#/$defs/lampara_piloto"
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "interruptor_posicion"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/interruptor_posicion"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "temporizador"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/temporizador"
+      }
     }
   ],
   "$defs": {
@@ -1474,6 +1504,71 @@
         }
       },
       "description": "Lámpara piloto / de señalización, símbolo general (IEC 60617 08-80-44)."
+    },
+    "interruptor_posicion": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "interruptor_posicion",
+          "title": "Tipo de aparato"
+        },
+        "tipo_contacto": {
+          "enum": [
+            "NA",
+            "NC"
+          ],
+          "x-obligatorio": true,
+          "description": "Lo fija el símbolo elegido (Interruptor de posición NA / NC): no cambia el dibujo, es para que la ficha lo declare explícito.",
+          "title": "Tipo de contacto"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        }
+      },
+      "description": "Interruptor de posición / fin de carrera (IEC 60617 07-72-07/08): contacto accionado mecánicamente (leva, rodillo, vástago), no por mando eléctrico ni manual."
+    },
+    "temporizador": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "temporizador",
+          "title": "Tipo de aparato"
+        },
+        "tipo_retardo": {
+          "const": "a_la_conexion",
+          "description": "Por ahora la librería solo tiene el retardo a la conexión (07-76-08) — al energizarse, retarda el cambio de estado. El retardo a la desconexión (07-76-07) queda para una ampliación futura.",
+          "title": "Tipo de retardo"
+        },
+        "tiempo_retardo_s": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Tiempo de retardo (s)"
+        },
+        "tension_bobina_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión de bobina (V)"
+        }
+      },
+      "description": "Relé temporizador (IEC 60617 07-76-08): bobina con retardo a la conexión. Sus contactos (NA/NC) se dibujan por separado con los símbolos de contacto temporizado (07-71-15/17)."
     }
   }
 }

@@ -461,9 +461,122 @@ def s00139():
     return hoja, c, "Lámpara piloto", "IEC 60617 08-80-44"
 
 
+# ---------------------------------------------------------------------------
+# Paso 2 de la librería de comando (C43): contactos/bobina de temporizador,
+# interruptor de posición, selector de 3 posiciones. Reutilizan
+# contacto_na()/contacto_nc()/actuador_rotativo() del piloto ya aprobado.
+# ---------------------------------------------------------------------------
+
+def qualif_posicion(cx, cy, ancho=4.0, alto=2.6):
+    """07-70-06: triángulo sólido apuntando hacia abajo, calificador de
+    "contacto de posición" — se agrega a un contacto simple para marcarlo
+    como interruptor de posición (fin de carrera) sin tener que dibujar un
+    símbolo distinto para cada variante NA/NC."""
+    return poligono(
+        [(cx - ancho / 2, cy - alto / 2), (cx + ancho / 2, cy - alto / 2), (cx, cy + alto / 2)],
+        ' fill="#000000"',
+    )
+
+
+def retardo_horizontal(punto, largo=4.5, sep=1.0, r=2.6):
+    """03-31-05 "acción retardada" (mismo "efecto paracaídas" que ya
+    describe la norma en 07-71-15/17): doble línea horizontal + arco que
+    se abre hacia la cuchilla, extendiendo el extremo abierto/codo del
+    contacto (mismo punto (cx-6,-8) que ya usan contacto_na/contacto_nc)
+    hacia la izquierda. El arco es la misma polilínea que ya funcionó bien
+    para la cabeza de seta retirada — sin comandos de arco SVG."""
+    x0, y0 = punto
+    x1 = x0 - largo
+    c = linea(x0, y0 - sep / 2, x1, y0 - sep / 2)
+    c += linea(x0, y0 + sep / 2, x1, y0 + sep / 2)
+    pts = [
+        (x1 + r * math.cos(math.pi / 2 + i * math.pi / 8), y0 + r * math.sin(math.pi / 2 + i * math.pi / 8))
+        for i in range(9)
+    ]
+    c += polilinea(pts)
+    return c
+
+
+def s00140():
+    """Interruptor de posición, contacto de cierre - 07-72-07: contacto NA
+    con el calificador de posición (07-70-06) al costado, para que no se
+    confunda con un contacto auxiliar común (07-72-07 no lo trae en la
+    norma porque ya está bajo el encabezado "Interruptor de Posición" de
+    la tabla; un símbolo suelto en la librería sí lo necesita)."""
+    hoja = "-15.0 -25.0 30.0 50.0"
+    c = contacto_na()
+    c += qualif_posicion(6, 0)
+    return hoja, c, "Interruptor de posición NA", "IEC 60617 07-72-07 + 07-70-06"
+
+
+def s00141():
+    """Interruptor de posición, contacto de apertura - 07-72-08: igual,
+    sobre el contacto NC."""
+    hoja = "-15.0 -25.0 30.0 50.0"
+    c = contacto_nc()
+    c += qualif_posicion(6, 0)
+    return hoja, c, "Interruptor de posición NC", "IEC 60617 07-72-08 + 07-70-06"
+
+
+def s00142():
+    """Selector 3 posiciones - misma estructura que el selector de 2
+    (S00137, ya aprobado): conmutador con común abajo, posición 1 cerrada
+    en reposo, y ahora DOS posiciones abiertas a los costados en vez de
+    una. Mismo patrón de actuador a la izquierda con enlace horizontal al
+    punto medio de la cuchilla activa."""
+    hoja = "-20.0 -25.0 40.0 50.0"
+    comun = (0.0, 8.0)
+    pos1 = (-15.0, -8.0)  # cerrada en reposo
+    pos2 = (0.0, -8.0)    # abierta
+    pos3 = (15.0, -8.0)   # abierta
+    c = actuador_rotativo(-18, 0)
+    c += linea(-15, 0, -7.5, 0, PUNTEADO)
+    c += linea(pos1[0], -20, pos1[0], pos1[1])
+    c += linea(pos1[0], pos1[1], comun[0], comun[1])
+    c += linea(pos2[0], -20, pos2[0], pos2[1] - 4)
+    c += linea(pos3[0], -20, pos3[0], pos3[1] - 4)
+    c += linea(comun[0], comun[1], comun[0], 20)
+    return hoja, c, "Selector 3 posiciones", "IEC 60617 07-71-03 + 07-72-04"
+
+
+def s00143():
+    """Bobina de temporizador, retardo a la conexión - 07-76-08: mismo
+    rectángulo que la bobina general (S00130/07-76-01), con el tercio
+    izquierdo separado y cruzado en X."""
+    hoja = "-10.0 -25.0 20.0 50.0"
+    c = linea(0, -20, 0, -7.5)
+    c += rectangulo(-5, -7.5, 10, 15)
+    c += linea(-1.7, -7.5, -1.7, 7.5)
+    c += linea(-5, -7.5, -1.7, 7.5)
+    c += linea(-1.7, -7.5, -5, 7.5)
+    c += linea(0, 7.5, 0, 20)
+    return hoja, c, "Bobina de temporizador (retardo a la conexión)", "IEC 60617 07-76-08"
+
+
+def s00144():
+    """Contacto NA temporizado, retardo a la conexión - 07-71-15: la
+    cuchilla abierta de contacto_na() con el calificador de acción
+    retardada extendiendo su extremo hacia la izquierda."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = contacto_na()
+    c += retardo_horizontal((-6, -8))
+    return hoja, c, "Contacto NA temporizado (retardo a la conexión)", "IEC 60617 07-71-15"
+
+
+def s00145():
+    """Contacto NC temporizado, retardo a la conexión - 07-71-17: mismo
+    calificador de retardo, sobre contacto_nc()."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = contacto_nc()
+    c += retardo_horizontal((-6, -8))
+    return hoja, c, "Contacto NC temporizado (retardo a la conexión)", "IEC 60617 07-71-17"
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
+    "S00140": s00140, "S00141": s00141, "S00142": s00142, "S00143": s00143,
+    "S00144": s00144, "S00145": s00145,
 }
 
 

@@ -3628,3 +3628,66 @@ enlace horizontal sin diagonales, contactos NA/NC distinguidos solo por
 abierto/cerrado sin marcas extra, seta de emergencia = pulsador NC común)
 que el resto de la librería de comando (Paso 2) puede seguir sin
 reinventar cada vez.
+
+### E16 — Paso 2: interruptor de posición, selector de 3 posiciones y temporizador
+
+Con el Paso 1 cerrado, se propusieron 4 items de alcance para el Paso 2 y
+el usuario dio el visto bueno ("xale", leído como confirmación). Se
+dibujaron 6 símbolos nuevos en `libreria-simbolos/comando/`, todos con
+`estado_revision: pendiente_revision` (todavía no mostrados ni aprobados
+por el usuario):
+
+- **S00140/S00141 — Interruptor de posición NA/NC** (07-72-07/08 +
+  calificador 07-70-06): mismo contacto NA/NC ya aprobado en el Paso 1,
+  con el triángulo sólido de "contacto de posición" (fin de carrera) al
+  costado. Sin ese triángulo sería indistinguible de un contacto auxiliar
+  común, así que se agregó el helper `qualif_posicion()`.
+- **S00142 — Selector de 3 posiciones** (07-71-03 + 07-72-04): misma
+  estructura ya aprobada del selector de 2 (actuador a la izquierda a la
+  altura media, enlace horizontal, sin marcas de corte), extendida a un
+  común + 3 posiciones (4 puntos de conexión en vez de 3).
+- **S00143 — Bobina de temporizador** (07-76-08, retardo a la conexión):
+  mismo rectángulo de bobina general con el tercio izquierdo separado y
+  cruzado en X. Se dejó fuera, a propósito, la variante de retardo a la
+  desconexión (relleno negro) — no la pidió nadie todavía y agregarla
+  ahora sería adelantarse sin necesidad.
+- **S00144/S00145 — Contacto NA/NC temporizado** (07-71-15/17, retardo a
+  la conexión): el contacto NA/NC de siempre, con el calificador de
+  "acción retardada" (doble línea + arco, 03-31-05) colgando de la punta
+  abierta. Nuevo helper `retardo_horizontal()`, hecho con `polyline` (arco
+  aproximado por segmentos) para no depender de comandos de arco SVG,
+  siguiendo el mismo criterio que ya usa el resto del generador.
+
+Alcance deliberadamente recortado: se dejaron afuera las variantes de
+retardo a la desconexión (bobina 07-76-07, contactos 07-71-16/18) porque
+nadie las pidió y hubiera sido agregar superficie sin necesidad real
+todavía — quedan documentadas acá como pendientes si en algún momento
+hacen falta.
+
+Cambios de schema: se agregaron los subtipos `interruptor_posicion`
+(`tipo_contacto` NA/NC, `ith_a`) y `temporizador` (`tipo_retardo` const
+`"a_la_conexion"`, `tiempo_retardo_s`, `tension_bobina_v` obligatorio) a
+`aparato.schema.json`, con sus entradas en el dispatcher `allOf`/`if`/
+`then`. Los contactos temporizados (S00144/S00145) reusan el subtipo
+`contacto_auxiliar` que ya existía — el retardo es un rasgo del símbolo,
+no un tipo de aparato distinto.
+
+Se armó una sección "Paso 2" en el mismo Artifact de revisión ya
+publicado en el Paso 1 (`comando-piloto.html`, republicado en la misma
+URL, no uno nuevo), con los 6 símbolos marcados "Pendiente" para que el
+usuario los revise con el mismo criterio de rondas de corrección que ya
+funcionó en el Paso 1.
+
+Verificaciones: `lint_simbolos.py` verde en `simbolos/` (19) y `comando/`
+(13), `generar_tipos_atributos.py --verificar` OK (27 interfaces, antes
+21), `tsc --noEmit` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos (los dos preexistentes en `FormularioCarga.tsx` y
+`EditorSimbolos.tsx` no están relacionados con este cambio).
+
+Pendiente explícito, sin resolver todavía: el tema de "polos"/variantes
+—dispositivos con varios elementos de contacto ligados (por ejemplo un
+relé con varias salidas biestables) y la referencia cruzada entre los
+contactos de un mismo aparato en la hoja de fuerza y en la de comando
+(multifilar)— quedó identificado en la conversación con el usuario como
+un tema más grande, ligado a cuando exista el modo multifilar (Paso 3).
+No se tocó nada de eso en este paso.
