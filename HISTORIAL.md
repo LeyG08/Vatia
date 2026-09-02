@@ -3691,3 +3691,26 @@ contactos de un mismo aparato en la hoja de fuerza y en la de comando
 (multifilar)— quedó identificado en la conversación con el usuario como
 un tema más grande, ligado a cuando exista el modo multifilar (Paso 3).
 No se tocó nada de eso en este paso.
+
+### E16.1 — Paso 2 cerrado: los 6 símbolos, aprobados sin correcciones
+
+El usuario aprobó los 6 símbolos del Paso 2 de una sola vez, sin ninguna
+ronda de corrección ("dentro de todo esta aprobados, si quiero
+modificarlas después te digo") — a diferencia del Paso 1, que llevó seis
+rondas. Los 6 `metadata.json` de `libreria-simbolos/comando/` pasan
+`estado_revision` de `pendiente_revision` a `verificado`: S00140
+(interruptor de posición NA), S00141 (interruptor de posición NC), S00142
+(selector 3 posiciones), S00143 (bobina de temporizador), S00144
+(contacto NA temporizado) y S00145 (contacto NC temporizado). Galería
+regenerada; Artifact de revisión actualizado (los 13 símbolos de la
+librería de comando quedan marcados "Aprobado").
+
+Con esto cierra la librería de comando/multifilar tal como estaba
+planteada en los Pasos 1 y 2: 13 símbolos verificados. El usuario dejó
+abierta la puerta a pedir modificaciones puntuales más adelante ("si
+quiero modificarlas después te digo") — no implica que el trabajo siga
+abierto, es una reserva de derecho a corrección futura.
+
+Verificaciones: `lint_simbolos.py` verde en `comando/` (13),
+`generar_tipos_atributos.py --verificar` OK (sin cambios de schema, solo
+metadata).
