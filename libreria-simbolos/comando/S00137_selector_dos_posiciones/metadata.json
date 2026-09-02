@@ -5,20 +5,26 @@
   "estado_revision": "pendiente_revision",
   "puntos_conexion": [
     {
-      "id": "t1",
-      "rol": "entrada",
-      "x": 0.0,
-      "y": -20.0
-    },
-    {
-      "id": "t2",
+      "id": "com",
       "rol": "salida",
       "x": 0.0,
       "y": 20.0
+    },
+    {
+      "id": "pos1",
+      "rol": "entrada",
+      "x": -10.0,
+      "y": -20.0
+    },
+    {
+      "id": "pos2",
+      "rol": "entrada",
+      "x": 10.0,
+      "y": -20.0
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_norma": "IEC 60617 07-72-04",
+  "fuente_norma": "IEC 60617 07-71-03 + 07-72-04",
   "atributos_base": {
     "tipo_aparato": "selector",
     "posiciones": 2

@@ -343,24 +343,19 @@ def contacto_nc(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     """07-71-02: contacto NC, cerrado en reposo con marca de corte.
 
     El borne fijo baja y dobla en codo hacia la izquierda; la cuchilla sale
-    de ese codo YA TOCANDO el borne movil (cerrado). La marca de "corte"
-    (este contacto abre al accionar) es un trazo corto PERPENDICULAR a la
-    cuchilla, un poco más abajo del codo -- no una X sobre el vértice, que
-    se lee confuso.
+    de ese codo YA TOCANDO el borne movil (cerrado). Corrección del usuario
+    (primera versión no convencía): la marca de "corte" no cruza la
+    cuchilla más abajo -- según la lámina (07-71-02, medida a 600 dpi) es
+    un trazo corto que sale DEL MISMO VÉRTICE del codo, hacia arriba y a la
+    derecha, como un gancho corto pegado a la esquina.
     """
     codo = (cx - 6, -8.0)
     pivote = (cx, 8.0)
-    dx, dy = pivote[0] - codo[0], pivote[1] - codo[1]
-    largo = math.hypot(dx, dy)
-    ux, uy = dx / largo, dy / largo
-    px, py = -uy, ux
-    t = codo[0] + ux * 3, codo[1] + uy * 3
-    tick_h = 1.8
 
     c = linea(cx, y_arriba, cx, -8)
     c += linea(cx, -8, codo[0], codo[1])
+    c += linea(codo[0], codo[1], codo[0] + 2.5, codo[1] - 2.5)
     c += linea(codo[0], codo[1], pivote[0], pivote[1])
-    c += linea(t[0] - px * tick_h, t[1] - py * tick_h, t[0] + px * tick_h, t[1] + py * tick_h)
     c += linea(cx, 8, cx, y_abajo)
     return c
 
@@ -420,13 +415,30 @@ def s00136():
 
 
 def s00137():
-    """Selector 2 posiciones - 07-72-04: botón giratorio "F" + contacto NA
-    (mantiene la posición, sin retorno automático)."""
-    hoja = "-20.0 -25.0 30.0 50.0"
-    c = actuador_rotativo(-15, -8)
-    c += linea(-12, -8, -6, -8, PUNTEADO)
-    c += contacto_na()
-    return hoja, c, "Selector 2 posiciones", "IEC 60617 07-72-04"
+    """Selector 2 posiciones - CORRECCIÓN del usuario: 2 bornes no alcanzan
+    salvo que sea un pulsador con una posición abierta (ese caso ya es
+    Pulsador/S00135). Un selector de 2 posiciones de verdad conmuta ENTRE
+    DOS circuitos distintos: es un contacto conmutador de 3 bornes (07-71-03
+    "conmutador de corte antes de realizar contacto" — break-before-make),
+    no el contacto simple de 2 bornes de 07-72-04. Común abajo (el borne que
+    pivota), posición 1 cerrada en reposo (con marca de corte, izquierda) y
+    posición 2 abierta en reposo (derecha) — botón giratorio "F" arriba,
+    enlazado al pivote."""
+    hoja = "-20.0 -40.0 40.0 70.0"
+    comun = (0.0, 8.0)
+    pos1 = (-10.0, -8.0)  # borne fijo, cerrado en reposo (con marca de corte)
+    pos2 = (10.0, -8.0)   # borne fijo, abierto en reposo (no toca la cuchilla)
+    # Actuador arriba de TODO el conjunto, enlace vertical bajando por el
+    # centro (x=0) hasta el pivote: así no se cruza con ninguno de los dos
+    # bornes fijos, que quedan a los costados.
+    c = actuador_rotativo(-3, -32)
+    c += linea(0, -27, 0, comun[1], PUNTEADO)
+    c += linea(pos1[0], -20, pos1[0], pos1[1])
+    c += linea(pos1[0], pos1[1], pos1[0] + 2.5, pos1[1] - 2.5)
+    c += linea(pos1[0], pos1[1], comun[0], comun[1])
+    c += linea(pos2[0], -20, pos2[0], pos2[1] - 4)
+    c += linea(comun[0], comun[1], comun[0], 20)
+    return hoja, c, "Selector 2 posiciones", "IEC 60617 07-71-03 + 07-72-04"
 
 
 def s00138():
