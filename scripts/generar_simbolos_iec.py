@@ -339,13 +339,15 @@ def contacto_na(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     return c
 
 
-def marca_corte(p0, p1, t=3.5, medio=3.0):
+def marca_corte(p0, p1, t=5.0, medio=3.8):
     """Marca de "corte" de un contacto NC: un trazo A 90° que CRUZA la
     cuchilla (p0->p1) de lado a lado, no un gancho corto tocando apenas un
-    borde. Corrección del usuario (dos rondas): tiene que cruzar más y
-    quedar perpendicular a la cuchilla, no en un ángulo cualquiera. `t` es
-    la distancia desde p0 a lo largo de la cuchilla donde cruza; `medio` es
-    la mitad del largo del trazo (a cada lado)."""
+    borde. Corrección del usuario (tres rondas): tiene que cruzar más y
+    quedar perpendicular a la cuchilla, no en un ángulo cualquiera, y que
+    la cruz se note un poco más (t más lejos del vértice, trazo un poco
+    más largo) sin exagerar. `t` es la distancia desde p0 a lo largo de la
+    cuchilla donde cruza; `medio` es la mitad del largo del trazo (a cada
+    lado)."""
     dx, dy = p1[0] - p0[0], p1[1] - p0[1]
     largo = math.hypot(dx, dy)
     ux, uy = dx / largo, dy / largo
@@ -402,21 +404,26 @@ def s00135():
     """Pulsador NA - 07-72-02: corchete de pulsador + enlace punteado hasta
     la MITAD de la cuchilla del contacto NA. Corrección del usuario: el
     enlace no va al extremo/codo, va al medio del recorrido de la cuchilla
-    (punto medio entre el pivote (0,8) y la punta abierta (-6,-8): (-3,0))."""
+    (punto medio entre el pivote (0,8) y la punta abierta (-6,-8): (-3,0)).
+    Corrección del usuario (ronda siguiente): mover SOLO la punta del
+    enlace no alcanzaba, quedaba una diagonal que se metía a cruzar la
+    cuchilla y confundía toda la lectura del símbolo. Se bajó el corchete
+    completo a la altura (-3,0) del medio, igual que quedó aprobado en el
+    selector (S00137): enlace HORIZONTAL limpio, sin diagonales."""
     hoja = "-20.0 -25.0 30.0 50.0"
-    c = actuador_pulsador(-15, -8)
-    c += linea(-12, -8, -3, 0, PUNTEADO)
+    c = actuador_pulsador(-15, 0)
+    c += linea(-15, 0, -3, 0, PUNTEADO)
     c += contacto_na()
     return hoja, c, "Pulsador NA", "IEC 60617 07-72-02"
 
 
 def s00136():
-    """Pulsador NC - mismo corchete, enlazado a la mitad de la cuchilla del
-    contacto NC (mismo punto medio (-3,0) que el NA: ambas cuchillas van
-    entre los mismos dos puntos, cerrada o abierta)."""
+    """Pulsador NC - mismo corchete, mismo enlace horizontal a la mitad de
+    la cuchilla del contacto NC (mismo punto medio (-3,0) que el NA: ambas
+    cuchillas van entre los mismos dos puntos, cerrada o abierta)."""
     hoja = "-20.0 -25.0 30.0 50.0"
-    c = actuador_pulsador(-15, -8)
-    c += linea(-12, -8, -3, 0, PUNTEADO)
+    c = actuador_pulsador(-15, 0)
+    c += linea(-15, 0, -3, 0, PUNTEADO)
     c += contacto_nc()
     return hoja, c, "Pulsador NC", "IEC 60617 07-72-02 + 07-71-02"
 
@@ -441,7 +448,10 @@ def s00137():
     c += linea(-14, 0, -5, 0, PUNTEADO)
     c += linea(pos1[0], -20, pos1[0], pos1[1])
     c += linea(pos1[0], pos1[1], comun[0], comun[1])
-    c += marca_corte(pos1, comun)
+    # t/medio fijos a los valores CON LOS QUE EL USUARIO APROBÓ este símbolo:
+    # marca_corte() cambió de default después (cruz un poco más larga, pedido
+    # sobre los contactos NC sueltos), pero acá no se tocó nada a propósito.
+    c += marca_corte(pos1, comun, t=3.5, medio=3.0)
     c += linea(pos2[0], -20, pos2[0], pos2[1] - 4)
     c += linea(comun[0], comun[1], comun[0], 20)
     return hoja, c, "Selector 2 posiciones", "IEC 60617 07-71-03 + 07-72-04"

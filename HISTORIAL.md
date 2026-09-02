@@ -3540,3 +3540,39 @@ menos que la ronda anterior), `generar_tipos_atributos.py --verificar` OK
 (25 interfaces, sin cambiar de cantidad porque `pulsador` solo ganó un
 campo), `tsc --noEmit` limpio. Los cuatro símbolos tocados se volvieron a
 renderizar a PNG antes de actualizar la galería.
+
+### E15.3 — Ronda 4: mover solo la punta del enlace no alcanzaba; el selector, aprobado
+
+El usuario aprobó el selector (S00137) sin cambios y marcó que el pulsador
+seguía mal pese al ajuste anterior: "solo moviste un punto del pulsador
+pero todo lo que representa quedó mal". El diagnóstico: en E15.2 se movió
+el EXTREMO del enlace punteado al punto medio de la cuchilla, pero el
+enlace seguía saliendo del corchete a la altura original (-8) — quedaba una
+diagonal larga que se metía a cruzar la propia cuchilla, confundiendo la
+lectura de todo el símbolo (¿cuántas cuchillas hay acá?). La composición
+que SÍ funcionaba ya estaba aprobada un mensaje antes: la del selector,
+donde el actuador entero está a la altura del punto de enlace y el enlace
+es una línea horizontal limpia, sin diagonales.
+
+Arreglo real: bajar el corchete de `actuador_pulsador` completo a
+`cy=0` (antes `cy=-8`) en S00135/S00136, para que el enlace sea horizontal
+de punta a punta — mismo patrón que el selector, no un parche sobre la
+punta del enlace nada más.
+
+También pidió alargar la marca de corte del NC ("un poco más larga...
+para que forme una especie de cruz pero muy poquito"): `marca_corte()`
+pasó de `t=3.5, medio=3.0` a `t=5.0, medio=3.8` por defecto — la cruz
+cruza un poco más lejos del vértice y un poco más larga a cada lado, sin
+exagerar.
+
+Detalle de implementación importante: como el selector (S00137) ya estaba
+aprobado y también usa `marca_corte()`, cambiar el default lo habría
+alterado sin que nadie lo pidiera. Se fijaron sus parámetros explícitos
+(`t=3.5, medio=3.0`, los valores con los que se aprobó) para que ese
+símbolo quede BYTE A BYTE igual — verificado con `git diff` antes de
+commitear: sin diferencias.
+
+Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
+`generar_tipos_atributos.py --verificar` OK, `tsc --noEmit` limpio,
+`git diff` confirma que S00137 no cambió un solo byte pese a la
+regeneración completa de la carpeta `comando/`.
