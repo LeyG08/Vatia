@@ -2,7 +2,7 @@
   "codigo_iec": "S00139",
   "nombre": "Lámpara piloto",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "t1",

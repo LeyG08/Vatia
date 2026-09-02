@@ -2,7 +2,7 @@
   "codigo_iec": "S00130",
   "nombre": "Bobina de contactor/relé",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "atributos_base": {
     "tipo_aparato": "rele_auxiliar"
   },

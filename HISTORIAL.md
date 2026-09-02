@@ -3608,3 +3608,23 @@ mismo criterio que `contacto_nc()`. Como ya no queda ningún llamador,
 
 Verificaciones: `lint_simbolos.py` verde, `generar_tipos_atributos.py
 --verificar` OK, `tsc --noEmit` limpio.
+
+### E15.6 — Paso 1 cerrado: los 7 símbolos de comando, aprobados
+
+El usuario aprobó los 7 símbolos restantes del lote piloto ("vamos con los
+siguientes aprobados todos"). Los 7 `metadata.json` de
+`libreria-simbolos/comando/` pasan `estado_revision` de
+`pendiente_revision` a `verificado`: S00124 (contacto NA), S00130 (bobina),
+S00134 (contacto NC), S00135 (pulsador NA), S00136 (pulsador NC), S00137
+(selector 2 posiciones) y S00139 (lámpara piloto). Galería regenerada con
+el estado nuevo.
+
+Cierra el Paso 1 de la etapa "librería de comando" (dentro de "finalizar
+el editor", la prioridad que fijó el usuario por sobre el motor de
+cálculo). Seis rondas de corrección en total sobre el lote piloto — todas
+documentadas arriba (E15 a E15.6) — dejaron validado el criterio de
+composición (actuador a la izquierda a la altura media de la cuchilla,
+enlace horizontal sin diagonales, contactos NA/NC distinguidos solo por
+abierto/cerrado sin marcas extra, seta de emergencia = pulsador NC común)
+que el resto de la librería de comando (Paso 2) puede seguir sin
+reinventar cada vez.
