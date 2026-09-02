@@ -3576,3 +3576,23 @@ Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
 `generar_tipos_atributos.py --verificar` OK, `tsc --noEmit` limpio,
 `git diff` confirma que S00137 no cambió un solo byte pese a la
 regeneración completa de la carpeta `comando/`.
+
+### E15.4 — Ronda 5: se saca la marca de corte del NC
+
+Cuatro rondas de ajuste sobre la marca de "corte" del contacto NC (gancho
+corto en el vértice, cruz a 90° corta, cruz a 90° más larga) y seguía sin
+convencer. El usuario cortó por lo sano: "sácale la cruz a lo NC porque no
+lo estás haciendo bien y solucionado". `contacto_nc()` queda sin ninguna
+marca: la única diferencia con `contacto_na()` es que la cuchilla llega
+CERRADA (toca el borne móvil) en vez de con un hueco abierto — que ya es,
+en sí, la distinción NA/NC de la norma.
+
+El selector (S00137) usa el mismo tipo de marca en su posición 1, pero no
+fue mencionado en el pedido — sigue "aprobado" del mensaje anterior, así
+que se dejó sin tocar a propósito (la función `marca_corte()` no se borró,
+solo perdió su único otro llamador; queda documentada como "ya no se usa
+acá, pero el selector la sigue necesitando"). Verificado con `git diff`:
+S00137 no cambió.
+
+Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
+`generar_tipos_atributos.py --verificar` OK, `tsc --noEmit` limpio.

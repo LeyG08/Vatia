@@ -339,15 +339,12 @@ def contacto_na(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     return c
 
 
-def marca_corte(p0, p1, t=5.0, medio=3.8):
-    """Marca de "corte" de un contacto NC: un trazo A 90° que CRUZA la
-    cuchilla (p0->p1) de lado a lado, no un gancho corto tocando apenas un
-    borde. Corrección del usuario (tres rondas): tiene que cruzar más y
-    quedar perpendicular a la cuchilla, no en un ángulo cualquiera, y que
-    la cruz se note un poco más (t más lejos del vértice, trazo un poco
-    más largo) sin exagerar. `t` es la distancia desde p0 a lo largo de la
-    cuchilla donde cruza; `medio` es la mitad del largo del trazo (a cada
-    lado)."""
+def marca_corte(p0, p1, t=3.5, medio=3.0):
+    """Trazo a 90° que cruza un segmento p0->p1 de lado a lado. Ya NO se usa
+    en contacto_nc() (ver más abajo por qué), pero el selector (S00137) la
+    sigue usando para su posición cerrada y quedó aprobado así -- se
+    mantiene la función solo por eso, con los parámetros originales con los
+    que se aprobó."""
     dx, dy = p1[0] - p0[0], p1[1] - p0[1]
     largo = math.hypot(dx, dy)
     ux, uy = dx / largo, dy / largo
@@ -357,11 +354,16 @@ def marca_corte(p0, p1, t=5.0, medio=3.8):
 
 
 def contacto_nc(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
-    """07-71-02: contacto NC, cerrado en reposo con marca de corte.
+    """07-71-02: contacto NC, cerrado en reposo.
 
     El borne fijo baja y dobla en codo hacia la izquierda; la cuchilla sale
-    de ese codo YA TOCANDO el borne movil (cerrado). La marca de "corte"
-    cruza la cuchilla a 90°, ver marca_corte().
+    de ese codo YA TOCANDO el borne movil (cerrado) -- eso solo (cerrado
+    vs. el hueco abierto de contacto_na) es lo que distingue NC de NA.
+
+    Sin marca de corte: cuatro rondas de correccion sobre esa marca (gancho
+    corto, cruz a angulo raro, cruz a 90 grados corta, cruz a 90 grados mas
+    larga) y seguia sin convencer. Decision del usuario: sacarla en vez de
+    seguir iterando sobre un detalle que no estaba saliendo bien.
     """
     codo = (cx - 6, -8.0)
     pivote = (cx, 8.0)
@@ -369,7 +371,6 @@ def contacto_nc(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     c = linea(cx, y_arriba, cx, -8)
     c += linea(cx, -8, codo[0], codo[1])
     c += linea(codo[0], codo[1], pivote[0], pivote[1])
-    c += marca_corte(codo, pivote)
     c += linea(cx, 8, cx, y_abajo)
     return c
 
