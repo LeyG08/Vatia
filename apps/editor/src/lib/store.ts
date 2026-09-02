@@ -19,7 +19,7 @@ import {
   NOTAS_GABINETE_POR_DEFECTO,
   ROTULO_POR_DEFECTO,
   hojaNuevaDesde,
-  migrarAProyectoV3,
+  migrarAProyectoV4,
   rectanguloUtil,
   type AlimentadorConfig,
   type ConexionProyecto,
@@ -147,6 +147,7 @@ function fusionarHoja(
     hoja: {
       formato: parcial.formato ?? base.formato,
       orientacion: parcial.orientacion ?? base.orientacion,
+      modo: parcial.modo ?? base.modo,
       tablero: tableroGuardado,
       notasGabinete,
       notaSeguridad:
@@ -651,7 +652,7 @@ function proyectoInicial(): { proyecto: Proyecto; hojaId: string } {
   const hoja = hojaNuevaDesde(HOJA_POR_DEFECTO(), "Hoja 1");
   return {
     proyecto: {
-      version: 3,
+      version: 4,
       meta: {
         nombre: "proyecto_sin_nombre",
         fechaCreacion: new Date().toISOString(),
@@ -1726,7 +1727,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
 
     cargarProyecto(entrada) {
-      const bruto = migrarAProyectoV3(entrada);
+      const bruto = migrarAProyectoV4(entrada);
 
       const problemas: string[] = [];
       const hojasNormalizadas: Hoja[] = bruto.hojas.map((h) => {
@@ -1747,7 +1748,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       }
 
       const proyecto: Proyecto = {
-        version: 3,
+        version: 4,
         meta: bruto.meta ?? {
           nombre: "proyecto_sin_nombre",
           fechaCreacion: new Date().toISOString(),

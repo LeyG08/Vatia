@@ -3714,3 +3714,73 @@ abierto, es una reserva de derecho a corrección futura.
 Verificaciones: `lint_simbolos.py` verde en `comando/` (13),
 `generar_tipos_atributos.py --verificar` OK (sin cambios de schema, solo
 metadata).
+
+### E17 — Paso 3 arranca: modo multifilar por hoja
+
+Con la librería de comando cerrada (13/13), el usuario eligió seguir con
+el modo multifilar antes que con la jerarquía de hojas ("vamos", en
+respuesta a la propuesta de arrancar por ahí porque "le da sentido
+práctico a todo lo que acabamos de aprobar"). Alcance deliberadamente
+recortado para este primer corte: dar de alta los 13 símbolos de comando
+en el editor (hoy dibujados pero fuera de uso, `comando/` vive fuera del
+glob de `libreria.ts`) sin inventar todavía la semántica propia de un
+diagrama multifilar (filas/rieles tipo escalera, reglas de conexión
+distintas). Esa semántica queda para un paso posterior, cuando haya casos
+reales de uso que la justifiquen — construirla ahora sería adelantarse.
+
+Cambios:
+
+- **`HojaConfig.modo: "unifilar" | "multifilar"`** (nuevo tipo `ModoHoja`,
+  `tipos.ts`). Cada hoja del proyecto declara qué convención usa; default
+  `"unifilar"` (comportamiento de siempre, sin cambios visibles para
+  proyectos existentes).
+- **Formato de archivo → v4** (`migrarAProyectoV4`, reemplaza a
+  `migrarAProyectoV3`): las hojas guardadas antes de que existiera `modo`
+  se completan con `"unifilar"` al cargar, sin tocar nada más. Se
+  actualizaron los dos literales `version: 3` hardcodeados en
+  `store.ts` (proyecto inicial y ruta de carga) a `4`.
+- **`libreriaComando.ts`** (nuevo): carga `libreria-simbolos/comando/*`
+  con el mismo mecanismo de `import.meta.glob` que ya usaba `libreria.ts`
+  para `simbolos/`, como librería aparte — sin los hooks de HMR de
+  edición en caliente de `libreria.ts` (esos símbolos todavía no se
+  editan desde `EditorSimbolos`, que solo vigila la carpeta `simbolos`).
+- **`obtenerSimbolo()` en `libreria.ts`** ahora cae a la librería de
+  comando si el código no está en la de fuerza. Los códigos no se pisan
+  entre las dos carpetas (verificado), así que un único punto de lookup
+  alcanza para que TODO el código de render/lógica que ya llamaba a
+  `obtenerSimbolo` (`NodoSimbolo`, `PanelAtributos`, `checklist.ts`,
+  `topologia.ts`, `store.ts`, `App.tsx`) funcione con símbolos de comando
+  sin tocar esos seis archivos. `SIMBOLOS`/`PROBLEMAS_LIBRERIA` (el mapa
+  crudo, usado solo por `EditorSimbolos` y `PanelProblemas` para el panel
+  de administración) siguen siendo fuerza-only a propósito.
+- **`Paleta.tsx`** lee `hoja.modo` de la hoja activa y muestra
+  `SIMBOLOS_COMANDO` en vez de `SIMBOLOS` cuando es `"multifilar"`. El
+  botón "+ Alimentador «Desde …»" se oculta en multifilar: un circuito de
+  comando no se alimenta "desde la red", se alimenta desde un aparato de
+  la propia hoja — mostrarlo ahí hubiera sido confuso.
+- **`PanelHoja.tsx`**: nuevo selector "Tipo de esquema" (Unifilar /
+  Multifilar), mismo patrón visual que el de Orientación ya existente.
+- **`PestanasHoja.tsx`**: las pestañas de hojas multifilares llevan una
+  insignia "M" junto al nombre, para distinguirlas de un vistazo sin abrir
+  el panel de configuración.
+
+Verificación en vivo (no solo build/tipos): se levantó el dev server y se
+probó con Playwright (vía el propio `playwright` del proyecto, ya que la
+sesión del agente no tiene Chrome instalado) — cambiar una hoja a
+"Multifilar" repinta la Paleta con los 13 símbolos de comando y oculta el
+alimentador; arrastrar "Pulsador NA" al plano lo coloca, se ve
+correctamente, y la ficha técnica abre con los campos del subtipo
+`pulsador` (incluido `es_parada_emergencia`). Sin errores de consola.
+
+Limitación conocida, sin resolver: el checklist de campos obligatorios
+sigue hablando en términos de fuerza ("Sin conexión a ningún
+alimentador") aunque la lógica de "sin conexión aguas arriba" en sí es
+válida también para comando. Adaptar el lenguaje/las reglas del checklist
+a la semántica de un circuito de mando es un tema aparte, no resuelto acá.
+
+Verificaciones: `tsc -b` limpio (atrapó 2 errores reales que
+`tsc --noEmit` solo no había marcado — hoja hardcodeada sin `modo` en
+`store.ts` y una clave `modo` duplicada en el merge de migración; ambos
+corregidos), `npm run build` OK, `npm run lint` sin warnings nuevos,
+`npm run e2e` verde (21 checks), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes.

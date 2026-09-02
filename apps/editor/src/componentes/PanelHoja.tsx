@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { useEditor } from "../lib/store";
 import { TAMANIOS_HOJA_MM } from "../lib/tipos";
-import type { FormatoHoja, OrientacionHoja } from "../lib/tipos";
+import type { FormatoHoja, ModoHoja, OrientacionHoja } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
 
@@ -112,6 +112,27 @@ function PanelHoja() {
           <p className="panel-hoja-dimension">
             Hoja: {mmW} × {mmH} mm.
           </p>
+
+          <div className="panel-hoja-campo">
+            <span>Tipo de esquema</span>
+            <div className="orientacion-opciones">
+              {(["unifilar", "multifilar"] as ModoHoja[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={hoja.modo === m ? "activo" : ""}
+                  onClick={() => actualizar({ modo: m })}
+                  title={
+                    m === "unifilar"
+                      ? "Símbolos de fuerza (potencia)"
+                      : "Símbolos de comando y control"
+                  }
+                >
+                  {m === "unifilar" ? "Unifilar" : "Multifilar"}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <h3>Encabezado del tablero</h3>

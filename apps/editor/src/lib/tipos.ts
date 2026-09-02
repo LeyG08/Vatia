@@ -249,9 +249,15 @@ export function NOTAS_GABINETE_POR_DEFECTO(): NotasGabineteConfig {
   };
 }
 
+/** Paso 3: qué librería de símbolos y convención de trazado usa la hoja.
+ * "unifilar" = fuerza (comportamiento de siempre). "multifilar" = comando/
+ * control — misma mecánica de canvas, otra paleta de símbolos. */
+export type ModoHoja = "unifilar" | "multifilar";
+
 export interface HojaConfig {
   formato: FormatoHoja;
   orientacion: OrientacionHoja;
+  modo: ModoHoja;
   /** Nombre del tablero documentado; se dibuja arriba, sobre el recuadro */
   tablero: string;
   /** Notas constructivas del gabinete (estructura fija, arriba a la izquierda) */
@@ -266,6 +272,7 @@ export function HOJA_POR_DEFECTO(): HojaConfig {
   return {
     formato: "A3",
     orientacion: "horizontal",
+    modo: "unifilar",
     // C13: sin nombre predeterminado — el usuario escribe el suyo
     // (el placeholder solo sugiere, no guarda dato).
     tablero: "",
@@ -347,8 +354,9 @@ export function DATOS_PROYECTO_POR_DEFECTO(): DatosProyecto {
 }
 
 export interface Proyecto {
-  /** Versión del formato de archivo: 3 = datos de proyecto (C41) */
-  version: 3;
+  /** Versión del formato de archivo: 3 = datos de proyecto (C41),
+   * 4 = modo de hoja unifilar/multifilar (Paso 3) */
+  version: 4;
   meta: {
     nombre: string;
     fechaCreacion: string;
@@ -391,9 +399,9 @@ function migrarEstructuraHojas(datos: unknown): EstructuraHastaV2 {
   const obj = parsed as Record<string, unknown>;
   const ahora = new Date().toISOString();
 
-  // Ya es v2 o v3
+  // Ya es v2, v3 o v4
   if (
-    (obj.version === 2 || obj.version === 3) &&
+    (obj.version === 2 || obj.version === 3 || obj.version === 4) &&
     Array.isArray(obj.hojas)
   ) {
     return parsed as EstructuraHastaV2;
@@ -441,13 +449,21 @@ function migrarEstructuraHojas(datos: unknown): EstructuraHastaV2 {
   };
 }
 
-/** Migra cualquier dato guardado (v0/v1/v2/v3, objeto o JSON string) a v3 */
-export function migrarAProyectoV3(datos: unknown): Proyecto {
+/** Forma de una hoja guardada antes de que existiera "modo" (< v4) */
+type HojaSinModoGarantizado = Omit<Hoja, "modo"> & { modo?: ModoHoja };
+
+/** Migra cualquier dato guardado (v0/v1/v2/v3/v4, objeto o JSON string) a v4 */
+export function migrarAProyectoV4(datos: unknown): Proyecto {
   const estructura = migrarEstructuraHojas(datos);
   return {
-    version: 3,
+    version: 4,
     meta: estructura.meta,
-    hojas: estructura.hojas,
+    // Hojas guardadas antes de "modo" (< v4) no lo traen: se completan
+    // con "unifilar" para no cambiar el comportamiento de proyectos viejos.
+    hojas: (estructura.hojas as HojaSinModoGarantizado[]).map((h) => ({
+      ...h,
+      modo: h.modo ?? "unifilar",
+    })),
     datosProyecto: estructura.datosProyecto ?? DATOS_PROYECTO_POR_DEFECTO(),
   };
 }

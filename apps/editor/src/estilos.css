@@ -170,6 +170,19 @@ body,
   pointer-events: none;
 }
 
+.pestana-modo {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
+  background: var(--acento);
+  color: #fff;
+  vertical-align: middle;
+}
+
 .pestana-nombre-input {
   width: 110px;
   border: 1px solid var(--acento);

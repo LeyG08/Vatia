@@ -52,7 +52,7 @@ export default function PestanasHoja() {
             setBorrador(h.nombre);
             setEditando(h.id);
           }}
-          title={`${h.nombre} — doble clic para renombrar`}
+          title={`${h.nombre} (${h.modo}) — doble clic para renombrar`}
         >
           {editando === h.id ? (
             <input
@@ -72,6 +72,11 @@ export default function PestanasHoja() {
             <>
               <span className="pestana-nombre">
                 {i + 1}. {h.nombre}
+                {h.modo === "multifilar" && (
+                  <span className="pestana-modo" title="Hoja multifilar (comando)">
+                    M
+                  </span>
+                )}
               </span>
               <button
                 type="button"
