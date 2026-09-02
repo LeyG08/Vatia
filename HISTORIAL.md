@@ -3596,3 +3596,15 @@ S00137 no cambió.
 
 Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
 `generar_tipos_atributos.py --verificar` OK, `tsc --noEmit` limpio.
+
+### E15.5 — Ronda 6: la marca de corte también sale del selector
+
+El usuario confirmó lo que en E15.4 se había dejado deliberadamente sin
+tocar por respeto a una aprobación previa: "sácale la línea que forma la
+cruz también al selector biestado". Se quita `marca_corte(pos1, comun)` de
+`s00137()` — la posición 1 queda cerrada (toca el común) sin marca extra,
+mismo criterio que `contacto_nc()`. Como ya no queda ningún llamador,
+`marca_corte()` se borró del script (no queda código muerto).
+
+Verificaciones: `lint_simbolos.py` verde, `generar_tipos_atributos.py
+--verificar` OK, `tsc --noEmit` limpio.

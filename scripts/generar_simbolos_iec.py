@@ -339,20 +339,6 @@ def contacto_na(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     return c
 
 
-def marca_corte(p0, p1, t=3.5, medio=3.0):
-    """Trazo a 90° que cruza un segmento p0->p1 de lado a lado. Ya NO se usa
-    en contacto_nc() (ver más abajo por qué), pero el selector (S00137) la
-    sigue usando para su posición cerrada y quedó aprobado así -- se
-    mantiene la función solo por eso, con los parámetros originales con los
-    que se aprobó."""
-    dx, dy = p1[0] - p0[0], p1[1] - p0[1]
-    largo = math.hypot(dx, dy)
-    ux, uy = dx / largo, dy / largo
-    px, py = -uy, ux
-    cx, cy = p0[0] + ux * t, p0[1] + uy * t
-    return linea(cx - px * medio, cy - py * medio, cx + px * medio, cy + py * medio)
-
-
 def contacto_nc(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     """07-71-02: contacto NC, cerrado en reposo.
 
@@ -433,26 +419,21 @@ def s00137():
     """Selector 2 posiciones - contacto conmutador de 3 bornes (07-71-03),
     no el contacto simple de 07-72-04 (corrección del usuario: 2 bornes solo
     alcanzan para un pulsador con una posición abierta). Común abajo,
-    posición 1 cerrada en reposo (con marca de corte) y posición 2 abierta
-    a los costados.
+    posición 1 cerrada en reposo y posición 2 abierta a los costados.
 
-    Segunda corrección del usuario: el actuador va como el pulsador — a la
-    IZQUIERDA, a la altura media de la cuchilla activa, no arriba de todo
-    con un enlace largo por el centro (primera versión, rechazada). Mismo
-    patrón que actuador_pulsador/contacto_na: enlace horizontal limpio al
-    punto medio entre pos1 y el común."""
+    El actuador va como el pulsador — a la IZQUIERDA, a la altura media de
+    la cuchilla activa, enlace horizontal limpio al punto medio entre pos1
+    y el común. Sin marca de corte en pos1: mismo criterio que
+    contacto_nc(), sacada tras el pedido del usuario ("sácale la cruz...
+    también al selector biestado")."""
     hoja = "-20.0 -25.0 40.0 50.0"
     comun = (0.0, 8.0)
-    pos1 = (-10.0, -8.0)  # borne fijo, cerrado en reposo (con marca de corte)
+    pos1 = (-10.0, -8.0)  # borne fijo, cerrado en reposo
     pos2 = (10.0, -8.0)   # borne fijo, abierto en reposo (no toca la cuchilla)
     c = actuador_rotativo(-17, 0)
     c += linea(-14, 0, -5, 0, PUNTEADO)
     c += linea(pos1[0], -20, pos1[0], pos1[1])
     c += linea(pos1[0], pos1[1], comun[0], comun[1])
-    # t/medio fijos a los valores CON LOS QUE EL USUARIO APROBÓ este símbolo:
-    # marca_corte() cambió de default después (cruz un poco más larga, pedido
-    # sobre los contactos NC sueltos), pero acá no se tocó nada a propósito.
-    c += marca_corte(pos1, comun, t=3.5, medio=3.0)
     c += linea(pos2[0], -20, pos2[0], pos2[1] - 4)
     c += linea(comun[0], comun[1], comun[0], 20)
     return hoja, c, "Selector 2 posiciones", "IEC 60617 07-71-03 + 07-72-04"
