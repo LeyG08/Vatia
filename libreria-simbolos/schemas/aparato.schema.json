@@ -1362,6 +1362,12 @@
           "x-obligatorio": false,
           "description": "Capacidad térmica de contactos Ith en amperes.",
           "title": "Capacidad térmica Ith (A)"
+        },
+        "es_parada_emergencia": {
+          "type": "boolean",
+          "x-obligatorio": false,
+          "description": "Corrección del usuario: no existe un símbolo aparte para el pulsador de emergencia (nunca lo vio dibujado distinto en la práctica, pese a que la norma sí define uno — 07-72-06). Es un Pulsador NC común (S00136); esta marca lo distingue en la ficha para anotarlo en el plano.",
+          "title": "Es parada de emergencia"
         }
       },
       "description": "Pulsador de mando (IEC 60617 07-72-02): contacto momentáneo, retorno automático por resorte al soltar."

@@ -339,23 +339,35 @@ def contacto_na(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     return c
 
 
+def marca_corte(p0, p1, t=3.5, medio=3.0):
+    """Marca de "corte" de un contacto NC: un trazo A 90° que CRUZA la
+    cuchilla (p0->p1) de lado a lado, no un gancho corto tocando apenas un
+    borde. Corrección del usuario (dos rondas): tiene que cruzar más y
+    quedar perpendicular a la cuchilla, no en un ángulo cualquiera. `t` es
+    la distancia desde p0 a lo largo de la cuchilla donde cruza; `medio` es
+    la mitad del largo del trazo (a cada lado)."""
+    dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+    largo = math.hypot(dx, dy)
+    ux, uy = dx / largo, dy / largo
+    px, py = -uy, ux
+    cx, cy = p0[0] + ux * t, p0[1] + uy * t
+    return linea(cx - px * medio, cy - py * medio, cx + px * medio, cy + py * medio)
+
+
 def contacto_nc(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
     """07-71-02: contacto NC, cerrado en reposo con marca de corte.
 
     El borne fijo baja y dobla en codo hacia la izquierda; la cuchilla sale
-    de ese codo YA TOCANDO el borne movil (cerrado). Corrección del usuario
-    (primera versión no convencía): la marca de "corte" no cruza la
-    cuchilla más abajo -- según la lámina (07-71-02, medida a 600 dpi) es
-    un trazo corto que sale DEL MISMO VÉRTICE del codo, hacia arriba y a la
-    derecha, como un gancho corto pegado a la esquina.
+    de ese codo YA TOCANDO el borne movil (cerrado). La marca de "corte"
+    cruza la cuchilla a 90°, ver marca_corte().
     """
     codo = (cx - 6, -8.0)
     pivote = (cx, 8.0)
 
     c = linea(cx, y_arriba, cx, -8)
     c += linea(cx, -8, codo[0], codo[1])
-    c += linea(codo[0], codo[1], codo[0] + 2.5, codo[1] - 2.5)
     c += linea(codo[0], codo[1], pivote[0], pivote[1])
+    c += marca_corte(codo, pivote)
     c += linea(cx, 8, cx, y_abajo)
     return c
 
@@ -376,15 +388,6 @@ def actuador_rotativo(cx, cy):
     return c
 
 
-def circulo_flecha(cx, cy, r=3.5):
-    """07-70-09: maniobra positiva (flecha adentro de un círculo)."""
-    c = circulo(cx, cy, r)
-    c += linea(cx - r + 1, cy, cx + r - 1.2, cy)
-    c += linea(cx + r - 3, cy - 1.8, cx + r - 1.2, cy)
-    c += linea(cx + r - 3, cy + 1.8, cx + r - 1.2, cy)
-    return c
-
-
 def s00124():
     hoja = "-10.0 -25.0 20.0 50.0"
     return hoja, contacto_na(), "Contacto auxiliar NA", "IEC 60617 07-71-01 Forma 1"
@@ -397,72 +400,51 @@ def s00134():
 
 def s00135():
     """Pulsador NA - 07-72-02: corchete de pulsador + enlace punteado hasta
-    el codo del contacto NA (mismo eje que el resto de la cuchilla)."""
+    la MITAD de la cuchilla del contacto NA. Corrección del usuario: el
+    enlace no va al extremo/codo, va al medio del recorrido de la cuchilla
+    (punto medio entre el pivote (0,8) y la punta abierta (-6,-8): (-3,0))."""
     hoja = "-20.0 -25.0 30.0 50.0"
     c = actuador_pulsador(-15, -8)
-    c += linea(-12, -8, -6, -8, PUNTEADO)
+    c += linea(-12, -8, -3, 0, PUNTEADO)
     c += contacto_na()
     return hoja, c, "Pulsador NA", "IEC 60617 07-72-02"
 
 
 def s00136():
-    """Pulsador NC - mismo corchete, enlazado al codo del contacto NC."""
+    """Pulsador NC - mismo corchete, enlazado a la mitad de la cuchilla del
+    contacto NC (mismo punto medio (-3,0) que el NA: ambas cuchillas van
+    entre los mismos dos puntos, cerrada o abierta)."""
     hoja = "-20.0 -25.0 30.0 50.0"
     c = actuador_pulsador(-15, -8)
-    c += linea(-12, -8, -6, -8, PUNTEADO)
+    c += linea(-12, -8, -3, 0, PUNTEADO)
     c += contacto_nc()
     return hoja, c, "Pulsador NC", "IEC 60617 07-72-02 + 07-71-02"
 
 
 def s00137():
-    """Selector 2 posiciones - CORRECCIÓN del usuario: 2 bornes no alcanzan
-    salvo que sea un pulsador con una posición abierta (ese caso ya es
-    Pulsador/S00135). Un selector de 2 posiciones de verdad conmuta ENTRE
-    DOS circuitos distintos: es un contacto conmutador de 3 bornes (07-71-03
-    "conmutador de corte antes de realizar contacto" — break-before-make),
-    no el contacto simple de 2 bornes de 07-72-04. Común abajo (el borne que
-    pivota), posición 1 cerrada en reposo (con marca de corte, izquierda) y
-    posición 2 abierta en reposo (derecha) — botón giratorio "F" arriba,
-    enlazado al pivote."""
-    hoja = "-20.0 -40.0 40.0 70.0"
+    """Selector 2 posiciones - contacto conmutador de 3 bornes (07-71-03),
+    no el contacto simple de 07-72-04 (corrección del usuario: 2 bornes solo
+    alcanzan para un pulsador con una posición abierta). Común abajo,
+    posición 1 cerrada en reposo (con marca de corte) y posición 2 abierta
+    a los costados.
+
+    Segunda corrección del usuario: el actuador va como el pulsador — a la
+    IZQUIERDA, a la altura media de la cuchilla activa, no arriba de todo
+    con un enlace largo por el centro (primera versión, rechazada). Mismo
+    patrón que actuador_pulsador/contacto_na: enlace horizontal limpio al
+    punto medio entre pos1 y el común."""
+    hoja = "-20.0 -25.0 40.0 50.0"
     comun = (0.0, 8.0)
     pos1 = (-10.0, -8.0)  # borne fijo, cerrado en reposo (con marca de corte)
     pos2 = (10.0, -8.0)   # borne fijo, abierto en reposo (no toca la cuchilla)
-    # Actuador arriba de TODO el conjunto, enlace vertical bajando por el
-    # centro (x=0) hasta el pivote: así no se cruza con ninguno de los dos
-    # bornes fijos, que quedan a los costados.
-    c = actuador_rotativo(-3, -32)
-    c += linea(0, -27, 0, comun[1], PUNTEADO)
+    c = actuador_rotativo(-17, 0)
+    c += linea(-14, 0, -5, 0, PUNTEADO)
     c += linea(pos1[0], -20, pos1[0], pos1[1])
-    c += linea(pos1[0], pos1[1], pos1[0] + 2.5, pos1[1] - 2.5)
     c += linea(pos1[0], pos1[1], comun[0], comun[1])
+    c += marca_corte(pos1, comun)
     c += linea(pos2[0], -20, pos2[0], pos2[1] - 4)
     c += linea(comun[0], comun[1], comun[0], 20)
     return hoja, c, "Selector 2 posiciones", "IEC 60617 07-71-03 + 07-72-04"
-
-
-def s00138():
-    """Pulsador de emergencia (seta) - 07-72-06: maniobra positiva
-    (07-70-09) arriba del enlace, cabeza de seta (semicírculo) a la
-    izquierda, marca de retención (03-31-08, "V") en el enlace, contacto NC
-    (la parada de emergencia CORTA, no cierra)."""
-    hoja = "-20.0 -30.0 30.0 60.0"
-    c = circulo_flecha(-11, -14)
-    # Cabeza de "seta" del pulsador de emergencia: medio círculo abombado
-    # hacia la izquierda (mismo truco de polilínea que efecto_electromagnetico,
-    # sin depender de comandos de arco SVG).
-    cx0, cy0, rm = -16.5, -11.5, 3.0
-    pts = [
-        (cx0 + rm * math.cos(math.pi / 2 + i * math.pi / 8), cy0 + rm * math.sin(math.pi / 2 + i * math.pi / 8))
-        for i in range(9)
-    ]
-    c += polilinea(pts)
-    c += linea(-15, -8, -13, -8, PUNTEADO)
-    c += linea(-13, -8, -10.5, -5, PUNTEADO)
-    c += linea(-10.5, -5, -8, -8, PUNTEADO)
-    c += linea(-8, -8, -6, -8, PUNTEADO)
-    c += contacto_nc()
-    return hoja, c, "Pulsador de emergencia (seta)", "IEC 60617 07-72-06"
 
 
 def s00130():
@@ -489,7 +471,7 @@ def s00139():
 
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
-    "S00136": s00136, "S00137": s00137, "S00138": s00138, "S00139": s00139,
+    "S00136": s00136, "S00137": s00137, "S00139": s00139,
 }
 
 

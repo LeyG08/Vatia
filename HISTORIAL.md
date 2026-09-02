@@ -3491,3 +3491,52 @@ Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
 `generar_tipos_atributos.py --verificar` OK (sin cambios de schema en esta
 ronda). Los tres símbolos corregidos se volvieron a renderizar a PNG
 (pymupdf) antes de subir la corrección a la galería.
+
+### E15.2 — Ronda 3: la marca de corte y el enlace, otra vez; S00138 se da de baja
+
+El usuario contestó las dos preguntas de cierre de E15.1 y agregó feedback
+nuevo sobre los símbolos ya corregidos, en el mismo mensaje:
+
+- **Pulsador (S00135/S00136)**: "hacelo a la mitad del contacto no justo al
+  final" — el enlace punteado del actuador conectaba al codo/extremo de la
+  cuchilla; ahora conecta al punto medio geométrico entre el pivote y la
+  punta (mismo punto (-3,0) para NA y NC, porque ambas cuchillas van entre
+  los mismos dos puntos).
+- **Contacto NC (S00134/S00136)**: la marca de corte de E15.1 "tiene que
+  cruzar más" y la línea "que está en un ángulo raro" tiene que quedar "a
+  90°". Se reemplazó por `marca_corte()`, un helper nuevo que calcula el
+  perpendicular exacto a la cuchilla con matemática de vectores (no un
+  ángulo fijo a ojo) y la dibuja cruzando de lado a lado, no como gancho
+  corto tocando un vértice.
+- **Selector (S00137)**: "es fácil, como hacer un contacto donde tenés dos
+  estados y va en el medio el pulsador" — la composición de E15.1 (actuador
+  arriba de todo, enlace vertical largo por el centro) quedó rechazada.
+  Reescrito con el mismo patrón que el pulsador: actuador al costado, a la
+  altura del punto medio de la cuchilla activa (posición 1), enlace
+  horizontal corto.
+- **Pulsador de emergencia (S00138)**: a la pregunta de qué usa en el campo,
+  contestó "es que nunca vi una simbología de un pulsador de emergencia" —
+  no es que el dibujo no coincidiera con lo que conoce, es que en su
+  experiencia no existe un símbolo aparte para esto. Se dio de baja como
+  símbolo (`git rm`, código S00138 liberado): un pulsador de emergencia es
+  un Pulsador NC común (S00136). Se agregó `es_parada_emergencia` (boolean)
+  al subtipo `pulsador` del schema para que la ficha lo distinga sin
+  inventar un dibujo que nadie usa.
+
+También contestó el alcance de "variantes por cantidad de polos": aplica
+tanto a bloques de contactos combinados de comando (ej. un pulsador con
+1NA+1NC en un solo cuerpo) como a fuerza (1P/2P/3P/4P), y agregó un caso
+más — un equipo cuya ficha trae varios elementos de una vez (ej. un relé
+con salida a contactos múltiples biestado), y el caso de la parte de fuerza
+de un aparato que en realidad se resuelve en la sección de comando por ser
+multifilar. Esto no se implementó: es un tema de MODELO DE DATOS (un
+"equipo" con varios elementos de contacto enlazados, y cómo se referencia
+un mismo dispositivo entre la hoja de fuerza y la de comando), más grande
+que agregar símbolos al lote piloto — queda anotado como paso futuro, ligado
+al modo multifilar (Paso 3), no a resolver ahora.
+
+Verificaciones: `lint_simbolos.py` verde (7 símbolos en `comando/`, uno
+menos que la ronda anterior), `generar_tipos_atributos.py --verificar` OK
+(25 interfaces, sin cambiar de cantidad porque `pulsador` solo ganó un
+campo), `tsc --noEmit` limpio. Los cuatro símbolos tocados se volvieron a
+renderizar a PNG antes de actualizar la galería.

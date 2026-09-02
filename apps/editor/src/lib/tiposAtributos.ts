@@ -314,6 +314,8 @@ export interface AparatoPulsador {
   color?: "RD" | "YE" | "GN" | "BU" | "WH";
   /** Capacidad térmica Ith (A) */
   ith_a?: number;
+  /** Es parada de emergencia */
+  es_parada_emergencia?: boolean;
 }
 
 /** Pulsador de parada de emergencia, cabeza de seta (IEC 60617 07-72-06): contacto NC con maniobra positiva de apertura y retención mecánica — queda enclavado hasta liberarlo a mano (girar o tirar), no vuelve solo. El contacto es siempre NC: la parada de emergencia corta, nunca cierra. */
