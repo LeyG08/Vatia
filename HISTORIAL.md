@@ -4444,3 +4444,61 @@ materiales):
 Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
 nuevos, `npm run e2e` verde, `verificar_alineacion.mjs` y
 `verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+## E31 — Limpieza de bugs menores: warnings de consola
+
+Último ítem del punch list de "finalizar el editor" que quedaba
+pendiente de una sesión anterior: dos warnings de consola pre-existentes,
+ninguno reportado por el usuario como falla funcional.
+
+**Corregido: `ConexionEdge.tsx` pasaba props sin reconocer al DOM.**
+`{ ...props }` (todo lo que sobraba de `EdgeProps` tras destructurar lo
+que el componente realmente usa) se esparcía entero sobre
+`<BaseEdge path={d} {...props} />`. `BaseEdge` de XYFlow solo entiende
+`style`/`markerStart`/`markerEnd`/`interactionWidth`/`label*` — el resto
+(`selectable`, `deletable`, `sourceHandleId`, `targetHandleId`,
+`pathOptions`…) lo reenviaba tal cual al `<path>` del DOM, de ahí los
+warnings "React does not recognize the `X` prop on a DOM element". El
+componente en realidad solo necesitaba dos de esos campos: `style` (para
+el trazo — `defaultEdgeOptions` en `App.tsx` define
+`stroke`/`strokeWidth` ahí) y `selected` (para mostrar el grip de
+arrastre del quiebre solo cuando el cable está seleccionado — antes leía
+`props.selected`). Se destructuraron ambos explícitamente y se sacó el
+`...props` genérico. Verificado: `strokeWidth` del cable sigue
+resolviendo a `1.5px` (el valor de `defaultEdgeOptions`), y el arnés E2E
+completo (incluida la prueba de "quiebre" arrastrable, que depende de
+`selected`) sigue en verde.
+
+**Investigado a fondo y CERRADO sin fix: la clave duplicada `n1`.**
+Quedaba registrado de una sesión anterior como "aparece al cambiar de
+hoja", sin causa raíz confirmada. Se reprodujo desde cero con Playwright
+y se aisló: **no hace falta cambiar de hoja — aparece con el primer
+símbolo que se suelta en un lienzo recién abierto**, y el estado final
+(nodos renderizados en el DOM) es siempre correcto, un único `n1`. Lo
+decisivo: corriendo la MISMA interacción contra el build de PRODUCCIÓN
+(`vite build` + `vite preview`, en vez de `vite dev`), el warning
+**no aparece ni una vez** — cero, con el mismo resultado final. Eso aísla
+la causa a `<StrictMode>` (activado en `main.tsx`, que solo actúa en
+desarrollo): React re-invoca renders/efectos a propósito ahí para cazar
+efectos secundarios impuros, y en algún punto de ese doble paso durante
+un alta de nodo por arrastre, React ve momentáneamente dos elementos con
+key `n1` antes de asentarse — nunca llega a persistir, nunca lo ve un
+usuario real. Sacar `<StrictMode>` para silenciar esto sería peor que el
+problema: es la herramienta que ayuda a agarrar bugs de este tipo ANTES
+de que lleguen a producción. Se cierra como "confirmado inofensivo,
+exclusivo de desarrollo", no como pendiente.
+
+Con esto se termina, por ahora, el punch list de "finalizar el editor"
+que el usuario pidió agotar antes de retomar el motor de cálculo o la
+base de datos: exportación a PDF (hoja suelta y proyecto completo con
+lista de materiales opcional + accesorios), y los dos bugs de consola
+conocidos, resueltos o cerrados con causa raíz confirmada. Lo que sigue
+abierto y sin resolver a propósito (ya documentado en sesiones
+anteriores, no se repite acá): guardado en la nube (decisión de
+arquitectura mayor, backend/hosting/autenticación) y la deuda de
+`store.ts` con dos fuentes de verdad (estructural, no es un bug puntual).
+
+Verificado: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks, incluida la prueba de
+quiebre arrastrable), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.

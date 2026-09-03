@@ -119,7 +119,8 @@ export default function ConexionEdge({
   sourcePosition,
   targetPosition,
   data,
-  ...props
+  style,
+  selected,
 }: EdgeProps) {
   /* Dirección EFECTIVA de cualquier extremo (C12): se conserva el EJE
    * declarado del handle (vertical u horizontal) pero la POLARIDAD se
@@ -279,7 +280,7 @@ export default function ConexionEdge({
 
   return (
     <>
-      <BaseEdge path={d} {...props} />
+      <BaseEdge path={d} style={style} />
       {geo && totalMarcas > 0 && (
         <g stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" fill="none">
           {Array.from({ length: totalMarcas }, (_, i) => {
@@ -321,7 +322,7 @@ export default function ConexionEdge({
           </div>
         </EdgeLabelRenderer>
       )}
-      {props.selected && (
+      {selected && (
         <EdgeLabelRenderer>
           <div
             className="paso-grip nodrag nopan"
