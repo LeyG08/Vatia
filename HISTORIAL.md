@@ -4996,3 +4996,84 @@ Queda pendiente el resto del punch list original: exportar todos los
 unifilares a una sola hoja A0, y los símbolos multipolares tipo CADe
 SIMU con simulación de comando — ambos necesitan alcance propio antes
 de implementarse.
+
+## E40 — Exportar proyecto roto, líneas grises al imprimir, seccionador fusible sin modo oscuro
+
+Tres bugs reales reportados juntos por el usuario tras probar el
+programa en profundidad.
+
+**"Exportar proyecto" no andaba** — la más seria de las tres, y la que
+más costó encontrar. Con más de una hoja, el PDF salía con UNA sola
+página (el resto del proyecto desaparecía sin avisar) o, tras el primer
+intento de arreglo, con una página fantasma en blanco antes de la
+primera hoja real. Encontrado y verificado generando PDFs reales
+(`page.pdf()`), nunca confiando en capturas de pantalla — la técnica ya
+establecida en E35, clave de nuevo acá porque el bug no se veía en el
+diálogo de impresión del navegador, solo en el archivo final. Causas,
+en cadena:
+
+1. `@page` por hoja asignado por `style` inline (`style={{ page: ... }}`)
+   — Chromium no lo respeta puesto así (confirmado con una reproducción
+   mínima aislada, fuera de la app): hace falta una regla de hoja de
+   estilos (`.pagina-hoja-0 { page: hoja-0 }`), no un atributo inline.
+2. Con eso corregido, alcanzaba con tener CUALQUIER `<div>` vacío pero
+   visible (ni display:none) como hermano de `.exportacion-proyecto`
+   —`.cuerpo`, que solo oculta a sus HIJOS (`.lienzo`/`.paleta`), no a
+   sí mismo— para que Chromium insertara una página en blanco de más
+   antes de la primera hoja real. No es un tema de flex (se descartó esa
+   hipótesis con pruebas); ocultar `.cuerpo` entero durante el export
+   del proyecto completo lo resuelve.
+3. `.app`/`.cuerpo` fijados a `height:100%` (necesario para que
+   funcione "Exportar PDF" de una sola hoja: `.lienzo` con `height:100%`
+   necesita un ancestro con altura definida) recortaban a una sola
+   página cualquier cosa que excediera la primera hoja durante
+   "Exportar proyecto" — se excluye ese bloque cuando
+   `body.exportando-todo` está activo.
+
+Antes no existía ningún `@page` dinámico para el export multi-hoja: el
+PDF salía siempre con el tamaño de página por defecto del navegador
+(A4/Carta), sin importar el formato real de cada hoja (A3, A1…). Ahora
+cada hoja lleva su propio `@page` con su formato real, y la lista de
+materiales su propia página A4.
+
+**Todas las líneas deberían ser negras, no grises** — dos causas
+independientes:
+- El color por defecto de los conductores es el gris claro de fábrica
+  de React Flow (`--xy-edge-stroke-default: #b1b1b7`), nunca
+  sobreescrito. Ahora usa `--border-strong` (se adapta al tema, igual
+  que los símbolos).
+- Al imprimir en modo OSCURO, `currentColor` resolvía a la variante
+  oscura de `--text-primary` (un gris casi blanco, pensado para
+  pantalla) y el papel de fondo (`--bg-surface` de `.hoja`) se quedaba
+  oscuro — el plano salía grisáceo o de plano ilegible sin importar el
+  tema activo en pantalla. Ahora la impresión fuerza negro puro y fondo
+  blanco siempre, sin importar el tema — verificado exportando desde
+  modo claro Y oscuro, mismo resultado en los dos. Los colores propios
+  de la librería (puntos de conexión `#e11d48`) no se tocan porque usan
+  `fill`/`stroke` explícitos, no `currentColor` — mantienen su color,
+  como pidió el usuario.
+
+**Seccionador fusible (S00127) sin modo oscuro** — encontrado: su
+`simbolo.svg` es el único de los 19 símbolos de fuerza que quedó
+exportado en formato Fabric.js crudo (`style="stroke: rgb(0,0,0); ..."`)
+en vez del formato limpio del resto de la librería (`stroke="#000000"`
+como atributo). `svgLimpio()` (en `lib/libreria.ts`) solo reemplaza
+`stroke="#000000"`/`fill="#000000"` como atributos de presentación —
+nunca tocó ese `style` inline, así que el símbolo quedaba negro fijo
+sobre fondo oscuro. Reescrito con la misma geometría exacta (mismas
+matrices de transformación, mismas coordenadas) en el formato limpio;
+`lint_simbolos.py` sigue en verde. Ningún otro símbolo de la librería
+tiene este problema (barrido completo, sin coincidencias).
+
+Verificado en vivo con Playwright + PDFs reales: export de una hoja
+(claro y oscuro), export del proyecto completo con 2 hojas + lista de
+materiales, sin errores de consola en ningún caso. `tsc -b`, `lint`,
+`build`, `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+**Nota aparte, no reportada por el usuario pero visible en las pruebas**:
+en el proyecto real de ejemplo, el bloque de "Notas del gabinete" (fijo
+arriba a la izquierda de la hoja) se superpone visualmente con la
+anotación de una barra colocada cerca de esa zona — no se tocó: no está
+claro si el diseño correcto es que las notas reserven su espacio o que
+las barras lo eviten, y no era parte de lo pedido.

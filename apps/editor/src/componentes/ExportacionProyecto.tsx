@@ -58,14 +58,31 @@ function construirBom(hojas: Hoja[]): FilaBom[] {
 
 /** Una página de impresión por hoja: su propio <ReactFlow> aislado (no
  * comparte provider con el lienzo interactivo), fijo en la escala física
- * de impresión — ver lib/impresion.ts. */
-function PaginaHoja({ hoja }: { hoja: Hoja }) {
+ * de impresión — ver lib/impresion.ts.
+ *
+ * `pageName` identifica una página CSS con nombre (Paged Media): cada
+ * hoja puede tener su propio formato (A3, A1…), y `window.print()`
+ * arma UN solo trabajo de impresión con TODAS — sin esto, "Exportar
+ * proyecto" salía siempre con el tamaño de página por defecto del
+ * navegador (A4/Carta), sin importar el formato real configurado, y el
+ * contenido quedaba recortado o mal escalado. `exportarPdf()` (una
+ * sola hoja) no tiene este problema porque inyecta un único `@page`
+ * global — acá hace falta uno DISTINTO por página del mismo trabajo.
+ *
+ * La propiedad `page` se asigna por CLASE, no por `style` inline:
+ * Chromium no la respeta puesta inline (probado en vivo generando PDFs
+ * reales — con `style={{page: ...}}` aparecía una página extra en
+ * blanco, con tamaño por defecto del navegador, antes de la primera
+ * hoja real; con una regla de hoja de estilos como `.pagina-hoja-0 {
+ * page: hoja-0 }` pagina correctamente). La regla la arma
+ * `ExportacionProyecto` en un único `<style>` (ver ahí por qué). */
+function PaginaHoja({ hoja, pageName }: { hoja: Hoja; pageName: string }) {
   const estado = construirEstadoHoja(hoja);
   const { anchoMm, altoMm } = medidasPaginaMm(estado.cfg);
   const { pxW, pxH } = dimensionesHoja(estado.cfg);
   return (
     <div
-      className="pagina-impresion"
+      className={`pagina-impresion pagina-${pageName}`}
       style={{ width: `${anchoMm}mm`, height: `${altoMm}mm` }}
     >
       <ReactFlowProvider>
@@ -96,10 +113,15 @@ function PaginaHoja({ hoja }: { hoja: Hoja }) {
   );
 }
 
+/** Tamaño fijo A4 vertical: es una tabla, no un plano a escala — no
+ * necesita heredar el formato de ninguna hoja. */
 function PaginaListaDeMateriales({ hojas }: { hojas: Hoja[] }) {
   const filas = construirBom(hojas);
   return (
-    <div className="pagina-impresion pagina-bom">
+    <div
+      className="pagina-impresion pagina-bom"
+      style={{ width: "210mm", height: "297mm" }}
+    >
       <h1>Lista de materiales</h1>
       <table>
         <thead>
@@ -145,10 +167,32 @@ export default function ExportacionProyecto() {
 
   if (!exportando) return null;
 
+  /* Las reglas @page de TODAS las hojas van en una única hoja de
+   * estilos, declarada ANTES de la primera .pagina-impresion — con una
+   * <style> por página (repartidas dentro de cada una) Chromium armaba
+   * una primera página fantasma en blanco con el tamaño por defecto del
+   * navegador, antes de llegar a la primera hoja real (encontrado en
+   * vivo generando un PDF real de más de una hoja). Cada regla trae
+   * también el `page: <nombre>` que asigna esa página al elemento — por
+   * CLASE (`.pagina-hoja-0`), no por `style` inline (ver el porqué en
+   * PaginaHoja más arriba). */
+  const reglasPagina = hojas
+    .map((h, i) => {
+      const { anchoMm, altoMm } = medidasPaginaMm(h);
+      return `@page hoja-${i} { size: ${anchoMm}mm ${altoMm}mm; margin: 0; } .pagina-hoja-${i} { page: hoja-${i}; }`;
+    })
+    .concat(
+      incluirBom
+        ? ["@page bom { size: 210mm 297mm; margin: 0; } .pagina-bom { page: bom; }"]
+        : [],
+    )
+    .join("\n");
+
   return (
     <div className="exportacion-proyecto">
-      {hojas.map((h) => (
-        <PaginaHoja key={h.id} hoja={h} />
+      <style>{reglasPagina}</style>
+      {hojas.map((h, i) => (
+        <PaginaHoja key={h.id} hoja={h} pageName={`hoja-${i}`} />
       ))}
       {incluirBom && <PaginaListaDeMateriales hojas={hojas} />}
     </div>

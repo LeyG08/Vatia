@@ -494,6 +494,15 @@ body,
   pointer-events: none;
 }
 
+/* La librería trae su propio gris claro por defecto (--xy-edge-stroke-
+ * default: #b1b1b7, ver @xyflow/react/dist/style.css) — en un plano
+ * eléctrico el conductor tiene que leerse como trazo firme, no como una
+ * guía tenue. Mismo tono oscuro que ya usan los símbolos (currentColor
+ * → --text-primary en oscuro), así se adapta al tema igual que ellos. */
+.react-flow__edge-path {
+  stroke: var(--border-strong);
+}
+
 /* Selección de conexiones */
 .react-flow__edge.selected .react-flow__edge-path,
 .react-flow__edge:focus .react-flow__edge-path {
@@ -2983,10 +2992,34 @@ body.arrastrando .paleta-item {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    height: 100% !important;
     background: #fff !important;
     box-shadow: none !important;
     border: none !important;
+  }
+
+  /* `height: 100%` + `overflow: hidden` fijan el documento a UNA sola
+   * página — hace falta para exportar una hoja sola (`.app` incluido:
+   * `.cuerpo` es `flex:1` y necesita que `.app` tenga una altura
+   * DEFINIDA para poder repartirla, si no `.lienzo` con `height:100%`
+   * no tiene contra qué resolver el porcentaje y React Flow mide un
+   * contenedor de alto 0 — probado en vivo: forzar `.app` a `auto` acá
+   * sin excepción dejaba "Exportar PDF" (una sola hoja) en blanco).
+   * Para exportar el proyecto ENTERO (`body.exportando-todo`, más abajo
+   * en este archivo) esto se excluye: `.app`/`.cuerpo` son los mismos
+   * ancestros por los que también cuelga `.exportacion-proyecto`, y
+   * fijarles una altura de una sola página recortaba todo lo que
+   * excediera la primera hoja — encontrado en vivo generando un PDF
+   * real con más de una hoja ("Exportar proyecto" salía con una sola
+   * página, el resto desaparecía sin avisar). Durante esa exportación
+   * el documento tiene que poder crecer libremente para que el salto
+   * de página entre hojas funcione. */
+  body:not(.exportando-todo) .app,
+  body:not(.exportando-todo) .cuerpo,
+  body:not(.exportando-todo),
+  html:not(:has(body.exportando-todo)),
+  .lienzo,
+  .react-flow {
+    height: 100% !important;
     /* `visible` dejaba que el borrón del box-shadow de .hoja (una
      * sombra puramente de pantalla) se saliera del área de una página
      * y el navegador agregaba una SEGUNDA página casi en blanco solo
@@ -2996,10 +3029,48 @@ body.arrastrando .paleta-item {
 
   /* El puntillado de grilla (ver regla base de .hoja) es una ayuda de
    * edición en pantalla, no algo que tenga que salir en el plano
-   * impreso — sin esto toda la hoja se veía punteada/grisácea. */
+   * impreso — sin esto toda la hoja se veía punteada/grisácea. El fondo
+   * blanco de `.hoja` (var(--bg-surface) es casi negro en modo oscuro)
+   * se fuerza más abajo, junto con el resto de los fondos oscuros. */
   .hoja {
     background-image: none !important;
     box-shadow: none !important;
+  }
+
+  /* El papel es blanco sin importar qué tema esté activo en pantalla: si
+   * se exporta en modo oscuro, --text-primary resolvía a su valor OSCURO
+   * (un gris casi blanco pensado para fondo oscuro) y el plano salía
+   * grisáceo en vez de negro. `body { color }` no alcanza: la mayoría de
+   * los textos y símbolos fijan su PROPIO color (clase o inline style),
+   * y eso siempre gana sobre lo heredado del body sin importar el
+   * `!important` del ancestro — hace falta pisar cada elemento
+   * directamente con el selector universal. Los colores explícitos de la
+   * librería (puntos de conexión #e11d48, el círculo de neutro #fdfdfd)
+   * no se tocan porque usan `fill`/`stroke` propios, no `color`. */
+  .lienzo,
+  .lienzo *,
+  .exportacion-proyecto,
+  .exportacion-proyecto * {
+    color: #000 !important;
+  }
+  .react-flow__edge-path {
+    stroke: #000 !important;
+  }
+
+  /* Mismo problema que el color, pero de fondo: en modo oscuro las
+   * etiquetas de cable, las fichas de aparato y las celdas del rótulo
+   * traen su propio `background: var(--bg-surface)` (casi negro) — con
+   * el texto ya forzado a negro por la regla de arriba, quedaban
+   * ilegibles (negro sobre casi negro). Transparente deja ver el blanco
+   * de `.hoja` de abajo — por eso esta regla tiene que ir DESPUÉS de la
+   * de arriba en el archivo: sin orden, `.hoja *` también matchea
+   * `.hoja` y pisaría su propio fondo blanco. */
+  .lienzo *,
+  .exportacion-proyecto * {
+    background: transparent !important;
+  }
+  .hoja {
+    background-color: #fff !important;
   }
 }
 
@@ -3012,8 +3083,17 @@ body.arrastrando .paleta-item {
   display: none;
 }
 @media print {
+  /* `.cuerpo` no está en la lista general de "ocultar en impresión"
+   * porque el export de UNA hoja lo necesita visible (contiene
+   * `.lienzo`). Acá sí hace falta ocultarlo ENTERO, no solo sus hijos:
+   * un `<div>` vacío pero VISIBLE (aunque mida 0 de alto) como hermano
+   * de `.exportacion-proyecto` le basta a Chromium para insertar una
+   * página fantasma en blanco antes de la primera hoja real — pasa con
+   * cualquier `display` (incluso `block`), no es un tema de flex.
+   * Encontrado en vivo generando un PDF real con más de una hoja. */
   body.exportando-todo .lienzo,
-  body.exportando-todo .paleta {
+  body.exportando-todo .paleta,
+  body.exportando-todo .cuerpo {
     display: none !important;
   }
   .exportacion-proyecto {
@@ -3046,7 +3126,7 @@ body.arrastrando .paleta-item {
   }
   .pagina-bom th,
   .pagina-bom td {
-    border: 1px solid var(--text-faint);
+    border: 1px solid #000;
     padding: 3px 6px;
     text-align: left;
   }
