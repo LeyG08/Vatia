@@ -1,4 +1,5 @@
 import { type ReactElement } from "react";
+import { useEditor } from "../lib/store";
 import {
   calcularUtilizacionVa,
   kuSugeridoPara,
@@ -16,11 +17,19 @@ function valorComoTexto(v: unknown): string {
 /**
  * Potencia aparente en VA a partir de la alimentación, el neutro y la
  * corriente (regla C9 acordada con el usuario):
- *   monofásica con neutro → S = 220 · I
- *   monofásica sin neutro (entre fases) → S = 380 · I
- *   trifásica → S = √3 · 380 · I
+ *   monofásica con neutro → S = tensiónFase · I
+ *   monofásica sin neutro (entre fases) → S = tensiónLínea · I
+ *   trifásica → S = √3 · tensiónLínea · I
+ *
+ * C41: tensiónFase/tensiónLínea vienen de datosProyecto (antes hardcodeadas
+ * en 220/380 V acá mismo); el llamador las pasa porque este módulo no
+ * tiene acceso al store.
  */
-export function calcularPotenciaVa(a: Record<string, unknown>): number | null {
+export function calcularPotenciaVa(
+  a: Record<string, unknown>,
+  tensionFaseV = 220,
+  tensionLineaV = 380,
+): number | null {
   const i =
     typeof a.corriente_a === "number" &&
     Number.isFinite(a.corriente_a) &&
@@ -32,9 +41,9 @@ export function calcularPotenciaVa(a: Record<string, unknown>): number | null {
   if (a.alimentacion !== "monofasica" && a.alimentacion !== "trifasica")
     return null;
   if (a.alimentacion === "trifasica") {
-    return Math.round(Math.sqrt(3) * 380 * i);
+    return Math.round(Math.sqrt(3) * tensionLineaV * i);
   }
-  return Math.round((a.lleva_neutro === false ? 380 : 220) * i);
+  return Math.round((a.lleva_neutro === false ? tensionLineaV : tensionFaseV) * i);
 }
 
 const TIPOS = ["IUG", "TUG", "ACU", "seccional", "otra"];
@@ -46,6 +55,9 @@ const LINEAS = ["L1", "L2", "L3"];
  * corriente.
  */
 export default function FormularioCarga({ atributos, onChange }: Props) {
+  const tensionFaseV = useEditor((s) => s.proyecto.datosProyecto.tension_fase_v);
+  const tensionLineaV = useEditor((s) => s.proyecto.datosProyecto.tension_linea_v);
+
   function actualizar(nombre: string, valor: unknown) {
     const nuevos: Record<string, unknown> = { ...atributos };
     if (valor === undefined || valor === "") {
@@ -61,7 +73,7 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
       if (sugerido !== undefined) nuevos.ku = sugerido;
     }
 
-    const va = calcularPotenciaVa(nuevos);
+    const va = calcularPotenciaVa(nuevos, tensionFaseV, tensionLineaV);
     if (va === null) {
       delete nuevos.potencia_va;
     } else {
@@ -110,7 +122,7 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
   }
 
   const esTrifasica = atributos.alimentacion === "trifasica";
-  const vaCalculada = calcularPotenciaVa(atributos);
+  const vaCalculada = calcularPotenciaVa(atributos, tensionFaseV, tensionLineaV);
   const utilCalculada = calcularUtilizacionVa(atributos);
 
   return (
@@ -159,7 +171,7 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
         </div>
       </div>
 
-      <div className="campo-atributo" title="Sin neutro la carga queda entre fases (380 V)">
+      <div className="campo-atributo" title={`Sin neutro la carga queda entre fases (${tensionLineaV} V)`}>
         <span>Neutro</span>
         <div className="chips" role="group" aria-label="Neutro">
           <button
@@ -242,6 +254,26 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
 
       <label
         className="campo-atributo"
+        title="cosφ: IUG/TUG cercano a 1 (resistivo), ACU y cargas con motor 0,8-0,9 (inductivo). Todavía no lo consume ningún cálculo."
+      >
+        <span>Factor de potencia (cosφ)</span>
+        <input
+          type="number"
+          step="0.01"
+          min={0}
+          max={1}
+          value={valorComoTexto(atributos.factor_potencia)}
+          onChange={(e) =>
+            actualizar(
+              "factor_potencia",
+              e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+            )
+          }
+        />
+      </label>
+
+      <label
+        className="campo-atributo"
         title="Coeficiente de utilización: fracción de la nominal en uso. Sugerido por tipo de carga, siempre editable"
       >
         <span>Ku utilización</span>
@@ -255,6 +287,27 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
           onChange={(e) =>
             actualizar(
               "ku",
+              e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+            )
+          }
+        />
+      </label>
+
+      <label
+        className="campo-atributo"
+        title="Simultaneidad de ESTA carga respecto de las demás del mismo tablero (distinto de Ku, que ajusta la potencia propia). En ACU o máquinas compuestas, la potencia ya puede venir afectada por la simultaneidad interna de sus propios elementos — acá va la simultaneidad ADICIONAL con el resto."
+      >
+        <span>Ks simultaneidad</span>
+        <input
+          type="number"
+          step="0.05"
+          min={0}
+          max={1}
+          placeholder="1"
+          value={valorComoTexto(atributos.ks)}
+          onChange={(e) =>
+            actualizar(
+              "ks",
               e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
             )
           }

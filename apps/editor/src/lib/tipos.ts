@@ -301,9 +301,54 @@ export interface Hoja extends HojaConfig {
   viewport?: { x: number; y: number; zoom: number };
 }
 
+/** Normativa de cálculo del proyecto — condiciona tablas de Iz, límites
+ * de caída de tensión y demás parámetros del futuro motor de verificación. */
+export type Normativa = "AEA" | "IEC";
+
+/** Esquema de puesta a tierra (IEC 60364-1 / AEA 90364-1) */
+export type EsquemaPAT = "TT" | "TN-S" | "TN-C" | "IT";
+
+/**
+ * Datos de cortocircuito de la fuente principal del proyecto. Sirve de
+ * base para verificar Icc aguas abajo; no se consume todavía en ningún
+ * cálculo — eso pertenece a la etapa de topología (recorrido del grafo),
+ * junto con la idea de crear automáticamente el alimentador de las
+ * cargas marcadas como "seccional" a partir de este dato.
+ */
+export interface FuenteCortocircuito {
+  scc_mva?: number;
+  icc_ka?: number;
+}
+
+/**
+ * Parámetros eléctricos base del proyecto (C41): tensión, esquema de
+ * puesta a tierra y normativa de cálculo. Antes vivían hardcodeados
+ * (220/380 V) en el formulario de carga; ahora son un dato del proyecto,
+ * editable y con default, porque el futuro motor de verificación los
+ * necesita para todo cálculo (Iz, ΔU%, contactos indirectos).
+ */
+export interface DatosProyecto {
+  normativa: Normativa;
+  /** Tensión fase-neutro, en V */
+  tension_fase_v: number;
+  /** Tensión fase-fase, en V */
+  tension_linea_v: number;
+  esquema_pat: EsquemaPAT;
+  fuente_cortocircuito?: FuenteCortocircuito;
+}
+
+export function DATOS_PROYECTO_POR_DEFECTO(): DatosProyecto {
+  return {
+    normativa: "AEA",
+    tension_fase_v: 220,
+    tension_linea_v: 380,
+    esquema_pat: "TT",
+  };
+}
+
 export interface Proyecto {
-  /** Versión del formato de archivo: 2 = multi-hoja */
-  version: 2;
+  /** Versión del formato de archivo: 3 = datos de proyecto (C41) */
+  version: 3;
   meta: {
     nombre: string;
     fechaCreacion: string;
@@ -311,6 +356,7 @@ export interface Proyecto {
   };
   /** Array ordenado = orden de pestañas (índice 0 = primera) */
   hojas: Hoja[];
+  datosProyecto: DatosProyecto;
 }
 
 /** Hoja creada a partir de una config base (hereda formato/rótulo/notas) */
@@ -325,8 +371,14 @@ export function hojaNuevaDesde(base: HojaConfig, nombre: string): Hoja {
   };
 }
 
-/** Migra cualquier dato guardado (v0/v1/v2, objeto o JSON string) a v2 */
-export function migrarAProyectoV2(datos: unknown): Proyecto {
+/** Forma común de las versiones anteriores a "datos de proyecto" (v3) */
+type EstructuraHastaV2 = Omit<Proyecto, "version" | "datosProyecto"> & {
+  version?: number;
+  datosProyecto?: DatosProyecto;
+};
+
+/** Arma la estructura hojas/meta a partir de v0/v1/v2 (objeto o JSON string) */
+function migrarEstructuraHojas(datos: unknown): EstructuraHastaV2 {
   let parsed: unknown = datos;
   if (typeof datos === "string") {
     try {
@@ -339,9 +391,12 @@ export function migrarAProyectoV2(datos: unknown): Proyecto {
   const obj = parsed as Record<string, unknown>;
   const ahora = new Date().toISOString();
 
-  // Ya es v2
-  if (obj.version === 2 && Array.isArray(obj.hojas)) {
-    return parsed as Proyecto;
+  // Ya es v2 o v3
+  if (
+    (obj.version === 2 || obj.version === 3) &&
+    Array.isArray(obj.hojas)
+  ) {
+    return parsed as EstructuraHastaV2;
   }
 
   // v1 (ProyectoJSON con hoja + nodos + conexiones sueltos)
@@ -357,7 +412,6 @@ export function migrarAProyectoV2(datos: unknown): Proyecto {
       viewport: undefined,
     };
     return {
-      version: 2,
       meta: {
         nombre: p.nombre ?? "Proyecto migrado",
         fechaCreacion: ahora,
@@ -378,13 +432,23 @@ export function migrarAProyectoV2(datos: unknown): Proyecto {
     viewport: undefined,
   };
   return {
-    version: 2,
     meta: {
       nombre: "Proyecto migrado",
       fechaCreacion: ahora,
       ultimaModificacion: ahora,
     },
     hojas: [hoja],
+  };
+}
+
+/** Migra cualquier dato guardado (v0/v1/v2/v3, objeto o JSON string) a v3 */
+export function migrarAProyectoV3(datos: unknown): Proyecto {
+  const estructura = migrarEstructuraHojas(datos);
+  return {
+    version: 3,
+    meta: estructura.meta,
+    hojas: estructura.hojas,
+    datosProyecto: estructura.datosProyecto ?? DATOS_PROYECTO_POR_DEFECTO(),
   };
 }
 

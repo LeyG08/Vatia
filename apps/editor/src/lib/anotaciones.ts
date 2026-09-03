@@ -1,5 +1,6 @@
 import type { FamiliaAtributos } from "./tipos";
 import type { DatosSimbolo } from "./store";
+import { poderDeCorteKA, rangoAjusteA } from "./electrico";
 
 /** Estética de plano: todo texto que arranca, arranca con mayúscula */
 export function capitalizar(texto: unknown): string {
@@ -9,6 +10,19 @@ export function capitalizar(texto: unknown): string {
 
 function n(v: unknown): string {
   return typeof v === "number" && Number.isFinite(v) ? String(v) : "";
+}
+
+/**
+ * "Ir min..max A" del aparato regulable.
+ *
+ * La lectura del rango va por rangoAjusteA() y no por los campos directos,
+ * porque el MCCB los nombra ir_a_min/ir_a_max y el guardamotor y el relé
+ * térmico ir_min_a/ir_max_a: el mismo dato con el sufijo invertido.
+ */
+function lineaAjuste(a: Record<string, unknown>): string {
+  const r = rangoAjusteA(a);
+  if (!r) return "";
+  return `Ir ${r.min ?? ""}..${r.max ?? ""} A`;
 }
 
 /** PdCC guardado en kA (schema); el plano lo anota en amperes */
@@ -41,7 +55,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       else if (n(a.in_a)) l.push(`${n(a.in_a)} A`);
       if (a.curva_disparo && a.curva_disparo !== "otra")
         l.push(`Curva ${a.curva_disparo}`);
-      const pdcc = pdccEnA(a.pdcc_kA);
+      const pdcc = pdccEnA(poderDeCorteKA(a));
       if (pdcc) l.push(`PdCC ${pdcc}`);
       if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
       break;
@@ -66,11 +80,13 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       if (portaDatos.length > 0) l.push(portaDatos.join(" · "));
       const f = [
         n(a.in_a) ? `${n(a.in_a)} A` : "",
-        capitalizar(a.clase_caracteristica),
+        // SIN capitalizar: gG, gL y aM son designaciones de IEC 60269
+        // sensibles a mayúsculas. "GG" no existe como clase de fusible.
+        String(a.clase_caracteristica ?? "").trim(),
       ].filter(Boolean);
       if (f.length > 0) l.push(f.join(" "));
       if (a.tamano) l.push(capitalizar(a.tamano));
-      const pdcc = pdccEnA(a.pdcc_kA);
+      const pdcc = pdccEnA(poderDeCorteKA(a));
       if (pdcc) l.push(`PdCC ${pdcc}`);
       if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
       break;
@@ -92,31 +108,28 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
     }
     case "mccb_caja_moldeada": {
       if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
-      if (n(a.ir_a_min) || n(a.ir_a_max)) {
-        l.push(`Ir ${n(a.ir_a_min)}..${n(a.ir_a_max)} A`);
-      }
+      const ajusteMccb = lineaAjuste(a);
+      if (ajusteMccb) l.push(ajusteMccb);
       if (n(a.im_a)) l.push(`Im ${n(a.im_a)} A`);
-      const pdcc = pdccEnA(a.pdcc_kA);
+      const pdcc = pdccEnA(poderDeCorteKA(a));
       if (pdcc) l.push(`PdCC ${pdcc}`);
       if (a.norma_fabricacion) l.push(`Norma ${capitalizar(a.norma_fabricacion)}`);
       break;
     }
     case "guardamotor_termomagnetico": {
       if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
-      if (n(a.ir_min_a) || n(a.ir_max_a)) {
-        l.push(`Ir ${n(a.ir_min_a)}..${n(a.ir_max_a)} A`);
-      }
+      const ajusteGuardamotor = lineaAjuste(a);
+      if (ajusteGuardamotor) l.push(ajusteGuardamotor);
       if (n(a.ii_a)) l.push(`Ii ${n(a.ii_a)} A`);
-      const icu = pdccEnA(a.icu_kA);
+      const icu = pdccEnA(poderDeCorteKA(a));
       if (icu) l.push(`Icu ${icu}`);
       if (a.categoria_empleo) l.push(`Cat ${a.categoria_empleo}`);
       break;
     }
     case "rele_termico": {
       if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
-      if (n(a.ir_min_a) || n(a.ir_max_a)) {
-        l.push(`Ir ${n(a.ir_min_a)}..${n(a.ir_max_a)} A`);
-      }
+      const ajusteRele = lineaAjuste(a);
+      if (ajusteRele) l.push(ajusteRele);
       if (a.clase_disparo) l.push(`Clase ${capitalizar(a.clase_disparo)}`);
       break;
     }
@@ -220,13 +233,17 @@ export function anotacionBarra(a: Record<string, unknown>): string[] {
  * La utilización (C10/C13) va como línea SECUNDARIA: más chica y
  * gris, sin ensuciar la nominal.
  */
-function anotacionCarga(a: Record<string, unknown>): LineaAnotacion[] {
+function anotacionCarga(
+  a: Record<string, unknown>,
+  tensionFaseV: number,
+  tensionLineaV: number,
+): LineaAnotacion[] {
   const l: LineaAnotacion[] = [];
   if (a.codigo_circuito) l.push({ texto: String(a.codigo_circuito) });
   if (a.tipo_carga) l.push({ texto: String(a.tipo_carga) });
   if (a.alimentacion) {
     const tri = a.alimentacion === "trifasica";
-    const v = tri || a.lleva_neutro === false ? "380 V" : "220 V";
+    const v = `${tri || a.lleva_neutro === false ? tensionLineaV : tensionFaseV} V`;
     // C15: el NEUTRO se declara en la línea ("1F N", "3F N") para
     // distinguirlo de un circuito entre fases a simple vista.
     const conN = a.lleva_neutro === true ? " N" : "";
@@ -262,12 +279,14 @@ export interface LineaAnotacion {
 export function anotacionNodo(
   familia: FamiliaAtributos,
   data: DatosSimbolo,
+  tensionFaseV = 220,
+  tensionLineaV = 380,
 ): LineaAnotacion[] {
   const a = (data.atributos ?? {}) as Record<string, unknown>;
   const planas = (ss: string[]): LineaAnotacion[] => ss.map((t) => ({ texto: t }));
   if (familia === "aparato") return planas(anotacionAparato(a));
   if (familia === "barra") return planas(anotacionBarra(a));
-  if (familia === "carga") return anotacionCarga(a);
+  if (familia === "carga") return anotacionCarga(a, tensionFaseV, tensionLineaV);
   return [];
 }
 

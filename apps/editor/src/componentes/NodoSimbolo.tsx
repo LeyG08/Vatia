@@ -1,5 +1,5 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { ESCALA, type DatosSimbolo } from "../lib/store";
+import { ESCALA, useEditor, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
 import { anotacionNodo } from "../lib/anotaciones";
 import type { SimboloDef } from "../lib/tipos";
@@ -69,6 +69,8 @@ function rotarPunto(
 
 function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
   const simbolo = obtenerSimbolo(data.codigo_iec);
+  const tensionFaseV = useEditor((s) => s.proyecto.datosProyecto.tension_fase_v);
+  const tensionLineaV = useEditor((s) => s.proyecto.datosProyecto.tension_linea_v);
 
   if (!simbolo) {
     return <div className="nodo-faltante">? {data.codigo_iec}</div>;
@@ -87,7 +89,12 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
   const anchoPx = Math.max(1, Math.round(caja.cajaAncho * ESCALA));
   const altoPx = Math.max(1, Math.round(caja.cajaAlto * ESCALA));
   const esCarga = simbolo.metadata.familia_atributos === "carga";
-  const lineas = anotacionNodo(simbolo.metadata.familia_atributos, data);
+  const lineas = anotacionNodo(
+    simbolo.metadata.familia_atributos,
+    data,
+    tensionFaseV,
+    tensionLineaV,
+  );
 
   return (
     <div

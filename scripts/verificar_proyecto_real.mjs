@@ -157,6 +157,8 @@ function problemasCable(a) {
   if (vacio(a.material)) msj.push("Falta material.");
   if (vacio(a.aislacion)) msj.push("Falta aislación.");
   if (vacio(a.norma_iram)) msj.push("Falta norma IRAM.");
+  if (vacio(a.longitud_m)) msj.push("Falta la longitud del tramo.");
+  if (vacio(a.metodo_instalacion)) msj.push("Falta el método de instalación.");
   if (!neutro && sNeutro) msj.push("Hay sección de neutro cargada pero el neutro está apagado.");
   if (!tierra && sTierra) msj.push("Hay sección de tierra cargada pero la tierra está apagada.");
   if (sFase) {
@@ -166,11 +168,48 @@ function problemasCable(a) {
   return msj;
 }
 
+/**
+ * Campos que un plano unifilar NO puede tener: dependen de la instalación
+ * física real (recorrido de la canalización, largo del tramo), no del
+ * dibujo. Son x-obligatorio en el schema (el Checklist AEA los advierte en
+ * la app, sin bloquear el guardado — ver checklist.ts), pero acá NO cuentan
+ * como pendientes que hacen fallar la migración: exigirlos habría dejado
+ * este verificador en rojo permanente hasta que alguien mida la instalación
+ * real, que es exactamente el estado que entrena a ignorar un chequeo.
+ * Se imprimen igual, con ⚠ en vez de ✗, para que el hueco quede visible.
+ */
+const MENSAJES_INFORMATIVOS = new Set([
+  "Falta la longitud del tramo.",
+  "Falta el método de instalación.",
+]);
+
+function clasificar(mensajes) {
+  const bloqueantes = mensajes.filter((m) => !MENSAJES_INFORMATIVOS.has(m));
+  const informativos = mensajes.filter((m) => MENSAJES_INFORMATIVOS.has(m));
+  return { bloqueantes, informativos };
+}
+
+function imprimirResultado(etiqueta, mensajes) {
+  const { bloqueantes, informativos } = clasificar(mensajes);
+  if (bloqueantes.length === 0 && informativos.length === 0) {
+    console.log(`  ✓ ${etiqueta}`);
+  } else {
+    const lineas = [
+      ...bloqueantes.map((m) => `      - ${m}`),
+      ...informativos.map((m) => `      ⚠ ${m} (dato de sitio, no bloquea)`),
+    ];
+    const marca = bloqueantes.length > 0 ? "✗" : "⚠";
+    console.log(`  ${marca} ${etiqueta}\n${lineas.join("\n")}`);
+  }
+  return bloqueantes.length;
+}
+
 /* ---- barrido ----
  * C22: el proyecto es MULTI-HOJA (un hoja por unifilar del DWG).
  * Las hojas con contenido se validan igual que antes; las VACÍAS son
  * unifilares aún no migrados: se informan pero NO hacen fallar. */
 let totalPendientes = 0;
+let totalInformativos = 0;
 const nombres = new Map();
 const vacias = [];
 
@@ -192,10 +231,8 @@ for (const hoja of proyecto.hojas) {
         : []),
       ...problemasCable(n.atributos ?? {}),
     ];
-    totalPendientes += msj.length;
-    console.log(msj.length === 0
-      ? `  ✓ ${nombres.get(n.id)}`
-      : `  ✗ ${nombres.get(n.id)}\n      - ${msj.join("\n      - ")}`);
+    totalPendientes += imprimirResultado(nombres.get(n.id), msj);
+    totalInformativos += clasificar(msj).informativos.length;
     continue;
   }
   /* C26: la app resuelve el código por tipo cuando falta (barra →
@@ -220,11 +257,9 @@ for (const hoja of proyecto.hojas) {
 
   for (const c of hoja.conexiones) {
     const msj = problemasCable(c.atributos_conductor ?? {});
-    totalPendientes += msj.length;
-    const etiqueta = `${c.desde} → ${c.hasta}`;
-    console.log(msj.length === 0
-      ? `  ✓ Conexión ${etiqueta}`
-      : `  ✗ Conexión ${etiqueta}\n      - ${msj.join("\n      - ")}`);
+    const etiqueta = `Conexión ${c.desde} → ${c.hasta}`;
+    totalPendientes += imprimirResultado(etiqueta, msj);
+    totalInformativos += clasificar(msj).informativos.length;
   }
 }
 
@@ -235,9 +270,13 @@ if (vacias.length > 0) {
   );
 }
 
+const sufijoInformativos =
+  totalInformativos > 0
+    ? ` (+ ${totalInformativos} dato(s) de sitio pendientes de medir en obra, no bloquean)`
+    : "";
 console.log(
   totalPendientes === 0
-    ? "\nOK: proyecto real del PPS sin pendientes de fichas técnicas"
-    : `\nFALLO: ${totalPendientes} pendiente(s)`,
+    ? `\nOK: proyecto real del PPS sin pendientes de fichas técnicas${sufijoInformativos}`
+    : `\nFALLO: ${totalPendientes} pendiente(s)${sufijoInformativos}`,
 );
 process.exit(totalPendientes === 0 ? 0 : 1);

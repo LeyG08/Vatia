@@ -1,0 +1,97 @@
+name: Verificación
+
+# Corre los mismos controles que AGENTS.md pide correr a mano antes de
+# commitear. Existe porque hasta ahora nada obligaba a correrlos: cuatro
+# iteraciones seguidas del editor de símbolos (C37–C40) se dieron por buenas
+# sin abrirlo nunca, y un guardado defectuoso llegó a commitear un símbolo
+# corrupto (S00110, f5d901e).
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  basico:
+    name: Build, lint y verificadores
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/editor/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        working-directory: apps/editor
+        run: npm ci
+
+      - name: Build (tsc -b + vite build)
+        working-directory: apps/editor
+        run: npm run build
+
+      - name: Lint (oxlint)
+        working-directory: apps/editor
+        run: npm run lint
+
+      # Valida grilla, integridad del SVG (XML bien formado, rastros del editor)
+      # y que la geometría caiga dentro del viewBox.
+      - name: Lint de la librería de símbolos
+        run: python scripts/lint_simbolos.py
+
+      # Los tipos de las fichas se derivan de los schemas. Si alguien toca un
+      # schema y no regenera, este paso lo caza antes del merge.
+      - name: Tipos de atributos sincronizados con los schemas
+        run: python scripts/generar_tipos_atributos.py --verificar
+
+      - name: Verificar alineación de handles y rutas
+        run: node scripts/verificar_alineacion.mjs
+
+      - name: Verificar fichas del proyecto real
+        run: node scripts/verificar_proyecto_real.mjs
+
+  editor:
+    name: E2E del editor de símbolos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/editor/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: apps/editor
+        run: npm ci
+
+      - name: Instalar Chromium
+        working-directory: apps/editor
+        run: npx playwright install --with-deps chromium
+
+      # Server y arnés van en UN SOLO paso: un proceso lanzado en segundo
+      # plano en un paso previo no sobrevive de forma confiable al siguiente.
+      # El arnés necesita el dev server porque los endpoints /api/* son
+      # middlewares de Vite y no existen en el build de producción.
+      - name: E2E de render de símbolos
+        working-directory: apps/editor
+        run: |
+          npm run dev > /tmp/vite.log 2>&1 &
+          servidor=$!
+          trap 'kill $servidor 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:5173/ && break
+            if [ "$i" = "60" ]; then
+              echo "el dev server no respondio en 60 s"; cat /tmp/vite.log; exit 1
+            fi
+            sleep 1
+          done
+          npm run e2e:simbolos

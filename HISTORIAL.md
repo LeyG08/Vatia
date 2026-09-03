@@ -2864,3 +2864,484 @@ Fabric. El lint no lo detecta porque no es un error de geometría.
 ### Verificaciones
 
 `lint_simbolos` 20/20, galería regenerada, `verificar_proyecto_real` verde.
+
+---
+
+# FASE E — Motor de verificación
+
+## E9 — Paso 0: CI y guardado del editor sin pérdida (01/09/2026)
+
+**Rama:** `proyecto/fundaciones-datos-20260901`, desde `main` con el PR #13 ya
+mergeado.
+
+Arranca la etapa de **fundaciones de datos** para el motor de verificación. Los
+parámetros base los definió el usuario:
+
+| Dato | Valor |
+|---|---|
+| Tensión nominal | **380/220 V ±5 %** (no se adoptó 400/231, se mantiene lo que ya usaba el proyecto del PPS) |
+| Esquema de puesta a tierra | los **cuatro** (TT, TN-S, TN-C, IT), **TT por defecto** |
+| Normativa por defecto | **AEA**, modificable por proyecto |
+| Método de instalación | por **código de letra** (A1, A2, B1, B2, C, D, E, F, G), con un recordatorio visible de a qué corresponde cada uno |
+| Formato de archivo | se aprueba el salto a **v3** |
+
+Sobre el cortocircuito, el usuario propuso un mecanismo propio: definida la
+**fuente principal** una sola vez, cuando una carga se marca como `seccional`
+el programa debería **crear automáticamente su alimentador**, para poder
+verificar el cortocircuito aguas abajo en ese tablero. Es decir, una carga
+seccional no es un punto terminal sino el arranque de otro tablero. Queda
+anotado para la etapa de topología.
+
+### CI mínima
+
+Nuevo `.github/workflows/verificacion.yml`, con dos jobs:
+
+- **`basico`**: `npm ci`, build, oxlint, `lint_simbolos.py`,
+  `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`.
+- **`editor`**: instala Chromium y corre `npm run e2e:simbolos`.
+
+Existe porque hasta ahora **nada obligaba** a correr esos controles: cuatro
+iteraciones del editor se dieron por buenas sin abrirlo, y un guardado
+defectuoso llegó a commitear un símbolo corrupto.
+
+Detalle de implementación: el dev server y el arnés van en **un solo paso**. Un
+proceso lanzado en segundo plano en un paso previo no sobrevive de forma
+confiable al siguiente, y el arnés necesita el server porque los endpoints
+`/api/*` son middlewares de Vite y no existen en el build de producción.
+
+### El guardado del editor ya no pierde información
+
+El bug detectado en E8: Fabric no preserva atributos ajenos a su modelo, así que
+al exportar los terminales perdían `class="punto-conexion"` —que `estilos.css`
+usa para darles formato— y quedaban con un `style=` que triplicaba el tamaño del
+archivo.
+
+La corrección es la que se había anotado: **los terminales ya no se exportan
+desde Fabric**. Se los saca del canvas antes de `toSVG()`, igual que a los
+marcadores, y se los vuelve a emitir en su forma canónica tomando la posición
+final (que puede haber cambiado si el usuario arrastró un terminal). El orden
+sigue al de `metadata.json`, para que el archivo quede estable entre guardados
+sucesivos.
+
+**Verificado en el navegador, no solo compilando**: se abrió el editor, se
+arrastró una primitiva de S00132 para habilitar Guardar, se guardó, y el archivo
+resultante trae los dos terminales con su clase y las coordenadas correctas.
+El símbolo se restauró después de la prueba.
+
+> Observación menor: en esa prueba el endpoint escribió el archivo pero **no
+> commiteó**, pese a estar en una rama no protegida. `commitearSeguro()` es
+> best-effort y se traga el error; ahora al menos devuelve el motivo al cliente
+> en el campo `commit` de la respuesta. Queda para mirar.
+
+También se agregó `.tmp.driveupload/` al `.gitignore`: es ruido de sincronización
+de Google Drive dentro del repo.
+
+### Verificaciones
+
+Build verde, oxlint con los dos warnings preexistentes, `lint_simbolos` 20/20,
+`verificar_alineacion` y `verificar_proyecto_real` verdes.
+
+---
+
+## E10 — Paso 1: tipos derivados de los schemas y lectura normalizada (01/09/2026)
+
+**Rama:** `proyecto/fundaciones-datos-20260901`.
+
+### Los tipos ahora se derivan, no se escriben
+
+Nuevo `scripts/generar_tipos_atributos.py` → `apps/editor/src/lib/tiposAtributos.ts`
+(21 interfaces, commiteado para que el editor compile sin correr Python).
+
+Se generan del **mismo** schema que ya gobierna los formularios, así que no
+pueden desincronizarse. La CI lo verifica con `--verificar`, que falla si
+alguien tocó un schema sin regenerar.
+
+Decisión de diseño: **todos los campos salen opcionales salvo el discriminante
+`tipo_aparato`**. No es descuido — en el editor la ficha se completa de a poco,
+así que un aparato recién puesto en el plano tiene los atributos vacíos. La
+obligatoriedad la sigue llevando `x-obligatorio`, que el Checklist AEA reporta
+sin bloquear.
+
+### Lectura normalizada: `lib/electrico.ts`
+
+Un verificador de selectividad necesita preguntar *"¿cuál es el poder de corte
+de este aparato?"* sin saber de qué subtipo se trata. Hoy no puede, porque cada
+subtipo nombra lo mismo a su manera:
+
+| Concepto | Cómo se llama según el subtipo |
+|---|---|
+| Poder de corte | `pdcc_kA` en termomagnético, MCCB y fusible; `icu_kA` + `ics_kA` en los guardamotores |
+| Rango de ajuste | **`ir_a_min` / `ir_a_max`** en el MCCB; **`ir_min_a` / `ir_max_a`** en guardamotor y relé térmico |
+
+Lo del rango es una inconsistencia real de nomenclatura, no una distinción
+técnica: **el mismo concepto con el sufijo invertido**. Se descubrió al mapear
+los subtipos y hoy está absorbida por `rangoAjusteA()`.
+
+El módulo expone `comoAparato()`, `tipoDeAparato()`, `poderDeCorteKA()`,
+`poderDeCorteServicioKA()`, `rangoAjusteA()` y `corrienteNominalA()`. En los
+aparatos regulables, `corrienteNominalA()` devuelve el **máximo** del rango,
+que es el peor caso para verificar que la protección no supere la corriente
+admisible del conductor.
+
+### No quedó como código muerto
+
+`anotaciones.ts` duplicaba la lectura del rango en **tres** lugares (MCCB,
+guardamotor y relé térmico) y la del poder de corte en cuatro. Ahora pasa por
+los lectores normalizados.
+
+**Verificado por comparación de salida, no por "compila"**: se transpilaron con
+`tsc` la versión anterior y la nueva, y se corrieron ambas contra seis casos
+—incluidos el MCCB del proyecto real y una ficha vacía—. Las salidas son
+**idénticas**.
+
+### Bug encontrado de paso
+
+La anotación del fusible mostraba **`63 A GG`**: `capitalizar()` se aplicaba a
+`clase_caracteristica`, y `gG`, `gL` y `aM` son designaciones de IEC 60269
+**sensibles a mayúsculas**. "GG" no existe como clase de fusible. Corregido:
+ahora imprime `63 A gG`.
+
+### Verificaciones
+
+Tipos sincronizados, `lint_simbolos` 20/20, `verificar_alineacion` y
+`verificar_proyecto_real` verdes, build verde, oxlint con los dos warnings
+preexistentes.
+
+---
+
+## E11 — Paso 2: los campos de entrada que faltaban (01/09/2026)
+
+**Rama:** `proyecto/fundaciones-datos-20260901`.
+
+### Conductor
+
+Nuevos campos en `conductor.schema.json`, todos `x-obligatorio: true` salvo
+donde se indica:
+
+- **longitud_m**: base de la caída de tensión y de la impedancia del cable
+  para Icc en el extremo. Sin este dato ninguno de los dos se puede calcular.
+- **metodo_instalacion**: código de letra (A1, A2, B1, B2, C, D, E, F, G),
+  AEA 90364-5-52 / IEC 60364-5-52 tabla 52-C1. Determina de qué columna de
+  tabla sale Iz.
+- **temperatura_ambiente_c** (opcional) y **cantidad_circuitos_agrupados**
+  (opcional): factores de corrección de Iz por temperatura y por agrupamiento.
+
+Pedido del usuario: el método se elige solo por el código, pero con un
+recordatorio siempre visible de a qué corresponde cada uno — un `<details>`
+con las nueve descripciones, no oculto detrás de un hover. Notas propias y
+resumidas, no transcripción de la norma (criterio ya establecido en
+`docs/normativa/README.md`).
+
+### Barra: ks
+
+`barra.schema.json` gana **ks** (coeficiente de simultaneidad, 0 a 1,
+opcional). Es el dato que faltaba para el futuro agregador de tablero que
+`utilizacion.ts` ya menciona desde hace tiempo — la barra es el punto de
+agregación, porque es el nodo del que cuelgan los circuitos (C8).
+
+### Carga: factor_potencia
+
+`carga.schema.json` gana **factor_potencia** (cosφ, opcional). Hoy no lo
+consume ningún cálculo — el proyecto trabaja en VA, no en W — pero es el dato
+que falta para derivar potencia activa cuando haga falta.
+
+### Aparatos: Icw, Icm, categoría de utilización, clase selectivo
+
+- `mccb_caja_moldeada` gana **categoria_utilizacion** (A/B, IEC 60947-2),
+  **icw_kA** (corriente admisible de corta duración) e **icm_kA** (capacidad
+  de cierre). Son datos de filiación/selectividad reales.
+- `interruptor_diferencial` gana **clase_selectivo** (instantaneo /
+  selectivo_s) y **tiempo_no_respuesta_ms** (visible solo si es selectivo).
+  Es el dato que decide si dos diferenciales en cascada son selectivos entre
+  sí — el caso más común de selectividad en un tablero doméstico o comercial.
+
+Corrección de un supuesto propio: la revisión inicial daba por sentado que "el
+MCCB no declara curva" era un hueco a llenar. No lo es: a diferencia del
+termomagnético (IEC 60898-1, curva de letra fija), el MCCB (IEC 60947-2) se
+caracteriza por su rango de ajuste Ir/Im — que ya estaba modelado —, no por
+una curva de letra. No se agregó el campo.
+
+### Dos bugs de la UI encontrados al agregar los campos, no al buscarlos
+
+1. `FormularioConductor.tsx` guardaba número como texto. El renderer genérico
+   de campos "restantes" solo distinguía enum de texto — nunca
+   number/integer/boolean. Con los campos nuevos, longitud_m y
+   cantidad_circuitos_agrupados se hubieran guardado como string, en
+   silencio, exactamente el mismo tipo de bug de tipado que el Paso 1 vino a
+   cerrar. Corregido para cubrir los cuatro tipos, igual que
+   `FormularioAtributos.tsx`.
+2. Los títulos de campo nunca se mostraban. El mismo renderer mostraba el
+   nombre crudo del campo ("material", "aislacion", "norma_iram") en vez de
+   su title ("Material", "Aislación", "Norma IRAM"), pese a que el schema ya
+   los declaraba. Estaba así desde que existe el formulario. Corregido.
+
+Verificado en navegador, cargando el proyecto real y abriendo el panel de una
+conexión y de un MCCB: los campos nuevos aparecen, con los títulos correctos,
+y el recordatorio de métodos de instalación se despliega.
+
+### verificar_proyecto_real.mjs: pendientes bloqueantes vs. informativos
+
+Al volverse obligatorios longitud_m y metodo_instalacion, las 10 conexiones y
+4 alimentadores del proyecto real —migrado desde un DWG que nunca tuvo esos
+datos— pasaron a reportar 24 pendientes, lo que hubiera dejado la CI agregada
+en E9 permanentemente en rojo hasta que alguien mida la instalación real.
+
+Se decidió no inventar esos valores. A diferencia de tipo_disparo en E7 (una
+clasificación técnica de 3 opciones razonables, corregible barato), una
+longitud de cable es un dato físico sin cota: adivinarlo mal es peor que no
+tenerlo, y contaminaría en silencio cualquier cálculo de caída de tensión
+futuro.
+
+En cambio, `verificar_proyecto_real.mjs` distingue ahora pendientes
+bloqueantes de informativos: los campos que dependen de la instalación física
+(no del plano) se imprimen con ⚠ y se cuentan aparte, pero no hacen fallar el
+script. `checklist.ts` no necesitó el mismo cambio — ya era no bloqueante por
+diseño, solo el script standalone tenía `process.exit(1)` duro. Salida
+actual: "OK … (+ 24 dato(s) de sitio pendientes de medir en obra, no
+bloquean)".
+
+### Verificaciones
+
+Tipos sincronizados, `lint_simbolos` 20/20, `verificar_alineacion` y
+`verificar_proyecto_real` verdes (con el aviso informativo), build verde,
+oxlint con los dos warnings preexistentes. Panel de conexión y panel de MCCB
+verificados en navegador con el proyecto real.
+
+### E11.1 — Corrección: Ks es de la carga, no de la barra
+
+El usuario corrigió el lugar del coeficiente de simultaneidad apenas se
+propuso el paso siguiente: Ks no describe el punto de agregación, describe
+**cada carga** — cuán simultánea es esa carga particular respecto de las
+demás que cuelgan del mismo punto. Puesto en la barra, quedaba mezclado con
+la geometría física del embarrado, que es de lo que trata ese schema.
+
+El usuario agregó además un matiz que no estaba contemplado: en cargas
+compuestas —ACU, máquinas con varios motores— la potencia declarada **ya
+puede venir afectada** por la simultaneidad interna de sus propios
+elementos. El Ks del schema es la simultaneidad **adicional** respecto de
+las demás cargas del tablero, no una repetición de esa.
+
+Revertido: `ks` sale de `barra.schema.json`. Agregado: `ks` en
+`carga.schema.json`, al lado de `ku` (son un par — Ku ajusta la potencia
+propia de la carga, Ks ajusta cuánto de esa potencia ya ajustada entra
+cuando se suma con las demás), con la descripción incorporando el matiz de
+las cargas compuestas. Campo nuevo en `FormularioCarga.tsx`, mismo patrón que
+Ku (número 0–1, sugerido "1" si está vacío).
+
+Sigue sin existir el nodo agregador que consuma Ku y Ks juntos — es el mismo
+hueco de topología ya anotado en `utilizacion.ts` y en la revisión inicial;
+acá solo se corrigió dónde vive el dato de entrada.
+
+Verificado en navegador con el proyecto real (carga TS-G1, S00120): el campo
+Ks aparece en el panel, junto a Ku, y el resto de los controles
+(`lint_simbolos`, `verificar_alineacion`, `verificar_proyecto_real`, build)
+siguen verdes.
+
+## E12 — Paso 3: datos de proyecto y migración v2 → v3
+
+Tercer paso del plan de fundaciones de datos (después de E9 CI/guardado, E10
+tipos, E11 campos faltantes): parámetros eléctricos base del proyecto —
+normativa, tensión, esquema de puesta a tierra y fuente de cortocircuito—
+como dato del proyecto en vez de constantes hardcodeadas, según lo acordado
+con el usuario al cierre de E11 (380/220 V, TT por defecto, AEA por defecto,
+modificable por proyecto).
+
+### Formato v3
+
+`Proyecto` gana `datosProyecto: DatosProyecto` (`normativa: "AEA" | "IEC"`,
+`tension_fase_v`, `tension_linea_v`, `esquema_pat: "TT" | "TN-S" | "TN-C" |
+"IT"`, `fuente_cortocircuito?: { scc_mva?, icc_ka? }`) y `version` pasa de 2
+a 3. `migrarAProyectoV2` se partió en `migrarEstructuraHojas` (la cadena
+v0→v1→v2 tal cual estaba) más `migrarAProyectoV3`, que le agrega
+`datosProyecto` por defecto (AEA, 220/380 V, TT) si no existe. Un proyecto
+v2 real (`proyecto-real-pps.json`) sigue cargando sin tocarlo: la migración
+es transparente.
+
+La fuente de cortocircuito solo se guarda por ahora — no la consume ningún
+cálculo todavía. Es el mismo dato que el usuario había anticipado en las
+preguntas de cierre de E11 (5.): la idea de crear automáticamente el
+alimentador de una carga marcada `seccional` a partir de esta fuente
+pertenece a la etapa de topología (recorrido del grafo), no a esta.
+
+### Tensión hardcodeada eliminada
+
+`FormularioCarga.tsx` tenía 220/380 V escritos a mano en `calcularPotenciaVa`
+(regla C9: S = tensión × I). Pasa a recibir `tensionFaseV`/`tensionLineaV`
+como parámetros, leídos del store (`proyecto.datosProyecto`) en el
+componente. `anotaciones.ts` tenía el mismo hardcodeo en la etiqueta de la
+carga sobre el plano (`anotacionCarga`) — se corrigió también, encadenando el
+parámetro a través de `anotacionNodo` hasta `NodoSimbolo.tsx`, que ahora lee
+la tensión del store antes del `return` temprano (los hooks no pueden ir
+después de un return condicional).
+
+### Panel "Datos del proyecto"
+
+Nuevo `PanelProyecto.tsx`, mismo patrón que `PanelHoja.tsx` (modal +
+`useEditor`, sin pasar por el historial de deshacer — igual que
+`actualizarHoja`): selector de normativa, dos campos de tensión, selector de
+esquema PAT y los dos campos opcionales de fuente de cortocircuito, con una
+nota explícita de que ese dato no se consume todavía. Botón nuevo "⚡
+Proyecto…" en `BarraSuperior.tsx`, al lado de "📐 Hoja…".
+
+### Verificaciones
+
+`generar_tipos_atributos.py --verificar` OK (schemas sin cambios), `tsc
+--noEmit` limpio, build verde, oxlint con los mismos dos warnings
+preexistentes (ninguno nuevo), `lint_simbolos` 20/20, `verificar_alineacion`
+y `verificar_proyecto_real` verdes. Verificado en navegador con el proyecto
+real: el panel muestra los valores por defecto correctos (AEA, 220/380 V,
+TT), y al cambiar la tensión de línea a 400 V la potencia de una carga
+trifásica con 10 A recalculó en vivo de 6582 VA a 6928 VA — confirma que el
+dato de proyecto llega hasta el cálculo, no solo hasta el formulario.
+
+## E13 — Paso 4: topología (recorrido del grafo + agregación de cargas)
+
+Primer paso que le enseña al sistema cómo están conectados los elementos
+entre sí — hasta acá `checklist.ts` validaba cada nodo aislado, sin navegar
+nunca del grafo. No incluye cálculo eléctrico real (Ib/Iz/Icc/ΔU%): eso
+queda para el motor de cálculo (paso siguiente), que además necesita tablas
+normativas AEA/IEC que todavía no están cargadas.
+
+### `lib/topologia.ts`
+
+Módulo nuevo, `calcularTopologia(nodos, conexiones)` sobre el estado React
+Flow de la hoja activa (mismo criterio que `checklist.ts`, que ya recibe
+`nodos`/`conexiones` como parámetros). La dirección del grafo la da React
+Flow gratis: cada punto de conexión de un símbolo es `type="source"` (rol
+"salida") o `type="target"` (rol "entrada"/"tierra") — `NodoSimbolo.tsx:120`
+— y React Flow no deja conectar source↔source ni target↔target. Por eso
+`edge.source` es siempre aguas arriba de `edge.target`, sin necesidad de
+inferir nada.
+
+Calcula:
+- **Raíces**: los nodos `alimentador` son raíz de ALGO. Los que tienen
+  `fases: true` son además raíz de potencia (se guardan separado en
+  `raicesPotencia`, para cuando el motor de cálculo necesite saber por
+  dónde entra la potencia real — un alimentador "Desde PAT", con solo
+  `tierra: true`, es la puesta a tierra, no una fuente).
+- **Alcanzables / huérfanos**: BFS desde TODOS los alimentadores (potencia y
+  PAT) — un nodo solo conectado a la PAT (como el símbolo de tierra del
+  proyecto real, alimentado por "Desde PAT") es legítimo y no debe marcarse
+  huérfano.
+- **Ciclos**: DFS de 3 colores (blanco/gris/negro), reporta cada ciclo como
+  el tramo de la pila de recursión entre el nodo revisitado y el actual.
+- **Potencia agregada por barra**: para cada nodo `barra`, recorre su
+  subárbol aguas abajo (a través de los aparatos intermedios) y suma
+  `potencia_utilizacion_va × ks` de cada carga encontrada, sin cruzar hacia
+  otra barra (esa tiene su propio total). Un `visitados` por recorrido corta
+  ciclos y evita contar dos veces una carga alcanzable por más de un camino
+  — el proyecto real tiene justamente ese caso: n6/n7 tienen tanto una
+  conexión directa desde la barra n1 como el camino largo n1→MCCB→carga, y
+  el total dio la suma correcta de una sola vez cada una.
+
+### Integración
+
+`checklist.ts` (no bloqueante, mismo panel de siempre) agrega dos tipos de
+aviso nuevos: "Sin conexión a ningún alimentador" por huérfano, y "Ciclo de
+cableado: A → B → C → …" por cada ciclo. `BarraNode.tsx` calcula la topología
+en `useMemo` (dependiente de `nodos`/`conexiones`) y agrega una línea
+`Σ cargas: X VA` a la anotación de la barra cuando el total es mayor a
+cero — se recalcula en vivo del grafo, no se guarda en el JSON del
+proyecto.
+
+Decisión deliberada de alcance: `scripts/verificar_proyecto_real.mjs` NO
+recibió esta misma lógica en este paso — hacerlo bien exige reconstruir el
+grafo dirigido a partir de `desde`/`hasta` en un runtime Node aparte,
+duplicando el algoritmo. Ya hay una deuda anotada (E11) sobre la duplicación
+entre ese script y `checklist.ts`; sumarle topología ahí queda pendiente
+para cuando se decida cómo compartir código entre el navegador y el script
+standalone, en vez de repetirlo.
+
+### Verificaciones
+
+`tsc --noEmit` limpio, build verde, oxlint con los mismos dos warnings
+preexistentes (ninguno nuevo), `lint_simbolos` 20/20, `verificar_alineacion`
+y `verificar_proyecto_real` verdes. Verificado en navegador con el proyecto
+real: el checklist no reporta huérfanos ni ciclos falsos sobre el cableado
+existente (incluida la rama "Desde PAT" → símbolo de tierra), y al cargar
+10 A en n6 y n7 (3F con neutro, 380 V por defecto) la barra n1 mostró
+"Σ cargas: 13164 VA" — exactamente √3×380×10 × 2, confirmando que la
+agregación multi-camino no duplica.
+
+## E14 — Retomar el editor: revisión general + arreglo de la falla preexistente en e2e/conexiones.mjs
+
+El usuario frenó el avance hacia el motor de cálculo: antes quiere revisar
+lo que hay, y además terminar el editor completamente (símbolos nuevos,
+parte de comando, pestañas) antes de seguir con cálculo. Primer pedido
+concreto acordado: arreglar la falla de `e2e/conexiones.mjs` registrada
+como deuda en E5, ya confirmada como preexistente (no introducida por el
+trabajo de esta sesión).
+
+### Revisión general (antes del arreglo)
+
+Corrida completa: `tsc --noEmit`, build, oxlint (mismos 2 warnings de
+siempre), `lint_simbolos` 20/20 (todos con `estado_revision` cerrado, ya
+no hay pendientes), `verificar_alineacion`, `verificar_proyecto_real`,
+tipos sincronizados, y los dos arneses E2E. Además se limpiaron ~10
+procesos `vite dev`/`preview` de sesiones anteriores que habían quedado
+vivos ocupando puertos 4173–4174 y 5173–5179.
+
+Hallazgos relevantes para la reprioritización que pidió el usuario:
+- **Cero símbolos de comando**: de 20 símbolos, 17 aparato + 1 barra +
+  1 carga + 1 sin ficha — toda la librería es de fuerza. Confirma que
+  "parte de comando" es contenido nuevo, no una ampliación.
+- **`modo_vista: "unifilar_simple" | "multifilar"`** existe en el tipo
+  `ProyectoJSON` pero ningún componente lo lee — es un campo fantasma.
+- **Sigue sin autosave**: el proyecto vive solo en memoria + descarga
+  manual de JSON, exactamente como se diagnosticó al principio del
+  proyecto.
+- **6 commits sin pushear** en esta rama, sin PR abierto.
+- `PestanasHoja.tsx` es hoy un array plano (`proyecto.hojas: Hoja[]`),
+  sin ningún campo de relación entre hojas — confirma que la idea de
+  jerarquía que trajo el usuario es un cambio de modelo de datos, no solo
+  de UI. Se acordó con el usuario: la jerarquía cuelga cada hoja hija de
+  la carga `seccional` de la hoja padre que la origina (no una jerarquía
+  libre) — pendiente de diseñar/implementar, no se tocó en esta entrada.
+
+### La falla real: dos cables desde el mismo handle rutean idéntico
+
+`e2e/conexiones.mjs` prueba el grip de quiebre (C29) clickeando el punto
+medio del segmento más largo del cable `c4`. En el escenario del
+fixture, un paso anterior del mismo test crea `c5` desde el MISMO handle
+de origen que `c4` (`n5.2`), en la misma dirección — React Flow rutea
+ambos idénticos hasta que divergen, así que su primer tramo es
+geométricamente el mismo. El punto que el test elegía caía justo en ese
+tramo compartido, dentro del círculo invisible de reconexión (radio 10,
+offset del extremo por dirección de salida — `EdgeAnchor`/`shiftX`/
+`shiftY` de `@xyflow/react`) que ambos cables tienen superpuesto en el
+mismo punto. Como los dos círculos están exactamente en el mismo lugar,
+gana el que esté encima en el DOM — `c5`, no `c4` — y el test fallaba
+"clic no seleccionó c4 (c5)".
+
+No es un bug de la app: un usuario real que clickee sobre el tramo
+compartido de dos cables que salen del mismo punto en la misma dirección
+tiene la misma ambigüedad geométrica (dos líneas perfectamente
+superpuestas no se pueden distinguir por posición), y es un caso poco
+frecuente — normalmente cada circuito sale de un punto distinto de la
+barra. Se evaluó agregar `elevateEdgesOnSelect` a `<ReactFlow>` para
+subir el cable seleccionado por encima de sus hermanos, pero introdujo
+una regresión nueva (el arrastre del grip de quiebre dejaba de doblar el
+cable — probablemente por cómo React Flow reordena el DOM al elevar un
+edge) sin resolver el caso general (la ambigüedad es previa a la
+selección), así que se descartó.
+
+El arreglo real fue en el test: en vez de "medio segmento más largo", el
+punto de clic ahora excluye cualquier segmento que otro cable también
+recorra (comparando extremos de segmento con tolerancia de 0,5 px contra
+todas las demás conexiones renderizadas), y elige el más largo de los
+que quedan — el mismo criterio que aplicaría un usuario real evitando el
+tramo ambiguo.
+
+### Verificaciones
+
+`npm run e2e` (conexiones): OK, incluido el caso completo del quiebre
+(4→5 vértices, deshacer). `npm run e2e:simbolos`: 20/20 sin cambios.
+`tsc --noEmit`, build y oxlint sin novedad respecto de la revisión
+general de arriba.
+
+### Push + PR (19:30 01/09/2026)
+
+Rama `proyecto/fundaciones-datos-20260901` pusheada (7 commits, `d32b5b8`
+a `c62e2d3`) y PR #14 abierto hacia `main`
+(https://github.com/LeyG08/Vatia/pull/14). No mergeado — queda esperando
+aprobación explícita del usuario, según `AGENTS.md`.

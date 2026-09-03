@@ -149,12 +149,25 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
       // alcanza para que no aparezcan en el archivo exportado.
       for (const m of markers) fc.remove(m);
 
+      // Los círculos de punto de conexión TAMPOCO se exportan desde Fabric.
+      // Fabric no preserva atributos ajenos a su modelo, así que al
+      // serializarlos pierden class="punto-conexion" —que es lo que
+      // estilos.css usa para darles formato en el canvas— y además quedan con
+      // un style= enorme que triplica el tamaño del archivo. Se los saca acá y
+      // se los vuelve a emitir abajo en su forma canónica, tomando la posición
+      // final (que puede haber cambiado si el usuario arrastró un terminal).
+      const terminales = prims.filter((p) => (p as any)._idPuntoConexion);
+      for (const t of terminales) fc.remove(t);
+
       // Posiciones finales de los puntos de conexion que se hayan arrastrado
       // (ver el etiquetado _idPuntoConexion al cargar). Van al servidor junto
       // con el SVG para que metadata.json quede sincronizado: sin esto, mover
       // un terminal solo corria el dibujo y el diagrama seguia usando la
       // coordenada vieja de metadata.json.
       const puntosMovidos = new Map<string, { x: number; y: number }>();
+      // Posición final de TODOS los terminales (movidos o no): es la que se
+      // usa para reemitirlos en el SVG exportado.
+      const posicionFinal = new Map<string, { x: number; y: number }>();
 
       for (const p of prims) {
         const svgX = ((p.left ?? 0) - offsetX) / ESCALA_EDICION;
@@ -162,6 +175,7 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
         p.set({ left: svgX, top: svgY, scaleX: 1, scaleY: 1 });
         const idPunto = (p as any)._idPuntoConexion as string | undefined;
         if (idPunto) {
+          posicionFinal.set(idPunto, { x: svgX, y: svgY });
           const orig = (p as any)._origPuntoConexion as { x: number; y: number } | undefined;
           const semueve =
             !orig || Math.abs(orig.x - svgX) > 1e-6 || Math.abs(orig.y - svgY) > 1e-6;
@@ -196,11 +210,24 @@ export default function EditorSimbolos({ codigoInicial }: Props) {
             '<text text-anchor="middle" dominant-baseline="central"',
           )
           .trim()
-      }</svg>`;
+      }${
+        // Terminales reemitidos en la forma canónica de la librería, con su
+        // clase. El orden sigue al de metadata.json para que el archivo quede
+        // estable entre guardados sucesivos.
+        seleccionado.metadata.puntos_conexion
+          .map((pc) => {
+            const pos = posicionFinal.get(pc.id) ?? { x: pc.x, y: pc.y };
+            return `
+  <circle class="punto-conexion" cx="${pos.x}" cy="${pos.y}" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>`;
+          })
+          .join("")
+      }
+</svg>`;
 
       for (const s of savedPrims) {
         s.obj.set({ left: s.left, top: s.top, scaleX: s.scaleX, scaleY: s.scaleY });
       }
+      for (const t of terminales) fc.add(t);
       for (const m of markers) fc.add(m);
 
       const zoomX = (fc.getWidth() - 60) / (vb.ancho * ESCALA_EDICION);

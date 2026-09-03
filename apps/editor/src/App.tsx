@@ -12,6 +12,7 @@ import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
 import ChecklistAea from "./componentes/ChecklistAea";
 import PanelHoja from "./componentes/PanelHoja";
+import PanelProyecto from "./componentes/PanelProyecto";
 import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
 import NodoSimbolo from "./componentes/NodoSimbolo";
@@ -658,6 +659,7 @@ function Editor() {
           <PanelProblemas />
         </div>
         <PanelHoja />
+        <PanelProyecto />
       </div>
       {arrastre && simboloFantasma && (
         <div

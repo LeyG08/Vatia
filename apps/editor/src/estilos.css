@@ -1491,6 +1491,33 @@ body.arrastrando .paleta-item {
   background: #fafafa;
 }
 
+.fc-metodos-recordatorio {
+  margin-top: 2px;
+  font-size: 10px;
+  color: #52525b;
+}
+.fc-metodos-recordatorio summary {
+  cursor: pointer;
+  user-select: none;
+}
+.fc-metodos-recordatorio dl {
+  margin: 5px 0 0;
+  padding: 6px 8px;
+  border: 1px dashed #d4d4d8;
+  border-radius: 5px;
+  background: #fafafa;
+}
+.fc-metodos-recordatorio dt {
+  float: left;
+  clear: left;
+  width: 20px;
+  font-weight: 600;
+  color: #18181b;
+}
+.fc-metodos-recordatorio dd {
+  margin: 0 0 3px 24px;
+}
+
 /* ================================================================
    MODO OSCURO — overrides por [data-theme="dark"]
    ================================================================ */
@@ -1839,6 +1866,17 @@ body.arrastrando .paleta-item {
 [data-theme="dark"] .fc-preview {
   background: var(--bg-surface-alt);
   border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .fc-metodos-recordatorio {
+  color: var(--text-muted);
+}
+[data-theme="dark"] .fc-metodos-recordatorio dl {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+}
+[data-theme="dark"] .fc-metodos-recordatorio dt {
   color: var(--text-primary);
 }
 
