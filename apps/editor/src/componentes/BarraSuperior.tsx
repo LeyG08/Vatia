@@ -159,11 +159,15 @@ function BarraSuperior() {
     }
     window.addEventListener("afterprint", restaurar);
 
-    // Tres frames: montar <ExportacionProyecto> (con N instancias de
-    // React Flow) tarda más que un simple cambio de viewport.
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => requestAnimationFrame(() => window.print())),
-    );
+    // `window.print()` NO se llama acá: <ExportacionProyecto> monta N
+    // instancias de React Flow NUEVAS (una por hoja), y React Flow mide
+    // sus nodos de forma asíncrona (ResizeObserver) antes de mostrarlos
+    // — quedan en `visibility:hidden` hasta esa primera medición (mismo
+    // mecanismo que la regresión de E35). Un puñado de
+    // requestAnimationFrame no alcanza a esperarla de forma confiable:
+    // imprimir antes de tiempo salía con hojas en blanco (encontrado en
+    // vivo). <ExportacionProyecto> llama a `window.print()` recién
+    // cuando CADA página avisa que terminó de medir sus nodos.
   }
 
   function nuevoProyecto() {

@@ -1,4 +1,5 @@
 import { ReactFlow, ReactFlowProvider } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, construirEstadoHoja, BARRA_CODIGO } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
 import { medidasPaginaMm, ZOOM_IMPRESION } from "../lib/impresion";
@@ -75,19 +76,74 @@ function construirBom(hojas: Hoja[]): FilaBom[] {
  * blanco, con tamaño por defecto del navegador, antes de la primera
  * hoja real; con una regla de hoja de estilos como `.pagina-hoja-0 {
  * page: hoja-0 }` pagina correctamente). La regla la arma
- * `ExportacionProyecto` en un único `<style>` (ver ahí por qué). */
-function PaginaHoja({ hoja, pageName }: { hoja: Hoja; pageName: string }) {
-  const estado = construirEstadoHoja(hoja);
+ * `ExportacionProyecto` en un único `<style>` (ver ahí por qué).
+ *
+ * `marcarListo`: React Flow mide los nodos de forma ASÍNCRONA
+ * (ResizeObserver) antes de mostrarlos — quedan en `visibility:hidden`
+ * hasta esa primera medición. Como esta es una instancia de
+ * `<ReactFlow>` NUEVA (no la del lienzo interactivo, que ya está
+ * medida de antes), `window.print()` no puede llamarse enseguida de
+ * montar: salía con la hoja en blanco (encontrado en vivo).
+ *
+ * El hook oficial de la librería para esto (`useNodesInitialized`) NO
+ * sirve acá: solo se recalcula cuando el prop `nodes` vuelve a
+ * cambiar (dispara `setNodes()` internamente), y estos nodos son
+ * estáticos — no hay ningún cambio posterior que lo dispare, así que
+ * queda pegado en `false` para siempre aunque los nodos ya estén
+ * visibles (confirmado leyendo la fuente de la librería y viéndolo en
+ * vivo). Se verifica el DOM directamente en su lugar: mientras quede
+ * algún `.react-flow__node` con `visibility: hidden` todavía no
+ * terminó de medir. Tope de seguridad a los ~3s por si algún nodo
+ * nunca llega a medirse — mejor una hoja rara que un export que nunca
+ * imprime. */
+function PaginaHoja({
+  hoja,
+  pageName,
+  marcarListo,
+}: {
+  hoja: Hoja;
+  pageName: string;
+  marcarListo: (id: string) => void;
+}) {
+  const estado = useMemo(() => construirEstadoHoja(hoja), [hoja]);
   const { anchoMm, altoMm } = medidasPaginaMm(estado.cfg);
   const { pxW, pxH } = dimensionesHoja(estado.cfg);
+  const nodes = useMemo(
+    () => [crearNodoHoja(hoja.id), ...estado.nodos],
+    [hoja.id, estado.nodos],
+  );
+  const contenedorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    let intentos = 0;
+    function chequear() {
+      if (cancelado) return;
+      const ocultos = contenedorRef.current?.querySelector(
+        '.react-flow__node[style*="visibility: hidden"]',
+      );
+      intentos += 1;
+      if (!ocultos || intentos > 180) {
+        marcarListo(hoja.id);
+        return;
+      }
+      requestAnimationFrame(chequear);
+    }
+    requestAnimationFrame(chequear);
+    return () => {
+      cancelado = true;
+    };
+  }, [hoja.id, marcarListo]);
+
   return (
     <div
+      ref={contenedorRef}
       className={`pagina-impresion pagina-${pageName}`}
       style={{ width: `${anchoMm}mm`, height: `${altoMm}mm` }}
     >
       <ReactFlowProvider>
         <ReactFlow
-          nodes={[crearNodoHoja(hoja.id), ...estado.nodos]}
+          nodes={nodes}
           edges={estado.conexiones}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -164,6 +220,32 @@ export default function ExportacionProyecto() {
   const exportando = useEditor((s) => s.exportandoTodo);
   const incluirBom = useEditor((s) => s.incluirBomEnExportacion);
   const hojas = useEditor((s) => s.proyecto.hojas);
+  const [listas, setListas] = useState<Set<string>>(new Set());
+  const [exportandoPrevio, setExportandoPrevio] = useState(exportando);
+
+  // Vuelve a cero cada vez que arranca un export nuevo — si no, un
+  // segundo export reusaría el "listo" del anterior y podría imprimir
+  // antes de que las hojas NUEVAS terminen de medirse. Ajustar estado
+  // en base a un cambio de prop/store DURANTE el render (no en un
+  // efecto) es el patrón recomendado por React para esto: evita el
+  // repintado extra de un efecto que solo sincroniza estado local.
+  if (exportando !== exportandoPrevio) {
+    setExportandoPrevio(exportando);
+    if (exportando) setListas(new Set());
+  }
+
+  const marcarListo = useCallback((id: string) => {
+    setListas((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  }, []);
+
+  useEffect(() => {
+    if (!exportando || listas.size < hojas.length) return;
+    // Todas las páginas de hoja terminaron de medir sus nodos recién
+    // acá — antes de esto, imprimir salía con hojas en blanco (ver
+    // PaginaHoja/AvisoListo). Dos frames más para que el navegador
+    // termine de pintar el último cambio antes de abrir el diálogo.
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+  }, [exportando, listas, hojas.length]);
 
   if (!exportando) return null;
 
@@ -192,7 +274,12 @@ export default function ExportacionProyecto() {
     <div className="exportacion-proyecto">
       <style>{reglasPagina}</style>
       {hojas.map((h, i) => (
-        <PaginaHoja key={h.id} hoja={h} pageName={`hoja-${i}`} />
+        <PaginaHoja
+          key={h.id}
+          hoja={h}
+          pageName={`hoja-${i}`}
+          marcarListo={marcarListo}
+        />
       ))}
       {incluirBom && <PaginaListaDeMateriales hojas={hojas} />}
     </div>

@@ -3065,6 +3065,13 @@ body.arrastrando .paleta-item {
   .react-flow__edge-path {
     stroke: #000 !important;
   }
+  /* `border-color` no es `color`: la regla de arriba no lo toca. El
+   * marco de la hoja (`--text-primary`, un azul-gris casi negro) salía
+   * visiblemente gris al lado de todo lo demás ya forzado a negro
+   * puro — señalado en vivo ("el marco sale en gris"). */
+  .hoja-marco {
+    border-color: #000 !important;
+  }
 
   /* Mismo problema que el color, pero de fondo: en modo oscuro las
    * etiquetas de cable, las fichas de aparato y las celdas del rótulo
@@ -3091,6 +3098,22 @@ body.arrastrando .paleta-item {
 .exportacion-proyecto {
   display: none;
 }
+/* Visible pero lejos de la pantalla apenas arranca el export — TIENE
+ * que tener layout real (no `display:none`) antes de imprimir: React
+ * Flow mide sus nodos vía ResizeObserver, y ese observer nunca dispara
+ * en un elemento sin layout. Si esto se revelaba recién bajo
+ * `@media print` (como antes), `window.print()` se llamaba con los
+ * nodos todavía sin medir — salía con las hojas en blanco (encontrado
+ * en vivo). `ExportacionProyecto.tsx` espera a que cada página avise
+ * que terminó de medir antes de llamar a `window.print()`; bajo
+ * `@media print`, un poco más abajo, se reposiciona a estático para
+ * que imprima en su lugar normal. */
+body.exportando-todo .exportacion-proyecto {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: -99999px;
+}
 @media print {
   /* `.cuerpo` no está en la lista general de "ocultar en impresión"
    * porque el export de UNA hoja lo necesita visible (contiene
@@ -3105,8 +3128,9 @@ body.arrastrando .paleta-item {
   body.exportando-todo .cuerpo {
     display: none !important;
   }
-  .exportacion-proyecto {
-    display: block;
+  body.exportando-todo .exportacion-proyecto {
+    position: static;
+    left: auto;
   }
   .pagina-impresion {
     position: relative;

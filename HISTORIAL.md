@@ -5112,3 +5112,66 @@ usuario señala cuál, se corrige puntual).
 
 Verificado: `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
 `verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E42 — Exportar proyecto salía en blanco; marco gris al imprimir
+
+Regresión real de E40, encontrada por el usuario probando en vivo:
+"Exportar proyecto" salía con todas las hojas en blanco (ni el marco
+aparecía), y en "Exportar PDF" (una sola hoja) el marco se veía gris en
+vez de negro.
+
+**Marco gris**: `.hoja-marco { border: 2px solid var(--text-primary); }`
+— `--text-primary` no es negro puro (`#172128` en claro), y E40 forzó
+todo lo demás a `#000` sin tocar `border-color` (`color:#000!important`
+no toca `border-color`, son propiedades distintas). Al lado de todo lo
+demás ya en negro puro, el marco se notaba gris. Se agrega
+`.hoja-marco { border-color: #000 !important; }` al bloque de
+impresión.
+
+**Exportar proyecto en blanco — la más seria, tres causas reales**:
+
+1. `ExportacionProyecto` llamaba a `window.print()` con un puñado de
+   `requestAnimationFrame` después de montar, asumiendo que alcanzaba
+   para que React Flow terminara de medir los nodos de las N instancias
+   NUEVAS que arma (una por hoja) — no es la misma instancia ya medida
+   del lienzo interactivo. Si `window.print()` se dispara antes de esa
+   medición, los nodos quedan en `visibility:hidden` (mismo mecanismo
+   de la regresión de E35) y la hoja imprime vacía. Se intentó primero
+   `useNodesInitialized()` (el hook oficial de la librería para esto),
+   pero **no sirve para nodos estáticos**: solo se recalcula cuando el
+   prop `nodes` vuelve a cambiar (dispara `setNodes()` puertas adentro),
+   y estas páginas nunca vuelven a cambiar sus nodos después del
+   montaje — quedaba pegado en `false` para siempre aunque los nodos ya
+   estuvieran visibles (confirmado leyendo la fuente de la librería).
+   Reemplazado por una verificación directa del DOM: mientras quede
+   algún `.react-flow__node` con `visibility: hidden` todavía no
+   terminó, con un tope de seguridad a los ~3s. Recién cuando TODAS las
+   páginas avisan que terminaron, `ExportacionProyecto` llama a
+   `window.print()` — ya no lo dispara `BarraSuperior`.
+
+2. `.exportacion-proyecto` solo se hacía visible (`display:block`) bajo
+   `@media print` — pero `display:none` no tiene layout, y sin layout
+   el `ResizeObserver` de React Flow nunca dispara: es un problema del
+   huevo y la gallina (esperar a que mida algo que no puede medirse
+   hasta que ya esté imprimiendo). Ahora se hace visible ENTERO apenas
+   arranca el export (`body.exportando-todo`), pero *fuera de la
+   pantalla* (`position:fixed; left:-99999px`) — así tiene layout real
+   y mide de verdad, sin que el usuario vea el lienzo "de repuesto"
+   parpadear. Bajo `@media print` se reposiciona a estático para
+   imprimir en su lugar normal.
+
+3. `construirEstadoHoja()` arma objetos de nodos NUEVOS en cada
+   llamada; sin memoizarlos, cada vez que UNA hoja avisaba que estaba
+   lista, el padre re-renderizaba a TODAS (incluidas las hermanas ya
+   listas) con un array de nodos "nuevo" para React Flow — alimentaba
+   el mismo problema de raíz. Ahora `estado`/`nodes` van memoizados por
+   hoja.
+
+Verificado en vivo capturando el PDF real en el instante EXACTO en que
+`window.print()` se dispara de verdad (sin esperas arbitrarias de mi
+parte, enganchando el propio disparo): una hoja, proyecto completo (2
+hojas + lista de materiales) y encadenado con el diálogo de pendientes
+de E41. Tardó 257 ms desde click hasta imprimir — no se cuelga. Sin
+errores de consola. `tsc -b`, `lint`, `build`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
