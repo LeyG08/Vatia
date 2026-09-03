@@ -1,4 +1,7 @@
-export type RolConexion = "entrada" | "salida" | "tierra";
+/** "auxiliar" existe en metadata.schema.json pero ningún símbolo lo usa
+ * todavía; se trata como "target" en NodoSimbolo.tsx (mismo fallback
+ * que entrada/tierra) hasta que un caso real defina qué debería ser. */
+export type RolConexion = "entrada" | "salida" | "tierra" | "auxiliar";
 export type FamiliaAtributos =
   | "aparato"
   | "conductor"

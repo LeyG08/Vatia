@@ -4015,3 +4015,50 @@ de arreglos chicos.
 Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
 warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
 y `verificar_proyecto_real.mjs` verdes.
+
+## E23 — Últimos desajustes menores del diagnóstico original (§2.2)
+
+Cierre del resto de los "desajustes menores de contrato" que quedaban
+del diagnóstico, todos de una línea o dos, mecánicos y de bajo riesgo:
+
+- **`convertir_qet.py --familia`** aceptaba solo `aparato|conductor|barra`
+  aunque el schema (`metadata.schema.json`) también admite `carga` y
+  `sin_ficha_tecnica` — por eso S00118 (PE, sin_ficha_tecnica) y S00120
+  (carga) no se podían regenerar con el conversor. Revisado el cuerpo de
+  `convertir()`: `familia` se pasa directo a `metadata["familia_atributos"]`
+  sin ningún branching especial por valor, así que ampliar los `choices`
+  del CLI es un cambio mecánico sin efectos colaterales.
+- **`rol: "auxiliar"`** existía en `metadata.schema.json` pero faltaba en
+  tres lugares del editor que deberían reconocerlo igual: el tipo
+  `RolConexion` (`tipos.ts`), el validador runtime `ROLES` en
+  `validadorMetadata.ts` (este era el más serio: un metadata con
+  `rol: "auxiliar"`, válido según el schema, era RECHAZADO por el
+  validador de la app) y el CSS de los handles. `NodoSimbolo.tsx` ya
+  trataba cualquier rol que no fuera `"salida"` como `target` (fallback
+  seguro), así que auxiliar se suma a los mismos selectores CSS que
+  entrada/tierra en vez de quedar sin estilo. Sigue sin haber ningún
+  símbolo que use este rol — es sincronizar la capacidad, no agregar uso.
+
+Deliberadamente NO tocado: qué significa "auxiliar" en términos de
+electricidad real (¿un contacto de señalización aparte? ¿una referencia
+cruzada?) — no hay ningún caso real todavía que lo exija, y definir esa
+semántica sin un caso de uso concreto sería inventar de más.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `python -c "ast.parse(...)"` confirma sintaxis válida
+de `convertir_qet.py`, `--help` muestra las 5 opciones de `--familia`,
+`lint_simbolos.py` verde en ambas carpetas, `npm run e2e` verde
+(21 checks), `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`
+verdes.
+
+Con esto se agotó la lista de pendientes chicos, mecánicos y de bajo
+riesgo del diagnóstico original que se podían resolver sin necesitar una
+decisión de diseño del usuario. Lo que queda abierto (documentado en las
+entradas de arriba, no repetido acá) necesita alguno de: una decisión de
+arquitectura (unificar `pdcc_kA`/`icu_kA`, compartir código
+`checklist.ts`↔Node), una decisión de producto (semántica del modo
+multifilar, el problema de los "polos"), o coordinación de git que no
+correspondía resolver sola (PR de esta rama bloqueado porque
+`comando-piloto-20260901` nace de `fundaciones-datos-20260901`, cuyo
+PR #14 sigue sin mergear — abrir un PR ahora mostraría el diff de los
+dos juntos, confuso de revisar).

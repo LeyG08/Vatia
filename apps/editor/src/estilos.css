@@ -335,7 +335,8 @@ body,
 
 .handle-entrada,
 .handle-salida,
-.handle-tierra {
+.handle-tierra,
+.handle-auxiliar {
   z-index: 3;
 }
 
@@ -349,6 +350,7 @@ body,
 .react-flow__handle.handle-entrada,
 .react-flow__handle.handle-salida,
 .react-flow__handle.handle-tierra,
+.react-flow__handle.handle-auxiliar,
 .nodo-alimentador .react-flow__handle.react-flow__handle {
   width: 0;
   height: 0;
@@ -361,7 +363,8 @@ body,
    NodoSimbolo) para que el cable llegue al CENTRO exacto. */
 .handle-entrada::before,
 .handle-salida::before,
-.handle-tierra::before {
+.handle-tierra::before,
+.handle-auxiliar::before {
   content: "";
   position: absolute;
   left: -5px;
@@ -375,7 +378,8 @@ body,
 
 .handle-entrada:hover::after,
 .handle-salida:hover::after,
-.handle-tierra:hover::after {
+.handle-tierra:hover::after,
+.handle-auxiliar:hover::after {
   content: "";
   position: absolute;
   inset: -4px;
@@ -1355,7 +1359,8 @@ body.arrastrando .paleta-item {
 .conectando-source .handle-salida,
 .conectando-target .hb-destino,
 .conectando-target .handle-entrada,
-.conectando-target .handle-tierra {
+.conectando-target .handle-tierra,
+.conectando-target .handle-auxiliar {
   pointer-events: none !important;
 }
 
