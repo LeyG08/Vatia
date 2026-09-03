@@ -4,6 +4,7 @@ import { useEditor, historial, construirEstadoHoja } from "../lib/store";
 import { serializarProyecto } from "../lib/tipos";
 import { armarChecklist } from "../lib/checklist";
 import { ZOOM_IMPRESION, medidasPaginaMm } from "../lib/impresion";
+import DialogoExportarProyecto from "./DialogoExportarProyecto";
 
 function BarraSuperior() {
   const nombre = useEditor((s) => s.nombreProyecto);
@@ -30,6 +31,7 @@ function BarraSuperior() {
   const iniciarExportacionFn = useEditor((s) => s.iniciarExportacionCompleta);
   const finalizarExportacionFn = useEditor((s) => s.finalizarExportacionCompleta);
   const { setViewport, getViewport, setEdges } = useReactFlow();
+  const [dialogoExportar, setDialogoExportar] = useState<{ totalPendientes: number } | null>(null);
 
   const [oscuro, setOscuro] = useState(() => {
     return localStorage.getItem("vatia-tema") === "dark";
@@ -136,19 +138,11 @@ function BarraSuperior() {
       const problemas = armarChecklist(estado.nodos, estado.conexiones, estado.cfg.modo);
       return acc + problemas.reduce((t, p) => t + p.mensajes.length, 0);
     }, 0);
-    if (totalPendientes > 0) {
-      const seguir = window.confirm(
-        `El proyecto tiene ${totalPendientes} pendiente${totalPendientes === 1 ? "" : "s"} de ficha técnica en total (Checklist AEA, todas las hojas). ¿Exportar igual?`,
-      );
-      if (!seguir) return;
-    }
+    setDialogoExportar({ totalPendientes });
+  }
 
-    // La lista de materiales se pregunta cada vez: no toda impresión la
-    // necesita (un plano de revisión rápida, por ejemplo).
-    const incluirBom = window.confirm(
-      "¿Incluir la lista de materiales como última página del PDF?",
-    );
-
+  function confirmarExportarProyectoCompletoPdf(incluirBom: boolean) {
+    setDialogoExportar(null);
     iniciarExportacionFn(incluirBom);
     document.body.classList.add("exportando-todo");
 
@@ -197,8 +191,16 @@ function BarraSuperior() {
   }
 
   return (
-    <header className="barra-superior">
-      <strong className="marca">Vatia</strong>
+    <>
+      {dialogoExportar && (
+        <DialogoExportarProyecto
+          totalPendientes={dialogoExportar.totalPendientes}
+          onCancelar={() => setDialogoExportar(null)}
+          onConfirmar={confirmarExportarProyectoCompletoPdf}
+        />
+      )}
+      <header className="barra-superior">
+        <strong className="marca">Vatia</strong>
       {modoAdmin && (
         <span className="badge-admin" title="Modo administrador activo (Ctrl+Shift+A)">
           ADMIN
@@ -307,7 +309,8 @@ function BarraSuperior() {
         Atajos de teclado: presioná{" "}
         <kbd>?</kbd>
       </span>
-    </header>
+      </header>
+    </>
   );
 }
 

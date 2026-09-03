@@ -4828,3 +4828,30 @@ hojas juntas en una A0, rediseño del diálogo de exportación, auto-cálculo
 tensión fase/línea, reorganizar el panel de hoja, símbolo sin modo
 oscuro, polos múltiples tipo CADe SIMU + simulación de comando, mover la
 fuente de cortocircuito al alimentador principal).
+
+## E36 — Diálogo de exportación propio + auto-cálculo de tensión
+
+Sigue la lista del usuario tras E35.
+
+**"No me gusta la forma en la que te pregunta lo de exportar proyecto,
+no es para nada estético."** Los dos `window.confirm()` seguidos (avisar
+pendientes, preguntar si incluir la lista de materiales) eran diálogos
+nativos del navegador — cero control de estilo, dos ventanas
+interrumpiendo una detrás de otra. Se reemplazan por
+`DialogoExportarProyecto.tsx`: un solo panel propio, con el aviso de
+pendientes (si hay) y un checkbox para la lista de materiales, en el
+mismo lenguaje visual que el resto de la app (mismo tratamiento de
+encabezado con filete que `PanelHoja`/`AyudaAtajos`). Verificado con
+Playwright que YA NO aparece ningún diálogo nativo del navegador durante
+el flujo completo.
+
+**"Si uno asigna una tensión de fase o de línea automáticamente se
+debería cargar el otro."** `PanelProyecto.tsx`: cargar la tensión
+fase-neutro calcula sola la fase-fase (× √3) y viceversa (÷ √3) — sistema
+trifásico equilibrado. Verificado en las dos direcciones: 230 V fase →
+398 V línea; 400 V línea → 231 V fase.
+
+Verificado además: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` (contra producción) verde,
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 20/20.

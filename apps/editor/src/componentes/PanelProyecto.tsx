@@ -53,11 +53,16 @@ function PanelProyecto() {
                 type="number"
                 min={0}
                 value={valorComoTexto(datos.tension_fase_v)}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const v = Number.parseFloat(e.target.value) || 0;
+                  // Sistema trifásico equilibrado: U_línea = √3 · U_fase.
+                  // Se actualizan las dos juntas — cargar una sola y dejar
+                  // la otra desactualizada es peor que redondear.
                   actualizar({
-                    tension_fase_v: Number.parseFloat(e.target.value) || 0,
-                  })
-                }
+                    tension_fase_v: v,
+                    tension_linea_v: Math.round(v * Math.sqrt(3)),
+                  });
+                }}
               />
             </label>
             <label className="panel-hoja-campo">
@@ -66,11 +71,13 @@ function PanelProyecto() {
                 type="number"
                 min={0}
                 value={valorComoTexto(datos.tension_linea_v)}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const v = Number.parseFloat(e.target.value) || 0;
                   actualizar({
-                    tension_linea_v: Number.parseFloat(e.target.value) || 0,
-                  })
-                }
+                    tension_linea_v: v,
+                    tension_fase_v: Math.round(v / Math.sqrt(3)),
+                  });
+                }}
               />
             </label>
           </div>
