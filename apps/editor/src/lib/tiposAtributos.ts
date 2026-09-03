@@ -151,7 +151,7 @@ export interface AparatoGuardamotorTermomagnetico {
   ii_a?: number;
   /** Poder de corte Icu (kA) */
   icu_kA?: number;
-  /** Poder de corte servicio Ics (A) */
+  /** Poder de corte servicio Ics (kA) */
   ics_kA?: number;
 }
 
@@ -260,8 +260,10 @@ export interface AparatoMccbCajaMoldeada {
   ir_a_max?: number;
   /** Ajuste magnético Im (A) */
   im_a?: number;
-  /** Poder de corte (kA) */
+  /** Poder de corte Icu (kA) */
   pdcc_kA?: number;
+  /** Poder de corte Ics (kA) */
+  ics_kA?: number;
   /** Categoría de utilización */
   categoria_utilizacion?: "A" | "B";
   /** Icw (kA, 1s) */
@@ -302,10 +304,6 @@ export interface AparatoPortafusible {
   marca?: string;
   /** Modelo */
   modelo?: string;
-  /** Marca del portafusible */
-  portafusible_marca?: string;
-  /** Modelo del portafusible */
-  portafusible_modelo?: string;
   /** Tensión del portafusible (V) */
   portafusible_tension_v?: number;
   /** Categoría del portafusible */
@@ -369,7 +367,7 @@ export interface AparatoReleProteccionTension {
   /** Modelo */
   modelo?: string;
   /** Tensión asignada (V) */
-  ue_v?: number;
+  ue_V?: number;
   /** Umbral subtensión (%) */
   subtension_pct?: number;
   /** Umbral sobretensión (%) */

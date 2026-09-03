@@ -3903,3 +3903,48 @@ confirma con diálogo, borra el autoguardado, vuelve a
 Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
 warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
 y `verificar_proyecto_real.mjs` verdes.
+
+## E20 — Limpieza de datos y nomenclatura del schema de aparatos
+
+El usuario pidió seguir abarcando pendientes del diagnóstico original sin
+pausar entre uno y otro. Este lote junta correcciones chicas e
+independientes entre sí, todas de bajo riesgo (verificadas una por una
+antes de pasar a la siguiente):
+
+- **`pdcc_kA: 2500` → `2.5`** en los dos MCCB "EMA SACE ISOL Z500" del
+  proyecto real (n4/n5). El bug estaba en la FUENTE (`scripts/migrar_tgbt.mjs`,
+  no solo en el JSON): corregido ahí y regenerado el archivo corriendo el
+  script — `git diff` confirma que el único cambio real son los dos
+  valores de `pdcc_kA` (el script es idempotente sobre el resto).
+- **`ics_kA` agregado a `mccb_caja_moldeada`** (schema): el MCCB solo
+  declaraba `pdcc_kA` (Icu); sin Ics no se puede verificar filiación
+  entre protecciones, que es justo donde el MCCB importa. Mismo patrón
+  que ya usa `guardamotor_termomagnetico` (Icu + Ics por separado). De
+  paso, el `title` de `pdcc_kA` pasa a aclarar que es Icu.
+- **Typo de unidad corregido**: `ics_kA` de `guardamotor_termomagnetico`
+  decía `"(A)"` en el título cuando el campo está en kA.
+- **`ue_v` → `ue_V`** en `rele_proteccion_tension`: todos los demás
+  subtipos (contactor, guardamotor, etc.) ya usaban mayúscula. Verificado
+  que ningún proyecto guardado usaba la minúscula antes de renombrar; se
+  actualizó también la lectura en `lib/anotaciones.ts`.
+- **`portafusible_marca`/`portafusible_modelo` eliminados** del subtipo
+  `portafusible`: duplicaban `marca`/`modelo`, que `base_comun` ya le da
+  a TODOS los subtipos. `lib/anotaciones.ts` ya imprime un prefijo
+  genérico marca+modelo para cualquier aparato (línea 45); el bloque
+  específico de `portafusible` solo tenía que dejar de repetirlo. Sin
+  proyectos guardados usando esos campos (verificado antes de tocar).
+
+Deliberadamente NO tocado en este lote: la duplicación mayor de
+nomenclatura de poder de corte (`pdcc_kA` en interruptor_termomagnetico/
+MCCB/fusible vs `icu_kA`+`ics_kA` en guardamotor) — el diagnóstico
+original la deja como pregunta abierta ("hace falta una capa de
+normalización, o unificar la nomenclatura"), no como corrección
+mecánica: unificarla de verdad implica decidir un nombre único y migrar
+`pdcc_kA` en datos ya guardados, una decisión de diseño que no correspondía
+tomar sola dentro de un lote de limpieza chica.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `python -c "json.load(...)"` confirma el schema
+editado a mano sigue siendo JSON válido, `lint_simbolos.py` verde en
+ambas carpetas, `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`
+verdes.

@@ -151,8 +151,9 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       break;
     }
     case "portafusible": {
-      const pf = [capitalizar(a.portafusible_marca), capitalizar(a.portafusible_modelo)].filter(Boolean).join(" ");
-      if (pf) l.push(`Base ${pf}`);
+      // marca/modelo del portafusible ya salen en el prefijo genérico
+      // de arriba (a.marca/a.modelo, de base_comun) — no hace falta un
+      // campo aparte solo para este subtipo.
       if (n(a.portafusible_tension_v)) l.push(`${n(a.portafusible_tension_v)} V`);
       break;
     }
@@ -164,7 +165,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       break;
     }
     case "rele_proteccion_tension": {
-      if (n(a.ue_v)) l.push(`Ue ${n(a.ue_v)} V`);
+      if (n(a.ue_V)) l.push(`Ue ${n(a.ue_V)} V`);
       if (n(a.subtension_pct) || n(a.sobretension_pct)) {
         l.push(`U< ${n(a.subtension_pct)}% · U> ${n(a.sobretension_pct)}%`);
       }

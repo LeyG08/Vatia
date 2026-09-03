@@ -732,8 +732,15 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "x-obligatorio": true,
-          "description": "Poder de corte en kA (IEC 60947-2 Icu/Icn).",
-          "title": "Poder de corte (kA)"
+          "description": "Poder de corte último Icu en kA (IEC 60947-2).",
+          "title": "Poder de corte Icu (kA)"
+        },
+        "ics_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Poder de corte de servicio Ics en kA (IEC 60947-2) — la corriente de cortocircuito que el aparato puede cortar y seguir siendo apto para servicio normal después, distinta de Icu (que solo garantiza el corte, no la reutilización). Hace falta para verificar filiación entre protecciones.",
+          "title": "Poder de corte Ics (kA)"
         },
         "categoria_utilizacion": {
           "enum": [
@@ -834,7 +841,7 @@
           "exclusiveMinimum": 0,
           "x-obligatorio": false,
           "description": "Poder de corte de servicio Ics en kA.",
-          "title": "Poder de corte servicio Ics (A)"
+          "title": "Poder de corte servicio Ics (kA)"
         }
       }
     },
@@ -1033,16 +1040,6 @@
           "const": "portafusible",
           "title": "Tipo de aparato"
         },
-        "portafusible_marca": {
-          "type": "string",
-          "x-obligatorio": false,
-          "title": "Marca del portafusible"
-        },
-        "portafusible_modelo": {
-          "type": "string",
-          "x-obligatorio": false,
-          "title": "Modelo del portafusible"
-        },
         "portafusible_tension_v": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -1143,7 +1140,7 @@
           "const": "rele_proteccion_tension",
           "title": "Tipo de aparato"
         },
-        "ue_v": {
+        "ue_V": {
           "type": "number",
           "exclusiveMinimum": 0,
           "x-obligatorio": true,
