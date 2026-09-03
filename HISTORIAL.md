@@ -3979,3 +3979,39 @@ a mano"). El documento no es la bitácora obligatoria del proyecto —
 `HISTORIAL.md` lo es, por regla de `AGENTS.md`— así que mantenerlo
 100% sincronizado a mano en cada cambio de librería no es sostenible;
 mejor que remita a `HISTORIAL.md` para el detalle vivo.
+
+## E22 — Checklist: el chequeo de "huérfano" ya no dispara en multifilar
+
+Limitación documentada en E17 ("el checklist sigue hablando en términos
+de fuerza") pasó a ser un bug funcional real, no solo cosmético: en una
+hoja multifilar NUNCA hay un nodo `alimentador` (el botón está oculto a
+propósito en `Paleta.tsx` desde E17, porque un circuito de mando no se
+alimenta "desde la red"), así que el chequeo de topología de
+`checklist.ts` — "sin camino a ningún alimentador" — marcaba **TODOS**
+los símbolos de una hoja multifilar como huérfanos, siempre, sin
+excepción. Puro ruido, no un aviso real.
+
+`armarChecklist()` gana un tercer parámetro opcional `modo: ModoHoja`
+(default `"unifilar"`, no rompe el único otro llamador implícito si
+hubiera). En multifilar se sigue llamando a `calcularTopologia()` (los
+ciclos de cableado siguen siendo un error real en cualquier modo, un lazo
+es un lazo) pero se omiten los mensajes de "huérfano" — ese concepto es
+inherentemente de fuerza. `ChecklistAea.tsx` pasa `hoja.modo` del store.
+
+Verificado en vivo con Playwright: mismo símbolo (interruptor
+termomagnético) en la misma hoja, contador de pendientes pasa de 5 a 4
+al cambiar el modo a Multifilar, y el texto "alimentador" desaparece del
+panel — el resto de los avisos reales (fichas incompletas) se mantiene.
+
+No se tocó la duplicación de lógica entre `checklist.ts` y
+`scripts/verificar_proyecto_real.mjs` (E11, sigue abierta): unificarlas
+de verdad requiere que el script Node pueda importar código que hoy
+depende de `import.meta.glob` (Vite-only, vía `lib/libreria.ts`) — es un
+cambio de arquitectura de cómo se comparte código entre el navegador y
+Node, no una corrección mecánica, y el script actual funciona y es el
+gate de CI; no correspondía tocarlo sin más contexto dentro de un lote
+de arreglos chicos.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.

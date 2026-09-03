@@ -18,6 +18,7 @@ import {
 } from "./esquemas";
 import { obtenerSimbolo } from "./libreria";
 import type { NodoData } from "./store";
+import type { ModoHoja } from "./tipos";
 import { calcularTopologia } from "./topologia";
 
 export interface ProblemaElemento {
@@ -152,6 +153,7 @@ function problemasCable(a: Record<string, unknown>): string[] {
 export function armarChecklist(
   nodos: Node[],
   conexiones: Edge[],
+  modo: ModoHoja = "unifilar",
 ): ProblemaElemento[] {
   const nombresPorId = new Map<string, string>();
   for (const n of nodos) {
@@ -211,15 +213,23 @@ export function armarChecklist(
   }
 
   // Topología (Paso 4): elementos sin camino a ningún alimentador, y
-  // ciclos del cableado (casi siempre un error de conexión).
+  // ciclos del cableado (casi siempre un error de conexión). El check de
+  // "huérfano" es un concepto de fuerza (huérfano = sin camino a un
+  // alimentador, y en multifilar directamente no hay ninguno — ver
+  // Paleta.tsx, el botón de alimentador se oculta ahí): en una hoja
+  // multifilar marcaría CADA símbolo como huérfano, puro ruido. Los
+  // ciclos sí se siguen chequeando: un lazo de cableado es un error de
+  // conexión en cualquier modo.
   const topo = calcularTopologia(nodos as Node<NodoData>[], conexiones);
-  for (const id of topo.huerfanos) {
-    salida.push({
-      id,
-      esConexion: false,
-      etiqueta: nombresPorId.get(id) ?? id,
-      mensajes: ["Sin conexión a ningún alimentador."],
-    });
+  if (modo !== "multifilar") {
+    for (const id of topo.huerfanos) {
+      salida.push({
+        id,
+        esConexion: false,
+        etiqueta: nombresPorId.get(id) ?? id,
+        mensajes: ["Sin conexión a ningún alimentador."],
+      });
+    }
   }
   for (const ciclo of topo.ciclos) {
     const etiquetas = ciclo.map((id) => nombresPorId.get(id) ?? id);
