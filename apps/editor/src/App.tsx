@@ -10,6 +10,7 @@ import "@xyflow/react/dist/style.css";
 import BarraSuperior from "./componentes/BarraSuperior";
 import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
+import AvisoAutoguardado from "./componentes/AvisoAutoguardado";
 import ChecklistAea from "./componentes/ChecklistAea";
 import PanelHoja from "./componentes/PanelHoja";
 import PanelProyecto from "./componentes/PanelProyecto";
@@ -657,6 +658,7 @@ function Editor() {
         <div className="paneles-flotantes">
           <ChecklistAea />
           <PanelProblemas />
+          <AvisoAutoguardado />
         </div>
         <PanelHoja />
         <PanelProyecto />

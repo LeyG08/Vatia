@@ -480,6 +480,9 @@ interface EstadoEditor {
   panelHojaAbierto: boolean;
   panelProyectoAbierto: boolean;
   modoAdmin: boolean;
+  /** true justo después de recuperar un autoguardado al abrir la app */
+  avisoRecuperado: boolean;
+  descartarAvisoRecuperado: () => void;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
@@ -580,6 +583,10 @@ interface EstadoEditor {
   irAHojaPadre: () => void;
   guardarViewport: (vp: Viewport) => void;
   cargarProyecto: (entrada: ProyectoJSON | Proyecto | string) => void;
+  /** Empieza un proyecto en blanco y borra el autoguardado — es la única
+   * forma de "soltar" un proyecto recuperado sin querer, ya que ahora
+   * recargar la página lo trae de vuelta en vez de arrancar en blanco. */
+  nuevoProyecto: () => void;
   serializarActual: () => Proyecto;
 }
 
@@ -612,6 +619,34 @@ function nuevoId(existentes: { id: string }[], prefijo: string): string {
 /** Copia profunda de una config de hoja (datos planos JSON-safe) */
 function clonarCfg(cfg: HojaConfig): HojaConfig {
   return JSON.parse(JSON.stringify(cfg)) as HojaConfig;
+}
+
+/**
+ * Vuelca el estado de trabajo (nodos/conexiones de React Flow) de la hoja
+ * activa dentro de `proyecto.hojas`, en un objeto NUEVO — sin llamar a
+ * `set()`. Función pura para que el autosave (fuera del store) pueda leer
+ * el proyecto completo sin disparar otra notificación de zustand (eso
+ * causaría un `set()` dentro del propio listener del autosave → loop).
+ */
+function proyectoVolcado(
+  estado: Pick<EstadoEditor, "proyecto" | "hojaActivaId" | "nodos" | "conexiones" | "hoja">,
+  viewport?: Viewport,
+): Proyecto {
+  const { proyecto, hojaActivaId, nodos, conexiones, hoja } = estado;
+  return {
+    ...proyecto,
+    hojas: proyecto.hojas.map((h) =>
+      h.id === hojaActivaId
+        ? {
+            ...h,
+            ...clonarCfg(hoja),
+            nodos: nodos.map(rfANodoProyecto),
+            conexiones: conexiones.map(rfAConexionProyecto),
+            viewport: viewport ?? h.viewport,
+          }
+        : h,
+    ),
+  };
 }
 
 const historial = new Historial();
@@ -673,6 +708,16 @@ function proyectoInicial(): { proyecto: Proyecto; hojaId: string } {
 
 const inicial = proyectoInicial();
 
+/**
+ * Autoguardado en el navegador (Paso "finalizar el editor"): hasta acá el
+ * único guardado era la descarga manual de un JSON — cerrar la pestaña sin
+ * haber guardado perdía todo el trabajo. Esto es una red de seguridad
+ * local, no un reemplazo: "Guardar" sigue descargando el archivo igual
+ * que siempre. Si el día de mañana existe guardado en la nube, esta misma
+ * clave de localStorage puede convivir con eso sin tocarse.
+ */
+const CLAVE_AUTOGUARDADO = "vatia-autoguardado";
+
 export const useEditor = create<EstadoEditor>((set, get) => {
   /** Vuelca SOLO la config (rótulo/notas/formato) a la entrada activa */
   function volcarCfgActiva(cfg: HojaConfig): void {
@@ -718,23 +763,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
 
   /** Guarda el estado de trabajo actual dentro de la entrada de la hoja activa */
   function volcarActiva(viewport?: Viewport): void {
-    const { proyecto, hojaActivaId, nodos, conexiones, hoja } = get();
-    set({
-      proyecto: {
-        ...proyecto,
-        hojas: proyecto.hojas.map((h) =>
-          h.id === hojaActivaId
-            ? {
-                ...h,
-                ...clonarCfg(hoja),
-                nodos: nodos.map(rfANodoProyecto),
-                conexiones: conexiones.map(rfAConexionProyecto),
-                viewport: viewport ?? h.viewport,
-              }
-            : h,
-        ),
-      },
-    });
+    set({ proyecto: proyectoVolcado(get(), viewport) });
   }
 
   return {
@@ -748,8 +777,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     panelHojaAbierto: false,
     panelProyectoAbierto: false,
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
+    avisoRecuperado: false,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
+
+    descartarAvisoRecuperado() {
+      set({ avisoRecuperado: false });
+    },
 
     alternarPaleta() {
       set((s) => ({ paletaVisible: !s.paletaVisible }));
@@ -1869,6 +1903,29 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       });
     },
 
+    nuevoProyecto() {
+      try {
+        localStorage.removeItem(CLAVE_AUTOGUARDADO);
+      } catch {
+        /* localStorage no disponible: igual arranca en blanco en memoria */
+      }
+      const fresco = proyectoInicial();
+      historial.limpiar();
+      historial.usar(fresco.hojaId);
+      const estado = construirEstadoHoja(fresco.proyecto.hojas[0]);
+      set({
+        proyecto: fresco.proyecto,
+        hojaActivaId: fresco.hojaId,
+        nodos: estado.nodos,
+        conexiones: estado.conexiones,
+        nombreProyecto: fresco.proyecto.meta.nombre,
+        problemasProyecto: [],
+        hoja: estado.cfg,
+        avisoRecuperado: false,
+        version: get().version + 1,
+      });
+    },
+
     serializarActual() {
       volcarActiva();
       return get().proyecto;
@@ -1878,5 +1935,36 @@ export const useEditor = create<EstadoEditor>((set, get) => {
 
 // La hoja inicial tiene su pila de historial desde el arranque
 historial.usar(inicial.hojaId);
+
+(function recuperarAutoguardado() {
+  try {
+    const guardado = localStorage.getItem(CLAVE_AUTOGUARDADO);
+    if (guardado) {
+      useEditor.getState().cargarProyecto(guardado);
+      useEditor.setState({ avisoRecuperado: true });
+    }
+  } catch {
+    /* localStorage no disponible o el JSON guardado está corrupto:
+     * arranca en blanco, como si no hubiera autoguardado. */
+  }
+})();
+
+let temporizadorAutoguardado: ReturnType<typeof setTimeout> | undefined;
+useEditor.subscribe(() => {
+  clearTimeout(temporizadorAutoguardado);
+  temporizadorAutoguardado = setTimeout(() => {
+    try {
+      // proyectoVolcado (no serializarActual): NO llama a set(), para no
+      // volver a notificar a este mismo listener y reprogramarse solo
+      // para siempre.
+      const proyecto = proyectoVolcado(useEditor.getState());
+      localStorage.setItem(CLAVE_AUTOGUARDADO, JSON.stringify(proyecto));
+    } catch {
+      /* cuota de localStorage excedida u otro error: se ignora — el
+       * trabajo en memoria no se pierde por esto, solo la red de
+       * seguridad queda sin actualizar hasta el próximo cambio. */
+    }
+  }, 1000);
+});
 
 export { historial };

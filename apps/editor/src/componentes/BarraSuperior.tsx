@@ -6,6 +6,7 @@ function BarraSuperior() {
   const setNombre = useEditor((s) => s.setNombreProyecto);
   const serializar = useEditor((s) => s.serializarActual);
   const cargar = useEditor((s) => s.cargarProyecto);
+  const nuevoProyectoFn = useEditor((s) => s.nuevoProyecto);
   const deshacerFn = useEditor((s) => s.deshacer);
   const rehacerFn = useEditor((s) => s.rehacer);
   const alternarPaleta = useEditor((s) => s.alternarPaleta);
@@ -40,6 +41,16 @@ function BarraSuperior() {
     a.download = `${proyecto.meta.nombre || "proyecto"}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function nuevoProyecto() {
+    if (
+      window.confirm(
+        "¿Empezar un proyecto en blanco? Se pierde el trabajo actual (descargalo con Guardar antes, si querés conservarlo).",
+      )
+    ) {
+      nuevoProyectoFn();
+    }
   }
 
   async function abrir(e: React.ChangeEvent<HTMLInputElement>) {
@@ -100,6 +111,13 @@ function BarraSuperior() {
       />
       <button type="button" onClick={guardar} title="Guardar proyecto JSON">
         💾 Guardar
+      </button>
+      <button
+        type="button"
+        onClick={nuevoProyecto}
+        title="Empezar un proyecto en blanco (se pierde el actual)"
+      >
+        📄 Nuevo
       </button>
       <button
         type="button"

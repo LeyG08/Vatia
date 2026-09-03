@@ -3851,3 +3851,55 @@ toca acá, queda anotado para cuando se revise el editor en general.
 Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
 warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
 y `verificar_proyecto_real.mjs` verdes.
+
+## E19 — Autoguardado en el navegador
+
+Cerradas las dos tareas de "finalizar el editor" (comando/multifilar en
+E17, jerarquía de hojas en E18), el usuario pidió seguir con lo más
+prioritario a criterio propio. De la lista de pendientes repasada con él,
+se eligió el riesgo de pérdida de datos: hasta acá el único guardado era
+la descarga manual de un JSON (botón "Guardar") — cerrar la pestaña sin
+haberlo hecho perdía todo el trabajo. Es el ítem #9 del diagnóstico
+original ("El proyecto abierto se pierde al cerrar la pestaña"), nunca
+resuelto.
+
+### Diseño
+
+Autoguardado en `localStorage`, como red de seguridad — NO reemplaza el
+"Guardar" manual (que sigue descargando el archivo igual que siempre) ni
+anticipa el guardado en la nube que está en la visión de producto: es una
+capa aparte que puede convivir con lo que venga después sin tocarse.
+
+- **Recuperación al abrir**: si hay algo en `localStorage["vatia-autoguardado"]`,
+  se carga solo (reusa `cargarProyecto()`, con toda su normalización y
+  migración de versión — cero lógica duplicada) y se muestra un aviso
+  descartable ("↺ Se recuperó tu último trabajo sin guardar.") para que no
+  parezca que apareció contenido de la nada.
+- **Guardado en cada cambio, con debounce de 1 s**: `useEditor.subscribe()`
+  fuera del store, sin depender de que un componente esté montado.
+- **Fix de diseño necesario para que no fuera un loop infinito**: la
+  función `volcarActiva()` (que mezcla los nodos/conexiones EN VIVO de
+  React Flow con `proyecto.hojas` antes de servir el estado) hacía
+  `set(...)` — llamarla desde el listener del autoguardado habría
+  disparado el propio listener de nuevo, reprogramando el guardado cada
+  segundo para siempre aunque no pasara nada. Se extrajo la parte pura a
+  `proyectoVolcado()` (función de módulo, sin `set`), que ahora usan tanto
+  `volcarActiva()` (con `set`) como el autoguardado (sin `set`, solo
+  lectura vía `useEditor.getState()`).
+- **`nuevoProyecto()` (store) + botón "📄 Nuevo" (con confirmación)**:
+  antes de este cambio, recargar la página YA era la forma implícita de
+  "empezar de cero" (no había autosave, así que recargar daba un proyecto
+  en blanco). Con autoguardado, recargar ahora TRAE DE VUELTA el proyecto
+  — hacía falta una forma explícita de soltarlo. Limpia
+  `localStorage["vatia-autoguardado"]` y reinicia el store a un proyecto
+  en blanco (reusa `proyectoInicial()`).
+
+Verificado en vivo con Playwright: cambiar el nombre del proyecto →
+esperar >1 s → confirmar que aparece en `localStorage` → recargar la
+página → el proyecto vuelve solo, con el aviso visible. Botón "Nuevo":
+confirma con diálogo, borra el autoguardado, vuelve a
+`proyecto_sin_nombre` en blanco, sin errores de consola en ningún caso.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.
