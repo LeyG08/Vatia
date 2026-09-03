@@ -5175,3 +5175,42 @@ de E41. Tardó 257 ms desde click hasta imprimir — no se cuelga. Sin
 errores de consola. `tsc -b`, `lint`, `build`,
 `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py` en verde.
+
+## E43 — "Exportar proyecto" imprimía el rótulo/tablero de la hoja equivocada
+
+Encontrado investigando la base para el A0 combinado (E44): con dos
+hojas de tablero distinto, "Exportar proyecto" imprimía **el mismo**
+nombre de tablero, notas de gabinete y rótulo en TODAS las páginas —
+el de la hoja que estuviera activa en el lienzo interactivo al momento
+de exportar, no el de cada hoja real. No se había notado antes porque
+las pruebas previas (E40, E42) usaban una hoja duplicada de sí misma
+(mismo contenido, así que el bug quedaba invisible).
+
+**Causa**: `HojaNode` (el marco + rótulo IRAM 4508) ignoraba sus
+propios props de nodo y leía directo `useEditor(s => s.hoja)` — el
+"espejo" global de la hoja ACTIVA. Correcto para el lienzo interactivo
+(una sola instancia de `<ReactFlow>`), pero durante "Exportar
+proyecto" hay N instancias simultáneas (una por hoja, ver
+`ExportacionProyecto.tsx`) — todas leyendo la MISMA variable global.
+Mismo problema en el cálculo de "N° de plano" / "Pág. X de Y": siempre
+buscaba el índice de la hoja ACTIVA, no el de la hoja que esa página
+en particular representaba.
+
+**Arreglo**: `crearNodoHoja()` (`tiposFlow.ts`) ahora acepta un
+`hojaOverride` opcional y lo guarda en `data.hojaOverride`, mutado IN
+SITU sobre el mismo objeto cacheado (nunca se reemplaza el nodo
+entero, para no reabrir la regresión de "visibility:hidden para
+siempre" de E35). `HojaNode`/`RotuloIram` ahora reciben la hoja a
+mostrar por props — cuando `hojaOverride` está presente, manda por
+sobre el store global; si no, siguen leyendo la hoja activa como
+siempre (comportamiento del lienzo interactivo sin cambios).
+`ExportacionProyecto.tsx` pasa su propia `hoja` como override en cada
+página.
+
+Verificado en vivo con dos hojas de tablero distinto ("TABLERO-UNO" /
+"TABLERO-DOS"): cada página del PDF exportado ahora muestra su propio
+nombre y su propia paginación ("1 / 2" / "2 / 2"), sin importar cuál
+esté activa en el lienzo. El export de una sola hoja (`Exportar PDF`,
+sin override) se probó sin cambios de comportamiento. Sin errores de
+consola. `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.

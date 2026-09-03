@@ -177,6 +177,17 @@ export interface DatosSimbolo extends Record<string, unknown> {
   rotacion: number;
   /** Ficha técnica de la familia aparato (C4); semilla = atributos_base */
   atributos: Record<string, unknown>;
+  /**
+   * Solo la usa el nodo "hoja" (marco/rótulo, ver tiposFlow.ts): en el
+   * lienzo interactivo (una sola instancia de `<ReactFlow>`) no hace
+   * falta, `HojaNode` lee la hoja activa directo del store. Pero
+   * durante "Exportar proyecto" (E43) hay VARIAS instancias de
+   * `<ReactFlow>` a la vez, una por hoja — sin esto, todas leían la
+   * MISMA hoja activa global y el rótulo/tablero de todas las páginas
+   * salvo la activa quedaba mal (bug real, encontrado en vivo con dos
+   * hojas de tablero distinto).
+   */
+  hojaOverride?: Hoja;
 }
 
 export interface DatosAlimentador extends Record<string, unknown> {

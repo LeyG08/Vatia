@@ -109,8 +109,11 @@ function PaginaHoja({
   const { anchoMm, altoMm } = medidasPaginaMm(estado.cfg);
   const { pxW, pxH } = dimensionesHoja(estado.cfg);
   const nodes = useMemo(
-    () => [crearNodoHoja(hoja.id), ...estado.nodos],
-    [hoja.id, estado.nodos],
+    // `hoja` como override (E43): esta página tiene que mostrar SU
+    // PROPIO rótulo/tablero, no el de la hoja activa en el lienzo
+    // interactivo — ver crearNodoHoja() y HojaNode.
+    () => [crearNodoHoja(hoja.id, hoja), ...estado.nodos],
+    [hoja, estado.nodos],
   );
   const contenedorRef = useRef<HTMLDivElement>(null);
 
