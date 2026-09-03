@@ -124,6 +124,30 @@ function PaginaHoja({
   pageName: string;
   marcarListo: (id: string) => void;
 }) {
+  const { anchoMm, altoMm } = medidasPaginaMm(hoja);
+  return (
+    <div
+      className={`pagina-impresion pagina-${pageName}`}
+      style={{ width: `${anchoMm}mm`, height: `${altoMm}mm` }}
+    >
+      <HojaCanvas hoja={hoja} marcarListo={marcarListo} />
+    </div>
+  );
+}
+
+/**
+ * El `<ReactFlow>` de UNA hoja, sizeado a su propio tamaño real —
+ * compartido entre `PaginaHoja` (una hoja = una página completa) y
+ * `ExportacionA0` (varias hojas posicionadas dentro de una misma
+ * página A0, ver ese archivo). Separado de `PaginaHoja` para no
+ * duplicar la lógica de espera de medición entre los dos usos. */
+export function HojaCanvas({
+  hoja,
+  marcarListo,
+}: {
+  hoja: Hoja;
+  marcarListo: (id: string) => void;
+}) {
   const estado = useMemo(() => construirEstadoHoja(hoja), [hoja]);
   const { anchoMm, altoMm } = medidasPaginaMm(estado.cfg);
   const { pxW, pxH } = dimensionesHoja(estado.cfg);
@@ -160,7 +184,6 @@ function PaginaHoja({
   return (
     <div
       ref={contenedorRef}
-      className={`pagina-impresion pagina-${pageName}`}
       style={{ width: `${anchoMm}mm`, height: `${altoMm}mm` }}
     >
       <ReactFlowProvider>

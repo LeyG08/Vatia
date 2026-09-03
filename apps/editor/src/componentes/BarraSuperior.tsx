@@ -5,6 +5,7 @@ import { serializarProyecto } from "../lib/tipos";
 import { armarChecklist } from "../lib/checklist";
 import { ZOOM_IMPRESION, medidasPaginaMm } from "../lib/impresion";
 import DialogoExportarProyecto from "./DialogoExportarProyecto";
+import DialogoExportarA0 from "./DialogoExportarA0";
 
 function BarraSuperior() {
   const nombre = useEditor((s) => s.nombreProyecto);
@@ -30,10 +31,13 @@ function BarraSuperior() {
   const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
   const iniciarExportacionFn = useEditor((s) => s.iniciarExportacionCompleta);
   const finalizarExportacionFn = useEditor((s) => s.finalizarExportacionCompleta);
+  const iniciarExportacionA0Fn = useEditor((s) => s.iniciarExportacionA0);
+  const finalizarExportacionA0Fn = useEditor((s) => s.finalizarExportacionA0);
   const pedirConfirmacion = useEditor((s) => s.pedirConfirmacion);
   const mostrarAlerta = useEditor((s) => s.mostrarAlerta);
   const { setViewport, getViewport, setEdges } = useReactFlow();
   const [dialogoExportar, setDialogoExportar] = useState<{ totalPendientes: number } | null>(null);
+  const [dialogoExportarA0, setDialogoExportarA0] = useState(false);
 
   const [oscuro, setOscuro] = useState(() => {
     return localStorage.getItem("vatia-tema") === "dark";
@@ -170,6 +174,30 @@ function BarraSuperior() {
     // cuando CADA página avisa que terminó de medir sus nodos.
   }
 
+  /**
+   * Combina todos los unifilares en hoja(s) A0 (E46) — misma mecánica
+   * que `confirmarExportarProyectoCompletoPdf` (reusa la clase
+   * `exportando-todo`: es el mismo gancho de CSS, `<ExportacionA0>`
+   * solo agrega SU PROPIO contenido debajo). `window.print()` tampoco
+   * se llama acá por el mismo motivo — ver `ExportacionA0.tsx`.
+   */
+  function exportarUnifilaresA0() {
+    setDialogoExportarA0(true);
+  }
+
+  function confirmarExportarUnifilaresA0(permitirVariasPaginas: boolean) {
+    setDialogoExportarA0(false);
+    iniciarExportacionA0Fn(permitirVariasPaginas);
+    document.body.classList.add("exportando-todo");
+
+    function restaurar() {
+      finalizarExportacionA0Fn();
+      document.body.classList.remove("exportando-todo");
+      window.removeEventListener("afterprint", restaurar);
+    }
+    window.addEventListener("afterprint", restaurar);
+  }
+
   function nuevoProyecto() {
     pedirConfirmacion(
       "¿Empezar un proyecto en blanco? Se pierde el trabajo actual (descargalo con Guardar antes, si querés conservarlo).",
@@ -204,6 +232,12 @@ function BarraSuperior() {
           totalPendientes={dialogoExportar.totalPendientes}
           onCancelar={() => setDialogoExportar(null)}
           onConfirmar={confirmarExportarProyectoCompletoPdf}
+        />
+      )}
+      {dialogoExportarA0 && (
+        <DialogoExportarA0
+          onCancelar={() => setDialogoExportarA0(false)}
+          onConfirmar={confirmarExportarUnifilaresA0}
         />
       )}
       <header className="barra-superior">
@@ -262,6 +296,13 @@ function BarraSuperior() {
         title="Exportar TODAS las hojas del proyecto a un solo PDF, con lista de materiales"
       >
         🖨️ Exportar proyecto
+      </button>
+      <button
+        type="button"
+        onClick={exportarUnifilaresA0}
+        title="Combinar todos los unifilares en una hoja A0, a escala real"
+      >
+        🖨️ Exportar A0
       </button>
       <button
         type="button"

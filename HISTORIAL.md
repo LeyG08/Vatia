@@ -5259,3 +5259,61 @@ metadatos, agrupación y descripciones técnicas correctas para
 contactor, MCCB y barra. Sin errores de consola. `tsc -b`, `lint`,
 `build`, `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py` en verde.
+
+## E46 — Exportar todos los unifilares combinados en hoja(s) A0
+
+Último ítem grande del punch list original. "Exportar A0" combina
+todas las hojas **unifilares** del proyecto (las multifilar/comando
+quedan afuera) en una o varias hojas A0 apaisadas, a **escala real**
+—nada se achica para que "entre"—, respetando la jerarquía de
+tableros.
+
+- **Orden jerárquico**: cada alimentador principal (hoja raíz) seguido
+  inmediatamente por sus hojas hijas (tableros seccionales), recorrido
+  en profundidad — en vez del orden arbitrario de las pestañas. No
+  dibuja líneas de conexión entre hojas (sería rehacer el diagrama,
+  no combinar lo que ya existe); el orden de lectura ya agrupa la
+  familia.
+- **Empaquetado**: acomoda las hojas una al lado de la otra por filas
+  (como un `flex-wrap`, a tamaño real), pasando a una fila nueva
+  cuando no entra más a lo ancho de la A0, y a una página nueva cuando
+  no entra más a lo alto.
+- **Varias páginas, como opción explícita** ("esto debe ser una
+  opción para el que lo quiera así"): si no entra todo en una sola A0
+  y el usuario NO activó "permitir varias hojas A0" en el diálogo
+  previo, se avisa cuántas hojas entrarían y no se exporta nada — no
+  hay fallback automático ni recorte silencioso.
+
+**Reutiliza**, no duplica, el mecanismo ya construido y verificado en
+E39-E43 para "Exportar proyecto": se extrajo `HojaCanvas` (el
+`<ReactFlow>` de una hoja con su propio marco/rótulo) como pieza común
+entre `PaginaHoja` (una hoja = una página) y las nuevas celdas A0
+(varias hojas posicionadas dentro de una misma página, cada una en su
+propio `<ReactFlow>` aislado — no un canvas único combinado, así no
+hace falta re-namespacing de ids de nodo entre hojas). Misma espera de
+medición por DOM antes de imprimir, mismo `@page` con nombre por
+página, mismo truco de posición fuera de pantalla mientras mide
+(reusa directamente la clase `exportando-todo` y toda su CSS — cero
+reglas nuevas necesarias para eso).
+
+**Bug real encontrado y corregido en el camino**: si el combinado no
+entraba y se avisaba sin exportar, la clase `exportando-todo` quedaba
+pegada al `<body>` para siempre — `window.print()` nunca se llega a
+llamar en ese camino, así que el `afterprint` que normalmente la saca
+nunca dispara. Se agregó una limpieza explícita en ese punto de
+salida.
+
+Verificado en vivo con PDFs reales: una sola hoja (A0 con una A3
+adentro), dos hojas lado a lado en una sola A0 (cada una con su propio
+rótulo/tablero correcto — confirma que E43 también alcanza a este
+flujo), 6 hojas que NO entran en una sola A0 (avisa "entran 4 de 6",
+no imprime, la clase del body queda limpia) y las mismas 6 con la
+opción activada (2 páginas A0, paginación global correcta "5/6"/"6/6"
+en la segunda). Sin errores de consola en ningún caso.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+Con esto cierra el punch list original salvo CADe SIMU (símbolos
+multipolares + simulación de comando) — el ítem más grande, todavía
+sin encarar, es prácticamente un producto nuevo dentro del editor.

@@ -514,6 +514,15 @@ interface EstadoEditor {
   incluirBomEnExportacion: boolean;
   iniciarExportacionCompleta: (incluirBom: boolean) => void;
   finalizarExportacionCompleta: () => void;
+  /** true mientras se arma la vista de impresión de los unifilares
+   * combinados en hoja(s) A0 (E46) — ver ExportacionA0.tsx */
+  exportandoA0: boolean;
+  /** si el usuario permitió partir en varias hojas A0 cuando el
+   * combinado no entra en una sola — opción explícita, no automática
+   * ("esto debe ser una opción para el que lo quiera así"). */
+  permitirVariasPaginasA0: boolean;
+  iniciarExportacionA0: (permitirVariasPaginas: boolean) => void;
+  finalizarExportacionA0: () => void;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
@@ -829,6 +838,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     avisoRecuperado: false,
     exportandoTodo: false,
     incluirBomEnExportacion: false,
+    exportandoA0: false,
+    permitirVariasPaginasA0: false,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
     promptCortocircuitoHojaId: null,
@@ -859,6 +870,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
     finalizarExportacionCompleta() {
       set({ exportandoTodo: false });
+    },
+
+    iniciarExportacionA0(permitirVariasPaginas) {
+      set({ exportandoA0: true, permitirVariasPaginasA0: permitirVariasPaginas });
+    },
+    finalizarExportacionA0() {
+      set({ exportandoA0: false });
     },
 
     alternarPaleta() {

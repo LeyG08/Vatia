@@ -19,6 +19,7 @@ import PanelProyecto from "./componentes/PanelProyecto";
 import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
 import ExportacionProyecto from "./componentes/ExportacionProyecto";
+import ExportacionA0 from "./componentes/ExportacionA0";
 import AyudaAtajos from "./componentes/AyudaAtajos";
 import DialogoFuenteCortocircuito from "./componentes/DialogoFuenteCortocircuito";
 import DialogoConfirmacion from "./componentes/DialogoConfirmacion";
@@ -780,6 +781,7 @@ export default function App() {
         <PestanasHoja />
         <Editor />
         <ExportacionProyecto />
+        <ExportacionA0 />
       </div>
     </ReactFlowProvider>
   );
