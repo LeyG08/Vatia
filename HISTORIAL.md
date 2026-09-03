@@ -4937,3 +4937,62 @@ necesitan alcance propio antes de implementarse): exportar todos los
 unifilares a una sola hoja A0, símbolos multipolares tipo CADe SIMU
 con simulación de comando, y mover la fuente de cortocircuito de
 "Datos del proyecto" al alimentador principal.
+
+## E39 — Fuente de cortocircuito pasa del proyecto al alimentador principal
+
+**"Con la jerarquía ya no se necesitaría colocar la fuente de cto cto en
+Proyecto, sino que cuando se le asigne al alimentador ya debería estar
+solo en el alimentador principal... al crear la hoja del alimentador
+principal ya debería salir esto preguntado."** Hasta ahora Scc/Icc era
+un único valor global en "Datos del proyecto" — no tenía sentido en un
+proyecto con más de un alimentador principal (cada uno puede venir de
+una red distinta), y quedaba escondido en un panel que nadie asocia con
+la hoja concreta que representa.
+
+**Modelo de datos**: `fuente_cortocircuito` se mueve de `DatosProyecto`
+a `HojaConfig` (formato de archivo v4 → v5, `migrarAProyectoV5` en
+`tipos.ts`). Solo tiene sentido en la hoja del alimentador principal
+(raíz, sin `hojaPadreId`) — un tablero seccional cuelga de un circuito
+ya existente y hereda el recorrido, no declara su propia red. La
+migración traslada el valor único que hubiera en `datosProyecto` a la
+primera hoja del archivo (la única candidata razonable, porque antes de
+v5 solo podía existir un valor para todo el proyecto).
+
+**De paso, un bug real encontrado al tocar esta zona**: `fusionarHoja()`
+armaba el objeto `HojaConfig` del espejo (`s.hoja`) listando cada campo
+a mano, y **`accesorios` no estaba en esa lista** — cada vez que se
+cambiaba de pestaña de hoja, el espejo perdía los accesorios cargados
+(el dato real sobrevivía en `proyecto.hojas` porque el merge no toca
+claves ausentes, pero la pestaña "Materiales adicionales" se veía vacía
+hasta la próxima edición, y esa próxima edición corría el riesgo de
+guardar la lista vacía encima de la real). Corregido junto con el
+agregado de `fuente_cortocircuito` al mismo objeto.
+
+**UI**: nueva pestaña "Fuente de cortocircuito" en Configuración de
+hoja (junto a las de E38), deshabilitada con tooltip explicativo cuando
+la hoja activa no es la raíz — mismo patrón que ya usa el toggle
+unifilar/multifilar. Y el prompt pedido explícitamente: al colocar el
+**primer** alimentador de una hoja raíz que todavía no tiene fuente
+cargada, se abre un diálogo chico preguntando Scc/Icc en el momento
+("Guardar" o "Omitir por ahora" — se puede completar después desde la
+pestaña). No se dispara en hojas seccionales ni en alimentadores
+siguientes de la misma hoja.
+
+Se generalizó la caja de diálogo modal chico (antes
+`.dialogo-exportar`) a `.dialogo-caja` reutilizable, para no duplicar
+~50 líneas de CSS entre el diálogo de exportar y este nuevo.
+
+Verificado con Playwright real contra los tres flujos: (1) proyecto en
+blanco → colocar alimentador → prompt → guardar → valores visibles en
+la pestaña → un segundo alimentador NO reabre el prompt; (2) "Datos del
+proyecto" ya no muestra la sección vieja; (3) cargar un archivo v4 de
+prueba con `datosProyecto.fuente_cortocircuito` y una hoja hija →
+migra correctamente a la hoja raíz, la hoja hija muestra la pestaña
+deshabilitada. Sin errores de consola en ningún paso. `tsc -b`, `lint`,
+`build`, `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+Queda pendiente el resto del punch list original: exportar todos los
+unifilares a una sola hoja A0, y los símbolos multipolares tipo CADe
+SIMU con simulación de comando — ambos necesitan alcance propio antes
+de implementarse.

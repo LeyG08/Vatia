@@ -20,6 +20,7 @@ import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
 import ExportacionProyecto from "./componentes/ExportacionProyecto";
 import AyudaAtajos from "./componentes/AyudaAtajos";
+import DialogoFuenteCortocircuito from "./componentes/DialogoFuenteCortocircuito";
 import EditorSimbolos from "./componentes/EditorSimbolos";
 import { ESCALA, useEditor, tamanoNodoPx, esDatosAlimentador, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
@@ -749,6 +750,7 @@ function Editor() {
         </div>
         <PanelHoja />
         <PanelProyecto />
+        <DialogoFuenteCortocircuito />
       </div>
       {arrastre && simboloFantasma && (
         <div

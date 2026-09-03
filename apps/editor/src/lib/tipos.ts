@@ -286,6 +286,15 @@ export interface HojaConfig {
   /** Accesorios sin símbolo propio, para la lista de materiales. Opcional
    * (no exige migración de formato): ausente = sin accesorios cargados. */
   accesorios?: ItemAccesorio[];
+  /**
+   * Fuente de cortocircuito de la RED que alimenta este tablero (C42/E39).
+   * Vive en la hoja, no en el proyecto: solo tiene sentido en la hoja del
+   * alimentador principal (la hoja raíz, sin `hojaPadreId`) — las hojas de
+   * tableros seccionales cuelgan de un circuito ya existente y heredan el
+   * recorrido en vez de declarar su propia fuente. Opcional, igual que
+   * `accesorios`: ausente = sin cargar.
+   */
+  fuente_cortocircuito?: FuenteCortocircuito;
 }
 
 export function HOJA_POR_DEFECTO(): HojaConfig {
@@ -348,11 +357,17 @@ export type Normativa = "AEA" | "IEC";
 export type EsquemaPAT = "TT" | "TN-S" | "TN-C" | "IT";
 
 /**
- * Datos de cortocircuito de la fuente principal del proyecto. Sirve de
- * base para verificar Icc aguas abajo; no se consume todavía en ningún
- * cálculo — eso pertenece a la etapa de topología (recorrido del grafo),
- * junto con la idea de crear automáticamente el alimentador de las
- * cargas marcadas como "seccional" a partir de este dato.
+ * Datos de cortocircuito de la red que alimenta un tablero. Sirve de base
+ * para verificar Icc aguas abajo; no se consume todavía en ningún cálculo
+ * — eso pertenece a la etapa de topología (recorrido del grafo), junto con
+ * la idea de crear automáticamente el alimentador de las cargas marcadas
+ * como "seccional" a partir de este dato.
+ *
+ * Vivió en `DatosProyecto` hasta v4 (un solo valor para todo el
+ * proyecto); desde v5 es un campo de `HojaConfig` (E39): cada alimentador
+ * principal tiene su propia red aguas arriba, y un tablero seccional no
+ * tiene una fuente propia — hereda el recorrido del alimentador del que
+ * cuelga.
  */
 export interface FuenteCortocircuito {
   scc_mva?: number;
@@ -373,7 +388,6 @@ export interface DatosProyecto {
   /** Tensión fase-fase, en V */
   tension_linea_v: number;
   esquema_pat: EsquemaPAT;
-  fuente_cortocircuito?: FuenteCortocircuito;
 }
 
 export function DATOS_PROYECTO_POR_DEFECTO(): DatosProyecto {
@@ -387,8 +401,10 @@ export function DATOS_PROYECTO_POR_DEFECTO(): DatosProyecto {
 
 export interface Proyecto {
   /** Versión del formato de archivo: 3 = datos de proyecto (C41),
-   * 4 = modo de hoja unifilar/multifilar (Paso 3) */
-  version: 4;
+   * 4 = modo de hoja unifilar/multifilar (Paso 3), 5 = fuente de
+   * cortocircuito movida del proyecto a la hoja del alimentador
+   * principal (E39) */
+  version: 5;
   meta: {
     nombre: string;
     fechaCreacion: string;
@@ -431,9 +447,12 @@ function migrarEstructuraHojas(datos: unknown): EstructuraHastaV2 {
   const obj = parsed as Record<string, unknown>;
   const ahora = new Date().toISOString();
 
-  // Ya es v2, v3 o v4
+  // Ya es v2, v3, v4 o v5
   if (
-    (obj.version === 2 || obj.version === 3 || obj.version === 4) &&
+    (obj.version === 2 ||
+      obj.version === 3 ||
+      obj.version === 4 ||
+      obj.version === 5) &&
     Array.isArray(obj.hojas)
   ) {
     return parsed as EstructuraHastaV2;
@@ -484,19 +503,46 @@ function migrarEstructuraHojas(datos: unknown): EstructuraHastaV2 {
 /** Forma de una hoja guardada antes de que existiera "modo" (< v4) */
 type HojaSinModoGarantizado = Omit<Hoja, "modo"> & { modo?: ModoHoja };
 
-/** Migra cualquier dato guardado (v0/v1/v2/v3/v4, objeto o JSON string) a v4 */
-export function migrarAProyectoV4(datos: unknown): Proyecto {
+/** Forma de `datosProyecto` guardada antes de mover la fuente de
+ * cortocircuito a la hoja (< v5) */
+type DatosProyectoConFuenteLegada = DatosProyecto & {
+  fuente_cortocircuito?: FuenteCortocircuito;
+};
+
+/** Migra cualquier dato guardado (v0..v5, objeto o JSON string) a v5 */
+export function migrarAProyectoV5(datos: unknown): Proyecto {
   const estructura = migrarEstructuraHojas(datos);
-  return {
-    version: 4,
-    meta: estructura.meta,
-    // Hojas guardadas antes de "modo" (< v4) no lo traen: se completan
-    // con "unifilar" para no cambiar el comportamiento de proyectos viejos.
-    hojas: (estructura.hojas as HojaSinModoGarantizado[]).map((h) => ({
+  const datosProyectoBruto: DatosProyectoConFuenteLegada =
+    estructura.datosProyecto ?? DATOS_PROYECTO_POR_DEFECTO();
+  // v4 → v5: la fuente de cortocircuito era un dato único de todo el
+  // proyecto; pasa a vivir en la hoja del alimentador principal (E39).
+  // Como antes solo podía haber un valor, se traslada a la primera hoja
+  // — es la que representaba ese único alimentador antes de que la
+  // jerarquía de hojas existiera. Si esa hoja ya trae su propio valor
+  // (el archivo ya era v5) no se pisa.
+  const fuenteLegada = datosProyectoBruto.fuente_cortocircuito;
+  const hojas = (estructura.hojas as HojaSinModoGarantizado[]).map(
+    (h, i) => ({
       ...h,
+      // Hojas guardadas antes de "modo" (< v4) no lo traen: se completan
+      // con "unifilar" para no cambiar el comportamiento de proyectos viejos.
       modo: h.modo ?? "unifilar",
-    })),
-    datosProyecto: estructura.datosProyecto ?? DATOS_PROYECTO_POR_DEFECTO(),
+      ...(i === 0 && fuenteLegada && !h.fuente_cortocircuito
+        ? { fuente_cortocircuito: fuenteLegada }
+        : {}),
+    }),
+  );
+  const datosProyecto: DatosProyecto = {
+    normativa: datosProyectoBruto.normativa,
+    tension_fase_v: datosProyectoBruto.tension_fase_v,
+    tension_linea_v: datosProyectoBruto.tension_linea_v,
+    esquema_pat: datosProyectoBruto.esquema_pat,
+  };
+  return {
+    version: 5,
+    meta: estructura.meta,
+    hojas,
+    datosProyecto,
   };
 }
 

@@ -9,6 +9,7 @@ const SECCIONES = [
   { id: "pagina", label: "Página", icono: "📐" },
   { id: "encabezado", label: "Encabezado y notas", icono: "📝" },
   { id: "rotulo", label: "Rótulo IRAM 4508", icono: "🏷️" },
+  { id: "cortocircuito", label: "Fuente de cortocircuito", icono: "⚡" },
   { id: "materiales", label: "Materiales adicionales", icono: "📦" },
 ] as const;
 type SeccionId = (typeof SECCIONES)[number]["id"];
@@ -42,13 +43,26 @@ function PanelHoja() {
   const hoja = useEditor((s) => s.hoja);
   const actualizar = useEditor((s) => s.actualizarHoja);
   const hayNodos = useEditor((s) => s.nodos.length > 0);
+  // La fuente de cortocircuito solo tiene sentido en la hoja del
+  // alimentador principal (raíz, sin hojaPadreId) — una hoja seccional
+  // cuelga de un circuito ya existente y no declara su propia red (E39).
+  const esAlimentadorPrincipal = useEditor((s) => {
+    const activa = s.proyecto.hojas.find((h) => h.id === s.hojaActivaId);
+    return !activa?.hojaPadreId;
+  });
   const [seccion, setSeccion] = useState<SeccionId>("pagina");
+  // Si la hoja activa cambió y ya no es la del alimentador principal,
+  // no mostrar la pestaña de cortocircuito seleccionada (quedaría
+  // vacía) — se deriva en el render en vez de sincronizar con un efecto.
+  const seccionMostrada: SeccionId =
+    seccion === "cortocircuito" && !esAlimentadorPrincipal ? "pagina" : seccion;
 
   if (!abierto) return null;
   const [mmCorto, mmLargo] = TAMANIOS_HOJA_MM[hoja.formato];
   const mmW = hoja.orientacion === "horizontal" ? mmLargo : mmCorto;
   const mmH = hoja.orientacion === "horizontal" ? mmCorto : mmLargo;
   const rotulo = hoja.rotulo;
+  const fuenteCc = hoja.fuente_cortocircuito ?? {};
 
   const setRotulo = (patch: Partial<typeof rotulo>) =>
     actualizar({ rotulo: patch });
@@ -109,24 +123,33 @@ function PanelHoja() {
 
         <div className="panel-hoja-layout">
           <nav className="panel-hoja-tabs" aria-label="Secciones de la hoja">
-            {SECCIONES.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={seccion === s.id ? "activo" : ""}
-                aria-current={seccion === s.id}
-                onClick={() => setSeccion(s.id)}
-              >
-                <span className="panel-hoja-tab-icono" aria-hidden="true">
-                  {s.icono}
-                </span>
-                {s.label}
-              </button>
-            ))}
+            {SECCIONES.map((s) => {
+              const bloqueada = s.id === "cortocircuito" && !esAlimentadorPrincipal;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={seccionMostrada === s.id ? "activo" : ""}
+                  aria-current={seccionMostrada === s.id}
+                  disabled={bloqueada}
+                  title={
+                    bloqueada
+                      ? "Esta hoja cuelga de otro tablero — la fuente de cortocircuito se carga en la hoja del alimentador principal (la hoja raíz)."
+                      : undefined
+                  }
+                  onClick={() => setSeccion(s.id)}
+                >
+                  <span className="panel-hoja-tab-icono" aria-hidden="true">
+                    {s.icono}
+                  </span>
+                  {s.label}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="panel-hoja-contenido">
-            {seccion === "pagina" && (
+            {seccionMostrada === "pagina" && (
               <div className="panel-hoja-bloque">
                 <label className="panel-hoja-campo">
                   <span>Formato (serie A)</span>
@@ -200,7 +223,7 @@ function PanelHoja() {
               </div>
             )}
 
-            {seccion === "encabezado" && (
+            {seccionMostrada === "encabezado" && (
               <>
                 <h3>Encabezado del tablero</h3>
                 <div className="panel-hoja-bloque">
@@ -268,7 +291,7 @@ function PanelHoja() {
               </>
             )}
 
-            {seccion === "rotulo" && (
+            {seccionMostrada === "rotulo" && (
               <div className="panel-hoja-bloque">
                 <Campo
                   etiqueta="Empresa"
@@ -384,7 +407,58 @@ function PanelHoja() {
               </div>
             )}
 
-            {seccion === "materiales" && (
+            {seccionMostrada === "cortocircuito" && esAlimentadorPrincipal && (
+              <div className="panel-hoja-bloque">
+                <p className="panel-hoja-ayuda">
+                  Dato de la red que alimenta este tablero, para verificar
+                  Icc aguas abajo. Todavía no lo consume ningún cálculo
+                  (falta el recorrido del tablero); se carga acá para no
+                  perderlo. Las hojas de tableros seccionales no tienen
+                  esta sección — heredan el recorrido del alimentador del
+                  que cuelgan.
+                </p>
+                <div className="panel-hoja-dos-col">
+                  <label className="panel-hoja-campo">
+                    <span>Potencia de cortocircuito Scc (MVA)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fuenteCc.scc_mva ?? ""}
+                      onChange={(e) =>
+                        actualizar({
+                          fuente_cortocircuito: {
+                            scc_mva:
+                              e.target.value === ""
+                                ? undefined
+                                : Number.parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="panel-hoja-campo">
+                    <span>Corriente de cortocircuito Icc (kA)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fuenteCc.icc_ka ?? ""}
+                      onChange={(e) =>
+                        actualizar({
+                          fuente_cortocircuito: {
+                            icc_ka:
+                              e.target.value === ""
+                                ? undefined
+                                : Number.parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {seccionMostrada === "materiales" && (
               <>
                 <p className="panel-hoja-ayuda">
                   Ítems sin símbolo propio en el plano — terminales, peines de

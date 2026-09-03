@@ -1149,7 +1149,10 @@ body.arrastrando .paleta-item {
 }
 
 /* ---- Diálogo "Exportar proyecto" (reemplaza los window.confirm) ---- */
-.dialogo-exportar {
+/* Caja genérica de diálogo modal chico (confirmaciones, prompts
+ * puntuales) — la usan DialogoExportarProyecto y
+ * DialogoFuenteCortocircuito, y cualquier diálogo nuevo del mismo tipo. */
+.dialogo-caja {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -1162,14 +1165,14 @@ body.arrastrando .paleta-item {
   box-shadow: var(--sombra-panel);
   padding: 16px 18px;
 }
-.dialogo-exportar h2 {
+.dialogo-caja h2 {
   margin: 0 0 12px;
   padding-bottom: 10px;
   border-bottom: 2px solid var(--acento-suave);
   font-size: 16px;
   letter-spacing: 0.2px;
 }
-.dialogo-exportar-aviso {
+.dialogo-aviso {
   margin: 0 0 12px;
   padding: 8px 10px;
   border-radius: var(--radio-chico);
@@ -1179,7 +1182,7 @@ body.arrastrando .paleta-item {
   font-size: 12px;
   line-height: 1.4;
 }
-[data-theme="dark"] .dialogo-exportar-aviso {
+[data-theme="dark"] .dialogo-aviso {
   background: var(--bg-surface-alt);
   border-color: var(--borde);
   color: #fbbf24;
@@ -1198,13 +1201,13 @@ body.arrastrando .paleta-item {
   accent-color: var(--acento);
   cursor: pointer;
 }
-.dialogo-exportar-pie {
+.dialogo-pie {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;
 }
-.dialogo-exportar-pie button {
+.dialogo-pie button {
   border: 1px solid var(--borde);
   border-radius: var(--radio-chico);
   background: var(--bg-surface);
@@ -1213,17 +1216,17 @@ body.arrastrando .paleta-item {
   cursor: pointer;
   font-size: 13px;
 }
-.dialogo-exportar-pie button:hover {
+.dialogo-pie button:hover {
   border-color: var(--acento);
   color: var(--acento);
 }
-.dialogo-exportar-pie button.primario {
+.dialogo-pie button.primario {
   background: var(--acento);
   border-color: var(--acento);
   color: var(--acento-texto);
   font-weight: 600;
 }
-.dialogo-exportar-pie button.primario:hover {
+.dialogo-pie button.primario:hover {
   background: var(--acento-fuerte);
   border-color: var(--acento-fuerte);
   color: var(--acento-texto);
@@ -2962,7 +2965,7 @@ body.arrastrando .paleta-item {
   .fantasma-arrastre,
   .modal-fondo,
   .ayuda-atajos,
-  .dialogo-exportar,
+  .dialogo-caja,
   .react-flow__background,
   .react-flow__minimap,
   .react-flow__controls,

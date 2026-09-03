@@ -61,8 +61,9 @@ método de instalación por código de letra (A1/A2/B1/B2/C/D/E/F/G).
   normativa** (no una constante en el código — ya es la decisión de
   diseño registrada), para que AEA e IEC convivan.
 - **4c — Icc en el extremo del tramo (IEC 60909).** Necesita: impedancia
-  de la fuente (`fuente_cortocircuito` ya existe en `datosProyecto`, sin
-  consumir), impedancia del transformador (`sn_kva` + `impedancia_pct` ya
+  de la fuente (`fuente_cortocircuito` ya existe en la hoja del
+  alimentador principal desde E39, sin consumir), impedancia del
+  transformador (`sn_kva` + `impedancia_pct` ya
   se cargan pero solo se imprimen como texto en `anotaciones.ts`) e
   impedancia del cable (derivable de `longitud_m` + `seccion_fase_mm2` +
   `material`, mismo dato que ya usa 4a). Con eso: comparar contra

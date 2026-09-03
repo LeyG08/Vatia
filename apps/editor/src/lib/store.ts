@@ -19,7 +19,7 @@ import {
   NOTAS_GABINETE_POR_DEFECTO,
   ROTULO_POR_DEFECTO,
   hojaNuevaDesde,
-  migrarAProyectoV4,
+  migrarAProyectoV5,
   rectanguloUtil,
   type AlimentadorConfig,
   type ConexionProyecto,
@@ -155,6 +155,17 @@ function fusionarHoja(
           ? parcial.notaSeguridad
           : base.notaSeguridad,
       rotulo: fusionarRotulo(parcial.rotulo),
+      // Campos opcionales simples: se pasan tal cual si están, sin
+      // fusión de subcampos (a diferencia de rotulo/notasGabinete). Antes
+      // "accesorios" quedaba afuera de este objeto por completo, así que
+      // el espejo `s.hoja` lo perdía cada vez que se cambiaba de pestaña
+      // (los datos reales sobrevivían en `proyecto.hojas` porque el merge
+      // de más arriba no toca claves ausentes, pero la UI mostraba la
+      // lista vacía hasta la próxima edición) — bug real, no cosmético.
+      accesorios: Array.isArray(parcial.accesorios)
+        ? parcial.accesorios
+        : base.accesorios,
+      fuente_cortocircuito: parcial.fuente_cortocircuito,
     },
     alimentadoresLegado,
   };
@@ -495,22 +506,29 @@ interface EstadoEditor {
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
+  /**
+   * Id de la hoja para la que se acaba de colocar el primer alimentador
+   * (E39): dispara el prompt de "Fuente de cortocircuito" una sola vez,
+   * en el momento en que tiene sentido preguntarlo. `null` = sin prompt
+   * pendiente.
+   */
+  promptCortocircuitoHojaId: string | null;
+  cerrarPromptCortocircuito: () => void;
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
   alternarPanelProyecto: () => void;
   alternarAdmin: () => void;
   actualizarHoja: (
-    patch: Partial<Omit<HojaConfig, "rotulo" | "notasGabinete">> & {
+    patch: Partial<
+      Omit<HojaConfig, "rotulo" | "notasGabinete" | "fuente_cortocircuito">
+    > & {
       rotulo?: Partial<RotuloConfig>;
       notasGabinete?: Partial<NotasGabineteConfig>;
-    },
-  ) => void;
-  /** Datos eléctricos base del proyecto (tensión, esquema PAT, normativa) */
-  actualizarDatosProyecto: (
-    patch: Partial<Omit<DatosProyecto, "fuente_cortocircuito">> & {
       fuente_cortocircuito?: Partial<FuenteCortocircuito>;
     },
   ) => void;
+  /** Datos eléctricos base del proyecto (tensión, esquema PAT, normativa) */
+  actualizarDatosProyecto: (patch: Partial<DatosProyecto>) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
   agregarAlimentador: (x?: number, y?: number) => void;
   actualizarDatosAlimentador: (
@@ -702,7 +720,7 @@ function proyectoInicial(): { proyecto: Proyecto; hojaId: string } {
   const hoja = hojaNuevaDesde(HOJA_POR_DEFECTO(), "Hoja 1");
   return {
     proyecto: {
-      version: 4,
+      version: 5,
       meta: {
         nombre: "proyecto_sin_nombre",
         fechaCreacion: new Date().toISOString(),
@@ -791,9 +809,14 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     incluirBomEnExportacion: false,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
+    promptCortocircuitoHojaId: null,
 
     descartarAvisoRecuperado() {
       set({ avisoRecuperado: false });
+    },
+
+    cerrarPromptCortocircuito() {
+      set({ promptCortocircuitoHojaId: null });
     },
 
     iniciarExportacionCompleta(incluirBom) {
@@ -819,17 +842,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       set((s) => ({
         proyecto: {
           ...s.proyecto,
-          datosProyecto: {
-            ...s.proyecto.datosProyecto,
-            ...patch,
-            fuente_cortocircuito:
-              patch.fuente_cortocircuito !== undefined
-                ? {
-                    ...s.proyecto.datosProyecto.fuente_cortocircuito,
-                    ...patch.fuente_cortocircuito,
-                  }
-                : s.proyecto.datosProyecto.fuente_cortocircuito,
-          },
+          datosProyecto: { ...s.proyecto.datosProyecto, ...patch },
         },
       }));
     },
@@ -854,6 +867,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             ...(patch.notasGabinete ?? {}),
           },
           rotulo: { ...s.hoja.rotulo, ...(patch.rotulo ?? {}) },
+          fuente_cortocircuito:
+            patch.fuente_cortocircuito !== undefined
+              ? { ...s.hoja.fuente_cortocircuito, ...patch.fuente_cortocircuito }
+              : s.hoja.fuente_cortocircuito,
         },
       }));
       const espejo = get().hoja;
@@ -935,6 +952,22 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         do: () => set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), nodo] })),
         undo: () => set((s) => ({ nodos: s.nodos.filter((n) => n.id !== nodo.id) })),
       });
+
+      // Primer alimentador de una hoja RAÍZ (alimentador principal) que
+      // todavía no tiene fuente de cortocircuito cargada: se pregunta acá
+      // mismo, en el momento en que "se le asigna al alimentador" (E39) —
+      // en vez de dejarlo escondido en Configuración de hoja hasta que a
+      // alguien se le ocurra ir a buscarlo. Una hoja seccional (cuelga de
+      // otro tablero) no tiene fuente propia, así que no se pregunta ahí.
+      const fuenteActual = get().hoja.fuente_cortocircuito;
+      if (
+        existentes === 0 &&
+        get().hojaPadreDeActiva() === null &&
+        !fuenteActual?.scc_mva &&
+        !fuenteActual?.icc_ka
+      ) {
+        set({ promptCortocircuitoHojaId: get().hojaActivaId });
+      }
     },
 
     actualizarDatosAlimentador(id, patch) {
@@ -1874,7 +1907,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
 
     cargarProyecto(entrada) {
-      const bruto = migrarAProyectoV4(entrada);
+      const bruto = migrarAProyectoV5(entrada);
 
       const problemas: string[] = [];
       const hojasNormalizadas: Hoja[] = bruto.hojas.map((h) => {
@@ -1895,7 +1928,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       }
 
       const proyecto: Proyecto = {
-        version: 4,
+        version: 5,
         meta: bruto.meta ?? {
           nombre: "proyecto_sin_nombre",
           fechaCreacion: new Date().toISOString(),

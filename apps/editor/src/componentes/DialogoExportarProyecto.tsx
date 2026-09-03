@@ -24,14 +24,14 @@ export default function DialogoExportarProyecto({
     <>
       <div className="modal-fondo" onClick={onCancelar} />
       <section
-        className="dialogo-exportar"
+        className="dialogo-caja dialogo-exportar"
         role="dialog"
         aria-label="Exportar proyecto a PDF"
       >
         <h2>Exportar proyecto a PDF</h2>
 
         {totalPendientes > 0 && (
-          <p className="dialogo-exportar-aviso">
+          <p className="dialogo-aviso">
             El proyecto tiene {totalPendientes} pendiente
             {totalPendientes === 1 ? "" : "s"} de ficha técnica (Checklist
             AEA, todas las hojas). No bloquea la exportación.
@@ -47,7 +47,7 @@ export default function DialogoExportarProyecto({
           <span>Incluir lista de materiales como última página</span>
         </label>
 
-        <footer className="dialogo-exportar-pie">
+        <footer className="dialogo-pie">
           <button type="button" onClick={onCancelar}>
             Cancelar
           </button>

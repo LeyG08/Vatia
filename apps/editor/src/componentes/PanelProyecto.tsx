@@ -21,7 +21,6 @@ function PanelProyecto() {
   const actualizar = useEditor((s) => s.actualizarDatosProyecto);
 
   if (!abierto) return null;
-  const fuente = datos.fuente_cortocircuito ?? {};
 
   return (
     <>
@@ -99,53 +98,12 @@ function PanelProyecto() {
           </label>
         </div>
 
-        <h3>Fuente de cortocircuito</h3>
-
-        <div className="panel-hoja-bloque">
-          <p className="panel-hoja-dimension">
-            Dato de la alimentación principal, para verificar Icc aguas
-            abajo. Todavía no lo consume ningún cálculo (falta el recorrido
-            del tablero); se carga acá para no perderlo.
-          </p>
-          <div className="panel-hoja-dos-col">
-            <label className="panel-hoja-campo">
-              <span>Potencia de cortocircuito Scc (MVA)</span>
-              <input
-                type="number"
-                min={0}
-                value={valorComoTexto(fuente.scc_mva)}
-                onChange={(e) =>
-                  actualizar({
-                    fuente_cortocircuito: {
-                      scc_mva:
-                        e.target.value === ""
-                          ? undefined
-                          : Number.parseFloat(e.target.value),
-                    },
-                  })
-                }
-              />
-            </label>
-            <label className="panel-hoja-campo">
-              <span>Corriente de cortocircuito Icc (kA)</span>
-              <input
-                type="number"
-                min={0}
-                value={valorComoTexto(fuente.icc_ka)}
-                onChange={(e) =>
-                  actualizar({
-                    fuente_cortocircuito: {
-                      icc_ka:
-                        e.target.value === ""
-                          ? undefined
-                          : Number.parseFloat(e.target.value),
-                    },
-                  })
-                }
-              />
-            </label>
-          </div>
-        </div>
+        <p className="panel-hoja-ayuda">
+          La fuente de cortocircuito (Scc / Icc) ahora se carga por
+          alimentador, en Hoja… → Fuente de cortocircuito de la hoja del
+          alimentador principal — no es un dato único de todo el proyecto,
+          porque cada alimentador puede venir de una red distinta.
+        </p>
 
         <footer className="panel-hoja-pie">
           <button type="button" onClick={alternar}>
