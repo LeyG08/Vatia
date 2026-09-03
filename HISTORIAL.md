@@ -5077,3 +5077,38 @@ arriba a la izquierda de la hoja) se superpone visualmente con la
 anotación de una barra colocada cerca de esa zona — no se tocó: no está
 claro si el diseño correcto es que las notas reserven su espacio o que
 las barras lo eviten, y no era parte de lo pedido.
+
+## E41 — Diálogos nativos del navegador reemplazados por diálogos en página
+
+**"Todas las advertencias que surjan como una ventana emergente del
+navegador quiero que eso esté integrado en la propia página"** — los 4
+`window.confirm()`/`alert()` que quedaban en el editor (exportar hoja
+con pendientes, empezar proyecto en blanco, error al cargar un archivo
+inválido, eliminar una hoja) se reemplazan por un diálogo genérico en
+página (`DialogoConfirmacion.tsx`), controlado por el store
+(`confirmacion`, `pedirConfirmacion()`, `mostrarAlerta()`,
+`cerrarConfirmacion()`) — mismo patrón ya usado para el prompt de
+fuente de cortocircuito (E39). Un solo componente cubre los dos casos:
+con `onConfirmar` es una confirmación (Cancelar/Confirmar), sin él es
+una alerta simple (un solo botón Aceptar). Verificado en vivo con
+Playwright interceptando el evento `dialog` de Chromium: ningún
+`window.confirm`/`alert` nativo se dispara en los 3 flujos que antes lo
+usaban, sin errores de consola.
+
+**"Algunos textos que describen qué es cada cosa en los menús se
+solapan o están cortados."** Encontrado uno concreto tras revisar los
+paneles principales (Paleta, Configuración de hoja completa, Datos del
+proyecto, formularios de conductor/carga/aparato, atajos de teclado):
+en el editor de símbolos (admin), el nombre del símbolo en la lista
+lateral truncaba con "…" a una sola línea — "Interruptor automático en
+caja moldeada (MCCB)" quedaba cortado sin forma de leerlo completo. La
+fila es flex sin alto fijo, así que se cambió a permitir el salto a 2
+líneas en vez de truncar, igual que ya hace el nombre en la paleta
+principal.
+
+No encontré otros casos de solapamiento real en una revisión de los
+paneles de uso frecuente (puede haber más en zonas no cubiertas; si el
+usuario señala cuál, se corrige puntual).
+
+Verificado: `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.

@@ -1181,6 +1181,13 @@ body.arrastrando .paleta-item {
   font-size: 16px;
   letter-spacing: 0.2px;
 }
+.dialogo-mensaje {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-line;
+}
 .dialogo-aviso {
   margin: 0 0 12px;
   padding: 8px 10px;
@@ -2721,9 +2728,11 @@ body.arrastrando .paleta-item {
 .editor-simbolos-nombre {
   font-size: 11px;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Antes truncaba con "..." a una sola línea — nombres largos como
+   * "Interruptor automático en caja moldeada (MCCB)" quedaban cortados
+   * sin forma de leerlos completos. La fila es flex sin alto fijo, así
+   * que dejar que envuelva a 2 líneas no rompe nada. */
+  overflow-wrap: break-word;
 }
 
 .editor-simbolos-badge {

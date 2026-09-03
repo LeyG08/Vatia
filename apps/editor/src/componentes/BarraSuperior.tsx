@@ -30,6 +30,8 @@ function BarraSuperior() {
   const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
   const iniciarExportacionFn = useEditor((s) => s.iniciarExportacionCompleta);
   const finalizarExportacionFn = useEditor((s) => s.finalizarExportacionCompleta);
+  const pedirConfirmacion = useEditor((s) => s.pedirConfirmacion);
+  const mostrarAlerta = useEditor((s) => s.mostrarAlerta);
   const { setViewport, getViewport, setEdges } = useReactFlow();
   const [dialogoExportar, setDialogoExportar] = useState<{ totalPendientes: number } | null>(null);
 
@@ -85,12 +87,16 @@ function BarraSuperior() {
     const problemas = armarChecklist(nodos, conexiones, hoja.modo);
     const totalPendientes = problemas.reduce((t, p) => t + p.mensajes.length, 0);
     if (totalPendientes > 0) {
-      const seguir = window.confirm(
+      pedirConfirmacion(
         `Esta hoja tiene ${totalPendientes} pendiente${totalPendientes === 1 ? "" : "s"} de ficha técnica (Checklist AEA). ¿Exportar igual?`,
+        confirmarExportarPdf,
       );
-      if (!seguir) return;
+      return;
     }
+    confirmarExportarPdf();
+  }
 
+  function confirmarExportarPdf() {
     seleccionarNodosFn([]);
     setEdges((eds) => eds.map((e) => (e.selected ? { ...e, selected: false } : e)));
 
@@ -161,13 +167,10 @@ function BarraSuperior() {
   }
 
   function nuevoProyecto() {
-    if (
-      window.confirm(
-        "¿Empezar un proyecto en blanco? Se pierde el trabajo actual (descargalo con Guardar antes, si querés conservarlo).",
-      )
-    ) {
-      nuevoProyectoFn();
-    }
+    pedirConfirmacion(
+      "¿Empezar un proyecto en blanco? Se pierde el trabajo actual (descargalo con Guardar antes, si querés conservarlo).",
+      nuevoProyectoFn,
+    );
   }
 
   async function abrir(e: React.ChangeEvent<HTMLInputElement>) {
@@ -185,7 +188,7 @@ function BarraSuperior() {
       }
       cargar(texto);
     } catch (err) {
-      alert(`No se pudo cargar el proyecto: ${String(err)}`);
+      mostrarAlerta(`No se pudo cargar el proyecto: ${String(err)}`);
     }
     e.target.value = "";
   }

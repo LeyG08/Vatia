@@ -18,6 +18,7 @@ export default function PestanasHoja() {
     s.proyecto.hojas.find((h) => h.id === activa)?.hojaPadreId,
   );
   const irAHojaPadre = useEditor((s) => s.irAHojaPadre);
+  const pedirConfirmacion = useEditor((s) => s.pedirConfirmacion);
 
   const [editando, setEditando] = useState<string | null>(null);
   const [borrador, setBorrador] = useState("");
@@ -111,13 +112,10 @@ export default function PestanasHoja() {
                   title="Eliminar hoja con todo su contenido"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (
-                      window.confirm(
-                        `¿Eliminar la hoja «${h.nombre}» con todo su contenido? Esta acción no se puede deshacer.`,
-                      )
-                    ) {
-                      eliminarHojaFn(h.id);
-                    }
+                    pedirConfirmacion(
+                      `¿Eliminar la hoja «${h.nombre}» con todo su contenido? Esta acción no se puede deshacer.`,
+                      () => eliminarHojaFn(h.id),
+                    );
                   }}
                 >
                   ✕

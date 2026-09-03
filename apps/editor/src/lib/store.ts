@@ -514,6 +514,17 @@ interface EstadoEditor {
    */
   promptCortocircuitoHojaId: string | null;
   cerrarPromptCortocircuito: () => void;
+  /**
+   * Reemplaza `window.confirm`/`window.alert` (E41): esos diálogos
+   * nativos del navegador no se pueden estilar ni quedan integrados a
+   * la página — el usuario los señaló como algo que no quiere ver más.
+   * `null` = sin diálogo pendiente. `onConfirmar` es `undefined` para
+   * una alerta simple (un solo botón "Aceptar").
+   */
+  confirmacion: { mensaje: string; onConfirmar?: () => void } | null;
+  pedirConfirmacion: (mensaje: string, onConfirmar: () => void) => void;
+  mostrarAlerta: (mensaje: string) => void;
+  cerrarConfirmacion: () => void;
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
   alternarPanelProyecto: () => void;
@@ -810,6 +821,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
     promptCortocircuitoHojaId: null,
+    confirmacion: null,
 
     descartarAvisoRecuperado() {
       set({ avisoRecuperado: false });
@@ -817,6 +829,18 @@ export const useEditor = create<EstadoEditor>((set, get) => {
 
     cerrarPromptCortocircuito() {
       set({ promptCortocircuitoHojaId: null });
+    },
+
+    pedirConfirmacion(mensaje, onConfirmar) {
+      set({ confirmacion: { mensaje, onConfirmar } });
+    },
+
+    mostrarAlerta(mensaje) {
+      set({ confirmacion: { mensaje } });
+    },
+
+    cerrarConfirmacion() {
+      set({ confirmacion: null });
     },
 
     iniciarExportacionCompleta(incluirBom) {
