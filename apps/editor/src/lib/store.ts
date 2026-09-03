@@ -486,7 +486,11 @@ interface EstadoEditor {
   /** true mientras se arma la vista de impresión de TODAS las hojas
    * (exportarProyectoCompletoPdf en BarraSuperior) — ver ExportacionProyecto.tsx */
   exportandoTodo: boolean;
-  iniciarExportacionCompleta: () => void;
+  /** si la exportación en curso agrega la página de lista de materiales
+   * al final — se pregunta cada vez (BarraSuperior), no es una preferencia
+   * fija: no toda impresión necesita la lista. */
+  incluirBomEnExportacion: boolean;
+  iniciarExportacionCompleta: (incluirBom: boolean) => void;
   finalizarExportacionCompleta: () => void;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
@@ -784,6 +788,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
     avisoRecuperado: false,
     exportandoTodo: false,
+    incluirBomEnExportacion: false,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
 
@@ -791,8 +796,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       set({ avisoRecuperado: false });
     },
 
-    iniciarExportacionCompleta() {
-      set({ exportandoTodo: true });
+    iniciarExportacionCompleta(incluirBom) {
+      set({ exportandoTodo: true, incluirBomEnExportacion: incluirBom });
     },
     finalizarExportacionCompleta() {
       set({ exportandoTodo: false });

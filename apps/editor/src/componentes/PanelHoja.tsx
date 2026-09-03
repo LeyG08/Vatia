@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { useEditor } from "../lib/store";
 import { TAMANIOS_HOJA_MM } from "../lib/tipos";
-import type { FormatoHoja, ModoHoja, OrientacionHoja } from "../lib/tipos";
+import type { FormatoHoja, ItemAccesorio, ModoHoja, OrientacionHoja } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
 
@@ -69,6 +69,23 @@ function PanelHoja() {
     );
     setRotulo({ responsables: lista });
   };
+
+  /* ---- Accesorios: ítems de la lista de materiales sin símbolo propio
+   * (terminales, peines de conexión, bornera de distribución…) ---- */
+  const accesorios = hoja.accesorios ?? [];
+  const agregarAccesorio = () =>
+    actualizar({
+      accesorios: [
+        ...accesorios,
+        { id: crypto.randomUUID(), descripcion: "", cantidad: 1 },
+      ],
+    });
+  const actualizarAccesorio = (id: string, cambios: Partial<ItemAccesorio>) =>
+    actualizar({
+      accesorios: accesorios.map((a) => (a.id === id ? { ...a, ...cambios } : a)),
+    });
+  const eliminarAccesorio = (id: string) =>
+    actualizar({ accesorios: accesorios.filter((a) => a.id !== id) });
 
   return (
     <>
@@ -308,6 +325,67 @@ function PanelHoja() {
             onChange={(v) => setRotulo({ paginacion: v })}
             placeholder="1/1"
           />
+        </div>
+
+        <h3>Lista de materiales adicional</h3>
+        <p className="panel-hoja-ayuda">
+          Ítems sin símbolo propio en el plano — terminales, peines de
+          conexión, bornera de distribución, lo que haga falta. Se suman a
+          la lista de materiales del PDF (opcional al exportar el
+          proyecto completo).
+        </p>
+        <div className="panel-hoja-bloque panel-hoja-accesorios">
+          {accesorios.map((a) => (
+            <div key={a.id} className="accesorio-fila">
+              <input
+                className="accesorio-descripcion"
+                placeholder="Descripción (ej.: Terminal punta de lanza 2,5 mm²)"
+                value={a.descripcion}
+                onChange={(e) =>
+                  actualizarAccesorio(a.id, { descripcion: e.target.value })
+                }
+              />
+              <input
+                type="number"
+                min={1}
+                step={1}
+                className="accesorio-cantidad"
+                value={a.cantidad}
+                onChange={(e) =>
+                  actualizarAccesorio(a.id, {
+                    cantidad: Math.max(1, Number.parseInt(e.target.value, 10) || 1),
+                  })
+                }
+              />
+              <input
+                className="accesorio-marca"
+                placeholder="Marca"
+                value={a.marca ?? ""}
+                onChange={(e) =>
+                  actualizarAccesorio(a.id, { marca: e.target.value || undefined })
+                }
+              />
+              <input
+                className="accesorio-modelo"
+                placeholder="Modelo"
+                value={a.modelo ?? ""}
+                onChange={(e) =>
+                  actualizarAccesorio(a.id, { modelo: e.target.value || undefined })
+                }
+              />
+              <button
+                type="button"
+                className="accesorio-quitar"
+                title="Quitar este accesorio"
+                onClick={() => eliminarAccesorio(a.id)}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          <button type="button" className="accesorio-agregar" onClick={agregarAccesorio}>
+            + Agregar accesorio
+          </button>
         </div>
 
         <footer className="panel-hoja-pie">

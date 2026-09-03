@@ -257,6 +257,20 @@ export function NOTAS_GABINETE_POR_DEFECTO(): NotasGabineteConfig {
  * control — misma mecánica de canvas, otra paleta de símbolos. */
 export type ModoHoja = "unifilar" | "multifilar";
 
+/**
+ * Ítem de la lista de materiales que NO tiene símbolo propio en el plano:
+ * terminales, peines de conexión, bornera de distribución, precintos,
+ * canaleta — lo que haga falta. La lista de materiales del PDF combina
+ * esto con los símbolos ya colocados (código, marca, modelo, cantidad).
+ */
+export interface ItemAccesorio {
+  id: string;
+  descripcion: string;
+  cantidad: number;
+  marca?: string;
+  modelo?: string;
+}
+
 export interface HojaConfig {
   formato: FormatoHoja;
   orientacion: OrientacionHoja;
@@ -269,6 +283,9 @@ export interface HojaConfig {
   notaSeguridad: string;
   /** Rótulo IRAM 4508 del vértice inferior derecho */
   rotulo: RotuloConfig;
+  /** Accesorios sin símbolo propio, para la lista de materiales. Opcional
+   * (no exige migración de formato): ausente = sin accesorios cargados. */
+  accesorios?: ItemAccesorio[];
 }
 
 export function HOJA_POR_DEFECTO(): HojaConfig {
@@ -282,6 +299,7 @@ export function HOJA_POR_DEFECTO(): HojaConfig {
     notasGabinete: NOTAS_GABINETE_POR_DEFECTO(),
     notaSeguridad: "",
     rotulo: ROTULO_POR_DEFECTO(),
+    accesorios: [],
   };
 }
 

@@ -129,7 +129,13 @@ function BarraSuperior() {
       if (!seguir) return;
     }
 
-    iniciarExportacionFn();
+    // La lista de materiales se pregunta cada vez: no toda impresión la
+    // necesita (un plano de revisión rápida, por ejemplo).
+    const incluirBom = window.confirm(
+      "¿Incluir la lista de materiales como última página del PDF?",
+    );
+
+    iniciarExportacionFn(incluirBom);
     document.body.classList.add("exportando-todo");
 
     function restaurar() {

@@ -19,6 +19,10 @@ interface FilaBom {
  * agrupando cantidades repetidas. Los alimentadores no son un ítem físico
  * (representan "acá entra la alimentación", no un aparato) y quedan
  * afuera; las barras sí cuentan (juego de barras es un ítem real).
+ *
+ * Se suman también los accesorios cargados a mano por hoja (PanelHoja —
+ * terminales, peines de conexión, bornera de distribución…): no tienen
+ * símbolo en el plano, así que no hay forma de detectarlos solos.
  */
 function construirBom(hojas: Hoja[]): FilaBom[] {
   const filas = new Map<string, FilaBom>();
@@ -34,6 +38,17 @@ function construirBom(hojas: Hoja[]): FilaBom[] {
       const existente = filas.get(clave);
       if (existente) existente.cantidad += 1;
       else filas.set(clave, { hoja: hoja.nombre, codigo, nombre, marca, modelo, cantidad: 1 });
+    }
+    for (const a of hoja.accesorios ?? []) {
+      if (a.descripcion.trim() === "") continue;
+      filas.set(`${hoja.nombre}|accesorio|${a.id}`, {
+        hoja: hoja.nombre,
+        codigo: "—",
+        nombre: a.descripcion,
+        marca: a.marca ?? "",
+        modelo: a.modelo ?? "",
+        cantidad: a.cantidad,
+      });
     }
   }
   return [...filas.values()].sort(
@@ -125,6 +140,7 @@ function PaginaListaDeMateriales({ hojas }: { hojas: Hoja[] }) {
  */
 export default function ExportacionProyecto() {
   const exportando = useEditor((s) => s.exportandoTodo);
+  const incluirBom = useEditor((s) => s.incluirBomEnExportacion);
   const hojas = useEditor((s) => s.proyecto.hojas);
 
   if (!exportando) return null;
@@ -134,7 +150,7 @@ export default function ExportacionProyecto() {
       {hojas.map((h) => (
         <PaginaHoja key={h.id} hoja={h} />
       ))}
-      <PaginaListaDeMateriales hojas={hojas} />
+      {incluirBom && <PaginaListaDeMateriales hojas={hojas} />}
     </div>
   );
 }

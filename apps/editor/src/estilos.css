@@ -907,6 +907,65 @@ body.arrastrando .paleta-item {
   background: #fef2f2;
 }
 
+.panel-hoja-ayuda {
+  margin: -6px 0 8px;
+  font-size: 11px;
+  color: #71717a;
+  line-height: 1.4;
+}
+
+/* Accesorios de la lista de materiales (terminales, peines, bornera…) */
+.panel-hoja-accesorios {
+  gap: 6px;
+}
+
+.accesorio-fila {
+  display: grid;
+  grid-template-columns: 1fr 48px 80px 80px auto;
+  gap: 5px;
+  align-items: center;
+}
+
+.accesorio-fila input {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
+  min-width: 0;
+}
+
+.accesorio-cantidad {
+  text-align: center;
+}
+
+.accesorio-quitar {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--error);
+  cursor: pointer;
+  padding: 3px 7px;
+  line-height: 1;
+}
+.accesorio-quitar:hover {
+  border-color: var(--error);
+}
+
+.accesorio-agregar {
+  align-self: start;
+  margin-top: 4px;
+  border: 1px dashed var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.accesorio-agregar:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
 /* ---- Nodo alimentador: conductor viniente «Desde …» (vertical) ----
    Caja mínima que abraza al cable: etiqueta+notación a la izquierda,
    cable a la derecha, handle en su punta inferior. */
@@ -1839,14 +1898,18 @@ body.arrastrando .paleta-item {
 [data-theme="dark"] .panel-hoja-agregar,
 [data-theme="dark"] .orientacion-opciones button,
 [data-theme="dark"] .panel-hoja-pie button,
-[data-theme="dark"] .panel-hoja-resp input {
+[data-theme="dark"] .panel-hoja-resp input,
+[data-theme="dark"] .accesorio-fila input,
+[data-theme="dark"] .accesorio-quitar,
+[data-theme="dark"] .accesorio-agregar {
   background: var(--bg-surface-alt);
   border-color: var(--borde);
   color: var(--text-primary);
 }
 
 [data-theme="dark"] .panel-hoja-pie p,
-[data-theme="dark"] .panel-hoja-dimension {
+[data-theme="dark"] .panel-hoja-dimension,
+[data-theme="dark"] .panel-hoja-ayuda {
   color: var(--text-muted);
 }
 

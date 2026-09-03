@@ -4402,3 +4402,45 @@ nuevos, `npm run e2e` Y `npm run e2e:simbolos` verdes,
 `lint_simbolos.py` 19/19 (el editor de símbolos sigue intacto — el
 refactor de `nodeTypes`/`edgeTypes`/nodo-hoja a `lib/tiposFlow.ts` no le
 tocó nada).
+
+## E30 — Lista de materiales opcional + accesorios sin símbolo propio
+
+Pedido explícito del usuario tras E29: "la lista de materiales solo
+cuando se quiera imprimirlo" y agregar accesorios (terminales, peines de
+conexión, bornera de distribución, etc.) que no tienen símbolo en el
+plano.
+
+**Lista de materiales opcional.** Antes, "Exportar proyecto" agregaba
+SIEMPRE la página de lista de materiales. Ahora se pregunta en cada
+exportación (`window.confirm`, mismo lenguaje que ya usa el resto del
+export para el aviso de pendientes): un plano de revisión rápida no
+siempre la necesita. El store gana `incluirBomEnExportacion`, seteado
+por `iniciarExportacionCompleta(incluirBom)`; `ExportacionProyecto.tsx`
+solo monta `<PaginaListaDeMateriales>` si es `true`.
+
+**Accesorios.** `HojaConfig.accesorios?: ItemAccesorio[]` (opcional, sin
+migración — mismo criterio que `hojaPadreId`/`nodoOrigenId` de una etapa
+anterior): descripción, cantidad, marca y modelo opcionales. Se editan en
+un bloque nuevo del panel "Configuración de hoja" ("Lista de materiales
+adicional"), con alta/baja de filas — reusa `actualizarHoja()` que ya
+existía (mismo mecanismo que el resto de la config de hoja: vuelca a
+`proyecto.hojas` al toque, sin esperar a cambiar de pestaña). En la
+lista de materiales, cada accesorio con descripción no vacía se suma
+como una fila más junto a los símbolos detectados automáticamente,
+con `código: "—"` porque no tienen IEC.
+
+**Verificado con Playwright, dos corridas del mismo flujo** (cargar un
+accesorio a mano vía el panel + colocar un símbolo con marca, exportar
+el proyecto dos veces con distinta respuesta al diálogo de la lista de
+materiales):
+
+- Rechazando la lista de materiales: 1 sola página en el PDF (la hoja),
+  cero `.pagina-bom` en el DOM.
+- Aceptándola: 2 páginas, la de materiales con **ambas** filas —
+  "Terminal punta de lanza 2,5 mm² · Phoenix Contact · 50" (accesorio
+  cargado a mano) y "S00110 Interruptor termomagnético · Schneider · 1"
+  (detectado del plano) — confirma que se combinan correctamente.
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` verde, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
