@@ -2459,3 +2459,46 @@ body.arrastrando .paleta-item {
   font-size: 14px;
   pointer-events: none;
 }
+
+/* ================================================================
+   IMPRESIÓN / EXPORTACIÓN A PDF
+   Se reusa el lienzo real (React Flow) — ver lib/impresion.ts. Acá
+   solo se oculta el resto de la interfaz y se deja el lienzo ocupando
+   toda la página; el tamaño físico real (@page) lo inyecta
+   BarraSuperior.exportarPdf() por hoja, porque el formato/orientación
+   son datos de la hoja activa, no una constante CSS.
+   ================================================================ */
+@media print {
+  .barra-superior,
+  .pestanas-hoja,
+  .paleta,
+  .panel-atributos,
+  .panel-hoja,
+  .paneles-flotantes,
+  .aviso-fuera-hoja,
+  .toast-mover,
+  .fantasma-arrastre,
+  .react-flow__background,
+  .react-flow__minimap,
+  .react-flow__controls,
+  .react-flow__attribution,
+  .react-flow__panel {
+    display: none !important;
+  }
+
+  html,
+  body,
+  .app,
+  .cuerpo,
+  .lienzo,
+  .react-flow {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+}

@@ -1,6 +1,9 @@
 import { useRef, useCallback, useEffect, useState } from "react";
+import { useReactFlow } from "@xyflow/react";
 import { useEditor, historial } from "../lib/store";
 import { serializarProyecto } from "../lib/tipos";
+import { armarChecklist } from "../lib/checklist";
+import { ZOOM_IMPRESION, medidasPaginaMm } from "../lib/impresion";
 
 function BarraSuperior() {
   const nombre = useEditor((s) => s.nombreProyecto);
@@ -19,6 +22,12 @@ function BarraSuperior() {
   const puedeDeshacer = version >= 0 && historial.puedeDeshacer;
   const puedeRehacer = version >= 0 && historial.puedeRehacer;
   const inputArchivo = useRef<HTMLInputElement>(null);
+
+  const nodos = useEditor((s) => s.nodos);
+  const conexiones = useEditor((s) => s.conexiones);
+  const hoja = useEditor((s) => s.hoja);
+  const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
+  const { setViewport, getViewport, setEdges } = useReactFlow();
 
   const [oscuro, setOscuro] = useState(() => {
     return localStorage.getItem("vatia-tema") === "dark";
@@ -42,6 +51,50 @@ function BarraSuperior() {
     a.download = `${proyecto.meta.nombre || "proyecto"}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Exportación a PDF: se reusa el mismo React Flow que ya está en
+   * pantalla (ver lib/impresion.ts sobre por qué el zoom no es 1), solo
+   * cambia el viewport y se llama a `window.print()` — no hay un
+   * renderer paralelo que pueda desincronizarse del dibujo real.
+   *
+   * V1 exporta la hoja ACTIVA únicamente (una hoja por vez); exportar el
+   * proyecto entero en un solo PDF multipágina queda como una etapa
+   * siguiente del mismo punch list.
+   */
+  function exportarPdf() {
+    const problemas = armarChecklist(nodos, conexiones, hoja.modo);
+    const totalPendientes = problemas.reduce((t, p) => t + p.mensajes.length, 0);
+    if (totalPendientes > 0) {
+      const seguir = window.confirm(
+        `Esta hoja tiene ${totalPendientes} pendiente${totalPendientes === 1 ? "" : "s"} de ficha técnica (Checklist AEA). ¿Exportar igual?`,
+      );
+      if (!seguir) return;
+    }
+
+    seleccionarNodosFn([]);
+    setEdges((eds) => eds.map((e) => (e.selected ? { ...e, selected: false } : e)));
+
+    const { anchoMm, altoMm } = medidasPaginaMm(hoja);
+    const estiloPagina = document.createElement("style");
+    estiloPagina.id = "estilo-pagina-impresion";
+    estiloPagina.textContent = `@page { size: ${anchoMm}mm ${altoMm}mm; margin: 0; }`;
+    document.head.appendChild(estiloPagina);
+
+    const viewportPrevio = getViewport();
+    setViewport({ x: 0, y: 0, zoom: ZOOM_IMPRESION }, { duration: 0 });
+
+    function restaurar() {
+      setViewport(viewportPrevio, { duration: 0 });
+      estiloPagina.remove();
+      window.removeEventListener("afterprint", restaurar);
+    }
+    window.addEventListener("afterprint", restaurar);
+
+    // Dos frames: uno para que React aplique el cambio de viewport, otro
+    // para que el navegador termine de pintar antes de abrir el diálogo.
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
   }
 
   function nuevoProyecto() {
@@ -112,6 +165,13 @@ function BarraSuperior() {
       />
       <button type="button" onClick={guardar} title="Guardar proyecto JSON">
         💾 Guardar
+      </button>
+      <button
+        type="button"
+        onClick={exportarPdf}
+        title="Exportar la hoja activa a PDF (imprimir)"
+      >
+        🖨️ Exportar PDF
       </button>
       <button
         type="button"

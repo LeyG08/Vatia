@@ -4266,3 +4266,69 @@ Desbloquea lo que quedaba pendiente desde E24: `proyecto/comando-piloto-
 las dos ramas juntas. Verificado después del merge:
 `git diff --stat main...HEAD` ahora lista solo el trabajo propio de esta
 rama (E15 en adelante), ya no arrastra el contenido de fundaciones-datos.
+
+## E28 — Exportación a PDF de la hoja activa
+
+Primer ítem del punch list "finalizar el editor" (el usuario pidió
+terminar el editor antes de retomar motor de cálculo o base de datos).
+Elegido por sobre guardado en la nube porque es autocontenido: no exige
+decidir infraestructura nueva (backend/hosting/autenticación), se resuelve
+del lado del cliente sobre lo que el editor ya dibuja.
+
+**Decisión de diseño clave: no se construyó un renderer paralelo.** La
+tentación era generar el PDF con una librería (jsPDF, html2canvas)
+redibujando símbolos y cables por separado — pero eso hubiera significado
+mantener DOS caminos de renderizado (el de pantalla y el de export) que
+inevitablemente se hubieran desincronizado con el tiempo, el mismo
+problema de fondo que ya se resolvió en E25 para el checklist. En cambio,
+`BarraSuperior.exportarPdf()` reusa el MISMO lienzo de React Flow que ya
+está en pantalla: oculta el resto de la interfaz con `@media print`
+(`estilos.css`), lleva el viewport a la escala física real y llama a
+`window.print()` — el PDF nativo del navegador. Cero riesgo de que el PDF
+se vea distinto del plano en pantalla, porque es literalmente el mismo
+DOM.
+
+**El detalle que exigió más cuidado: la escala.** La hoja se dibuja a
+`PX_POR_MM = 4` unidades de React Flow por mm real. Al imprimir, el
+navegador trata 1 unidad de React Flow como 1 px CSS, y 1 px CSS son
+1/96", no 1/(4·mm) — hay un desajuste real entre la escala de diseño del
+editor y la física de impresión. `lib/impresion.ts` deriva el factor de
+corrección (`ZOOM_IMPRESION = 96 / (PX_POR_MM · 25,4) ≈ 0,94488`) en vez
+de hardcodear un número mágico, y como `PX_POR_MM` es una constante única
+del proyecto, ese factor es el mismo para cualquier formato u
+orientación de hoja — no hace falta recalcularlo por hoja, solo el
+tamaño de página (`@page`) sí varía (A4..A0, horizontal/vertical) y se
+inyecta con un `<style>` dinámico por exportación, porque el formato es
+un dato de CADA hoja, no una constante CSS.
+
+**Antes de exportar, si algo no verifica, pregunta** (pedido explícito de
+la visión del producto, memoria `vatia-vision-producto`): corre
+`armarChecklist()` sobre la hoja activa y, si hay pendientes de ficha
+técnica, `window.confirm()` antes de seguir — igual criterio "informa,
+no bloquea" que ya rige el resto del editor.
+
+**Alcance de esta v1, a propósito:** exporta la hoja ACTIVA, una por vez
+(no las 20 hojas de un proyecto real en un solo PDF multipágina), y no
+incluye lista de materiales. Ambas quedan como próximo paso del mismo
+punch list, no requieren el motor de cálculo.
+
+**Verificado con Playwright, en dos partes** (`window.print()` en
+Chromium headless dispara `afterprint` casi al instante, así que hubo que
+stubear `window.print` para poder inspeccionar el estado intermedio):
+
+1. Con `window.print` reemplazado por un no-op: se colocó un símbolo, se
+   hizo clic en "Exportar PDF" y se verificó, MIENTRAS el "diálogo" está
+   abierto, que la regla inyectada es exactamente
+   `@page { size: 420mm 297mm; margin: 0; }` (A3 horizontal, el default) y
+   que el transform del viewport es
+   `matrix(0.944882, 0, 0, 0.944882, 0, 0)` — el zoom calculado, exacto,
+   con la hoja en el origen.
+2. Bajo `page.emulateMedia({ media: 'print' })`: `.barra-superior` pasa a
+   `display: none` y `.lienzo`/`.react-flow` quedan en `display: block`.
+3. Al simular `afterprint` (`window.dispatchEvent(new Event('afterprint'))`):
+   el `<style>` inyectado se retira del DOM — confirma que la limpieza no
+   depende de un happy path.
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
