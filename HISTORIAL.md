@@ -4253,3 +4253,16 @@ memoria y el programa los trate como verdad. Después de eso: Icc
 (IEC 60909, necesita impedancia de fuente + transformador + cable) y
 protección contra contactos indirectos (depende del esquema PAT, ya
 soportado en `datosProyecto`).
+
+## E27 — Merge PR #14 a `main`
+
+Aprobación explícita del usuario ("mergeá el PR 14"). `gh pr merge 14 --merge
+--delete-branch`, merge commit `a1c3aab` en `main` (03/09, 11:40 UTC), rama
+remota `proyecto/fundaciones-datos-20260901` borrada. `main` local
+sincronizado por fast-forward.
+
+Desbloquea lo que quedaba pendiente desde E24: `proyecto/comando-piloto-
+20260901` nacía de esa rama, así que un PR desde acá mostraba el diff de
+las dos ramas juntas. Verificado después del merge:
+`git diff --stat main...HEAD` ahora lista solo el trabajo propio de esta
+rama (E15 en adelante), ya no arrastra el contenido de fundaciones-datos.
