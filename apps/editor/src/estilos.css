@@ -3152,27 +3152,98 @@ body.exportando-todo .exportacion-proyecto {
     padding: 15mm;
     font-family: system-ui, sans-serif;
     color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
   }
-  .pagina-bom h1 {
-    font-size: 16px;
-    margin: 0 0 10mm;
+  .pagina-bom-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10mm;
+    border-bottom: 2px solid #000;
+    padding-bottom: 4mm;
+    margin-bottom: 8mm;
+  }
+  .pagina-bom-header h1 {
+    font-size: 18px;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+  .pagina-bom-meta {
+    display: flex;
+    gap: 8mm;
+    margin: 0;
+    font-size: 9px;
+  }
+  .pagina-bom-meta div {
+    display: flex;
+    flex-direction: column;
+    gap: 1mm;
+    text-align: right;
+  }
+  .pagina-bom-meta dt {
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #666;
+  }
+  .pagina-bom-meta dd {
+    margin: 0;
+    font-weight: 600;
+    font-size: 11px;
+  }
+  .pagina-bom-vacio {
+    font-size: 11px;
+    color: #666;
+  }
+  .pagina-bom-grupo {
+    margin-bottom: 7mm;
+  }
+  .pagina-bom-grupo h2 {
+    font-size: 12px;
+    margin: 0 0 2mm;
+    padding-bottom: 1mm;
+    border-bottom: 1px solid #000;
   }
   .pagina-bom table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 10px;
+    font-size: 9.5px;
+    table-layout: fixed;
   }
   .pagina-bom th,
   .pagina-bom td {
     border: 1px solid #000;
-    padding: 3px 6px;
+    padding: 2.5px 5px;
     text-align: left;
+    overflow-wrap: break-word;
   }
   .pagina-bom th {
     background: #f1f5f9;
+    font-size: 8.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .pagina-bom th:nth-child(1),
+  .pagina-bom td:nth-child(1) {
+    width: 10%;
+  }
+  .pagina-bom th:nth-child(2),
+  .pagina-bom td:nth-child(2) {
+    width: 18%;
+  }
+  .pagina-bom th:nth-child(3),
+  .pagina-bom td:nth-child(3) {
+    width: 34%;
+  }
+  .pagina-bom th:nth-child(4),
+  .pagina-bom td:nth-child(4),
+  .pagina-bom th:nth-child(5),
+  .pagina-bom td:nth-child(5) {
+    width: 15%;
   }
   .pagina-bom td:last-child,
   .pagina-bom th:last-child {
+    width: 8%;
     text-align: right;
   }
 }

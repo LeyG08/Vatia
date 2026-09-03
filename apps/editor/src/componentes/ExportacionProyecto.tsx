@@ -2,59 +2,78 @@ import { ReactFlow, ReactFlowProvider } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, construirEstadoHoja, BARRA_CODIGO } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
+import { anotacionNodo } from "../lib/anotaciones";
 import { medidasPaginaMm, ZOOM_IMPRESION } from "../lib/impresion";
-import { dimensionesHoja, type Hoja } from "../lib/tipos";
+import { dimensionesHoja, type FamiliaAtributos, type Hoja } from "../lib/tipos";
 import { nodeTypes, edgeTypes, crearNodoHoja } from "../lib/tiposFlow";
 
 interface FilaBom {
-  hoja: string;
   codigo: string;
   nombre: string;
+  descripcion: string;
   marca: string;
   modelo: string;
   cantidad: number;
 }
 
 /**
- * Lista de materiales: una fila por (hoja, código, marca, modelo),
+ * Lista de materiales de UNA hoja: una fila por (código, marca, modelo),
  * agrupando cantidades repetidas. Los alimentadores no son un ítem físico
  * (representan "acá entra la alimentación", no un aparato) y quedan
  * afuera; las barras sí cuentan (juego de barras es un ítem real).
+ *
+ * `descripcion` reutiliza la MISMA anotación técnica que ya se imprime
+ * al lado del símbolo en el plano (`anotacionNodo`) — así la lista no
+ * es solo "qué hay", sino también sus datos de chapa relevantes (polos,
+ * corriente, tensión…), sin inventar un resumen aparte.
  *
  * Se suman también los accesorios cargados a mano por hoja (PanelHoja —
  * terminales, peines de conexión, bornera de distribución…): no tienen
  * símbolo en el plano, así que no hay forma de detectarlos solos.
  */
-function construirBom(hojas: Hoja[]): FilaBom[] {
+function construirBomDeHoja(
+  hoja: Hoja,
+  tensionFaseV: number,
+  tensionLineaV: number,
+): FilaBom[] {
   const filas = new Map<string, FilaBom>();
-  for (const hoja of hojas) {
-    for (const n of hoja.nodos ?? []) {
-      if (n.tipo === "alimentador") continue;
-      const codigo = n.codigo_iec ?? (n.tipo === "barra" ? BARRA_CODIGO : undefined);
-      if (!codigo) continue;
-      const nombre = obtenerSimbolo(codigo)?.metadata.nombre ?? codigo;
-      const marca = typeof n.atributos?.marca === "string" ? n.atributos.marca : "";
-      const modelo = typeof n.atributos?.modelo === "string" ? n.atributos.modelo : "";
-      const clave = `${hoja.nombre}|${codigo}|${marca}|${modelo}`;
-      const existente = filas.get(clave);
-      if (existente) existente.cantidad += 1;
-      else filas.set(clave, { hoja: hoja.nombre, codigo, nombre, marca, modelo, cantidad: 1 });
-    }
-    for (const a of hoja.accesorios ?? []) {
-      if (a.descripcion.trim() === "") continue;
-      filas.set(`${hoja.nombre}|accesorio|${a.id}`, {
-        hoja: hoja.nombre,
-        codigo: "—",
-        nombre: a.descripcion,
-        marca: a.marca ?? "",
-        modelo: a.modelo ?? "",
-        cantidad: a.cantidad,
-      });
-    }
+  for (const n of hoja.nodos ?? []) {
+    if (n.tipo === "alimentador") continue;
+    const codigo = n.codigo_iec ?? (n.tipo === "barra" ? BARRA_CODIGO : undefined);
+    if (!codigo) continue;
+    const simbolo = obtenerSimbolo(codigo);
+    const nombre = simbolo?.metadata.nombre ?? codigo;
+    const familia = simbolo?.metadata.familia_atributos as FamiliaAtributos | undefined;
+    const atributos = n.atributos ?? {};
+    const descripcion = familia
+      ? anotacionNodo(
+          familia,
+          { codigo_iec: codigo, rotacion: 0, atributos },
+          tensionFaseV,
+          tensionLineaV,
+        )
+          .map((l) => l.texto)
+          .join(" · ")
+      : "";
+    const marca = typeof atributos.marca === "string" ? atributos.marca : "";
+    const modelo = typeof atributos.modelo === "string" ? atributos.modelo : "";
+    const clave = `${codigo}|${marca}|${modelo}`;
+    const existente = filas.get(clave);
+    if (existente) existente.cantidad += 1;
+    else filas.set(clave, { codigo, nombre, descripcion, marca, modelo, cantidad: 1 });
   }
-  return [...filas.values()].sort(
-    (a, b) => a.hoja.localeCompare(b.hoja) || a.codigo.localeCompare(b.codigo),
-  );
+  for (const a of hoja.accesorios ?? []) {
+    if (a.descripcion.trim() === "") continue;
+    filas.set(`accesorio|${a.id}`, {
+      codigo: "—",
+      nombre: a.descripcion,
+      descripcion: "",
+      marca: a.marca ?? "",
+      modelo: a.modelo ?? "",
+      cantidad: a.cantidad,
+    });
+  }
+  return [...filas.values()].sort((a, b) => a.codigo.localeCompare(b.codigo));
 }
 
 /** Una página de impresión por hoja: su propio <ReactFlow> aislado (no
@@ -173,39 +192,89 @@ function PaginaHoja({
 }
 
 /** Tamaño fijo A4 vertical: es una tabla, no un plano a escala — no
- * necesita heredar el formato de ninguna hoja. */
-function PaginaListaDeMateriales({ hojas }: { hojas: Hoja[] }) {
-  const filas = construirBom(hojas);
+ * necesita heredar el formato de ninguna hoja.
+ *
+ * Agrupada por hoja (un subtítulo + su propia tabla, en vez de una
+ * columna "Hoja" repetida en cada fila) y con encabezado de documento
+ * (proyecto, fecha, total de ítems) — pedido explícito del usuario:
+ * "más descriptivo… que tenga título y se vea mejor". */
+function PaginaListaDeMateriales({
+  hojas,
+  nombreProyecto,
+  tensionFaseV,
+  tensionLineaV,
+}: {
+  hojas: Hoja[];
+  nombreProyecto: string;
+  tensionFaseV: number;
+  tensionLineaV: number;
+}) {
+  const grupos = hojas
+    .map((h) => ({ hoja: h, filas: construirBomDeHoja(h, tensionFaseV, tensionLineaV) }))
+    .filter((g) => g.filas.length > 0);
+  const totalItems = grupos.reduce(
+    (acc, g) => acc + g.filas.reduce((t, f) => t + f.cantidad, 0),
+    0,
+  );
+  const fecha = new Date().toLocaleDateString("es-AR");
+
   return (
     <div
       className="pagina-impresion pagina-bom"
       style={{ width: "210mm", height: "297mm" }}
     >
-      <h1>Lista de materiales</h1>
-      <table>
-        <thead>
-          <tr>
-            <th>Hoja</th>
-            <th>Código</th>
-            <th>Símbolo</th>
-            <th>Marca</th>
-            <th>Modelo</th>
-            <th>Cant.</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map((f, i) => (
-            <tr key={i}>
-              <td>{f.hoja}</td>
-              <td>{f.codigo}</td>
-              <td>{f.nombre}</td>
-              <td>{f.marca || "—"}</td>
-              <td>{f.modelo || "—"}</td>
-              <td>{f.cantidad}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <header className="pagina-bom-header">
+        <h1>Lista de materiales</h1>
+        <dl className="pagina-bom-meta">
+          <div>
+            <dt>Proyecto</dt>
+            <dd>{nombreProyecto || "—"}</dd>
+          </div>
+          <div>
+            <dt>Fecha</dt>
+            <dd>{fecha}</dd>
+          </div>
+          <div>
+            <dt>Ítems</dt>
+            <dd>{totalItems}</dd>
+          </div>
+        </dl>
+      </header>
+      {grupos.length === 0 ? (
+        <p className="pagina-bom-vacio">
+          Ninguna hoja tiene símbolos con ficha técnica cargada.
+        </p>
+      ) : (
+        grupos.map(({ hoja, filas }) => (
+          <section key={hoja.id} className="pagina-bom-grupo">
+            <h2>{hoja.nombre}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Símbolo</th>
+                  <th>Descripción</th>
+                  <th>Marca</th>
+                  <th>Modelo</th>
+                  <th>Cant.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((f, i) => (
+                  <tr key={i}>
+                    <td>{f.codigo}</td>
+                    <td>{f.nombre}</td>
+                    <td>{f.descripcion || "—"}</td>
+                    <td>{f.marca || "—"}</td>
+                    <td>{f.modelo || "—"}</td>
+                    <td>{f.cantidad}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))
+      )}
     </div>
   );
 }
@@ -223,6 +292,9 @@ export default function ExportacionProyecto() {
   const exportando = useEditor((s) => s.exportandoTodo);
   const incluirBom = useEditor((s) => s.incluirBomEnExportacion);
   const hojas = useEditor((s) => s.proyecto.hojas);
+  const nombreProyecto = useEditor((s) => s.nombreProyecto);
+  const tensionFaseV = useEditor((s) => s.proyecto.datosProyecto.tension_fase_v);
+  const tensionLineaV = useEditor((s) => s.proyecto.datosProyecto.tension_linea_v);
   const [listas, setListas] = useState<Set<string>>(new Set());
   const [exportandoPrevio, setExportandoPrevio] = useState(exportando);
 
@@ -284,7 +356,14 @@ export default function ExportacionProyecto() {
           marcarListo={marcarListo}
         />
       ))}
-      {incluirBom && <PaginaListaDeMateriales hojas={hojas} />}
+      {incluirBom && (
+        <PaginaListaDeMateriales
+          hojas={hojas}
+          nombreProyecto={nombreProyecto}
+          tensionFaseV={tensionFaseV}
+          tensionLineaV={tensionLineaV}
+        />
+      )}
     </div>
   );
 }

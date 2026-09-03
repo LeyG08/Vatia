@@ -5231,3 +5231,31 @@ líneas internas y el borde exterior en negro puro.
 
 `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
 `verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E45 — Lista de materiales más descriptiva, con título y agrupada por hoja
+
+Pedido explícito: "la lista de materiales me gustaría que fuese más
+descriptivo de cierta forma y que tenga título y se vea mejor".
+
+- **Encabezado de documento** nuevo: "Lista de materiales" como
+  título real, más proyecto / fecha / total de ítems a la derecha —
+  antes era solo un `<h1>` suelto sin ningún dato de contexto.
+- **Agrupada por hoja** (subtítulo + tabla propia por hoja) en vez de
+  una columna "Hoja" repetida en cada fila — más legible con varias
+  hojas, y saca una columna que no aportaba nada dentro de cada grupo.
+- **Columna "Descripción" nueva**, con los mismos datos de chapa que
+  ya se imprimen al lado del símbolo en el plano (reutiliza
+  `anotacionNodo()`, la misma función — no un resumen inventado
+  aparte): para un contactor sale "SIEMENS 3TF57 · 3P x 475 A ·
+  Categoría AC-3 · Ue 415 V · Bobina 220 V" en vez de solo el nombre
+  genérico del símbolo.
+- Estilo: encabezado con línea divisoria, columnas con ancho fijo
+  (la descripción es la más ancha, es la que más texto lleva),
+  encabezados de tabla en mayúscula chica — más parecido a una lista
+  de materiales real de ingeniería.
+
+Verificado con el proyecto real (2 hojas duplicadas + BOM): título,
+metadatos, agrupación y descripciones técnicas correctas para
+contactor, MCCB y barra. Sin errores de consola. `tsc -b`, `lint`,
+`build`, `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
