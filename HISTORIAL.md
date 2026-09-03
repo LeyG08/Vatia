@@ -3948,3 +3948,34 @@ warnings nuevos, `python -c "json.load(...)"` confirma el schema
 editado a mano sigue siendo JSON válido, `lint_simbolos.py` verde en
 ambas carpetas, `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`
 verdes.
+
+## E21 — `docs/estado-revision-aea.md` puesto al día (parcial, a propósito)
+
+Ítem #7 del diagnóstico original ("el documento que gobierna el
+procedimiento de cierre no refleja la librería real"). Se corrigieron las
+afirmaciones que quedaban activamente engañosas, sin reescribir el
+documento entero:
+
+- **Fila de S00124 quitada** de la tabla de fuerza: ese símbolo se mudó a
+  `libreria-simbolos/comando/` en E15 y ya no vive en `simbolos/`, que es
+  el alcance de esta tabla. Se agregó una nota corta explicando la mudanza
+  y remitiendo a `HISTORIAL.md` (E15–E16.1) para el estado de los 13
+  símbolos de comando, en vez de duplicar esa tabla acá — el propio
+  documento ya advierte que se desfasó dos veces por mantenerse a mano.
+- **Nota "Icu/Ics del guardamotor futuro" marcada RESUELTA**: hablaba de
+  un subtipo que ya existe hace rato (`guardamotor_termomagnetico` con
+  `icu_kA`/`ics_kA`) como si fuera trabajo pendiente. Se referencia la
+  extensión del mismo criterio al MCCB en E20.
+- **Nota del rediseño E7 corregida**: decía que los 7 símbolos
+  (S00121/122/123/127/128/129/130) "siguen en `pendiente_revision`" —
+  falso, están todos `verificado` desde hace tiempo (confirmado contra
+  los `metadata.json` reales antes de escribir la corrección, no de
+  memoria).
+
+Deliberadamente NO regenerada la tabla completa de 27 filas a mano ni
+sumadas las 13 de comando en una tabla nueva: sería repetir exactamente
+el patrón que ya causó el desfasaje ("se desfasó dos veces por mantenerse
+a mano"). El documento no es la bitácora obligatoria del proyecto —
+`HISTORIAL.md` lo es, por regla de `AGENTS.md`— así que mantenerlo
+100% sincronizado a mano en cada cambio de librería no es sostenible;
+mejor que remita a `HISTORIAL.md` para el detalle vivo.
