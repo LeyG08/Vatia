@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
-import { useEditor, historial } from "../lib/store";
+import { useEditor, historial, construirEstadoHoja } from "../lib/store";
 import { serializarProyecto } from "../lib/tipos";
 import { armarChecklist } from "../lib/checklist";
 import { ZOOM_IMPRESION, medidasPaginaMm } from "../lib/impresion";
@@ -27,6 +27,8 @@ function BarraSuperior() {
   const conexiones = useEditor((s) => s.conexiones);
   const hoja = useEditor((s) => s.hoja);
   const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
+  const iniciarExportacionFn = useEditor((s) => s.iniciarExportacionCompleta);
+  const finalizarExportacionFn = useEditor((s) => s.finalizarExportacionCompleta);
   const { setViewport, getViewport, setEdges } = useReactFlow();
 
   const [oscuro, setOscuro] = useState(() => {
@@ -95,6 +97,53 @@ function BarraSuperior() {
     // Dos frames: uno para que React aplique el cambio de viewport, otro
     // para que el navegador termine de pintar antes de abrir el diálogo.
     requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+  }
+
+  /**
+   * Exportación del proyecto ENTERO: monta `<ExportacionProyecto>`
+   * (una página React Flow por hoja + lista de materiales, ver ese
+   * componente) y llama a `window.print()` — el navegador arma un único
+   * PDF multipágina porque cada página tiene su propio `page-break-after`
+   * (ver estilos.css). `document.body` recibe una clase mientras dura el
+   * export para que el CSS de impresión sepa que tiene que ocultar el
+   * lienzo interactivo normal y mostrar esta vista en su lugar.
+   *
+   * `serializar()` es el primer paso, no un detalle: vuelca la hoja
+   * ACTIVA (nodos/conexiones "en vivo" en el store) a `proyecto.hojas`
+   * ANTES de leer nada. Sin esto, la última hoja que el usuario editó
+   * quedaría afuera del PDF y de la lista de materiales — su trabajo
+   * más reciente vive en `nodos`/`conexiones` hasta que algo lo vuelca
+   * (cambiar de hoja, o esto), no en `proyecto.hojas` todavía.
+   */
+  function exportarProyectoCompletoPdf() {
+    const hojasFrescas = serializar().hojas;
+    const totalPendientes = hojasFrescas.reduce((acc, h) => {
+      const estado = construirEstadoHoja(h);
+      const problemas = armarChecklist(estado.nodos, estado.conexiones, estado.cfg.modo);
+      return acc + problemas.reduce((t, p) => t + p.mensajes.length, 0);
+    }, 0);
+    if (totalPendientes > 0) {
+      const seguir = window.confirm(
+        `El proyecto tiene ${totalPendientes} pendiente${totalPendientes === 1 ? "" : "s"} de ficha técnica en total (Checklist AEA, todas las hojas). ¿Exportar igual?`,
+      );
+      if (!seguir) return;
+    }
+
+    iniciarExportacionFn();
+    document.body.classList.add("exportando-todo");
+
+    function restaurar() {
+      finalizarExportacionFn();
+      document.body.classList.remove("exportando-todo");
+      window.removeEventListener("afterprint", restaurar);
+    }
+    window.addEventListener("afterprint", restaurar);
+
+    // Tres frames: montar <ExportacionProyecto> (con N instancias de
+    // React Flow) tarda más que un simple cambio de viewport.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => requestAnimationFrame(() => window.print())),
+    );
   }
 
   function nuevoProyecto() {
@@ -172,6 +221,13 @@ function BarraSuperior() {
         title="Exportar la hoja activa a PDF (imprimir)"
       >
         🖨️ Exportar PDF
+      </button>
+      <button
+        type="button"
+        onClick={exportarProyectoCompletoPdf}
+        title="Exportar TODAS las hojas del proyecto a un solo PDF, con lista de materiales"
+      >
+        🖨️ Exportar proyecto
       </button>
       <button
         type="button"

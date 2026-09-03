@@ -4332,3 +4332,73 @@ stubear `window.print` para poder inspeccionar el estado intermedio):
 Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
 nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs` y
 `verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+## E29 — Exportación del proyecto completo a PDF + lista de materiales
+
+Segunda parte del ítem "PDF" del punch list (E28 exportaba una hoja por
+vez; esto agrega "todo el proyecto en un solo PDF" + la lista de
+materiales que faltaba).
+
+**Se mantuvo el mismo principio de E28: reusar el renderizado real, no
+uno paralelo.** La diferencia es que acá hace falta mostrar TODAS las
+hojas a la vez (una por página), y el lienzo interactivo solo tiene
+montada la hoja ACTIVA. Se resolvió con N instancias de `<ReactFlow>`
+independientes (una por hoja, cada una en su propio `<ReactFlowProvider>`
+para no compartir estado entre sí), todas usando el mismo `nodeTypes`/
+`edgeTypes`/nodo-hoja que ya usaba el lienzo principal — se extrajeron a
+`lib/tiposFlow.ts` para que fueran literalmente el mismo código, no una
+copia. Cada instancia es de solo lectura (`nodesDraggable`,
+`nodesConnectable`, `elementsSelectable`, `panOnDrag`, `zoomOnScroll` en
+`false`) y fija en la escala de impresión.
+
+`ExportacionProyecto.tsx` solo monta contenido mientras
+`exportandoTodo` (store) es `true` — evita tener 20 lienzos React Flow
+vivos en memoria todo el tiempo "por si acaso" se exporta.
+
+**Bug real encontrado y corregido durante la verificación con Playwright,
+no en el diseño inicial:** `exportarProyectoCompletoPdf()` leía
+`proyecto.hojas` directo del store, pero la hoja ACTIVA vive en
+`nodos`/`conexiones` "sueltos" hasta que algo la vuelca a
+`proyecto.hojas` (cambiar de hoja, o guardar) — el mismo patrón de dos
+fuentes de verdad que ya señalaba el diagnóstico original como deuda de
+`store.ts`. Sin corregirlo, la última hoja editada por el usuario hubiera
+quedado afuera del PDF y de la lista de materiales, silenciosamente. Fix:
+llamar a `serializar()` (que internamente vuelca la hoja activa) como
+PRIMER paso de la función, antes de leer nada — se detectó porque la
+primera verificación en vivo dio la lista de materiales vacía cuando
+debía tener dos ítems.
+
+**Lista de materiales:** una fila por (hoja, código, marca, modelo), con
+cantidad agrupada. Deliberadamente afuera: los alimentadores (no son un
+aparato físico, son "acá entra la alimentación").
+
+**Verificado con Playwright de punta a punta** (con manejo del diálogo
+`window.confirm` de pendientes, que Playwright headless descarta por
+defecto si no se le engancha un handler — la primera corrida de la
+prueba "fallaba" en silencio por esto, no por un bug real): se armaron
+dos hojas reales, cada una con un símbolo distinto (uno con marca/modelo
+cargados, otro sin), se exportó el proyecto completo y se confirmó que:
+
+- Se generan 2 páginas de hoja (420×297 mm cada una, A3 horizontal) + 1
+  página de lista de materiales.
+- La lista de materiales tiene una fila por hoja con los datos correctos
+  ("Hoja 1 · S00110 · Interruptor termomagnético · Schneider · iC60N";
+  "Hoja 2 · S00110 · Interruptor termomagnético · — · —").
+- `document.body` recibe la clase `exportando-todo` durante el export y
+  la pierde después.
+- Al simular el cierre del diálogo de impresión, `<ExportacionProyecto>`
+  se desmonta del DOM.
+
+Con esto, la exportación a PDF que pedía la visión del producto (memoria
+`vatia-vision-producto`: "PDF listo para imprimir, con lista de
+materiales") queda completa en su alcance base — falta todavía que
+incluya resultados del motor de cálculo, pero eso depende de que ese
+motor avance más (etapa 4b en adelante, ver `docs/motor-de-calculo.md`),
+no de este punch list.
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` Y `npm run e2e:simbolos` verdes,
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 19/19 (el editor de símbolos sigue intacto — el
+refactor de `nodeTypes`/`edgeTypes`/nodo-hoja a `lib/tiposFlow.ts` no le
+tocó nada).

@@ -2502,3 +2502,59 @@ body.arrastrando .paleta-item {
     overflow: visible !important;
   }
 }
+
+/* ---- Exportación del proyecto ENTERO (todas las hojas + BOM) ----
+ * ExportacionProyecto.tsx solo existe en el DOM mientras se exporta; acá
+ * además hay que apagar el lienzo interactivo normal (que el bloque de
+ * arriba deja visible para la exportación de UNA hoja) y mostrar esta
+ * vista multipágina en su lugar. */
+.exportacion-proyecto {
+  display: none;
+}
+@media print {
+  body.exportando-todo .lienzo,
+  body.exportando-todo .paleta {
+    display: none !important;
+  }
+  .exportacion-proyecto {
+    display: block;
+  }
+  .pagina-impresion {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    page-break-after: always;
+    break-after: page;
+  }
+  .pagina-impresion:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  .pagina-bom {
+    padding: 15mm;
+    font-family: system-ui, sans-serif;
+    color: #18181b;
+  }
+  .pagina-bom h1 {
+    font-size: 16px;
+    margin: 0 0 10mm;
+  }
+  .pagina-bom table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+  }
+  .pagina-bom th,
+  .pagina-bom td {
+    border: 1px solid #a1a1aa;
+    padding: 3px 6px;
+    text-align: left;
+  }
+  .pagina-bom th {
+    background: #f1f5f9;
+  }
+  .pagina-bom td:last-child,
+  .pagina-bom th:last-child {
+    text-align: right;
+  }
+}

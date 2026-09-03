@@ -324,7 +324,7 @@ function nuevoIdEn(existentes: { id: string }[], prefijo: string): string {
  * alimentadores legados del encabezado y descartando conexiones huérfanas.
  * Devuelve también la HojaConfig normalizada de esa hoja.
  */
-function construirEstadoHoja(hojaSer: Hoja): {
+export function construirEstadoHoja(hojaSer: Hoja): {
   cfg: HojaConfig;
   nodos: Node<NodoData>[];
   conexiones: Edge[];
@@ -483,6 +483,11 @@ interface EstadoEditor {
   /** true justo después de recuperar un autoguardado al abrir la app */
   avisoRecuperado: boolean;
   descartarAvisoRecuperado: () => void;
+  /** true mientras se arma la vista de impresión de TODAS las hojas
+   * (exportarProyectoCompletoPdf en BarraSuperior) — ver ExportacionProyecto.tsx */
+  exportandoTodo: boolean;
+  iniciarExportacionCompleta: () => void;
+  finalizarExportacionCompleta: () => void;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
@@ -778,11 +783,19 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     panelProyectoAbierto: false,
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
     avisoRecuperado: false,
+    exportandoTodo: false,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
 
     descartarAvisoRecuperado() {
       set({ avisoRecuperado: false });
+    },
+
+    iniciarExportacionCompleta() {
+      set({ exportandoTodo: true });
+    },
+    finalizarExportacionCompleta() {
+      set({ exportandoTodo: false });
     },
 
     alternarPaleta() {

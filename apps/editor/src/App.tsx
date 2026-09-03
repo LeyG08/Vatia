@@ -16,41 +16,13 @@ import PanelHoja from "./componentes/PanelHoja";
 import PanelProyecto from "./componentes/PanelProyecto";
 import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
-import NodoSimbolo from "./componentes/NodoSimbolo";
-import AlimentadorNode from "./componentes/AlimentadorNode";
-import BarraNode from "./componentes/BarraNode";
-import HojaNode from "./componentes/HojaNode";
-import ConexionEdge from "./componentes/ConexionEdge";
+import ExportacionProyecto from "./componentes/ExportacionProyecto";
 import EditorSimbolos from "./componentes/EditorSimbolos";
 import { ESCALA, useEditor, tamanoNodoPx, esDatosAlimentador, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
 import { dimensionesHoja, rectanguloUtil } from "./lib/tipos";
 import { GRILLA_PX } from "./lib/ruta";
-
-const nodeTypes = {
-  simbolo: NodoSimbolo,
-  alimentador: AlimentadorNode,
-  barra: BarraNode,
-  hoja: HojaNode,
-} as const;
-const edgeTypes = { conexion: ConexionEdge } as const;
-
-const NODO_HOJA: Node<NodoData> = {
-  id: "hoja",
-  type: "hoja",
-  position: { x: 0, y: 0 },
-  data: { codigo_iec: "", rotacion: 0, atributos: {} },
-  draggable: false,
-  selectable: false,
-  deletable: false,
-  connectable: false,
-  style: { zIndex: -1 } as React.CSSProperties,
-  // Exenta del clamp global: la lámina es MÁS grande que el marco útil
-  extent: [
-    [-100000, -100000],
-    [100000, 100000],
-  ],
-};
+import { nodeTypes, edgeTypes, crearNodoHoja } from "./lib/tiposFlow";
 
 interface ArrastreEnCurso {
   codigo: string;
@@ -402,7 +374,7 @@ function Editor() {
   }
 
   const nodosConHoja = useMemo<Node<NodoData>[]>(
-    () => [NODO_HOJA, ...nodos],
+    () => [crearNodoHoja(), ...nodos],
     [nodos],
   );
 
@@ -688,6 +660,7 @@ export default function App() {
         <BarraSuperior />
         <PestanasHoja />
         <Editor />
+        <ExportacionProyecto />
       </div>
     </ReactFlowProvider>
   );
