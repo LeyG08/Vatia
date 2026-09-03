@@ -4105,3 +4105,76 @@ de diseño del usuario. Lo que sigue abierto (nomenclatura de poder de
 corte, duplicación checklist↔Node, semántica multifilar, "polos", PR de
 esta rama) está documentado arriba, entrada por entrada, con la razón
 puntual de por qué se dejó para que el usuario decida.
+
+## E25 — `checklist.ts` y `verificar_proyecto_real.mjs` comparten lógica
+
+Decisión del usuario ("que compartan lógica es la mejor opción") sobre el
+punto que había quedado abierto en E24: el Checklist AEA del editor
+(`lib/checklist.ts`, corre en el navegador vía Vite) y el verificador de
+proyectos reales (`scripts/verificar_proyecto_real.mjs`, corre en CI con
+Node puro) tenían las mismas reglas escritas **dos veces**, literalmente
+byte a byte en `problemasCable()`, y casi byte a byte en `campoVisible()`
+y en el cálculo de mensajes "Falta X" / "Cargá al menos uno de…". El
+script incluso se documentaba a sí mismo como "espejo de checklist.ts" —
+un espejo que un cambio futuro en uno de los dos lados iba a desincronizar
+tarde o temprano, sin que nada lo avisara.
+
+**Antes se había descartado esto** (ver resumen de sesión anterior) por un
+motivo real: `checklist.ts` depende de `lib/libreria.ts`, que usa
+`import.meta.glob`, una API exclusiva de Vite que un script Node no puede
+ejecutar. Pero ese motivo solo bloquea compartir la RESOLUCIÓN de la
+librería de símbolos — no bloquea compartir las reglas de validación en sí,
+que ya eran funciones puras (reciben atributos ya resueltos, no tocan
+`import.meta` ni el DOM).
+
+Se extrajo esa parte pura a un módulo nuevo,
+`libreria-simbolos/verificacion/reglasFicha.mjs`: `esVacio`,
+`humanizarCampo`, `esCampoVisible` (regla `x-visible-si`),
+`mensajesDeCampos` (arma "Falta X" / "Cargá al menos uno de…" a partir de
+una lista ya resuelta de campos obligatorios) y `problemasCable` (la
+validación completa de un cable, sin ninguna dependencia de schema). Es
+JS plano, no TypeScript — así lo importa un script Node sin
+transpilador, y el editor lo importa habilitando `"allowJs": true` en
+`tsconfig.app.json` (sin necesitar un `.d.ts` aparte).
+
+Los dos consumidores ahora llaman al mismo módulo:
+
+- `lib/esquemas.ts`: `campoVisible()` pasa a ser un wrapper tipado sobre
+  `esCampoVisible()` — se conserva la firma para no tocar sus dos
+  llamadores (`checklist.ts`, `FormularioAtributos.tsx`).
+- `lib/checklist.ts`: `problemasFicha()` resuelve el schema con
+  `camposDeFamilia()`/`algunoObligatorio()` (eso sigue siendo específico
+  del editor, JSON importado por Vite + tipos generados) y delega el
+  criterio de qué mensaje corresponde a `mensajesDeCampos()`. Perdió sus
+  copias locales de `vacio`, `humanizarCampo` y `problemasCable`.
+- `scripts/verificar_proyecto_real.mjs`: mismo patrón del lado Node
+  (resuelve el schema leyendo el JSON con `fs`, que sigue siendo
+  necesariamente distinto porque no hay Vite) — perdió sus copias locales
+  de `vacio`, `humanizar`, `campoVisible` y `problemasCable`.
+
+Lo que **no** se unificó, a propósito: la resolución del subtipo de
+`tipo_aparato` a partir del schema (`camposDeFamilia` en el editor vs.
+`subtipoDeAparato`/`reglasDeFamiliaAparato` en el script). Unificar eso
+sí exigiría resolver el problema de `import.meta.glob`/carga de
+librería, que es un cambio de arquitectura mayor y no lo que el usuario
+pidió acá — lo que pidió, y lo que se hizo, es que la lógica de
+validación deje de estar duplicada.
+
+Verificado: `npm run build` (`tsc -b` limpio con el módulo `.mjs`
+importado desde TS), `npm run lint` sin warnings nuevos,
+`node scripts/verificar_proyecto_real.mjs` sigue dando el mismo resultado
+exacto contra el proyecto real (0 pendientes bloqueantes, 24 datos de
+sitio informativos), `npm run e2e` verde (21 checks),
+`verificar_alineacion.mjs` y `lint_simbolos.py` verdes. Además, prueba en
+vivo con Playwright: se arrastró un interruptor termomagnético recién
+creado al plano y el Checklist AEA mostró exactamente los mismos mensajes
+que antes del refactor ("Falta Cantidad polos.", "Falta In A.", "Falta
+Pdcc kA.", "Falta Norma fabricacion.", "Sin conexión a ningún
+alimentador."), confirmando que el refactor no cambió ningún mensaje ni
+criterio, solo dónde vive el código.
+
+Nota aparte (no relacionada con este cambio, ya documentada antes): la
+prueba en vivo repitió el warning de consola "Encountered two children
+with the same key... n1" al soltar un símbolo — es la falla preexistente
+de claves duplicadas ya registrada en una sesión anterior, no algo que
+haya introducido este refactor.

@@ -2,6 +2,7 @@ import brutoAparato from "../../../../libreria-simbolos/schemas/aparato.schema.j
 import brutoConductor from "../../../../libreria-simbolos/schemas/conductor.schema.json";
 import brutoBarra from "../../../../libreria-simbolos/schemas/barra.schema.json";
 import brutoCarga from "../../../../libreria-simbolos/schemas/carga.schema.json";
+import { esCampoVisible } from "../../../../libreria-simbolos/verificacion/reglasFicha.mjs";
 
 export type FamiliaAtributos =
   | "aparato"
@@ -99,18 +100,15 @@ function propiedadesDeDef(raiz: EsquemaRaiz, def: EsquemaDef): Record<string, Es
  * La usan TANTO el formulario (para ocultar) COMO el checklist (para no exigir
  * un campo que está oculto); si solo la usara el formulario, el checklist
  * pediría cargar campos que el usuario no puede ver.
+ *
+ * Implementación real en libreria-simbolos/verificacion/reglasFicha.mjs,
+ * compartida con scripts/verificar_proyecto_real.mjs (Node puro, sin Vite).
  */
 export function campoVisible(
   esquema: { "x-visible-si"?: string },
   atributos: Record<string, unknown>,
 ): boolean {
-  const regla = esquema["x-visible-si"];
-  if (!regla) return true;
-  const sep = regla.indexOf(":");
-  if (sep === -1) return atributos[regla] === true;
-  const campo = regla.slice(0, sep);
-  const valores = regla.slice(sep + 1).split("|");
-  return valores.includes(String(atributos[campo] ?? ""));
+  return esCampoVisible(esquema, atributos);
 }
 
 export function subtiposAparato(): string[] {
