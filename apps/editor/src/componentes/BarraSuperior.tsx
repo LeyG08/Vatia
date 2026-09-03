@@ -42,7 +42,7 @@ function BarraSuperior() {
 
   const toggleTema = useCallback(() => setOscuro((v) => !v), []);
 
-  function guardar() {
+  const guardar = useCallback(() => {
     const proyecto = serializar();
     const blob = new Blob([serializarProyecto(proyecto)], {
       type: "application/json",
@@ -53,7 +53,21 @@ function BarraSuperior() {
     a.download = `${proyecto.meta.nombre || "proyecto"}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }
+  }, [serializar]);
+
+  // Ctrl+S / Cmd+S guarda (el resto de los atajos vive en App.tsx; este
+  // queda acá porque guardar() ya está definido en este componente y no
+  // amerita levantarlo al store solo para esto).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        guardar();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [guardar]);
 
   /**
    * Exportación a PDF: se reusa el mismo React Flow que ya está en
@@ -218,7 +232,12 @@ function BarraSuperior() {
         onChange={(e) => setNombre(e.target.value)}
         aria-label="Nombre del proyecto"
       />
-      <button type="button" onClick={guardar} title="Guardar proyecto JSON">
+      <button
+        type="button"
+        className="primario"
+        onClick={guardar}
+        title="Guardar proyecto JSON"
+      >
         💾 Guardar
       </button>
       <button
@@ -262,6 +281,7 @@ function BarraSuperior() {
         onClick={deshacerFn}
         disabled={!puedeDeshacer}
         title="Deshacer (Ctrl+Z)"
+        aria-label="Deshacer"
       >
         ↶
       </button>
@@ -270,6 +290,7 @@ function BarraSuperior() {
         onClick={rehacerFn}
         disabled={!puedeRehacer}
         title="Rehacer (Ctrl+Shift+Z)"
+        aria-label="Rehacer"
       >
         ↷
       </button>
@@ -278,12 +299,13 @@ function BarraSuperior() {
         className="btn-tema"
         onClick={toggleTema}
         title={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+        aria-label={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
       >
         {oscuro ? "☀" : "🌙"}
       </button>
       <span className="ayuda">
-        Arrastrar con rueda: desplazar · Clic izq. y arrastrar: seleccionar ·
-        Ctrl+clic: sumar · Ctrl+C/V: copiar/pegar · R: rotar · Supr: borrar
+        Atajos de teclado: presioná{" "}
+        <kbd>?</kbd>
       </span>
     </header>
   );

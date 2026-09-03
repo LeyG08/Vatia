@@ -1,46 +1,81 @@
 :root {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    "Helvetica Neue",
+    sans-serif;
   color-scheme: light;
-  --borde: #d4d4d8;
-  --fondo-panel: #fafafa;
-  --acento: #2563eb;
-  --error: #dc2626;
 
-  --bg-canvas: #d8dfe8;
+  /* Petróleo/teal: trazo de circuito, no el azul genérico de plantilla.
+   * El neutro base tiene una leve inclinación fría (azulada), a tono con
+   * el papel de plano ("blueprint") en vez de un gris puro de librería. */
+  --borde: #d7dde4;
+  --fondo-panel: #f7f9fa;
+  --acento: #0d6e6a;
+  --acento-fuerte: #0a5652;
+  --acento-suave: #e3f3f1;
+  --error: #b8442f;
+  --error-suave: #fbeae6;
+  --ok: #2f7d4f;
+
+  --bg-canvas: #d9e0e8;
   --bg-surface: #ffffff;
-  --bg-surface-alt: #f1f5f9;
-  --bg-hover: #eff6ff;
-  --text-primary: #111827;
-  --text-secondary: #475569;
-  --text-muted: #71717a;
-  --text-faint: #a1a1aa;
-  --border-strong: #111827;
+  --bg-surface-alt: #eef1f4;
+  --bg-hover: #e5f2f0;
+  --text-primary: #172128;
+  --text-secondary: #47576a;
+  --text-muted: #71808f;
+  --text-faint: #a7b1bd;
+  --border-strong: #172128;
   --chip-bg: #ffffff;
-  --chip-border: #cbd5e1;
+  --chip-border: #c6d0da;
+
+  --radio: 6px;
+  --radio-chico: 4px;
+  --sombra-panel: 0 10px 28px rgba(23, 33, 40, 0.14), 0 1px 3px rgba(23, 33, 40, 0.08);
+  --anillo-foco: 0 0 0 3px rgba(13, 110, 106, 0.35);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --borde: #3f3f46;
-  --fondo-panel: #18181b;
-  --acento: #60a5fa;
-  --error: #f87171;
+  --borde: #34424c;
+  --fondo-panel: #131b21;
+  --acento: #4fd1c7;
+  --acento-fuerte: #7ee4dc;
+  --acento-suave: #163632;
+  --error: #e08267;
+  --error-suave: #3a221c;
+  --ok: #5bb884;
 
-  --bg-canvas: #0f0f11;
-  --bg-surface: #27272a;
-  --bg-surface-alt: #1c1c1f;
-  --bg-hover: #1e3a5f;
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-faint: #52525b;
-  --border-strong: #e4e4e7;
-  --chip-bg: #27272a;
-  --chip-border: #52525b;
+  --bg-canvas: #0b1116;
+  --bg-surface: #19232a;
+  --bg-surface-alt: #131b21;
+  --bg-hover: #17322f;
+  --text-primary: #e7edf1;
+  --text-secondary: #aab7c2;
+  --text-muted: #7c8996;
+  --text-faint: #4c5a67;
+  --border-strong: #e7edf1;
+  --chip-bg: #19232a;
+  --chip-border: #3a4a56;
+
+  --sombra-panel: 0 12px 32px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --anillo-foco: 0 0 0 3px rgba(79, 209, 199, 0.4);
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Accesibilidad: anillo de foco visible y consistente para navegación
+ * por teclado — antes dependía del outline por defecto del navegador,
+ * inconsistente entre Chrome/Firefox y a veces recortado por overflow.
+ * `:focus-visible` (no `:focus`) para no mostrarlo en clics de mouse. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--anillo-foco);
+  border-radius: var(--radio-chico);
 }
 
 html,
@@ -69,7 +104,10 @@ body,
 
 .marca {
   color: var(--acento);
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  margin-right: 2px;
 }
 
 .nombre-proyecto {
@@ -82,15 +120,31 @@ body,
 
 .barra-superior button {
   border: 1px solid var(--borde);
-  border-radius: 4px;
+  border-radius: var(--radio-chico);
   background: #fff;
   padding: 4px 10px;
   cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 
 .barra-superior button:hover:not(:disabled) {
   border-color: var(--acento);
   color: var(--acento);
+}
+
+/* La acción que de verdad importa distinguir del resto: guardar el
+ * trabajo. El resto de los botones son iguales entre sí a propósito
+ * (ninguno pesa más que otro) — este es el único que lo amerita. */
+.barra-superior button.primario {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+}
+.barra-superior button.primario:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
+  color: #fff;
 }
 
 .barra-superior button:disabled {
@@ -107,8 +161,18 @@ body,
 
 .ayuda {
   margin-left: auto;
-  color: #71717a;
+  color: var(--text-muted);
   font-size: 12px;
+}
+.ayuda kbd {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 10.5px;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--borde);
+  border-bottom-width: 2px;
+  border-radius: var(--radio-chico);
+  padding: 1px 6px;
+  color: var(--text-primary);
 }
 
 /* ---- Cuerpo ---- */
@@ -137,7 +201,7 @@ body,
   border-bottom: none;
   border-radius: 6px 6px 0 0;
   background: #f1f5f9;
-  color: #475569;
+  color: var(--text-secondary);
   padding: 5px 10px;
   font-size: 12px;
   cursor: pointer;
@@ -179,7 +243,7 @@ body,
   border-bottom: none;
   border-radius: 6px 6px 0 0;
   background: #eef2f7;
-  color: #475569;
+  color: var(--text-secondary);
   padding: 5px 8px;
   font-size: 13px;
   cursor: pointer;
@@ -238,7 +302,7 @@ body,
 
 .pestana-hoja.nueva {
   border-style: dashed;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -255,13 +319,13 @@ body,
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #52525b;
+  color: var(--text-secondary);
   margin: 4px 0 8px;
 }
 
 .paleta-grupo h3 {
   font-size: 12px;
-  color: #71717a;
+  color: var(--text-muted);
   margin: 10px 0 4px;
   border-bottom: 1px dashed var(--borde);
   padding-bottom: 2px;
@@ -484,7 +548,7 @@ body,
   align-items: center;
   gap: 10px;
   max-width: 440px;
-  background: #eff6ff;
+  background: var(--acento-suave);
   border: 1px solid var(--acento);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -599,14 +663,14 @@ body.arrastrando .paleta-item {
 
 .paleta-ayuda {
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
   margin: 0 0 8px;
 }
 
 .barra-superior button.activo {
   border-color: var(--acento);
   color: var(--acento);
-  background: #eff6ff;
+  background: var(--acento-suave);
 }
 
 /* ---- Hoja de plano ---- */
@@ -631,7 +695,7 @@ body.arrastrando .paleta-item {
 
 /* Símbolos que quedan fuera del marco útil: se pasan a otra hoja */
 .react-flow__node.nodo-fuera-hoja .nodo-simbolo {
-  outline: 2px dashed #dc2626;
+  outline: 2px dashed var(--error);
   outline-offset: 3px;
 }
 
@@ -645,7 +709,7 @@ body.arrastrando .paleta-item {
   align-items: center;
   gap: 10px;
   background: #fef2f2;
-  border: 1px solid #dc2626;
+  border: 1px solid var(--error);
   color: #991b1b;
   font-size: 12px;
   font-weight: 600;
@@ -655,7 +719,7 @@ body.arrastrando .paleta-item {
 }
 
 .aviso-fuera-hoja button {
-  border: 1px solid #dc2626;
+  border: 1px solid var(--error);
   border-radius: 999px;
   background: #fff;
   color: #991b1b;
@@ -666,7 +730,7 @@ body.arrastrando .paleta-item {
 }
 
 .aviso-fuera-hoja button:hover {
-  background: #dc2626;
+  background: var(--error);
   color: #fff;
 }
 
@@ -746,7 +810,7 @@ body.arrastrando .paleta-item {
 .panel-hoja h3 {
   margin: 14px 0 8px;
   font-size: 13px;
-  color: #52525b;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -765,7 +829,7 @@ body.arrastrando .paleta-item {
 }
 
 .panel-hoja-campo span {
-  color: #52525b;
+  color: var(--text-secondary);
 }
 
 .panel-hoja-campo input,
@@ -811,7 +875,7 @@ body.arrastrando .paleta-item {
 
 .panel-hoja-item button:hover {
   background: #fef2f2;
-  border-color: #dc2626;
+  border-color: var(--error);
 }
 
 .panel-hoja-agregar {
@@ -836,13 +900,13 @@ body.arrastrando .paleta-item {
 .orientacion-opciones button.activo {
   border-color: var(--acento);
   color: var(--acento);
-  background: #eff6ff;
+  background: var(--acento-suave);
 }
 
 .panel-hoja-dimension {
   margin: 0;
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 .panel-hoja-pie {
@@ -856,7 +920,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-pie p {
   margin: 0;
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 .panel-hoja-pie button {
@@ -870,6 +934,106 @@ body.arrastrando .paleta-item {
 .panel-hoja-pie button:hover {
   border-color: var(--acento);
   color: var(--acento);
+}
+
+/* ---- Ayuda de atajos de teclado ("?") ---- */
+.ayuda-atajos {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 91;
+  width: min(560px, 92vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-panel);
+  padding: 16px 18px;
+}
+.ayuda-atajos header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ayuda-atajos h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.ayuda-atajos header button {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+.ayuda-atajos header button:hover {
+  color: var(--error);
+}
+.ayuda-atajos-grupos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+.ayuda-atajos-grupo h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+.ayuda-atajos-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ayuda-atajos-teclas {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.ayuda-atajos-teclas kbd {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 10.5px;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--borde);
+  border-bottom-width: 2px;
+  border-radius: var(--radio-chico);
+  padding: 2px 6px;
+  color: var(--text-primary);
+}
+
+/* ---- Controles nativos de React Flow (zoom / encuadre) ----
+ * Especificidad extra (repetir la clase) a propósito: la hoja de estilos
+ * propia de la librería (@xyflow/react/dist/style.css) se importa DESPUÉS
+ * de este archivo en el bundle final, así que a igual especificidad
+ * ganaba siempre la de la librería. */
+.react-flow__controls.react-flow__controls {
+  box-shadow: var(--sombra-panel);
+  border-radius: var(--radio-chico);
+  overflow: hidden;
+}
+.react-flow__controls-button.react-flow__controls-button {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--borde);
+  color: var(--text-secondary);
+  fill: var(--text-secondary);
+}
+.react-flow__controls-button.react-flow__controls-button:hover {
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+.react-flow__controls-button.react-flow__controls-button svg {
+  fill: currentColor;
 }
 
 /* Dos campos por fila dentro del panel de hoja */
@@ -890,7 +1054,7 @@ body.arrastrando .paleta-item {
 
 .panel-hoja-resp em {
   font-style: normal;
-  color: #52525b;
+  color: var(--text-secondary);
 }
 
 .panel-hoja-resp input {
@@ -910,7 +1074,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-ayuda {
   margin: -6px 0 8px;
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
   line-height: 1.4;
 }
 
@@ -986,7 +1150,7 @@ body.arrastrando .paleta-item {
 /* C17: hover suave, selección FUERTE (mismo criterio que los
  * símbolos: se tiene que ver qué está elegido). */
 .nodo-alimentador:hover {
-  border-color: #93c5fd;
+  border-color: var(--acento-fuerte);
 }
 
 .nodo-alimentador.sel {
@@ -1037,7 +1201,7 @@ body.arrastrando .paleta-item {
 }
 
 .alim-origen::placeholder {
-  color: #a1a1aa;
+  color: var(--text-faint);
   font-weight: 400;
 }
 
@@ -1054,7 +1218,7 @@ body.arrastrando .paleta-item {
 .alim-nota {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
-  color: #71717a;
+  color: var(--text-muted);
   line-height: 1.35;
   text-align: right;
   white-space: normal;
@@ -1107,7 +1271,7 @@ body.arrastrando .paleta-item {
   border: 1px solid #cbd5e1;
   border-radius: 14px;
   background: #fff;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1;
   padding: 5px 12px;
@@ -1116,13 +1280,13 @@ body.arrastrando .paleta-item {
 }
 
 .chip:hover:not(:disabled) {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  border-color: var(--acento-fuerte);
+  background: var(--acento-suave);
 }
 
 .chip.on {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
   color: #fff;
   font-weight: 600;
 }
@@ -1162,7 +1326,7 @@ body.arrastrando .paleta-item {
 }
 
 .campo-atributo .obligatorio {
-  color: #dc2626;
+  color: var(--error);
   font-style: normal;
   margin-left: 2px;
 }
@@ -1177,7 +1341,7 @@ body.arrastrando .paleta-item {
 .form-atributos-vacio {
   margin: 4px 2px;
   font-size: 12px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 /* ---- Panel de atributos (Fase C4) ---- */
@@ -1191,7 +1355,7 @@ body.arrastrando .paleta-item {
   max-height: 60vh;
   overflow-y: auto;
   background: #ffffff;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   padding: 10px;
@@ -1208,7 +1372,7 @@ body.arrastrando .paleta-item {
 .panel-atributos-sub {
   font-size: 10px;
   font-weight: 400;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 /* ---- Ajustes C4b: panel junto al elemento + anotaciones en hoja ---- */
@@ -1228,7 +1392,7 @@ body.arrastrando .paleta-item {
   touch-action: none;
   padding-bottom: 6px;
   margin-bottom: 8px;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid var(--text-primary);
 }
 
 .panel-atributos h3:active {
@@ -1236,7 +1400,7 @@ body.arrastrando .paleta-item {
 }
 
 .panel-atributos-mover {
-  color: #a1a1aa;
+  color: var(--text-faint);
   font-size: 11px;
 }
 
@@ -1251,7 +1415,7 @@ body.arrastrando .paleta-item {
   font-size: 9px;
   line-height: 1.3;
   white-space: nowrap;
-  color: #71717a;
+  color: var(--text-muted);
   pointer-events: none;
 }
 
@@ -1288,7 +1452,7 @@ body.arrastrando .paleta-item {
 }
 
 .paso-grip:hover {
-  background: #dbeafe;
+  background: var(--acento-suave);
   box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.25);
 }
 
@@ -1300,7 +1464,7 @@ body.arrastrando .paleta-item {
    más chica y más clara — jerarquía visual sin trucos de texto */
 .anotacion-nodo .anotacion-sec {
   font-size: 8px;
-  color: #9ca3af;
+  color: var(--text-faint);
   margin-top: -1px;
 }
 
@@ -1437,7 +1601,7 @@ body.arrastrando .paleta-item {
 }
 
 .barra-grip:hover {
-  background: #2563eb;
+  background: var(--acento);
 }
 
 .barra-grip-izq {
@@ -1462,7 +1626,7 @@ body.arrastrando .paleta-item {
 .panel-atributos-hoja-hija button {
   width: 100%;
   border: 1px solid var(--acento);
-  background: #eff6ff;
+  background: var(--acento-suave);
   color: var(--acento);
   border-radius: 6px;
   padding: 6px 8px;
@@ -1495,7 +1659,7 @@ body.arrastrando .paleta-item {
   gap: 8px;
   margin-top: -6px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .estimacion-in button {
@@ -1503,13 +1667,13 @@ body.arrastrando .paleta-item {
   border-radius: 6px;
   padding: 2px 10px;
   background: #eef2ff;
-  color: #1d4ed8;
+  color: var(--acento-fuerte);
   font-size: 11px;
   cursor: pointer;
 }
 
 .estimacion-in button:hover {
-  background: #dbeafe;
+  background: var(--acento-suave);
 }
 
 /* Texto del cable sobre la conexión, sin marco para no invadir.
@@ -1521,7 +1685,7 @@ body.arrastrando .paleta-item {
   background: color-mix(in srgb, var(--bg-surface) 75%, transparent);
   padding: 0 3px;
   border-radius: 2px;
-  color: #71717a;
+  color: var(--text-muted);
   pointer-events: none;
   max-width: 130px;
   white-space: normal;
@@ -1541,9 +1705,9 @@ body.arrastrando .paleta-item {
 .fc-paso {
   width: 22px;
   height: 22px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 5px;
-  background: #fafafa;
+  background: var(--fondo-panel);
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
@@ -1559,7 +1723,7 @@ body.arrastrando .paleta-item {
   text-align: center;
   font-size: 13px;
   font-weight: 600;
-  color: #18181b;
+  color: var(--text-primary);
 }
 
 .fc-tipos {
@@ -1572,15 +1736,15 @@ body.arrastrando .paleta-item {
   flex: 1;
   font-size: 10.5px;
   padding: 3px 4px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 5px;
-  background: #fafafa;
+  background: var(--fondo-panel);
   cursor: pointer;
 }
 
 .fc-tipo.activa {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--acento);
+  border-color: var(--acento);
   color: #ffffff;
 }
 
@@ -1589,7 +1753,7 @@ body.arrastrando .paleta-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 999px;
   background: #f4f4f5;
   padding: 2px 6px;
@@ -1602,51 +1766,51 @@ body.arrastrando .paleta-item {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #a1a1aa;
+  background: var(--text-faint);
   transition: margin-left 0.15s, background 0.15s;
 }
 
 .fc-llave-texto {
   font-size: 10px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 .fc-llave.activa {
-  background: #dbeafe;
-  border-color: #93c5fd;
+  background: var(--acento-suave);
+  border-color: var(--acento-fuerte);
   justify-content: flex-end;
 }
 
 .fc-llave.activa .fc-llave-perilla {
-  background: #2563eb;
+  background: var(--acento);
 }
 
 .fc-llave.activa .fc-llave-texto {
-  color: #1d4ed8;
+  color: var(--acento-fuerte);
 }
 
 .fc-sub > span {
   padding-left: 10px;
-  color: #71717a;
+  color: var(--text-muted);
   width: 108px;
   min-width: 108px;
 }
 
 .fc-preview {
   margin-top: 6px;
-  border: 1px dashed #d4d4d8;
+  border: 1px dashed var(--borde);
   border-radius: 5px;
   padding: 4px 7px;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9.5px;
-  color: #18181b;
-  background: #fafafa;
+  color: var(--text-primary);
+  background: var(--fondo-panel);
 }
 
 .fc-metodos-recordatorio {
   margin-top: 2px;
   font-size: 10px;
-  color: #52525b;
+  color: var(--text-secondary);
 }
 .fc-metodos-recordatorio summary {
   cursor: pointer;
@@ -1655,16 +1819,16 @@ body.arrastrando .paleta-item {
 .fc-metodos-recordatorio dl {
   margin: 5px 0 0;
   padding: 6px 8px;
-  border: 1px dashed #d4d4d8;
+  border: 1px dashed var(--borde);
   border-radius: 5px;
-  background: #fafafa;
+  background: var(--fondo-panel);
 }
 .fc-metodos-recordatorio dt {
   float: left;
   clear: left;
   width: 20px;
   font-weight: 600;
-  color: #18181b;
+  color: var(--text-primary);
 }
 .fc-metodos-recordatorio dd {
   margin: 0 0 3px 24px;
@@ -1675,13 +1839,13 @@ body.arrastrando .paleta-item {
   border: 1px solid #bfdbfe;
   border-radius: 5px;
   padding: 6px 8px;
-  background: #eff6ff;
+  background: var(--acento-suave);
 }
 .fc-calculo-titulo {
   display: block;
   font-size: 10px;
   font-weight: 600;
-  color: #1d4ed8;
+  color: var(--acento-fuerte);
   margin-bottom: 3px;
 }
 .fc-calculo-linea {
@@ -1689,7 +1853,7 @@ body.arrastrando .paleta-item {
   justify-content: space-between;
   gap: 8px;
   font-size: 11px;
-  color: #18181b;
+  color: var(--text-primary);
 }
 .fc-calculo-linea + .fc-calculo-linea {
   margin-top: 2px;
@@ -1697,7 +1861,7 @@ body.arrastrando .paleta-item {
 .fc-calculo-nota {
   margin: 5px 0 0;
   font-size: 9.5px;
-  color: #52525b;
+  color: var(--text-secondary);
   line-height: 1.3;
 }
 
@@ -1713,7 +1877,7 @@ body.arrastrando .paleta-item {
 /* React Flow viewport */
 [data-theme="dark"] .lienzo .react-flow {
   background-color: var(--bg-canvas);
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Barra superior */
@@ -1737,6 +1901,17 @@ body.arrastrando .paleta-item {
   background: var(--bg-hover);
   color: var(--acento);
   border-color: var(--acento);
+}
+
+[data-theme="dark"] .barra-superior button.primario {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #0b1116;
+}
+[data-theme="dark"] .barra-superior button.primario:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
+  color: #0b1116;
 }
 
 [data-theme="dark"] .nombre-proyecto {
@@ -1958,13 +2133,13 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .chip:hover:not(:disabled) {
-  border-color: #60a5fa;
+  border-color: var(--acento);
   background: var(--bg-hover);
 }
 
 [data-theme="dark"] .chip.on {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--acento);
+  border-color: var(--acento);
   color: #fff;
 }
 
@@ -1976,7 +2151,7 @@ body.arrastrando .paleta-item {
 
 /* Anotaciones sobre el plano — heredan color del tema vía var() */
 [data-theme="dark"] .anotacion-nodo .anotacion-sec {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 [data-theme="dark"] .alim-origen::placeholder {
@@ -2054,12 +2229,12 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .fc-llave.activa {
-  background: #1e3a5f;
-  border-color: #60a5fa;
+  background: var(--bg-hover);
+  border-color: var(--acento);
 }
 
 [data-theme="dark"] .fc-llave.activa .fc-llave-texto {
-  color: #93c5fd;
+  color: var(--acento-fuerte);
 }
 
 [data-theme="dark"] .fc-sub > span {
@@ -2073,11 +2248,11 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .fc-calculo {
-  background: #1e3a5f;
+  background: var(--bg-hover);
   border-color: #3b6dbf;
 }
 [data-theme="dark"] .fc-calculo-titulo {
-  color: #93c5fd;
+  color: var(--acento-fuerte);
 }
 [data-theme="dark"] .fc-calculo-linea {
   color: var(--text-primary);
@@ -2110,17 +2285,17 @@ body.arrastrando .paleta-item {
    color del contenedor. Los puntos de conexión conservan #e11d48. */
 [data-theme="dark"] .simbolo-svg,
 [data-theme="dark"] .simbolo-svg svg {
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Paleta thumbnails — mismo color */
 [data-theme="dark"] .paleta-thumb svg {
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Fantasma de arrastre */
 [data-theme="dark"] .fantasma-arrastre svg {
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Panel de atributos: borde superior del drag handle */
@@ -2140,7 +2315,7 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .paso-grip:hover {
-  background: #1e3a5f;
+  background: var(--bg-hover);
 }
 
 /* Botón de toggle dark mode */
@@ -2168,7 +2343,7 @@ body.arrastrando .paleta-item {
   letter-spacing: 0.5px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: #dc2626;
+  background: var(--error);
   color: #fff;
   line-height: 1.4;
   vertical-align: middle;
@@ -2328,8 +2503,8 @@ body.arrastrando .paleta-item {
 }
 
 .editor-simbolos-badge.corregido {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--acento-suave);
+  color: var(--acento);
 }
 
 [data-theme="dark"] .editor-simbolos-badge.verificado {
@@ -2344,7 +2519,7 @@ body.arrastrando .paleta-item {
 
 [data-theme="dark"] .editor-simbolos-badge.corregido {
   background: rgba(37, 99, 235, 0.2);
-  color: #60a5fa;
+  color: var(--acento);
 }
 
 [data-theme="dark"] .editor-simbolos-toolbar button {
@@ -2541,6 +2716,8 @@ body.arrastrando .paleta-item {
   .aviso-fuera-hoja,
   .toast-mover,
   .fantasma-arrastre,
+  .modal-fondo,
+  .ayuda-atajos,
   .react-flow__background,
   .react-flow__minimap,
   .react-flow__controls,
@@ -2596,7 +2773,7 @@ body.arrastrando .paleta-item {
   .pagina-bom {
     padding: 15mm;
     font-family: system-ui, sans-serif;
-    color: #18181b;
+    color: var(--text-primary);
   }
   .pagina-bom h1 {
     font-size: 16px;
@@ -2609,7 +2786,7 @@ body.arrastrando .paleta-item {
   }
   .pagina-bom th,
   .pagina-bom td {
-    border: 1px solid #a1a1aa;
+    border: 1px solid var(--text-faint);
     padding: 3px 6px;
     text-align: left;
   }

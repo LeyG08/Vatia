@@ -3,6 +3,8 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  Controls,
+  ControlButton,
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -17,6 +19,7 @@ import PanelProyecto from "./componentes/PanelProyecto";
 import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
 import ExportacionProyecto from "./componentes/ExportacionProyecto";
+import AyudaAtajos from "./componentes/AyudaAtajos";
 import EditorSimbolos from "./componentes/EditorSimbolos";
 import { ESCALA, useEditor, tamanoNodoPx, esDatosAlimentador, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
@@ -96,6 +99,11 @@ function Editor() {
   const moverSeleccionAHojaFn = useEditor((s) => s.moverSeleccionAHoja);
   const cambiarHojaActivaFn = useEditor((s) => s.cambiarHojaActiva);
   const fijarPosicionesFn = useEditor((s) => s.fijarPosiciones);
+  const panelHojaAbierto = useEditor((s) => s.panelHojaAbierto);
+  const panelProyectoAbierto = useEditor((s) => s.panelProyectoAbierto);
+  const alternarPanelHojaFn = useEditor((s) => s.alternarPanelHoja);
+  const alternarPanelProyectoFn = useEditor((s) => s.alternarPanelProyecto);
+  const [ayudaAtajosAbierta, setAyudaAtajosAbierta] = useState(false);
   const [arrastre, setArrastre] = useState<ArrastreEnCurso | null>(null);
   const arrastreRef = useRef<ArrastreEnCurso | null>(null);
   useEffect(() => {
@@ -241,12 +249,29 @@ function Editor() {
         alternarAdminFn();
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        seleccionarNodosFn(nodos.map((n) => n.id));
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         copiarSeleccion();
         return;
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
         pegarFn();
+        return;
+      }
+      if (e.key === "Escape") {
+        // Un paso por vez: primero lo más "encima", después lo demás.
+        if (ayudaAtajosAbierta) setAyudaAtajosAbierta(false);
+        else if (panelProyectoAbierto) alternarPanelProyectoFn();
+        else if (panelHojaAbierto) alternarPanelHojaFn();
+        else seleccionarNodosFn([]);
+        return;
+      }
+      if (e.key === "?") {
+        setAyudaAtajosAbierta((a) => !a);
         return;
       }
       if (e.ctrlKey || e.altKey || e.metaKey) return;
@@ -262,12 +287,19 @@ function Editor() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     alternarAdminFn,
+    alternarPanelHojaFn,
+    alternarPanelProyectoFn,
+    ayudaAtajosAbierta,
     copiarSeleccion,
     deshacerFn,
     eliminarSeleccion,
+    nodos,
+    panelHojaAbierto,
+    panelProyectoAbierto,
     pegarFn,
     rehacerFn,
     rotarSeleccion,
+    seleccionarNodosFn,
   ]);
 
   useEffect(() => {
@@ -626,7 +658,20 @@ function Editor() {
           connectionRadius={30}
           fitView
           proOptions={{ hideAttribution: true }}
-        />
+        >
+          <Controls showInteractive={false} position="top-right">
+            <ControlButton
+              onClick={() => setAyudaAtajosAbierta(true)}
+              title="Atajos de teclado (?)"
+              aria-label="Atajos de teclado"
+            >
+              ?
+            </ControlButton>
+          </Controls>
+        </ReactFlow>
+        {ayudaAtajosAbierta && (
+          <AyudaAtajos onCerrar={() => setAyudaAtajosAbierta(false)} />
+        )}
         <div className="paneles-flotantes">
           <ChecklistAea />
           <PanelProblemas />

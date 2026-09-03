@@ -4502,3 +4502,99 @@ Verificado: `npm run build` (`tsc -b` limpio), `npm run lint` sin
 warnings nuevos, `npm run e2e` verde (21 checks, incluida la prueba de
 quiebre arrastrable), `verificar_alineacion.mjs` y
 `verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+## E32 — Rediseño visual, accesibilidad y atajos de teclado (etapa 1)
+
+Pedido explícito del usuario: "modificaciones estéticas... accesibilidades,
+función y atajos... cosas que suelen tener programas de este estilo y todo
+lo que consideres". Alcance amplio y delegado a criterio propio — se
+encaró como una primera etapa concreta y verificada, no como un rediseño
+completo de una sola vez.
+
+**Paleta de color.** Toda la paleta era, literal, la escala `zinc` +
+`blue-600`/`red-600` de Tailwind sin modificar — reconocible como
+plantilla genérica. Se reemplazó por una paleta propia: acento
+petróleo/teal (`#0d6e6a` claro / `#4fd1c7` oscuro, en vez del azul
+genérico #2563eb) con un neutro de base ligeramente frío, coherente con
+el papel de plano ("blueprint") en vez de gris de librería. Se agregaron
+tokens que faltaban: `--acento-fuerte`, `--acento-suave`, `--ok`,
+`--error-suave`, `--radio`/`--radio-chico`, `--sombra-panel`,
+`--anillo-foco`.
+
+La sola actualización de los tokens no alcanzaba: había ~35 colores
+hardcodeados por fuera del sistema de variables (mismo valor que un
+token, pegado a mano) más otra tanda de azules específicos (hover states,
+`.fc-calculo` de E26) que no coincidían con ningún token. Se barrieron
+los dos grupos con reemplazos exactos hoja por hoja (no un buscar-
+reemplazar ciego: se verificó el contexto de cada valor — `color` vs
+`background` vs `border` — antes de mapearlo).
+
+**Jerarquía en la barra superior.** Antes todos los botones eran cajas
+blancas idénticas, sin indicar cuál accion pesa más. "Guardar" pasa a ser
+el único botón "primario" (relleno, texto blanco) — el resto sigue
+igual entre sí a propósito. El texto de ayuda fijo y largo ("Arrastrar
+con rueda: desplazar · Clic izq...") se reemplazó por un aviso corto que
+apunta a la ayuda de atajos nueva.
+
+**Accesibilidad.**
+- Anillo de foco visible y consistente (`:focus-visible`, con
+  `box-shadow` en vez de depender del outline por defecto del
+  navegador, inconsistente entre Chrome/Firefox) para toda la app.
+- `aria-label` en los botones de solo ícono que no lo tenían (deshacer,
+  rehacer, cambiar de tema) — antes su nombre accesible caía al
+  carácter crudo del ícono ("↶"), que un lector de pantalla no anuncia
+  de forma útil.
+
+**Funciones típicas de un editor CAD, que faltaban del todo:**
+- Controles de zoom / encuadre nativos de React Flow (`<Controls>`),
+  reposicionados a la esquina superior derecha del lienzo — la inferior
+  izquierda ya la ocupaba el Checklist AEA, y solaparse ahí escondía dos
+  de los cuatro botones (encontrado recién al verificar con una captura
+  de pantalla real, no era evidente mirando el código).
+- Ayuda de atajos de teclado (`AyudaAtajos.tsx`), con la tecla `?` o un
+  botón dedicado en el cluster de Controls — agrupa TODOS los atajos
+  (existentes y nuevos) por categoría, con teclas en `<kbd>`.
+
+**Atajos nuevos** (los existentes — Ctrl+Z/Shift+Z, Ctrl+C/V, R, Supr —
+quedan igual): `Ctrl+A` selecciona todo, `Esc` deselecciona o cierra el
+panel más "encima" (ayuda → Proyecto → Hoja → deselección, en ese
+orden), `Ctrl+S` guarda el proyecto (JSON), `?` abre/cierra la ayuda.
+Deliberadamente NO se agregó nudge con flechas (mover la selección de a
+un paso de grilla): hacerlo bien exige que quede en el historial de
+deshacer, y no alcanzaba el tiempo para probarlo con la misma
+rigurosidad que el resto — queda para una próxima pasada.
+
+**Bug real encontrado y corregido durante la verificación visual, no
+antes:** al agregar `<Controls>` en su posición por defecto
+(inferior izquierda), quedó exactamente superpuesto con
+`.paneles-flotantes` (Checklist AEA, mismo rincón) — los botones de
+encuadre y de ayuda quedaban tapados. Solo se vio con una captura de
+pantalla real a resolución completa; por código, nada lo delataba.
+Corregido con `position="top-right"`. Segundo hallazgo del mismo tipo:
+los botones de Controls se veían blancos en tema oscuro pese a usar
+`var(--bg-surface)` — la hoja de estilos propia de React Flow
+(`@xyflow/react/dist/style.css`) se carga DESPUÉS de `estilos.css` en el
+bundle final, así que a igual especificidad ganaba siempre la de la
+librería. Se resolvió duplicando la clase en el selector
+(`.react-flow__controls-button.react-flow__controls-button`) para subir
+la especificidad sin `!important`.
+
+**Verificado con Playwright, en las dos capas:**
+- Visual: capturas de pantalla reales en claro y oscuro, antes y
+  después de cada cambio — así se encontraron los dos bugs de arriba,
+  que ninguna revisión de código sola hubiera detectado.
+- Funcional: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+  warnings nuevos, `npm run e2e` (contra el build de producción) Y
+  `npm run e2e:simbolos` verdes, `verificar_alineacion.mjs` y
+  `verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 19/19. Se
+  confirmó además que la exportación a PDF (E28/E29) sigue funcionando
+  igual: `.react-flow__controls` y `.ayuda-atajos` quedan ocultos bajo
+  `@media print` (se agregaron a la lista existente), y el botón
+  "Exportar PDF" sigue disparando `window.print()` sin cambios.
+
+**Lo que sigue abierto de este pedido, a propósito** (el pedido era
+amplio y esto es una primera etapa, no todo de una vez): más pulido
+tipográfico (jerarquía de tamaños/pesos más marcada), revisar contraste
+de color en los estados semánticos del Checklist (ámbar/verde/rojo,
+todavía sin retocar), nudge de selección con flechas, y cualquier otra
+cosa puntual que el usuario señale al ver el resultado en vivo.
