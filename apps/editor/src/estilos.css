@@ -25,7 +25,10 @@
   --bg-hover: #e5f2f0;
   --text-primary: #172128;
   --text-secondary: #47576a;
-  --text-muted: #71808f;
+  /* Verificado contra --bg-surface (blanco): 5,24:1, AA para texto
+     normal. El valor anterior (#71808f) daba 4,05:1, por debajo del
+     mínimo de 4,5:1 — se usa en mucho texto de ayuda chico. */
+  --text-muted: #5f6e7c;
   --text-faint: #a7b1bd;
   --border-strong: #172128;
   --chip-bg: #ffffff;
@@ -54,7 +57,9 @@
   --bg-hover: #17322f;
   --text-primary: #e7edf1;
   --text-secondary: #aab7c2;
-  --text-muted: #7c8996;
+  /* Verificado contra --bg-surface: 5,15:1. El valor anterior (#7c8996)
+     daba 4,47:1, apenas debajo del mínimo AA de 4,5:1. */
+  --text-muted: #8794a0;
   --text-faint: #4c5a67;
   --border-strong: #e7edf1;
   --chip-bg: #19232a;
@@ -66,6 +71,17 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Dígitos de ancho fijo: en una herramienta técnica los números aparecen
+ * en columnas (secciones de cable, corrientes, fechas) y con las cifras
+ * proporcionales bailan de ancho al cambiar; con tabulares quedan
+ * alineadas. */
+input[type="number"],
+.fc-calculo-linea strong,
+.panel-hoja-dimension,
+.ayuda-atajos-teclas kbd {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Accesibilidad: anillo de foco visible y consistente para navegación
@@ -539,7 +555,10 @@ body,
 .sin-problemas {
   margin: 0;
   padding: 0 10px 8px;
-  color: #16a34a;
+  /* #16a34a (verde estándar) daba 3,18:1 sobre el fondo ámbar del
+     checklist — por debajo del mínimo WCAG AA de texto (4,5:1).
+     #15803d da 4,84:1, verificado. */
+  color: #15803d;
 }
 
 /* ---- Aviso de autoguardado recuperado ---- */
@@ -766,7 +785,9 @@ body.arrastrando .paleta-item {
 }
 
 .toast-mover button:hover {
-  background: #16a34a;
+  /* #16a34a con texto blanco daba 3,30:1 (bajo el mínimo AA de 4,5:1
+     para texto normal). #15803d da 5,02:1, verificado. */
+  background: #15803d;
   color: #fff;
 }
 
@@ -804,7 +825,10 @@ body.arrastrando .paleta-item {
 
 .panel-hoja h2 {
   margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--acento-suave);
   font-size: 16px;
+  letter-spacing: 0.2px;
 }
 
 .panel-hoja h3 {
@@ -957,10 +981,13 @@ body.arrastrando .paleta-item {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--acento-suave);
 }
 .ayuda-atajos h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
+  letter-spacing: 0.2px;
 }
 .ayuda-atajos header button {
   border: none;
@@ -1392,7 +1419,7 @@ body.arrastrando .paleta-item {
   touch-action: none;
   padding-bottom: 6px;
   margin-bottom: 8px;
-  border-bottom: 1px solid var(--text-primary);
+  border-bottom: 2px solid var(--acento-suave);
 }
 
 .panel-atributos h3:active {
@@ -2494,12 +2521,16 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-badge.verificado {
   background: #dcfce7;
-  color: #16a34a;
+  /* #16a34a daba 3,00:1 sobre este verde claro (bajo AA 4,5:1);
+     #166534 da 6,49:1, verificado. */
+  color: #166534;
 }
 
 .editor-simbolos-badge.pendiente_revision {
   background: #fef9c3;
-  color: #ca8a04;
+  /* #ca8a04 daba 2,74:1 sobre este amarillo claro — bien por debajo del
+     mínimo AA (4,5:1). #92400e da 6,60:1, verificado. */
+  color: #92400e;
 }
 
 .editor-simbolos-badge.corregido {

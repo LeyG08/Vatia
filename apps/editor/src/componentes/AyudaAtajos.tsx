@@ -22,6 +22,8 @@ const GRUPOS: { titulo: string; atajos: Atajo[] }[] = [
       { teclas: ["Ctrl", "clic"], descripcion: "Sumar a la selección" },
       { teclas: ["Ctrl", "A"], descripcion: "Seleccionar todo" },
       { teclas: ["Esc"], descripcion: "Deseleccionar / cerrar el panel activo" },
+      { teclas: ["↑↓←→"], descripcion: "Mover la selección un paso de grilla" },
+      { teclas: ["Shift", "↑↓←→"], descripcion: "Mover la selección un paso grande" },
     ],
   },
   {

@@ -275,6 +275,26 @@ function Editor() {
         return;
       }
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key.startsWith("Arrow")) {
+        const seleccionados = nodos.filter((n) => n.selected);
+        if (seleccionados.length === 0) return;
+        e.preventDefault();
+        const paso = e.shiftKey ? GRILLA_PX * 5 : GRILLA_PX;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === "ArrowUp") dy = -paso;
+        else if (e.key === "ArrowDown") dy = paso;
+        else if (e.key === "ArrowLeft") dx = -paso;
+        else if (e.key === "ArrowRight") dx = paso;
+        else return;
+        const despues: Record<string, { x: number; y: number }> = {};
+        for (const n of seleccionados) {
+          despues[n.id] = { x: n.position.x + dx, y: n.position.y + dy };
+        }
+        registrarArrastre(seleccionados.map((n) => n.id));
+        confirmarArrastre(despues);
+        return;
+      }
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         rotarSeleccion();
@@ -290,6 +310,7 @@ function Editor() {
     alternarPanelHojaFn,
     alternarPanelProyectoFn,
     ayudaAtajosAbierta,
+    confirmarArrastre,
     copiarSeleccion,
     deshacerFn,
     eliminarSeleccion,
@@ -297,6 +318,7 @@ function Editor() {
     panelHojaAbierto,
     panelProyectoAbierto,
     pegarFn,
+    registrarArrastre,
     rehacerFn,
     rotarSeleccion,
     seleccionarNodosFn,
@@ -657,6 +679,13 @@ function Editor() {
            * fino: mover extremos de conexión queda sencillo. */
           connectionRadius={30}
           fitView
+          // React Flow mueve solo los nodos seleccionados con las flechas
+          // del teclado (1 px, fuera de grilla, sin pasar por el
+          // historial de deshacer propio). El nudge de App.tsx hace lo
+          // mismo pero en pasos de grilla y SÍ queda en el historial —
+          // sin esto, las dos implementaciones se sumaban (20 px en vez
+          // de 10 al apretar una vez, encontrado al verificar).
+          disableKeyboardA11y
           proOptions={{ hideAttribution: true }}
         >
           <Controls showInteractive={false} position="top-right">

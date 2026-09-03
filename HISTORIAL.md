@@ -4598,3 +4598,60 @@ tipográfico (jerarquía de tamaños/pesos más marcada), revisar contraste
 de color en los estados semánticos del Checklist (ámbar/verde/rojo,
 todavía sin retocar), nudge de selección con flechas, y cualquier otra
 cosa puntual que el usuario señale al ver el resultado en vivo.
+
+## E33 — Nudge con flechas, contraste WCAG y tipografía (cierre de la etapa 1)
+
+Termina lo que había quedado explícitamente afuera de E32 ("más pulido
+tipográfico, contraste de los estados semánticos, nudge de selección"),
+a pedido del usuario, antes de pasar de lleno al motor de cálculo.
+
+**Nudge con flechas.** Las flechas mueven la selección un paso de grilla
+(10 px), Shift+flecha un paso grande (50 px), y queda en el historial de
+deshacer — reutiliza `registrarArrastre()`/`confirmarArrastre()`, el
+mismo mecanismo que ya usa el arrastre real con mouse, así que el nudge
+respeta el límite del marco útil de la hoja igual que un arrastre normal.
+
+**Bug real, encontrado solo al verificar en vivo:** la primera versión
+duplicaba el movimiento (10 px pedidos, 20 px reales). Causa: React Flow
+YA mueve los nodos seleccionados con las flechas por su cuenta (una
+característica nativa de accesibilidad de la librería, 1 px por toque,
+sin pasar por el historial de deshacer de esta app) — mi implementación
+se sumaba a la suya en vez de reemplazarla. Se corrigió con
+`disableKeyboardA11y` en el `<ReactFlow>` principal, que apaga el manejo
+de teclado propio de la librería y deja el nudge enteramente en manos
+del historial de deshacer de Vatia. Verificado con Playwright: 10 px,
+50 px con Shift, y dos `Ctrl+Z` consecutivos que deshacen cada paso por
+separado — contra el build de PRODUCCIÓN, no el de desarrollo, para
+descartar que fuera otra vez un artefacto de `StrictMode` (no lo era:
+se reproducía igual en los dos).
+
+**Contraste WCAG AA (4,5:1 para texto normal), verificado con la fórmula
+real, no a ojo.** Se encontraron y corrigieron 5 pares reales por debajo
+del mínimo:
+- `.sin-problemas` (Checklist AEA, "✓ completo"): 3,18:1 → 4,84:1.
+- `.toast-mover button:hover`: 3,30:1 → 5,02:1.
+- `.editor-simbolos-badge.verificado`: 3,00:1 → 6,49:1.
+- `.editor-simbolos-badge.pendiente_revision`: 2,74:1 → 6,60:1.
+- `--text-muted` (usado en toda la app para texto de ayuda chico): 4,05:1
+  claro / 4,47:1 oscuro → 5,24:1 / 5,15:1.
+
+Cada cambio queda con un comentario en el CSS con el número real
+verificado, no solo el color nuevo — para que quede constancia de por
+qué se movió y no haga falta re-derivarlo si alguien lo toca de nuevo.
+
+**Tipografía.** `font-variant-numeric: tabular-nums` en los campos
+numéricos y en los datos calculados (Ib/ΔU%, dimensiones de hoja,
+teclas de los atajos) — en una herramienta técnica los números aparecen
+en columna y bailan de ancho con cifras proporcionales. Los encabezados
+de los paneles modales (`PanelHoja`, `PanelProyecto` que comparte esa
+clase, `AyudaAtajos`, la ficha técnica) ganan un filete inferior con el
+acento suave — mismo tratamiento en los tres, antes cada uno tenía su
+propio criterio (uno sin separador, otro con un filete negro sólido).
+
+Verificado: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` (contra el build de producción) Y
+`npm run e2e:simbolos` verdes, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 19/19.
+
+Con E32 y E33 se cierra, por ahora, el pedido de estética/accesibilidad/
+atajos — a partir de acá, motor de cálculo.
