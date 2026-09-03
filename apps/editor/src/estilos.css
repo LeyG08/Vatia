@@ -3066,10 +3066,15 @@ body.arrastrando .paleta-item {
     stroke: #000 !important;
   }
   /* `border-color` no es `color`: la regla de arriba no lo toca. El
-   * marco de la hoja (`--text-primary`, un azul-gris casi negro) salía
-   * visiblemente gris al lado de todo lo demás ya forzado a negro
-   * puro — señalado en vivo ("el marco sale en gris"). */
-  .hoja-marco {
+   * marco de la hoja Y las líneas del rótulo IRAM 4508 (`--text-primary`,
+   * un azul-gris casi negro) salían visiblemente grises al lado de todo
+   * lo demás ya forzado a negro puro — señalado en vivo dos veces ("el
+   * marco sale en gris", después "las líneas del rótulo siguen
+   * grises": el rótulo usa `border` por `style` inline, no por clase,
+   * así que necesita su propia regla separada de `.hoja-marco`). */
+  .hoja-marco,
+  .zona-protegida,
+  .zona-protegida * {
     border-color: #000 !important;
   }
 

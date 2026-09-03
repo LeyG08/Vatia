@@ -5214,3 +5214,20 @@ esté activa en el lienzo. El export de una sola hoja (`Exportar PDF`,
 sin override) se probó sin cambios de comportamiento. Sin errores de
 consola. `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
 `verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E44 — Las líneas del rótulo IRAM seguían grises al imprimir
+
+Continuación de E40/E42: el marco de la hoja ya salía negro, pero el
+usuario señaló que las líneas del rótulo IRAM 4508 (la tabla de
+Proyectó/Dibujó/Revisó/Aprobó, tolerancias, escala, etc.) seguían
+grises. Causa: esas líneas se dibujan con `border` puesto por `style`
+inline (`var(--text-primary)`), no por clase — la regla que ya forzaba
+`.hoja-marco` a negro no las alcanzaba, son un mecanismo distinto.
+Se agrega `.zona-protegida, .zona-protegida *` (la clase que ya
+envuelve el rótulo y los otros dos bloques de texto fijo de la hoja)
+al mismo `border-color: #000 !important` del marco. Verificado
+generando un PDF real y recortando la esquina del rótulo: todas las
+líneas internas y el borde exterior en negro puro.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
