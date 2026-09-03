@@ -33,6 +33,7 @@ function PanelHoja() {
   const alternar = useEditor((s) => s.alternarPanelHoja);
   const hoja = useEditor((s) => s.hoja);
   const actualizar = useEditor((s) => s.actualizarHoja);
+  const hayNodos = useEditor((s) => s.nodos.length > 0);
 
   if (!abierto) return null;
   const [mmCorto, mmLargo] = TAMANIOS_HOJA_MM[hoja.formato];
@@ -133,22 +134,34 @@ function PanelHoja() {
           <div className="panel-hoja-campo">
             <span>Tipo de esquema</span>
             <div className="orientacion-opciones">
-              {(["unifilar", "multifilar"] as ModoHoja[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className={hoja.modo === m ? "activo" : ""}
-                  onClick={() => actualizar({ modo: m })}
-                  title={
-                    m === "unifilar"
-                      ? "Símbolos de fuerza (potencia)"
-                      : "Símbolos de comando y control"
-                  }
-                >
-                  {m === "unifilar" ? "Unifilar" : "Multifilar"}
-                </button>
-              ))}
+              {(["unifilar", "multifilar"] as ModoHoja[]).map((m) => {
+                const bloqueado = hayNodos && hoja.modo !== m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className={hoja.modo === m ? "activo" : ""}
+                    disabled={bloqueado}
+                    onClick={() => actualizar({ modo: m })}
+                    title={
+                      bloqueado
+                        ? "Esta hoja ya tiene símbolos del otro tipo — cambiar el esquema mezclaría fuerza y comando en la misma hoja. Movelos a otra hoja o borralos primero."
+                        : m === "unifilar"
+                          ? "Símbolos de fuerza (potencia)"
+                          : "Símbolos de comando y control"
+                    }
+                  >
+                    {m === "unifilar" ? "Unifilar" : "Multifilar"}
+                  </button>
+                );
+              })}
             </div>
+            {hayNodos && (
+              <p className="panel-hoja-ayuda">
+                No se puede cambiar mientras la hoja tenga símbolos — mezclar
+                fuerza y comando en la misma hoja no está permitido.
+              </p>
+            )}
           </div>
         </div>
 

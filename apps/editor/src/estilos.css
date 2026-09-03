@@ -939,6 +939,11 @@ body.arrastrando .paleta-item {
   background: var(--acento-suave);
 }
 
+.orientacion-opciones button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .panel-hoja-dimension {
   margin: 0;
   font-size: 11px;

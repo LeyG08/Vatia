@@ -4855,3 +4855,52 @@ Verificado además: `npm run build` (`tsc -b` limpio), `npm run lint` sin
 warnings nuevos, `npm run e2e` (contra producción) verde,
 `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
 `lint_simbolos.py` 20/20.
+
+## E37 — No combinar unifilar/multifilar + prueba completa del programa
+
+**"No se debería poder combinar simbología multifilar y unifilar."**
+Reproducido: la paleta ya filtraba qué se puede AGREGAR según
+`hoja.modo`, pero nada impedía cambiar el modo de una hoja que YA tenía
+símbolos cargados — el símbolo viejo quedaba (la librería de símbolos ya
+resuelve por código sin importar el modo actual, a propósito, para que
+una hoja mixta siga renderizando), y la paleta nueva dejaba agregar del
+otro tipo encima. Corregido en `PanelHoja.tsx`: los botones Unifilar/
+Multifilar se deshabilitan (con el motivo en el `title`) apenas la hoja
+tiene al menos un símbolo, hasta que quede vacía de nuevo. Verificado:
+con un símbolo de fuerza ya colocado, el botón "Multifilar" queda
+deshabilitado y un clic forzado no cambia nada.
+
+**Prueba completa del programa, a pedido explícito del usuario** ("esto
+debería haber salido cuando hiciste las pruebas"): se colocaron los 19
+símbolos de fuerza Y los 13 de comando (los 32 completos de la
+librería), en las dos hojas y en los dos temas, revisando cada uno
+visualmente a tamaño real en el lienzo (no solo la miniatura de la
+paleta). Además: conexión entre alimentador y símbolo, copiar/pegar,
+deshacer/rehacer, la jerarquía de hojas completa (carga marcada
+`seccional` → botón "Crear hoja del tablero seccional" → pestaña hija
+creada), exportación a PDF de una hoja y del proyecto completo con
+contenido real cargado (no un proyecto vacío). Todo funcionó sin errores
+de consola en ningún paso.
+
+**No se pudo reproducir "hay algún símbolo que no tiene aplicado el modo
+oscuro"** pese al escaneo completo de los 32 símbolos en los dos temas —
+ninguno quedó negro-sobre-negro ni con un color roto. Puede haber sido
+un estado puntual (un símbolo rotado, una combinación de atributos
+específica) que no se reprodujo con este barrido. Si el usuario puede
+señalar cuál, se soluciona puntual; si no, queda como pendiente sin
+causa confirmada, no como "arreglado".
+
+Verificado: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` (contra producción) verde,
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 20/20.
+
+**Lo que queda de la lista del usuario, todavía sin tocar** (son
+decisiones de producto/arquitectura, no bugs — se van a encarar por
+separado, con un plan concreto en vez de implementarlas a ciegas):
+imprimir todos los unifilares combinados en una sola hoja A0 según el
+tamaño del diagrama; reorganizar el panel "Configuración de hoja" (hoy
+todo en un solo panel largo); símbolos multipolares tipo CADe SIMU en la
+parte multifilar, con simulación de la lógica de comando; mover la
+fuente de cortocircuito de "Datos del proyecto" al alimentador principal,
+preguntada al crear la hoja de ese alimentador.
