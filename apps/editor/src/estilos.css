@@ -1885,6 +1885,18 @@ body.arrastrando .paleta-item {
 .fc-calculo-linea + .fc-calculo-linea {
   margin-top: 2px;
 }
+.fc-calculo-veredicto {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--borde);
+  font-weight: 600;
+}
+.fc-calculo-veredicto.ok strong {
+  color: var(--ok);
+}
+.fc-calculo-veredicto.mal strong {
+  color: var(--error);
+}
 .fc-calculo-nota {
   margin: 5px 0 0;
   font-size: 9.5px;

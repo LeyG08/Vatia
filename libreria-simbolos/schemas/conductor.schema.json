@@ -82,13 +82,14 @@
         "B1",
         "B2",
         "C",
-        "D",
+        "D1",
+        "D2",
         "E",
         "F",
         "G"
       ],
       "x-obligatorio": true,
-      "description": "Código de método de instalación (AEA 90364-5-52 / IEC 60364-5-52 tabla 52-C1). Determina de qué tabla de corriente admisible sale Iz para esta sección y aislación: cada método corresponde a una columna distinta de la tabla, aunque el cable sea idéntico. Se elige por código; el formulario muestra un recordatorio de a qué corresponde cada uno.",
+      "description": "Código de método de instalación (AEA 90364-5-52 / IEC 60364-5-52, Anexo B, Tabla B52-1). Determina de qué columna de las tablas B52-2 a B52-13 sale Iz para esta sección, material y aislación. D1 = dentro de caño o conducto enterrado; D2 = directamente enterrado (Iz distinta para cada uno, ver Tabla B52-16). Se elige por código; el formulario muestra un recordatorio de a qué corresponde cada uno.",
       "title": "Método de instalación"
     },
     "temperatura_ambiente_c": {

@@ -4655,3 +4655,75 @@ warnings nuevos, `npm run e2e` (contra el build de producción) Y
 
 Con E32 y E33 se cierra, por ahora, el pedido de estética/accesibilidad/
 atajos — a partir de acá, motor de cálculo.
+
+## E34 — Motor de cálculo, etapa 2: Iz real (AEA 90364-5-52 / IEC 60364-5-52)
+
+Primer avance real del motor de cálculo con datos normativos verdaderos
+(no una estimación con fórmula física, como Ib/ΔU% de E26). El usuario
+señaló la fuente local (`D:\Drive\Normativas`) y pidió cargar todos los
+métodos de instalación con el tiempo, empezando por 5 tablas.
+
+**Verificación, no transcripción de memoria.** El PDF de la AEA
+(`AEA 90364\AEA-90364-5-2006.pdf`, Parte 5, Capítulo 52, Anexo B) es un
+escaneo de 350 páginas; `pdftotext` lo lee razonablemente bien pero no es
+confiable al 100% para una tabla numérica densa (probado: se comía la
+columna D2 completa y algunas etiquetas de sección). Se usó en cambio
+para UBICAR las páginas (búsqueda de texto), y después se renderizó cada
+página como imagen de alta resolución (PyMuPDF) para transcribir los
+números mirando la tabla real, no el texto extraído. Cada tabla cargada
+se verificó así, página por página.
+
+**Tablas cargadas** (`libreria-simbolos/normativa/tablaIzAea90364552.mjs`,
+detalle completo y referencia exacta en
+`docs/normativa/iz-corriente-admisible.md`):
+- B52-1: resumen de métodos de referencia → qué columna de qué tabla.
+- B52-2/B52-3: Iz para PVC y XLPE/EPR, 2 conductores cargados (Cu y Al).
+- B52-4/B52-5: ídem, 3 conductores cargados.
+- B52-14/B52-15: corrección por temperatura ambiente (aire / enterrado).
+- B52-16: corrección por resistividad térmica del terreno (D1/D2).
+- B52-17 (ítem 1): corrección por agrupamiento, métodos A1-C al aire.
+
+**Hallazgo real, no anticipado: el método "D" no existe como tal.** La
+norma separa D1 (dentro de caño enterrado) y D2 (directamente enterrado,
+sin caño), con Iz distinta entre sí — confirmado en la Tabla B52-16, que
+da un factor de corrección diferente para cada uno. El schema de
+conductor de Vatia tenía un único código `"D"` genérico. Se corrigió el
+enum de `metodo_instalacion` a `D1`/`D2` en
+`libreria-simbolos/schemas/conductor.schema.json` (sin migración: `grep`
+contra los proyectos reales confirmó que nadie tenía el campo cargado
+todavía) y se actualizó el recordatorio de métodos en
+`FormularioConductor.tsx`. De paso se corrigió la referencia de norma que
+tenía la descripción del campo (decía "tabla 52-C1", que no existe con
+ese nombre en esta tabla — era una referencia de memoria de una sesión
+anterior, ahora apunta a la Tabla B52-1 real).
+
+**`lib/calculo.ts` gana `calcularIzA()`**: corriente admisible corregida
+por temperatura y agrupamiento (NO por resistividad térmica del
+terreno todavía — el schema de conductor no tiene ese campo). La ficha
+del cable ahora muestra Ib, Iz y un veredicto "Ib ≤ Iz" con color
+(verde/rojo, tokens `--ok`/`--error`) junto a ΔU%. Deliberadamente NO
+compara contra la corriente de la protección aguas arriba (In): eso es
+una pregunta topológica distinta (qué protección alimenta este tramo)
+que no corresponde resolver en la ficha de un cable aislado.
+
+**Verificado con Playwright, dos casos reales:** un circuito PVC/A1/
+4 mm²/Cu trifásico con Ib=10 A dio Iz=21,0 A (Tabla B52-4, fila 4 mm²,
+columna A1 — la tabla de TRES conductores cargados, porque el circuito
+es trifásico) y "✓ cumple"; el mismo circuito con Ib=200 A sobre un
+cable de 1,5 mm² dio "✗ no cumple" — confirma que el veredicto responde
+en los dos sentidos, no solo el caso feliz.
+
+Además: `npm run build` (`tsc -b` limpio — hubo que ajustar el tipado de
+las tablas de corrección con `@type` JSDoc, TS no infería bien las
+claves de un objeto JS con `allowJs`), `npm run lint` sin warnings
+nuevos, `generar_tipos_atributos.py --verificar` (había que
+regenerarlo tras el cambio de enum), `npm run e2e` (contra producción) y
+`npm run e2e:simbolos` verdes, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+**Lo que sigue, ya pedido por el usuario ("todos los métodos"):** cargar
+B52-6 a B52-13 (métodos E/F/G al aire libre sin canalización, y
+aislación mineral) con el mismo criterio de verificación visual, más las
+tablas de agrupamiento B52-18 a B52-21 (variantes para enterrado y para
+más de un cable multipolar). Documentado como pendiente explícito en
+`docs/normativa/iz-corriente-admisible.md`, no se pierde entre sesiones.

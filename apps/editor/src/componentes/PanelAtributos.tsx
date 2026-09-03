@@ -8,7 +8,7 @@ import {
 } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
 import { calcularTopologia } from "../lib/topologia";
-import { calcularCaidaTensionPct, calcularIbA } from "../lib/calculo";
+import { calcularCaidaTensionPct, calcularIbA, calcularIzA } from "../lib/calculo";
 import FormularioAtributos from "./FormularioAtributos";
 import FormularioConductor from "./FormularioConductor";
 import FormularioCarga from "./FormularioCarga";
@@ -83,7 +83,8 @@ export default function PanelAtributos() {
       trifasica,
       datosProyecto,
     );
-    return { ibA, caidaPct };
+    const iz = calcularIzA(atributosConductor, trifasica);
+    return { ibA, caidaPct, iz };
   }, [edge, nodos, conexiones, datosProyecto]);
 
   const idActual = nodo?.id ?? edge?.id ?? null;

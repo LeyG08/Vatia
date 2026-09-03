@@ -1,6 +1,7 @@
 import { lineasCable } from "../lib/anotaciones";
 import type { CampoDescriptor } from "../lib/esquemas";
 import { camposDeFamilia } from "../lib/esquemas";
+import type { ResultadoIz } from "../lib/calculo";
 
 interface Props {
   atributos: Record<string, unknown>;
@@ -8,11 +9,15 @@ interface Props {
   /** Campo extra arriba del cuerpo (ej.: "Desde dónde viene" del alimentador) */
   encabezado?: React.ReactNode;
   /**
-   * Ib (A) y ΔU% ya calculados por el llamador (necesita recorrer la
+   * Ib (A), ΔU% e Iz ya calculados por el llamador (necesita recorrer la
    * topología completa, algo que este formulario no tiene por qué saber
    * hacer). Ausentes cuando falta algún dato para calcularlos.
    */
-  calculo?: { ibA: number | null; caidaPct: number | null };
+  calculo?: {
+    ibA: number | null;
+    caidaPct: number | null;
+    iz: ResultadoIz | null;
+  };
 }
 
 function valorComoTexto(v: unknown): string {
@@ -32,7 +37,7 @@ function poner(
 
 /**
  * Referencia de los códigos de método de instalación (AEA 90364-5-52 /
- * IEC 60364-5-52, tabla 52-C1). Notas propias y resumidas, no una
+ * IEC 60364-5-52, Anexo B, Tabla B52-1). Notas propias y resumidas, no una
  * transcripción de la norma — ver docs/normativa/README.md sobre por qué
  * no se versiona el texto completo de la tabla acá.
  */
@@ -42,7 +47,8 @@ const METODOS_INSTALACION: { codigo: string; descripcion: string }[] = [
   { codigo: "B1", descripcion: "Conductores aislados en tubo sobre pared o embutido en mampostería (el caso más común en obra civil)." },
   { codigo: "B2", descripcion: "Cable multipolar en tubo sobre pared o embutido en mampostería." },
   { codigo: "C", descripcion: "Cable mono o multipolar fijado directamente sobre la pared, sin tubo." },
-  { codigo: "D", descripcion: "Cable multipolar en conducto o directamente enterrado." },
+  { codigo: "D1", descripcion: "Cable multipolar dentro de caño o conducto enterrado." },
+  { codigo: "D2", descripcion: "Cable multipolar directamente enterrado, sin caño." },
   { codigo: "E", descripcion: "Cable multipolar al aire libre, en bandeja o escalera (no en contacto mutuo con otros cables)." },
   { codigo: "F", descripcion: "Cables monopolares en contacto mutuo, al aire libre en bandeja." },
   { codigo: "G", descripcion: "Cables monopolares separados entre sí (espaciados), al aire libre en bandeja." },
@@ -369,18 +375,37 @@ export default function FormularioConductor({ atributos, onChange, encabezado, c
         </div>
       )}
 
-      {/* ---- Cálculo (informativo, Paso "motor de cálculo" — etapa 1) ----
-       * Ib y ΔU% estimados; NO verifica contra la corriente admisible Iz
-       * (esa tabla normativa todavía no está cargada) ni certifica que el
-       * cable esté bien dimensionado. Modelo resistivo puro: ignora la
-       * reactancia del cable. */}
-      {calculo && (calculo.ibA !== null || calculo.caidaPct !== null) && (
+      {/* ---- Cálculo (informativo, Paso "motor de cálculo") ----
+       * Ib y ΔU% son una estimación (modelo resistivo, ignora la
+       * reactancia del cable). Iz sale de la tabla real AEA 90364-5-52 /
+       * IEC 60364-5-52 (ver docs/normativa/iz-corriente-admisible.md) —
+       * no es una estimación, pero todavía no cubre los métodos E/F/G ni
+       * corrige por resistividad térmica del terreno en enterrados. */}
+      {calculo && (calculo.ibA !== null || calculo.caidaPct !== null || calculo.iz) && (
         <div className="fc-calculo">
-          <span className="fc-calculo-titulo">Cálculo (informativo)</span>
+          <span className="fc-calculo-titulo">Cálculo</span>
           {calculo.ibA !== null && (
             <div className="fc-calculo-linea">
               <span>Ib (corriente de cálculo)</span>
               <strong>{calculo.ibA.toFixed(1)} A</strong>
+            </div>
+          )}
+          {calculo.iz && (
+            <div className="fc-calculo-linea">
+              <span>Iz (corriente admisible)</span>
+              <strong>{calculo.iz.izCorregidaA.toFixed(1)} A</strong>
+            </div>
+          )}
+          {calculo.ibA !== null && calculo.iz && (
+            <div
+              className={`fc-calculo-linea fc-calculo-veredicto${
+                calculo.ibA <= calculo.iz.izCorregidaA ? " ok" : " mal"
+              }`}
+            >
+              <span>Ib ≤ Iz</span>
+              <strong>
+                {calculo.ibA <= calculo.iz.izCorregidaA ? "✓ cumple" : "✗ no cumple"}
+              </strong>
             </div>
           )}
           {calculo.caidaPct !== null && (
@@ -390,8 +415,10 @@ export default function FormularioConductor({ atributos, onChange, encabezado, c
             </div>
           )}
           <p className="fc-calculo-nota">
-            Estimación (modelo resistivo, sin verificar contra tabla de
-            corriente admisible Iz). No reemplaza el cálculo normativo.
+            Ib y ΔU%: estimación (modelo resistivo). Iz: Tabla AEA 90364-5-52
+            / IEC 60364-5-52 — no cubre todavía los métodos E, F, G ni la
+            resistividad térmica del terreno en enterrados. No reemplaza el
+            cálculo normativo completo (falta comparar contra la protección).
           </p>
         </div>
       )}

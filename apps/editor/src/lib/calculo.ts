@@ -1,16 +1,18 @@
 /**
- * MOTOR DE CÁLCULO — etapa 1: Ib (corriente de cálculo) y ΔU% (caída de
- * tensión) por tramo de cable. Depende de `datosProyecto` (tensión) y de
- * `topologia.ts` (potencia agregada aguas abajo de cada conexión, ya
- * calculada ahí — ver `ResultadoTopologia.potenciaConexionVa`).
+ * MOTOR DE CÁLCULO — etapa 1: Ib (corriente de cálculo), ΔU% (caída de
+ * tensión) e Iz (corriente admisible) por tramo de cable. Depende de
+ * `datosProyecto` (tensión) y de `topologia.ts` (potencia agregada aguas
+ * abajo de cada conexión, ya calculada ahí — ver
+ * `ResultadoTopologia.potenciaConexionVa`).
  *
- * Lo que este módulo NO hace todavía: no compara contra la corriente
- * admisible Iz (eso exige las tablas normativas AEA 90364-5-52 /
- * IEC 60364-5-52 por sección/método/aislación — es la etapa siguiente,
- * y ese dato es demasiado sensible para transcribirlo sin que un
- * electricista lo valide primero). No calcula Icc (60909) ni contactos
- * indirectos. Es puramente informativo: no bloquea nada ni certifica que
- * un cable "está bien".
+ * Iz sale de `libreria-simbolos/normativa/tablaIzAea90364552.mjs`
+ * (AEA 90364-5-52 / IEC 60364-5-52, Anexo B — ver
+ * docs/normativa/iz-corriente-admisible.md para la referencia exacta y
+ * qué métodos de instalación todavía faltan cargar). No calcula Icc
+ * (60909) ni contactos indirectos. Es puramente informativo: no bloquea
+ * nada ni certifica que un cable "está bien" — falta comparar contra la
+ * corriente nominal de la protección aguas arriba (In), que es una
+ * pregunta topológica distinta a la de este módulo.
  *
  * Simplificación deliberada de la caída de tensión: se usa el modelo
  * resistivo puro (ΔU ≈ factor · ρ · L · Ib · cosφ / S), que ignora la
@@ -19,6 +21,12 @@
  * (≳95 mm²) la reactancia empieza a pesar y esto puede quedar optimista.
  */
 import type { DatosProyecto } from "./tipos";
+import {
+  corrienteAdmisibleBaseA,
+  FACTOR_TEMPERATURA_AIRE,
+  FACTOR_TEMPERATURA_ENTERRADO,
+  FACTOR_AGRUPAMIENTO_AIRE,
+} from "../../../../libreria-simbolos/normativa/tablaIzAea90364552.mjs";
 
 /** Resistividad de referencia a temperatura de servicio (Ω·mm²/m). */
 const RHO_OHM_MM2_POR_M: Record<"Cu" | "Al", number> = {
@@ -83,4 +91,111 @@ export function calcularCaidaTensionPct(
   const rho = RHO_OHM_MM2_POR_M[material];
   const caidaV = (factor * rho * longitud_m * ibA * cosPhi) / seccion_fase_mm2;
   return (caidaV / vRef) * 100;
+}
+
+const METODOS_ENTERRADOS = new Set(["D1", "D2"]);
+
+/** Valor de tabla más cercano a `temp` sin pasarse (la norma da pasos
+ * discretos de 5°C; entre pasos, el criterio conservador es tomar el
+ * escalón inferior — nunca sobrestimar Iz). */
+function factorPorTemperatura(
+  tabla: Record<number, number> | undefined,
+  temp: number | undefined,
+): number {
+  if (!tabla || temp === undefined) return 1;
+  const pasos = Object.keys(tabla)
+    .map(Number)
+    .sort((a, b) => a - b);
+  let elegido = pasos[0];
+  for (const p of pasos) {
+    if (p <= temp) elegido = p;
+  }
+  return tabla[elegido] ?? 1;
+}
+
+export interface DatosCableParaIz {
+  material?: "Cu" | "Al";
+  aislacion?: "PVC" | "XLPE" | "EPR";
+  metodo_instalacion?: string;
+  seccion_fase_mm2?: number;
+  temperatura_ambiente_c?: number;
+  cantidad_circuitos_agrupados?: number;
+}
+
+export interface ResultadoIz {
+  /** Corriente admisible de tabla, sin corregir. */
+  izBaseA: number;
+  /** Corriente admisible ya corregida por temperatura y agrupamiento —
+   * la que corresponde comparar contra Ib. */
+  izCorregidaA: number;
+  factorTemperatura: number;
+  factorAgrupamiento: number;
+}
+
+/**
+ * Corriente admisible corregida, o `null` si falta algún dato o el
+ * método de instalación todavía no está cargado (E, F, G — ver
+ * docs/normativa/iz-corriente-admisible.md).
+ *
+ * NO incluye la corrección por resistividad térmica del terreno
+ * (Tabla B52-16, métodos D1/D2): el schema de conductor todavía no
+ * tiene ese campo, así que ese factor queda implícitamente en 1 — un
+ * cable enterrado en un terreno de peor resistividad térmica que la de
+ * referencia (1 K·m/W) puede admitir MENOS de lo que este cálculo diga.
+ */
+export function calcularIzA(
+  cable: DatosCableParaIz,
+  trifasica: boolean,
+): ResultadoIz | null {
+  const { material, aislacion, metodo_instalacion, seccion_fase_mm2 } = cable;
+  if (!material || !aislacion || !metodo_instalacion || !seccion_fase_mm2) {
+    return null;
+  }
+  const izBaseA = corrienteAdmisibleBaseA({
+    aislacion,
+    conductoresCargados: trifasica ? 3 : 2,
+    material,
+    metodoInstalacion: metodo_instalacion,
+    seccionMm2: seccion_fase_mm2,
+  });
+  if (izBaseA === null) return null;
+
+  const enterrado = METODOS_ENTERRADOS.has(metodo_instalacion);
+  const tablaTemp = enterrado
+    ? FACTOR_TEMPERATURA_ENTERRADO[aislacion]
+    : FACTOR_TEMPERATURA_AIRE[aislacion];
+  const factorTemperatura = factorPorTemperatura(
+    tablaTemp,
+    cable.temperatura_ambiente_c,
+  );
+
+  // El agrupamiento (Tabla B52-17) solo está cargado para el caso "al
+  // aire, ítem 1" — no corresponde aplicarlo a un método enterrado
+  // (D1/D2 tienen sus propias tablas de agrupamiento, B52-18 a B52-21,
+  // todavía sin cargar).
+  const factorAgrupamiento = enterrado
+    ? 1
+    : factorPorAgrupamiento(cable.cantidad_circuitos_agrupados);
+
+  return {
+    izBaseA,
+    izCorregidaA: izBaseA * factorTemperatura * factorAgrupamiento,
+    factorTemperatura,
+    factorAgrupamiento,
+  };
+}
+
+/** Cantidades no tabuladas (10, 11, 13...) toman el escalón inferior
+ * más cercano — conservador, nunca sobrestima Iz. Más de 9 circuitos:
+ * la norma no exige mayor reducción salvo que caiga justo en 12/16/20. */
+function factorPorAgrupamiento(cantidad: number | undefined): number {
+  if (cantidad === undefined || cantidad <= 1) return 1;
+  const pasos = Object.keys(FACTOR_AGRUPAMIENTO_AIRE)
+    .map(Number)
+    .sort((a, b) => a - b);
+  let elegido = pasos[0];
+  for (const p of pasos) {
+    if (p <= cantidad) elegido = p;
+  }
+  return FACTOR_AGRUPAMIENTO_AIRE[elegido] ?? 1;
 }

@@ -530,7 +530,7 @@ export interface AtributosConductor {
   /** Material */
   material?: "Cu" | "Al";
   /** Método de instalación */
-  metodo_instalacion?: "A1" | "A2" | "B1" | "B2" | "C" | "D" | "E" | "F" | "G";
+  metodo_instalacion?: "A1" | "A2" | "B1" | "B2" | "C" | "D1" | "D2" | "E" | "F" | "G";
   /** Temperatura ambiente (°C) */
   temperatura_ambiente_c?: number;
   /** Circuitos agrupados */
