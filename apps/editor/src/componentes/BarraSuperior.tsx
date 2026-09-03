@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect, useState } from "react";
 import { useEditor, historial } from "../lib/store";
+import { serializarProyecto } from "../lib/tipos";
 
 function BarraSuperior() {
   const nombre = useEditor((s) => s.nombreProyecto);
@@ -32,7 +33,7 @@ function BarraSuperior() {
 
   function guardar() {
     const proyecto = serializar();
-    const blob = new Blob([JSON.stringify(proyecto, null, 2)], {
+    const blob = new Blob([serializarProyecto(proyecto)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);

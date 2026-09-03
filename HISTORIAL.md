@@ -4062,3 +4062,46 @@ correspondía resolver sola (PR de esta rama bloqueado porque
 `comando-piloto-20260901` nace de `fundaciones-datos-20260901`, cuyo
 PR #14 sigue sin mergear — abrir un PR ahora mostraría el diff de los
 dos juntos, confuso de revisar).
+
+## E24 — `Guardar` vuelve a refrescar `ultimaModificacion`
+
+Último bug chico del diagnóstico (§4, deuda de código): existe
+`serializarProyecto()` en `tipos.ts` desde hace tiempo, pensada
+específicamente para refrescar `meta.ultimaModificacion` al momento real
+de guardar — pero **nunca la llamaba nadie**. `BarraSuperior.guardar()`
+hacía su propio `JSON.stringify(proyecto, null, 2)` en vez de usarla, así
+que el JSON descargado siempre traía la fecha de la última vez que se
+CARGÓ o creó el proyecto (`cargarProyecto`/`nuevoProyecto`), no la del
+guardado real.
+
+Fix de una línea: `guardar()` ahora arma el blob con
+`serializarProyecto(proyecto)` en vez de `JSON.stringify` directo.
+Verificado en vivo con Playwright: click en "Guardar", se lee el JSON
+descargado, `meta.ultimaModificacion` cae después del momento en que
+arrancó el test — antes hubiera quedado con el timestamp de apertura del
+editor.
+
+Deliberadamente NO se aplicó el mismo refresco al escritor del
+autoguardado (E19): ese dispara con CUALQUIER cambio de estado
+(selección, paneles) con debounce de 1 s, así que estampar "ahora" ahí
+haría que `ultimaModificacion` dejara de significar "la última vez que
+se tocó un dato real" para pasar a ser casi siempre "hace un segundo" —
+degradaría el campo en vez de arreglarlo. `serializarProyecto()` está
+pensada para el gesto explícito de guardar, no para el guardado
+continuo en segundo plano.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.
+
+---
+
+Con E15 a E24 se cierra, por esta sesión, el trabajo autónomo sobre la
+lista de pendientes del diagnóstico original ("qué más queda por hacer
+en el editor"): librería de comando completa (13 símbolos), modo
+multifilar, jerarquía de hojas, autoguardado, y todos los desajustes de
+datos/nomenclatura/contrato de bajo riesgo que no requerían una decisión
+de diseño del usuario. Lo que sigue abierto (nomenclatura de poder de
+corte, duplicación checklist↔Node, semántica multifilar, "polos", PR de
+esta rama) está documentado arriba, entrada por entrada, con la razón
+puntual de por qué se dejó para que el usuario decida.
