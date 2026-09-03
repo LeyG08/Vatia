@@ -1611,6 +1611,37 @@ body.arrastrando .paleta-item {
   margin: 0 0 3px 24px;
 }
 
+.fc-calculo {
+  margin-top: 8px;
+  border: 1px solid #bfdbfe;
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: #eff6ff;
+}
+.fc-calculo-titulo {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin-bottom: 3px;
+}
+.fc-calculo-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: #18181b;
+}
+.fc-calculo-linea + .fc-calculo-linea {
+  margin-top: 2px;
+}
+.fc-calculo-nota {
+  margin: 5px 0 0;
+  font-size: 9.5px;
+  color: #52525b;
+  line-height: 1.3;
+}
+
 /* ================================================================
    MODO OSCURO — overrides por [data-theme="dark"]
    ================================================================ */
@@ -1976,6 +2007,20 @@ body.arrastrando .paleta-item {
   background: var(--bg-surface-alt);
   border-color: var(--borde);
   color: var(--text-primary);
+}
+
+[data-theme="dark"] .fc-calculo {
+  background: #1e3a5f;
+  border-color: #3b6dbf;
+}
+[data-theme="dark"] .fc-calculo-titulo {
+  color: #93c5fd;
+}
+[data-theme="dark"] .fc-calculo-linea {
+  color: var(--text-primary);
+}
+[data-theme="dark"] .fc-calculo-nota {
+  color: var(--text-muted);
 }
 
 [data-theme="dark"] .fc-metodos-recordatorio {

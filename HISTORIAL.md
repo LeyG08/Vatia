@@ -4178,3 +4178,78 @@ prueba en vivo repitió el warning de consola "Encountered two children
 with the same key... n1" al soltar un símbolo — es la falla preexistente
 de claves duplicadas ya registrada en una sesión anterior, no algo que
 haya introducido este refactor.
+
+## E26 — Motor de cálculo, etapa 1: Ib y ΔU% (informativo)
+
+Con el checklist ya sin duplicación (E25), avance sobre el objetivo de
+fondo del proyecto: el motor de verificación. Esta etapa es deliberadamente
+chica y acotada a lo que se puede calcular con **fórmulas físicas**, sin
+tocar todavía ninguna tabla normativa (Iz por AEA/IEC) — esas tablas son
+datos sensibles, específicos de cada norma y método de instalación, que
+conviene que un electricista valide antes de confiar en ellas; se dejan
+para la próxima etapa a propósito.
+
+**Qué se agregó:**
+
+- `lib/calculo.ts` (nuevo): `calcularIbA()` (corriente de cálculo, a
+  partir de la potencia en VA y si el tramo es mono/trifásico) y
+  `calcularCaidaTensionPct()` (ΔU%, modelo resistivo puro: ΔU ≈ factor ·
+  ρ · L · Ib · cosφ / S, con ρ_Cu = 0,0225 y ρ_Al = 0,036 Ω·mm²/m a
+  temperatura de servicio — valores de referencia habituales, no una
+  tabla normativa transcripta). Ignora la reactancia inductiva del cable:
+  válido para secciones chicas/medianas, optimista para secciones grandes
+  (≳95 mm²) — queda anotado en el propio módulo.
+- `lib/topologia.ts`: `ResultadoTopologia` gana `potenciaConexionVa`
+  (potencia que circula por CADA cable, no solo la agregada por barra) y
+  `esTrifasica` (mono/trifásico de cada tramo). La parte que exigió más
+  cuidado: **cuándo aplica la diversidad (Ku/Ks) y cuándo no.** Un cable
+  que llega a una barra (punto de agregación de varios circuitos) usa la
+  potencia YA diversificada (`potenciaBarraVa`, que ya existía). Un cable
+  que llega a una carga hoja usa su potencia NOMINAL sin diversificar —
+  aplicar Ku/Ks a un circuito derivado individual sería un error real de
+  dimensionamiento (ese circuito tiene que bancar su carga completa, la
+  diversidad es una propiedad del punto donde varios circuitos se
+  agrupan, no de uno solo). Se separaron las dos sumas recursivas
+  (`sumarPotenciaAgregableDesde` con Ku/Ks, `sumarPotenciaNominalDesde`
+  sin) para que esta distinción quede explícita en el código, no
+  implícita.
+- `componentes/PanelAtributos.tsx` / `FormularioConductor.tsx`: al
+  seleccionar un cable, la ficha muestra un bloque "Cálculo (informativo)"
+  con Ib y ΔU%, con una nota explícita de que es una estimación que no
+  reemplaza el cálculo normativo. No aparece si falta algún dato (no se
+  fuerza un número con supuestos de más). No se agregó al alimentador (ahí
+  "aguas abajo" es el proyecto entero, no un tramo — no correspondía el
+  mismo cálculo) ni al dibujo del plano (mostrar ΔU% impreso en el
+  unifilar es una decisión de qué lleva el plano en sí, no algo para
+  decidir de paso acá).
+
+**Verificado en vivo con Playwright**, extremo a extremo: se armó un
+circuito real (alimentador → cable → "Carga de circuito" S00120, 3F,
+10 A → potencia_va = 6582 VA calculada sola por `FormularioCarga`), se
+cargó el cable con 50 m / 4 mm² / Cu, y el panel mostró **Ib = 10,0 A** y
+**ΔU = 1,09 %** — coincide exacto con el cálculo a mano (Ib se recupera
+solo porque `6582 = √3·380·10` redondeado, así que dividir de vuelta da
+~10,0 A; ΔU% = √3·0,0225·50·10·0,85/4/380·100 ≈ 1,09 %).
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` verde (21 checks, contra `vite preview`),
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 20/20.
+
+Nota aparte (pre-existente, no introducida acá): al crear la conexión de
+prueba aparecieron en consola warnings de React sobre props no
+reconocidas en el DOM (`selectable`, `deletable`, `sourceHandleId`,
+`targetHandleId`, `pathOptions`) — vienen de cómo `ConexionEdge.tsx`
+esparce `...props` sobre el path del cable; no se tocó ese componente en
+esta etapa y no afecta el resultado, pero conviene una limpieza futura.
+
+**Lo que sigue, y por qué queda para una decisión del usuario:** la
+etapa 2 (verificar Ib ≤ In ≤ Iz contra la tabla real de corriente
+admisible AEA 90364-5-52 / IEC 60364-5-52 por método de instalación,
+aislación, temperatura y agrupamiento) necesita esos valores de tabla
+verificados por un electricista antes de que el sistema los use para
+decir "este cable está bien" — no es prudente que yo los transcriba de
+memoria y el programa los trate como verdad. Después de eso: Icc
+(IEC 60909, necesita impedancia de fuente + transformador + cable) y
+protección contra contactos indirectos (depende del esquema PAT, ya
+soportado en `datosProyecto`).

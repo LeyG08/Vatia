@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "@xyflow/react";
 import {
   useEditor,
@@ -7,6 +7,8 @@ import {
   type DatosSimbolo,
 } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
+import { calcularTopologia } from "../lib/topologia";
+import { calcularCaidaTensionPct, calcularIbA } from "../lib/calculo";
 import FormularioAtributos from "./FormularioAtributos";
 import FormularioConductor from "./FormularioConductor";
 import FormularioCarga from "./FormularioCarga";
@@ -41,6 +43,7 @@ function HojaHijaAccion({ nodoId }: { nodoId: string }) {
 export default function PanelAtributos() {
   const nodos = useEditor((s) => s.nodos);
   const conexiones = useEditor((s) => s.conexiones);
+  const datosProyecto = useEditor((s) => s.proyecto.datosProyecto);
   const actualizarNodo = useEditor((s) => s.actualizarAtributosNodo);
   const actualizarConexion = useEditor((s) => s.actualizarAtributosConexion);
   const actualizarAlimentador = useEditor((s) => s.actualizarDatosAlimentador);
@@ -62,6 +65,26 @@ export default function PanelAtributos() {
     conexionesSel.length === 1 && simbolosSel.length === 0
       ? conexionesSel[0]
       : null;
+
+  // Cálculo (Ib / ΔU%) del cable seleccionado — ver lib/calculo.ts. Solo
+  // tiene sentido para una conexión real (no para el alimentador: ahí la
+  // potencia "aguas abajo" ya es la del proyecto entero, no un tramo).
+  const calculoEdge = useMemo(() => {
+    if (!edge) return undefined;
+    const topo = calcularTopologia(nodos, conexiones);
+    const potenciaVa = topo.potenciaConexionVa.get(edge.id) ?? null;
+    const trifasica = topo.esTrifasica.get(edge.id) ?? true;
+    const ibA = calcularIbA(potenciaVa, trifasica, datosProyecto);
+    const atributosConductor =
+      (edge.data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
+    const caidaPct = calcularCaidaTensionPct(
+      atributosConductor,
+      ibA,
+      trifasica,
+      datosProyecto,
+    );
+    return { ibA, caidaPct };
+  }, [edge, nodos, conexiones, datosProyecto]);
 
   const idActual = nodo?.id ?? edge?.id ?? null;
   const [delta, setDelta] = useState({ x: 0, y: 0 });
@@ -195,6 +218,7 @@ export default function PanelAtributos() {
             {}
           }
           onChange={(attrs) => actualizarConexion(edge!.id, attrs)}
+          calculo={calculoEdge}
         />
       )}
     </aside>

@@ -7,6 +7,12 @@ interface Props {
   onChange: (nuevosAtributos: Record<string, unknown>) => void;
   /** Campo extra arriba del cuerpo (ej.: "Desde dónde viene" del alimentador) */
   encabezado?: React.ReactNode;
+  /**
+   * Ib (A) y ΔU% ya calculados por el llamador (necesita recorrer la
+   * topología completa, algo que este formulario no tiene por qué saber
+   * hacer). Ausentes cuando falta algún dato para calcularlos.
+   */
+  calculo?: { ibA: number | null; caidaPct: number | null };
 }
 
 function valorComoTexto(v: unknown): string {
@@ -71,7 +77,7 @@ function Llave({
  * unipolar/multipolar y vista previa de la notación del plano.
  * El resto de campos (material, aislación, norma) usa el render común.
  */
-export default function FormularioConductor({ atributos, onChange, encabezado }: Props) {
+export default function FormularioConductor({ atributos, onChange, encabezado, calculo }: Props) {
   const fases =
     typeof atributos.cantidad_conductores === "number"
       ? atributos.cantidad_conductores
@@ -360,6 +366,33 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
           {preview.map((linea, i) => (
             <div key={i}>{linea}</div>
           ))}
+        </div>
+      )}
+
+      {/* ---- Cálculo (informativo, Paso "motor de cálculo" — etapa 1) ----
+       * Ib y ΔU% estimados; NO verifica contra la corriente admisible Iz
+       * (esa tabla normativa todavía no está cargada) ni certifica que el
+       * cable esté bien dimensionado. Modelo resistivo puro: ignora la
+       * reactancia del cable. */}
+      {calculo && (calculo.ibA !== null || calculo.caidaPct !== null) && (
+        <div className="fc-calculo">
+          <span className="fc-calculo-titulo">Cálculo (informativo)</span>
+          {calculo.ibA !== null && (
+            <div className="fc-calculo-linea">
+              <span>Ib (corriente de cálculo)</span>
+              <strong>{calculo.ibA.toFixed(1)} A</strong>
+            </div>
+          )}
+          {calculo.caidaPct !== null && (
+            <div className="fc-calculo-linea">
+              <span>ΔU (caída de tensión, estimada)</span>
+              <strong>{calculo.caidaPct.toFixed(2)} %</strong>
+            </div>
+          )}
+          <p className="fc-calculo-nota">
+            Estimación (modelo resistivo, sin verificar contra tabla de
+            corriente admisible Iz). No reemplaza el cálculo normativo.
+          </p>
         </div>
       )}
     </div>
