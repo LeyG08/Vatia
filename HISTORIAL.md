@@ -4727,3 +4727,104 @@ aislación mineral) con el mismo criterio de verificación visual, más las
 tablas de agrupamiento B52-18 a B52-21 (variantes para enterrado y para
 más de un cable multipolar). Documentado como pendiente explícito en
 `docs/normativa/iz-corriente-admisible.md`, no se pierde entre sesiones.
+
+## E35 — Corrección de bugs reales encontrados por el usuario (parte 1)
+
+El usuario probó el editor en vivo (no yo) y encontró varios problemas
+reales que mi propia verificación de las últimas etapas no había
+detectado — motivo explícito para hacer, a continuación, una prueba
+completa y sistemática del programa entero. Esta entrada cubre lo ya
+corregido; el resto queda para E36 en adelante.
+
+**Crítico: el encuadrado y el rótulo de la hoja habían desaparecido por
+completo.** Encontrado con el navegador: el nodo "hoja" (marco + rótulo
+IRAM 4508) quedaba con `visibility: hidden` para siempre — el estado
+interno que usa React Flow mientras mide un nodo por `ResizeObserver`,
+que nunca terminaba de resolverse. Bisección con `git checkout <commit>
+-- App.tsx` contra distintos puntos del historial de esta sesión: el
+bug NO existía antes del commit que movió `NODO_HOJA` (una constante
+estable, creada una sola vez) a `crearNodoHoja()` (una fábrica que
+devolvía un objeto NUEVO en cada llamada, dentro de
+`libreria-simbolos`... digo, `lib/tiposFlow.ts`, extraído para
+reusarlo en la exportación a PDF). Con una referencia nueva en cada
+render, React Flow nunca lograba "engancharse" a un objeto medido.
+Corregido: `crearNodoHoja(instancia)` ahora memoiza y devuelve SIEMPRE
+la misma referencia por instancia (el lienzo interactivo usa una fija;
+cada página de `ExportacionProyecto.tsx` usa la propia, por id de
+hoja, para no compartir referencia entre instancias de React Flow que
+corren en paralelo durante un export). Este bug estaba afectando TODAS
+las capturas de pantalla de las últimas tres sesiones — nunca until
+ahora nadie miró específicamente si el marco se veía, solo la barra de
+herramientas y los paneles.
+
+**Impresión: la hoja salía con la grilla de puntos de edición
+impresa, y a veces con una segunda página casi en blanco.** Se generó
+un PDF real de prueba (no solo una captura de pantalla) para
+confirmarlo. Dos causas, las dos en el CSS de impresión:
+`.lienzo`/`.react-flow` tenían `overflow: visible !important` — el
+borrón del `box-shadow` de `.hoja` (una sombra pensada solo para
+pantalla) se salía del área de una página y el navegador agregaba una
+segunda página casi vacía solo para esa sombra. Corregido a
+`overflow: hidden`, y se apaga explícitamente el punteado de fondo
+(`background-image`) y el `box-shadow` de `.hoja` bajo `@media print`
+— nada de eso pertenece al plano impreso. Verificado regenerando el PDF:
+una sola página, fondo blanco limpio, símbolo en negro sólido.
+
+**Modo oscuro: no se veía cuándo una opción estaba seleccionada.**
+Encontrado en varios lugares a la vez (chips de Fases/Neutro/Tierra,
+badges de "activo" en el editor de símbolos, tipo de cable
+unipolar/multipolar): todos ponían texto blanco sobre
+`background: var(--acento)`, que en modo oscuro es un teal claro y
+brillante — contraste real de 1,86:1, muy por debajo del mínimo
+legible. Se agregó el token `--acento-texto` (blanco en claro, casi
+negro en oscuro — 10,2:1 verificado) y se reemplazaron todos los
+`color: #fff`/`#ffffff` que dependían de ese fondo.
+
+**Quedaban ~14 usos de `rgba(37, 99, 235, …)` (el azul genérico de
+antes del rediseño) sin tocar** — halos de selección de handles, barra
+seleccionada, tiradores de barra, badge "corregido" del editor de
+símbolos. El barrido de E32 solo agarraba colores en formato `#hex`,
+no `rgba()` con componentes decimales. Se agregó el token
+`--acento-rgb` (componentes R,G,B de `--acento` por tema) y se
+reemplazaron todos con `rgba(var(--acento-rgb), X)` — ahora los halos
+de selección son teal, coherentes con el resto de la paleta. También
+quedaba un borde `#bfdbfe` (azul) suelto en `.fc-calculo`.
+
+**El editor de símbolos se veía azulado en modo claro** — a pedido del
+usuario, deja de heredar el token de fondo "plano azul" del resto de la
+app (elegido a propósito para el lienzo principal) y pasa a un gris
+neutro fijo (`#e4e4e4` claro / `#262626` oscuro): es una herramienta de
+edición de geometría de precisión, un fondo con tinte de color dificulta
+juzgar el trazo a ojo.
+
+**Desplazamiento con el botón central del mouse.** El prop
+`panOnDrag={[1]}` de React Flow (documentado, bien configurado) no
+funcionaba — verificado en vivo con varios métodos de simulación de
+eventos (incluido inspeccionar directamente qué eventos
+`pointerdown`/`pointermove` llegan al `.react-flow__pane`, con el
+bitmask de botones correcto) sin encontrar la causa exacta dentro de
+d3-zoom/d3-drag en el tiempo disponible. Se implementó a mano en
+`App.tsx` (un `mousedown`/`mousemove`/`mouseup` propio que mueve el
+viewport con `setViewport`), reemplazando el prop roto. Verificado:
+clic central arrastra el lienzo; clic izquierdo sigue siendo selección
+por recuadro, sin pisarse entre sí.
+
+Verificado en conjunto: `npm run build` (`tsc -b` limpio), `npm run
+lint` sin warnings nuevos, `npm run e2e` (contra producción, incluida la
+selección por recuadro) verde, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20. El bug
+del rótulo se verificó con `visibility` en el DOM real, no solo con una
+captura de pantalla; los de impresión, generando un PDF real
+(`page.pdf()` de Playwright) y no solo una vista en pantalla — la
+lección concreta de esta tanda es que varias de estas fallas NO se
+notan mirando la interfaz de arriba, hace falta generar el artefacto
+real (PDF) o inspeccionar el DOM (`visibility`, eventos) para
+encontrarlas.
+
+Pendiente, en curso (E36 en adelante): prueba completa de toda la
+simbología y funcionalidad pedida explícitamente por el usuario, más el
+resto de la lista (no combinar unifilar/multifilar, exportar todas las
+hojas juntas en una A0, rediseño del diálogo de exportación, auto-cálculo
+tensión fase/línea, reorganizar el panel de hoja, símbolo sin modo
+oscuro, polos múltiples tipo CADe SIMU + simulación de comando, mover la
+fuente de cortocircuito al alimentador principal).

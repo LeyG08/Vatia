@@ -15,6 +15,16 @@
   --acento: #0d6e6a;
   --acento-fuerte: #0a5652;
   --acento-suave: #e3f3f1;
+  /* Color de texto SOBRE un fondo --acento sólido. En claro el acento es
+   * oscuro → texto blanco; en oscuro el acento es claro/brillante →
+   * hace falta texto oscuro (blanco ahí daba ~1,9:1 de contraste,
+   * prácticamente invisible — encontrado en vivo: "no se ve cuándo está
+   * seleccionada una opción"). */
+  --acento-texto: #ffffff;
+  /* Componentes RGB de --acento, para los halos/glows del lienzo que
+   * necesitan variar la opacidad (rgba() no puede leer los canales de
+   * un color hexadecimal directo). */
+  --acento-rgb: 13, 110, 106;
   --error: #b8442f;
   --error-suave: #fbeae6;
   --ok: #2f7d4f;
@@ -47,6 +57,8 @@
   --acento: #4fd1c7;
   --acento-fuerte: #7ee4dc;
   --acento-suave: #163632;
+  --acento-texto: #0b1116;
+  --acento-rgb: 79, 209, 199;
   --error: #e08267;
   --error-suave: #3a221c;
   --ok: #5bb884;
@@ -282,7 +294,7 @@ body,
   font-weight: 700;
   line-height: 1.5;
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
   vertical-align: middle;
 }
 
@@ -453,7 +465,7 @@ body,
   height: 10px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 1.5px solid rgba(37, 99, 235, 0.55);
+  border: 1.5px solid rgba(var(--acento-rgb), 0.55);
 }
 
 .handle-entrada:hover::after,
@@ -464,7 +476,7 @@ body,
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.25);
+  background: rgba(var(--acento-rgb), 0.25);
 }
 
 /* Selección de nodos — C17: bien VISIBLE (borde sólido + halo), no
@@ -477,8 +489,8 @@ body,
   border: 2px solid var(--acento);
   border-radius: 4px;
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.15),
-    0 0 10px rgba(37, 99, 235, 0.35);
+    0 0 0 4px rgba(var(--acento-rgb), 0.15),
+    0 0 10px rgba(var(--acento-rgb), 0.35);
   pointer-events: none;
 }
 
@@ -487,7 +499,7 @@ body,
 .react-flow__edge:focus .react-flow__edge-path {
   stroke: var(--acento);
   stroke-width: 2.5;
-  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.6));
+  filter: drop-shadow(0 0 3px rgba(var(--acento-rgb), 0.6));
 }
 
 .nodo-faltante {
@@ -1183,8 +1195,8 @@ body.arrastrando .paleta-item {
 .nodo-alimentador.sel {
   border-color: var(--acento);
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.15),
-    0 0 10px rgba(37, 99, 235, 0.35);
+    0 0 0 4px rgba(var(--acento-rgb), 0.15),
+    0 0 10px rgba(var(--acento-rgb), 0.35);
 }
 
 .alim-col {
@@ -1319,7 +1331,7 @@ body.arrastrando .paleta-item {
 }
 
 .chip.on:hover {
-  background: #1e40af;
+  background: var(--acento-fuerte);
 }
 
 .chip:disabled {
@@ -1472,15 +1484,15 @@ body.arrastrando .paleta-item {
   height: 11px;
   border-radius: 50%;
   background: #fdfdfd;
-  border: 2px solid rgba(37, 99, 235, 0.85);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  border: 2px solid rgba(var(--acento-rgb), 0.85);
+  box-shadow: 0 0 0 3px rgba(var(--acento-rgb), 0.18);
   cursor: grab;
   pointer-events: auto;
 }
 
 .paso-grip:hover {
   background: var(--acento-suave);
-  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 0 5px rgba(var(--acento-rgb), 0.25);
 }
 
 .paso-grip:active {
@@ -1539,7 +1551,7 @@ body.arrastrando .paleta-item {
 /* C17: barra seleccionada = eje azul + halo (visible de lejos) */
 .nodo-barra.sel .barra-eje {
   background: var(--acento);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 0 3px rgba(var(--acento-rgb), 0.25);
 }
 
 .barra-eje {
@@ -1590,7 +1602,7 @@ body.arrastrando .paleta-item {
   height: 9px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 1.5px solid rgba(37, 99, 235, 0.55);
+  border: 1.5px solid rgba(var(--acento-rgb), 0.55);
 }
 
 .nodo-barra:hover .handle-barra,
@@ -1620,7 +1632,7 @@ body.arrastrando .paleta-item {
   height: 18px;
   transform: translate(-50%, -50%);
   border-radius: 3px;
-  background: rgba(37, 99, 235, 0.35);
+  background: rgba(var(--acento-rgb), 0.35);
   cursor: ew-resize;
   /* C22: con la caja en pointer-events:none, los tiradores vuelven a
    * capturar explícitamente (estirar sigue funcionando). */
@@ -1665,7 +1677,7 @@ body.arrastrando .paleta-item {
 
 .panel-atributos-hoja-hija button:hover {
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
 }
 
 
@@ -1772,7 +1784,7 @@ body.arrastrando .paleta-item {
 .fc-tipo.activa {
   background: var(--acento);
   border-color: var(--acento);
-  color: #ffffff;
+  color: var(--acento-texto);
 }
 
 .fc-llave {
@@ -1863,7 +1875,7 @@ body.arrastrando .paleta-item {
 
 .fc-calculo {
   margin-top: 8px;
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--acento-fuerte);
   border-radius: 5px;
   padding: 6px 8px;
   background: var(--acento-suave);
@@ -2179,7 +2191,11 @@ body.arrastrando .paleta-item {
 [data-theme="dark"] .chip.on {
   background: var(--acento);
   border-color: var(--acento);
-  color: #fff;
+  /* Texto blanco sobre el acento oscuro (claro y brillante) daba
+   * 1,86:1 — prácticamente invisible; por eso "no se ve cuándo está
+   * seleccionada una opción". #0b1116 da 10,2:1. */
+  color: #0b1116;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .form-atributos-aviso {
@@ -2465,13 +2481,13 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-item.activo {
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
 }
 
 .editor-simbolos-item.activo .editor-simbolos-codigo,
 .editor-simbolos-item.activo .editor-simbolos-nombre,
 .editor-simbolos-item.activo .editor-simbolos-badge {
-  color: #fff;
+  color: var(--acento-texto);
 }
 
 .editor-simbolos-mini {
@@ -2561,7 +2577,7 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .editor-simbolos-badge.corregido {
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(var(--acento-rgb), 0.2);
   color: var(--acento);
 }
 
@@ -2578,7 +2594,7 @@ body.arrastrando .paleta-item {
 
 [data-theme="dark"] .editor-simbolos-toolbar button.activo {
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
   border-color: var(--acento);
 }
 
@@ -2589,8 +2605,15 @@ body.arrastrando .paleta-item {
 .editor-simbolos-canvas-wrap {
   flex: 1;
   position: relative;
-  background: var(--bg-surface-alt);
+  /* Gris neutro fijo, no el token de fondo del resto de la app: acá se
+   * edita geometría de precisión (como en un editor vectorial), y un
+   * fondo con tinte de color (el resto de la app lo tiene a propósito,
+   * tono "plano azul") hace más difícil juzgar el trazo a ojo. */
+  background: #e4e4e4;
   overflow: hidden;
+}
+[data-theme="dark"] .editor-simbolos-canvas-wrap {
+  background: #262626;
 }
 
 .editor-simbolos-canvas-wrap canvas {
@@ -2660,7 +2683,7 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-toolbar button.activo {
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
   border-color: var(--acento);
 }
 
@@ -2782,7 +2805,19 @@ body.arrastrando .paleta-item {
     background: #fff !important;
     box-shadow: none !important;
     border: none !important;
-    overflow: visible !important;
+    /* `visible` dejaba que el borrón del box-shadow de .hoja (una
+     * sombra puramente de pantalla) se saliera del área de una página
+     * y el navegador agregaba una SEGUNDA página casi en blanco solo
+     * para ese borde — encontrado generando un PDF real de prueba. */
+    overflow: hidden !important;
+  }
+
+  /* El puntillado de grilla (ver regla base de .hoja) es una ayuda de
+   * edición en pantalla, no algo que tenga que salir en el plano
+   * impreso — sin esto toda la hoja se veía punteada/grisácea. */
+  .hoja {
+    background-image: none !important;
+    box-shadow: none !important;
   }
 }
 

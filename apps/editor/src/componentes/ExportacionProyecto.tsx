@@ -70,7 +70,7 @@ function PaginaHoja({ hoja }: { hoja: Hoja }) {
     >
       <ReactFlowProvider>
         <ReactFlow
-          nodes={[crearNodoHoja(), ...estado.nodos]}
+          nodes={[crearNodoHoja(hoja.id), ...estado.nodos]}
           edges={estado.conexiones}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}

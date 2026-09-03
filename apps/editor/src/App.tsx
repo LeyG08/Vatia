@@ -109,7 +109,48 @@ function Editor() {
   useEffect(() => {
     arrastreRef.current = arrastre;
   }, [arrastre]);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getViewport, setViewport } = useReactFlow();
+
+  /* Desplazar con el botón central del mouse: `panOnDrag={[1]}` de React
+   * Flow (botón central en su convención) está documentado y bien
+   * configurado, pero verificado en vivo (eventos pointerdown/pointermove
+   * con el bitmask correcto, capturados en .react-flow__pane) el
+   * viewport nunca se movía — no se llegó a la causa exacta dentro de
+   * d3-zoom/d3-drag en el tiempo disponible. Se implementa acá, a mano,
+   * como reemplazo confiable en vez de seguir dependiendo de ese prop. */
+  useEffect(() => {
+    let arrastrando = false;
+    let ultimoX = 0;
+    let ultimoY = 0;
+    function onDown(e: MouseEvent) {
+      if (e.button !== 1) return;
+      if (!(e.target as HTMLElement | null)?.closest(".react-flow")) return;
+      e.preventDefault();
+      arrastrando = true;
+      ultimoX = e.clientX;
+      ultimoY = e.clientY;
+    }
+    function onMove(e: MouseEvent) {
+      if (!arrastrando) return;
+      const dx = e.clientX - ultimoX;
+      const dy = e.clientY - ultimoY;
+      ultimoX = e.clientX;
+      ultimoY = e.clientY;
+      const vp = getViewport();
+      setViewport({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom }, { duration: 0 });
+    }
+    function onUp(e: MouseEvent) {
+      if (e.button === 1) arrastrando = false;
+    }
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [getViewport, setViewport]);
 
   /* Aviso posterior a un movimiento de contenido entre hojas:
    * ofrece saltar a la hoja destino o cerrar el mensaje */
@@ -459,7 +500,7 @@ function Editor() {
   );
 
   // Reencuadra la hoja cuando cambia el formato u orientación
-  const { fitView, setViewport } = useReactFlow();
+  const { fitView } = useReactFlow();
   useEffect(() => {
     const t = window.setTimeout(() => fitView({ padding: 0.12, duration: 150 }), 60);
     return () => window.clearTimeout(t);
@@ -662,7 +703,7 @@ function Editor() {
           snapToGrid
           snapGrid={[10, 10]}
           deleteKeyCode={[]}
-          panOnDrag={[1]}
+          panOnDrag={false}
           selectionOnDrag
           multiSelectionKeyCode="Control"
           zoomOnDoubleClick={false}
