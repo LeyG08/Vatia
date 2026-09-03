@@ -572,6 +572,12 @@ interface EstadoEditor {
   moverSeleccionAHoja: (
     destinoId: string,
   ) => { movidos: number; cortadas: number } | null;
+  /** Jerarquía de hojas: crea (o, si ya existe, navega a) la hoja hija
+   * que cuelga de una carga seccional de la hoja activa. */
+  crearOIrAHojaHija: (nodoId: string) => string;
+  /** Hoja padre de la activa según hojaPadreId, si tiene */
+  hojaPadreDeActiva: () => Hoja | null;
+  irAHojaPadre: () => void;
   guardarViewport: (vp: Viewport) => void;
   cargarProyecto: (entrada: ProyectoJSON | Proyecto | string) => void;
   serializarActual: () => Proyecto;
@@ -1319,6 +1325,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const idsNodos = new Set(nodosSel.map((n) => n.id));
       const snapshotNodos = get().nodos;
       const snapshotEdges = get().conexiones;
+      const snapshotHojas = get().proyecto.hojas;
+      const hojaActivaId = get().hojaActivaId;
       ejecutar({
         descripcion: "eliminar selección",
         do: () =>
@@ -1330,8 +1338,25 @@ export const useEditor = create<EstadoEditor>((set, get) => {
                 !idsNodos.has(e.target) &&
                 !edgesSel.some((se) => se.id === e.id),
             ),
+            // Si el nodo borrado era el origen de una hoja hija, se
+            // desvincula (la hoja no se toca, solo pierde el link).
+            proyecto: {
+              ...s.proyecto,
+              hojas: s.proyecto.hojas.map((h) =>
+                h.hojaPadreId === hojaActivaId &&
+                h.nodoOrigenId &&
+                idsNodos.has(h.nodoOrigenId)
+                  ? { ...h, hojaPadreId: undefined, nodoOrigenId: undefined }
+                  : h,
+              ),
+            },
           })),
-        undo: () => set({ nodos: snapshotNodos, conexiones: snapshotEdges }),
+        undo: () =>
+          set((s) => ({
+            nodos: snapshotNodos,
+            conexiones: snapshotEdges,
+            proyecto: { ...s.proyecto, hojas: snapshotHojas },
+          })),
       });
     },
 
@@ -1460,6 +1485,62 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       return nueva.id;
     },
 
+    crearOIrAHojaHija(nodoId) {
+      const { proyecto, hojaActivaId, nodos } = get();
+      // Ya existe una hoja hija de este nodo puntual: navegar, no duplicar.
+      const existente = proyecto.hojas.find(
+        (h) => h.hojaPadreId === hojaActivaId && h.nodoOrigenId === nodoId,
+      );
+      if (existente) {
+        get().cambiarHojaActiva(existente.id);
+        return existente.id;
+      }
+
+      const nodo = nodos.find((n) => n.id === nodoId);
+      const atributos = (nodo?.data as { atributos?: Record<string, unknown> } | undefined)
+        ?.atributos;
+      const sugerido =
+        (typeof atributos?.descripcion === "string" && atributos.descripcion.trim()) ||
+        (typeof atributos?.codigo_circuito === "string" &&
+          `Tablero ${atributos.codigo_circuito}`) ||
+        "Hoja hija";
+      const nombres = new Set(proyecto.hojas.map((h) => h.nombre));
+      let nombre = sugerido;
+      let sufijo = 2;
+      while (nombres.has(nombre)) {
+        nombre = `${sugerido} (${sufijo})`;
+        sufijo += 1;
+      }
+
+      const nueva: Hoja = {
+        ...hojaNuevaDesde(HOJA_POR_DEFECTO(), nombre),
+        modo: get().hoja.modo,
+        hojaPadreId: hojaActivaId,
+        nodoOrigenId: nodoId,
+      };
+      const indice = proyecto.hojas.findIndex((h) => h.id === hojaActivaId);
+      const hojas = [...proyecto.hojas];
+      hojas.splice(indice + 1, 0, nueva);
+      set((s) => ({
+        proyecto: { ...s.proyecto, hojas },
+        version: s.version + 1,
+      }));
+      get().cambiarHojaActiva(nueva.id);
+      return nueva.id;
+    },
+
+    hojaPadreDeActiva() {
+      const { proyecto, hojaActivaId } = get();
+      const activa = proyecto.hojas.find((h) => h.id === hojaActivaId);
+      if (!activa?.hojaPadreId) return null;
+      return proyecto.hojas.find((h) => h.id === activa.hojaPadreId) ?? null;
+    },
+
+    irAHojaPadre() {
+      const padre = get().hojaPadreDeActiva();
+      if (padre) get().cambiarHojaActiva(padre.id);
+    },
+
     eliminarHoja(id) {
       const { proyecto, hojaActivaId } = get();
       if (proyecto.hojas.length <= 1) return; // nunca sin hojas
@@ -1483,7 +1564,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       historial.eliminarHoja(id);
 
       // Barrido defensivo: ninguna conexión de las hojas restantes debe
-      // apuntar a nodos inexistentes (por invariante no debería pasar)
+      // apuntar a nodos inexistentes (por invariante no debería pasar), y
+      // ninguna hoja hija debe quedar apuntando a un padre borrado — se
+      // desvincula (queda como hoja de nivel raíz), nunca se borra en
+      // cadena: es contenido del usuario.
       set((s) => ({
         proyecto: {
           ...s.proyecto,
@@ -1494,9 +1578,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
               const [b] = c.hasta.split(".");
               return ids.has(a) && ids.has(b);
             });
-            return filtradas.length === h.conexiones.length
-              ? h
-              : { ...h, conexiones: filtradas };
+            const huerfana = h.hojaPadreId === id;
+            if (filtradas.length === h.conexiones.length && !huerfana) return h;
+            return {
+              ...h,
+              conexiones: filtradas,
+              ...(huerfana ? { hojaPadreId: undefined, nodoOrigenId: undefined } : {}),
+            };
           }),
         },
       }));
@@ -1544,6 +1632,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         nodos: nodosCopiados,
         conexiones: conexionesCopiadas,
         viewport: orig.viewport ? { ...orig.viewport } : undefined,
+        // clonarCfg clona TODO lo que trae orig en tiempo de ejecución
+        // (JSON.stringify no respeta el tipo HojaConfig), así que si la
+        // fuente era una hoja hija, el link se colaría acá también: dos
+        // hojas no pueden "colgar" del mismo nodo de origen. La copia
+        // nace independiente.
+        hojaPadreId: undefined,
+        nodoOrigenId: undefined,
       };
       const hojas = [...get().proyecto.hojas];
       hojas.splice(indice + 1, 0, copia);

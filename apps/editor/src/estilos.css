@@ -166,6 +166,29 @@ body,
   background: #fff;
 }
 
+.pestana-hoja.hija {
+  background: #eef2f7;
+  font-size: 11.5px;
+}
+
+.pestana-hoja-padre {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--borde);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #eef2f7;
+  color: #475569;
+  padding: 5px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pestana-hoja-padre:hover {
+  color: var(--acento);
+}
+
 .pestana-nombre {
   pointer-events: none;
 }
@@ -1338,6 +1361,30 @@ body.arrastrando .paleta-item {
   color: #6b7280;
 }
 
+.panel-atributos-hoja-hija {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--borde);
+}
+
+.panel-atributos-hoja-hija button {
+  width: 100%;
+  border: 1px solid var(--acento);
+  background: #eff6ff;
+  color: var(--acento);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.panel-atributos-hoja-hija button:hover {
+  background: var(--acento);
+  color: #fff;
+}
+
 
 /* Ficha de la barra: extremo IZQUIERDO, por ENCIMA */
 .anotacion-nodo.anotacion-barra {
@@ -1612,6 +1659,13 @@ body.arrastrando .paleta-item {
   color: var(--text-muted);
 }
 
+[data-theme="dark"] .pestana-hoja.hija,
+[data-theme="dark"] .pestana-hoja-padre {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-secondary);
+}
+
 /* Paleta */
 [data-theme="dark"] .paleta {
   background: var(--fondo-panel);
@@ -1758,6 +1812,10 @@ body.arrastrando .paleta-item {
 
 [data-theme="dark"] .obligatorio {
   color: var(--error);
+}
+
+[data-theme="dark"] .panel-atributos-hoja-hija button {
+  background: var(--bg-surface-alt);
 }
 
 /* Chips */

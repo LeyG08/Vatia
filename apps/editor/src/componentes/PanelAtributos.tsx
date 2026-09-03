@@ -11,6 +11,28 @@ import FormularioAtributos from "./FormularioAtributos";
 import FormularioConductor from "./FormularioConductor";
 import FormularioCarga from "./FormularioCarga";
 
+/** Jerarquía de hojas: si esta carga seccional ya tiene una hoja hija
+ * colgando, ofrece ir a ella; si no, ofrece crearla. */
+function HojaHijaAccion({ nodoId }: { nodoId: string }) {
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+  const hijaExistente = useEditor((s) =>
+    s.proyecto.hojas.find(
+      (h) => h.hojaPadreId === hojaActivaId && h.nodoOrigenId === nodoId,
+    ),
+  );
+  const crearOIr = useEditor((s) => s.crearOIrAHojaHija);
+
+  return (
+    <div className="panel-atributos-hoja-hija">
+      <button type="button" onClick={() => crearOIr(nodoId)}>
+        {hijaExistente
+          ? `→ Ir a la hoja del tablero: ${hijaExistente.nombre}`
+          : "+ Crear hoja del tablero seccional"}
+      </button>
+    </div>
+  );
+}
+
 /**
  * Panel de ficha técnica (Fase C4): aparece JUNTO al símbolo o conexión
  * seleccionada, se puede arrastrar desde el encabezado y edita los
@@ -147,10 +169,15 @@ export default function PanelAtributos() {
           />
         ) : obtenerSimbolo((nodo.data as DatosSimbolo).codigo_iec)?.metadata
               .familia_atributos === "carga" ? (
-          <FormularioCarga
-            atributos={(nodo.data as DatosSimbolo).atributos}
-            onChange={(attrs) => actualizarNodo(nodo.id, attrs)}
-          />
+          <>
+            <FormularioCarga
+              atributos={(nodo.data as DatosSimbolo).atributos}
+              onChange={(attrs) => actualizarNodo(nodo.id, attrs)}
+            />
+            {(nodo.data as DatosSimbolo).atributos.tipo_carga === "seccional" && (
+              <HojaHijaAccion nodoId={nodo.id} />
+            )}
+          </>
         ) : (
           <FormularioAtributos
             familia={

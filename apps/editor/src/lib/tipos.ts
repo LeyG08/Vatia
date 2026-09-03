@@ -306,6 +306,17 @@ export interface Hoja extends HojaConfig {
   conexiones: ConexionProyecto[];
   /** Viewport guardado al cambiar de pestaña */
   viewport?: { x: number; y: number; zoom: number };
+  /**
+   * Jerarquía de hojas (Paso "editor completo"): esta hoja cuelga de una
+   * carga `tipo_carga: "seccional"` de otra hoja — no es una jerarquía
+   * libre, sigue la instalación real (el tablero seccional que un
+   * circuito origina). `hojaPadreId` + `nodoOrigenId` juntos identifican
+   * esa carga; ausentes = hoja de nivel raíz (o desvinculada porque se
+   * borró el padre o el nodo de origen — la hoja en sí nunca se borra
+   * sola por eso).
+   */
+  hojaPadreId?: string;
+  nodoOrigenId?: string;
 }
 
 /** Normativa de cálculo del proyecto — condiciona tablas de Iz, límites

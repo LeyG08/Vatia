@@ -3784,3 +3784,70 @@ Verificaciones: `tsc -b` limpio (atrapó 2 errores reales que
 corregidos), `npm run build` OK, `npm run lint` sin warnings nuevos,
 `npm run e2e` verde (21 checks), `verificar_alineacion.mjs` y
 `verificar_proyecto_real.mjs` verdes.
+
+## E18 — Jerarquía de hojas: hoja hija colgando de una carga seccional
+
+Segunda de las dos tareas de "finalizar el editor" (la otra, modo
+multifilar, cerró en E17). El usuario pidió avanzar sin pausas
+("hagamos y cuando tenga tiempo de probarlo ahí te mando para hacer los
+ajustes") — se ejecuta el criterio ya acordado con él en E14: *"la
+jerarquía cuelga cada hoja hija de la carga `seccional` de la hoja padre
+que la origina (no una jerarquía libre)"*. No es un árbol de hojas
+arbitrario: cada vínculo padre→hija apunta a un nodo concreto (una carga
+con `tipo_carga: "seccional"`) que representa, en la instalación real, el
+circuito que alimenta ese tablero seccional.
+
+Cambios:
+
+- **`Hoja.hojaPadreId` / `Hoja.nodoOrigenId`** (nuevos, ambos opcionales
+  — no hizo falta otro bump de versión de archivo, a diferencia de
+  `modo` en E17: una hoja sin estos campos simplemente es de nivel raíz,
+  comportamiento idéntico a antes). Viven en `Hoja`, no en `HojaConfig`
+  — son identidad/relación, no configuración clonable de plantilla.
+- **`crearOIrAHojaHija(nodoId)`** (store): si la carga ya tiene una hoja
+  hija (mismo `hojaPadreId` + `nodoOrigenId`), navega a ella; si no, crea
+  una nueva (nombre sugerido desde `descripcion` o `codigo_circuito` de
+  la carga, con fallback a "Hoja hija"), la inserta justo después de la
+  hoja padre en el array, y cambia la hoja activa a la nueva.
+  `hojaPadreDeActiva()` / `irAHojaPadre()` para el camino inverso.
+- **`PanelAtributos.tsx`**: cuando la ficha abierta es una carga con
+  `tipo_carga === "seccional"`, aparece un botón bajo el formulario —
+  "+ Crear hoja del tablero seccional" o, si ya existe, "→ Ir a la hoja
+  del tablero: <nombre>".
+- **`PestanasHoja.tsx`**: las pestañas hijas llevan prefijo "↳" en vez
+  del número de orden, y un botón "⤴" aparece a la izquierda de las
+  pestañas cuando la hoja activa tiene padre, para volver.
+- **Desvinculación no destructiva** en los tres lugares donde podía
+  quedar un link roto: `eliminarHoja` (si se borra el padre, la hija
+  pierde `hojaPadreId`/`nodoOrigenId` pero no se borra — sigue el mismo
+  criterio ya establecido de no borrar en cadena, ver el comentario
+  original de esa función), `eliminarSeleccion` (si se borra el nodo de
+  origen en la hoja activa, ídem, incluido en el mismo `ejecutar`/`undo`
+  para que Ctrl+Z lo revierta junto con todo lo demás), y `duplicarHoja`
+  (fix real, no solo defensivo: `clonarCfg` clona con
+  `JSON.parse(JSON.stringify(...))`, que no respeta el tipo estático
+  `HojaConfig` — copiaba `hojaPadreId`/`nodoOrigenId` en tiempo de
+  ejecución aunque el código explícito no los mencionara, así que
+  duplicar una hoja hija habría creado una segunda hoja reclamando ser
+  la hija de la misma carga. Se limpian explícitamente en la copia).
+
+Limitación conocida, no resuelta: si el nodo de origen se MUEVE a otra
+hoja (`moverSeleccionAHoja`) en vez de borrarse, el link no se actualiza
+— la hoja hija sigue "colgando" de la hoja vieja aunque la carga ya no
+esté ahí. No corrompe datos (en el peor caso, `crearOIrAHojaHija` desde
+la hoja nueva no encuentra la hija existente y ofrece crear una
+distinta), pero es una inconsistencia de UX pendiente; caso de uso poco
+frecuente, se deja para si aparece en uso real.
+
+Verificado en vivo con Playwright: crear una "Carga de circuito", ponerle
+`tipo_carga: seccional`, click en "+ Crear hoja del tablero seccional" →
+aparece la pestaña "↳ Hoja hija" activa y el botón "⤴"; click en "⤴"
+vuelve a "1. Hoja 1". De paso se confirmó que el warning de consola
+"two children with the same key... n1" al cambiar de pestaña es
+PREEXISTENTE (se reproduce igual con el botón "+ Nueva" de toda la vida,
+sin usar ninguna función nueva de esta entrada) — no se investiga ni se
+toca acá, queda anotado para cuando se revise el editor en general.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.
