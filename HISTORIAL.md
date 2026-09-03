@@ -4904,3 +4904,36 @@ todo en un solo panel largo); símbolos multipolares tipo CADe SIMU en la
 parte multifilar, con simulación de la lógica de comando; mover la
 fuente de cortocircuito de "Datos del proyecto" al alimentador principal,
 preguntada al crear la hoja de ese alimentador.
+
+## E38 — Reorganiza "Configuración de hoja" en secciones navegables
+
+**"Todo lo que se puso en la hoja se podría hacer de otra forma, no me
+gusta que esté todo junto."** El panel tenía seis bloques (Formato/
+orientación/esquema, Encabezado del tablero, Notas del gabinete, Nota
+de seguridad, Rótulo IRAM 4508 completo con 13 campos, Lista de
+materiales adicional) apilados uno debajo del otro en un solo scroll
+largo — para llegar al rótulo había que bajar por todo lo demás.
+
+Reorganizado en `PanelHoja.tsx` como un diálogo con pestañas laterales
+("Página", "Encabezado y notas", "Rótulo IRAM 4508", "Materiales
+adicionales"): se ve una sección a la vez, sin tocar ningún campo,
+handler ni dato — es reordenamiento de JSX puro, el store y la lógica
+de guardado quedan idénticos. En pantallas angostas (`max-width:640px`)
+las pestañas pasan a ser una fila horizontal con scroll arriba del
+contenido, en vez de columna lateral. Estilos nuevos en `estilos.css`
+(`.panel-hoja--tabulado`, `.panel-hoja-layout`, `.panel-hoja-tabs`,
+`.panel-hoja-contenido`) construidos enteramente sobre los tokens de
+tema ya existentes (`--acento`, `--acento-suave`, `--text-secondary`,
+`--borde`), sin necesidad de reglas `[data-theme="dark"]` separadas.
+
+Verificado con Playwright real (no solo build/lint): las 4 secciones
+en modo claro y oscuro, capturas de pantalla de cada una, y el layout
+responsive en 480px de ancho — sin errores de consola. `build`, `lint`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+Quedan pendientes, sin tocar todavía (decisiones de producto que
+necesitan alcance propio antes de implementarse): exportar todos los
+unifilares a una sola hoja A0, símbolos multipolares tipo CADe SIMU
+con simulación de comando, y mover la fuente de cortocircuito de
+"Datos del proyecto" al alimentador principal.

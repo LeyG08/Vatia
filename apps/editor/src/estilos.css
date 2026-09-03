@@ -843,6 +843,98 @@ body.arrastrando .paleta-item {
   letter-spacing: 0.2px;
 }
 
+/* Configuración de hoja tiene demasiados campos para una sola lista larga
+ * (formato, encabezado, notas del gabinete, rótulo IRAM completo,
+ * materiales) — se agrupa en secciones navegables en vez de todo apilado. */
+.panel-hoja--tabulado {
+  width: min(760px, 94vw);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-hoja--tabulado h2 {
+  flex: 0 0 auto;
+}
+
+.panel-hoja-layout {
+  display: flex;
+  gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.panel-hoja-tabs {
+  flex: 0 0 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px solid var(--borde);
+  padding-right: 12px;
+  overflow-y: auto;
+}
+
+.panel-hoja-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.panel-hoja-tabs button:hover {
+  background: var(--bg-surface-alt);
+}
+
+.panel-hoja-tabs button.activo {
+  background: var(--acento-suave);
+  border-color: var(--acento);
+  color: var(--acento);
+  font-weight: 600;
+}
+
+.panel-hoja-tab-icono {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.panel-hoja-contenido {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.panel-hoja--tabulado .panel-hoja-pie {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .panel-hoja-layout {
+    flex-direction: column;
+  }
+
+  .panel-hoja-tabs {
+    flex-direction: row;
+    flex: 0 0 auto;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--borde);
+    padding-right: 0;
+    padding-bottom: 8px;
+  }
+
+  .panel-hoja-tabs button {
+    flex: 0 0 auto;
+  }
+}
+
 .panel-hoja h3 {
   margin: 14px 0 8px;
   font-size: 13px;
