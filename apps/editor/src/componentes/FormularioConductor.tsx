@@ -2,8 +2,13 @@ import { lineasCable } from "../lib/anotaciones";
 import type { CampoDescriptor } from "../lib/esquemas";
 import { camposDeFamilia } from "../lib/esquemas";
 import type { ResultadoIz } from "../lib/calculo";
-import { seccionesDisponiblesMm2, seccionMinimaPeMm2 } from "../lib/secciones";
-import type { ModoHoja } from "../lib/tipos";
+import {
+  seccionesDisponiblesMm2,
+  seccionMinimaPeMm2,
+  seccionMinimaMm2,
+  type RolCircuito,
+} from "../lib/secciones";
+import type { ModoHoja, Normativa } from "../lib/tipos";
 import SelectorConEscape from "./SelectorConEscape";
 
 interface Props {
@@ -15,6 +20,13 @@ interface Props {
    * ofrecen — el rango completo de fuerza en unifilar, recortado a la
    * práctica de comando en multifilar. */
   modo: ModoHoja;
+  /** Normativa del proyecto (E60) — decide el mínimo de sección junto
+   * con `rol`. */
+  normativa: Normativa;
+  /** Rol de este circuito (E60): una conexión cualquiera es "terminal";
+   * un alimentador es "seccional" (hoja con padre) o "principal" (hoja
+   * raíz) — determina el mínimo AEA, ver lib/secciones.ts. */
+  rol: RolCircuito;
   /**
    * Ib (A), ΔU% e Iz ya calculados por el llamador (necesita recorrer la
    * topología completa, algo que este formulario no tiene por qué saber
@@ -24,28 +36,30 @@ interface Props {
     ibA: number | null;
     caidaPct: number | null;
     iz: ResultadoIz | null;
-    /** Cuántos conductores comparten la misma "canalización" que este
-     * (E58), contado solo — 1 = va solo, sin agrupamiento. */
-    circuitosAgrupados: number;
+    /** Cuántos conductores comparten la canalización dada, contado
+     * solo — 1 = va solo, sin agrupamiento. Función y no un número: la
+     * canalización es por TRAMO (E60), no por cable entero. */
+    circuitosAgrupadosDe: (canalizacion: string | undefined) => number;
   };
 }
 
 /** Opciones del selector de sección — "6 mm²" en vez de solo "6", para
  * que se lea igual que el resto de la ficha técnica. */
-function opcionesSeccion(material: unknown, modo: ModoHoja) {
+function opcionesSeccion(material: unknown, modo: ModoHoja, minimoMm2: number) {
   const mat = material === "Al" ? "Al" : "Cu";
-  return seccionesDisponiblesMm2(mat, modo).map((s) => ({
+  return seccionesDisponiblesMm2(mat, modo, minimoMm2).map((s) => ({
     valor: String(s),
     etiqueta: `${s} mm²`,
   }));
 }
 
-/** Un tramo del recorrido físico del cable (E59) — ver TramoInstalacion
- * en lib/calculo.ts, mismo shape. */
+/** Un tramo del recorrido físico del cable (E59/E60) — ver
+ * TramoInstalacion en lib/calculo.ts, mismo shape. */
 interface Tramo {
   metodo_instalacion?: string;
   longitud_m?: number;
   temperatura_ambiente_c?: number;
+  canalizacion?: string;
 }
 
 function valorComoTexto(v: unknown): string {
@@ -111,11 +125,20 @@ function Llave({
  * unipolar/multipolar y vista previa de la notación del plano.
  * El resto de campos (material, aislación, norma) usa el render común.
  */
-export default function FormularioConductor({ atributos, onChange, encabezado, modo, calculo }: Props) {
+export default function FormularioConductor({
+  atributos,
+  onChange,
+  encabezado,
+  modo,
+  normativa,
+  rol,
+  calculo,
+}: Props) {
   const fases =
     typeof atributos.cantidad_conductores === "number"
       ? atributos.cantidad_conductores
       : 0;
+  const minimoFaseMm2 = seccionMinimaMm2(normativa, rol);
 
   // Campos simples restantes, resueltos desde el schema (sin hardcodear)
   const manejados = new Set([
@@ -178,12 +201,17 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
        * Lista normada (E54), no texto libre: son los valores REALES de
        * la tabla Iz ya cargada (Tablas B52-2 a B52-5, ver
        * lib/secciones.ts) — así el cálculo de Iz más abajo nunca falla
-       * en silencio por una sección que la norma no tabula. */}
-      <label className="campo-atributo">
+       * en silencio por una sección que la norma no tabula. Recortada
+       * al mínimo AEA por rol de circuito (E60) — "Otra…" sigue
+       * permitiendo bajar de ahí a mano, para el caso excepcional. */}
+      <label
+        className="campo-atributo"
+        title={`Mínimo para este circuito (${rol}, ${normativa}): ${minimoFaseMm2} mm².`}
+      >
         <span>Sección mm²<em className="obligatorio">*</em></span>
         <SelectorConEscape
           valor={valorComoTexto(atributos.seccion_fase_mm2)}
-          opciones={opcionesSeccion(atributos.material, modo)}
+          opciones={opcionesSeccion(atributos.material, modo, minimoFaseMm2)}
           placeholder="mm²"
           etiquetaVacio="—"
           onChange={(v) =>
@@ -231,7 +259,7 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
           <span>↳ Sección distinta</span>
           <SelectorConEscape
             valor={valorComoTexto(atributos.seccion_neutro_mm2)}
-            opciones={opcionesSeccion(atributos.material, modo)}
+            opciones={opcionesSeccion(atributos.material, modo, 0)}
             placeholder="mm²"
             etiquetaVacio="= fase"
             onChange={(v) =>
@@ -258,7 +286,7 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
           <span>↳ Sección distinta</span>
           <SelectorConEscape
             valor={valorComoTexto(atributos.seccion_tierra_mm2)}
-            opciones={opcionesSeccion(atributos.material, modo)}
+            opciones={opcionesSeccion(atributos.material, modo, 0)}
             placeholder="mm²"
             etiquetaVacio="= fase"
             onChange={(v) =>
@@ -445,6 +473,29 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
                 }
               />
             </label>
+            <label
+              className="campo-atributo"
+              title="Identificador de la canalización que comparte ESTE TRAMO con otros conductores del proyecto (ej. 'Bandeja 1') — un cable puede compartir bandeja en un tramo y seguir solo en el resto de su recorrido."
+            >
+              <span>Canalización</span>
+              <input
+                type="text"
+                placeholder="ej. Bandeja 1"
+                value={valorComoTexto(tramo.canalizacion)}
+                onChange={(e) => actualizarTramo(i, "canalizacion", e.target.value || undefined)}
+              />
+            </label>
+            {calculo &&
+              typeof tramo.canalizacion === "string" &&
+              tramo.canalizacion.trim() !== "" &&
+              calculo.circuitosAgrupadosDe(tramo.canalizacion) > 1 && (
+                <p
+                  className="fc-tramo-agrupados"
+                  title="Cuántos tramos del proyecto comparten esta canalización — ya está incluido en el Iz de este tramo."
+                >
+                  Circuitos agrupados: {calculo.circuitosAgrupadosDe(tramo.canalizacion)}
+                </p>
+              )}
           </div>
         ))}
         <button
@@ -495,15 +546,6 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
             <div className="fc-calculo-linea">
               <span>Iz (corriente admisible)</span>
               <strong>{calculo.iz.izCorregidaA.toFixed(1)} A</strong>
-            </div>
-          )}
-          {calculo.circuitosAgrupados > 1 && (
-            <div
-              className="fc-calculo-linea"
-              title="Cuántos conductores del proyecto comparten el campo Canalización con este — ya está incluido en la corrección de Iz de arriba."
-            >
-              <span>Circuitos agrupados (canalización)</span>
-              <strong>{calculo.circuitosAgrupados}</strong>
             </div>
           )}
           {calculo.ibA !== null && calculo.iz && (

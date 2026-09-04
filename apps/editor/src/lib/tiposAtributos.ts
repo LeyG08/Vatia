@@ -581,8 +581,6 @@ export interface AtributosConductor {
   material?: "Cu" | "Al";
   /** Tramos de instalación */
   tramos?: unknown;
-  /** Canalización */
-  canalizacion?: string;
   /** Aislación */
   aislacion?: "PVC" | "XLPE" | "EPR";
   /** Norma IRAM */

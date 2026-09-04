@@ -115,11 +115,15 @@ function factorPorTemperatura(
 
 /** Un TRAMO del recorrido físico del cable (E59): un mismo circuito
  * real puede ir parte encañado en pared y parte enterrado, cada tramo
- * con su propio método de instalación y temperatura ambiente. */
+ * con su propio método de instalación, temperatura ambiente y
+ * canalización (E60: el agrupamiento también puede variar tramo a
+ * tramo — un cable puede compartir bandeja con otros en un tramo y
+ * seguir solo en el resto de su recorrido). */
 export interface TramoInstalacion {
   metodo_instalacion?: string;
   longitud_m?: number;
   temperatura_ambiente_c?: number;
+  canalizacion?: string;
 }
 
 export interface DatosCableParaIz {
@@ -170,17 +174,19 @@ export function longitudTotalM(tramos: TramoInstalacion[] | undefined): number |
  * tramo enterrado en un terreno de peor resistividad térmica que la de
  * referencia (1 K·m/W) puede admitir MENOS de lo que este cálculo diga.
  *
- * `circuitosAgrupados`: cuántos conductores comparten canalización con
- * este, INCLUIDO él (mínimo 1) — una sola cifra para TODO el cable
- * (simplificación deliberada: no se modela agrupamiento distinto por
- * tramo). Es responsabilidad del que llama contarlos (recorriendo el
- * campo `canalizacion` del resto del proyecto, ver PanelAtributos.tsx)
- * — este módulo no conoce el resto de los conductores.
+ * `circuitosAgrupadosDe`: resuelve, para la canalización de CADA
+ * tramo, cuántos conductores la comparten (INCLUIDO él, mínimo 1) —
+ * una función y no un número porque cada tramo puede tener su PROPIA
+ * canalización (E60: un cable puede compartir bandeja con otros en un
+ * tramo y seguir solo en el resto). Es responsabilidad del que llama
+ * resolverlo (recorriendo el campo `canalizacion` del resto del
+ * proyecto, ver PanelAtributos.tsx) — este módulo no conoce el resto
+ * de los conductores.
  */
 export function calcularIzA(
   cable: DatosCableParaIz,
   trifasica: boolean,
-  circuitosAgrupados = 1,
+  circuitosAgrupadosDe: (canalizacion: string | undefined) => number = () => 1,
 ): ResultadoIz | null {
   const { material, aislacion, seccion_fase_mm2, tramos } = cable;
   if (!material || !aislacion || !seccion_fase_mm2 || !tramos || tramos.length === 0) {
@@ -210,7 +216,9 @@ export function calcularIzA(
     // aire, ítem 1" — no corresponde aplicarlo a un método enterrado
     // (D1/D2 tienen sus propias tablas de agrupamiento, B52-18 a
     // B52-21, todavía sin cargar).
-    const factorAgrupamiento = enterrado ? 1 : factorPorAgrupamiento(circuitosAgrupados);
+    const factorAgrupamiento = enterrado
+      ? 1
+      : factorPorAgrupamiento(circuitosAgrupadosDe(tramo.canalizacion));
     const izCorregidaA = izBaseA * factorTemperatura * factorAgrupamiento;
 
     if (!mejor || izCorregidaA < mejor.izCorregidaA) {

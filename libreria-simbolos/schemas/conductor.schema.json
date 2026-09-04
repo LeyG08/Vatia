@@ -108,15 +108,15 @@
             "x-obligatorio": false,
             "description": "Temperatura ambiente en °C de ESTE TRAMO. Corrige la corriente admisible de tabla (factor de corrección por temperatura): a mayor temperatura, menor Iz. Sin valor se asume la de referencia de la tabla (30°C en instalación enterrada, 40°C al aire, según AEA/IEC).",
             "title": "Temperatura ambiente (°C)"
+          },
+          "canalizacion": {
+            "type": "string",
+            "x-obligatorio": false,
+            "description": "Identificador de la canalización que comparte ESTE TRAMO con otros conductores del proyecto (ej. \"Bandeja 1\", \"Caño 2\") — un cable puede ir por una canalización distinta en cada tramo de su recorrido (E60). No hace falta contar a mano cuántos van juntos: el editor cuenta solo cuántos tramos (de cualquier conductor, cualquier hoja) tienen ESTE MISMO identificador y corrige la corriente admisible de ESTE TRAMO por agrupamiento. Sin valor se asume que va solo (factor 1, sin agrupamiento).",
+            "title": "Canalización"
           }
         }
       }
-    },
-    "canalizacion": {
-      "type": "string",
-      "x-obligatorio": false,
-      "description": "Identificador de la canalización que comparte con otros conductores del proyecto (ej. \"Bandeja 1\", \"Caño 2\") — no hace falta contar a mano cuántos van juntos: el editor cuenta solo cuántos conductores (de cualquier hoja) tienen ESTE MISMO identificador y corrige la corriente admisible por agrupamiento (factor de corrección: a más circuitos juntos, menor Iz por calentamiento mutuo). Sin valor se asume que va solo (factor 1, sin agrupamiento).",
-      "title": "Canalización"
     },
     "aislacion": {
       "enum": [

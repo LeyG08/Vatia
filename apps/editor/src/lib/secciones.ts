@@ -13,7 +13,7 @@ import {
   SECCIONES_CU,
   SECCIONES_AL,
 } from "../../../../libreria-simbolos/normativa/tablaIzAea90364552.mjs";
-import type { ModoHoja } from "./tipos";
+import type { ModoHoja, Normativa } from "./tipos";
 
 /** Techo práctico para un conductor de circuito de COMANDO (control):
  * el cableado de mando de un tablero industrial rara vez pasa de 4 mm²
@@ -25,15 +25,51 @@ import type { ModoHoja } from "./tipos";
  * que lo necesite. */
 const TECHO_COMANDO_MM2 = 4;
 
+/**
+ * Rol del circuito dentro de la instalación — determina el mínimo AEA
+ * (E60). "terminal" es el caso general (una conexión cualquiera, que
+ * alimenta un aparato o carga); un alimentador es "seccional" si su
+ * hoja cuelga de otra (tablero seccional) o "principal" si es la hoja
+ * raíz (línea desde la fuente).
+ */
+export type RolCircuito = "terminal" | "seccional" | "principal";
+
+/**
+ * Sección mínima según el ROL del circuito — AEA 90364-7-771, Tabla
+ * 771.13.I (verificada por búsqueda web, no transcripción completa de
+ * la norma): 1,5 mm² circuitos terminales, 2,5 mm² seccionales, 4 mm²
+ * líneas principales. Para IEC no se consiguió una tabla equivalente
+ * igual de verificada (a diferencia de la tabla Iz de cables, que SÍ
+ * es textualmente idéntica entre AEA e IEC) — se usa el mínimo general
+ * de instalación fija (1,5 mm²) para los tres roles en vez de inventar
+ * una diferenciación que no se pudo confirmar. Esta es la diferencia
+ * real entre normativas que pedía el usuario: AEA tiene mínimos más
+ * finos por rol, IEC (acá) queda en el mínimo general.
+ */
+export function seccionMinimaMm2(normativa: Normativa, rol: RolCircuito): number {
+  if (normativa === "AEA") {
+    if (rol === "principal") return 4;
+    if (rol === "seccional") return 2.5;
+    return 1.5;
+  }
+  return 1.5;
+}
+
 /** Secciones normadas disponibles (mm²) para elegir, según el material
- * del conductor y si la hoja es de fuerza (unifilar, rango completo) o
- * de comando (multifilar, recortado al techo de arriba). */
+ * del conductor, si la hoja es de fuerza (unifilar, rango completo) o
+ * de comando (multifilar, recortado al techo de arriba), y el mínimo
+ * que corresponda por normativa + rol del circuito (E60) — nunca se
+ * ofrece una sección por debajo del piso normativo, aunque "Otra…"
+ * (SelectorConEscape) sigue permitiendo cargar cualquier valor a mano
+ * para el caso excepcional que lo necesite. */
 export function seccionesDisponiblesMm2(
   material: "Cu" | "Al" | undefined,
   modo: ModoHoja,
+  minimoMm2 = 0,
 ): number[] {
   const base: readonly number[] = material === "Al" ? SECCIONES_AL : SECCIONES_CU;
-  return modo === "multifilar" ? base.filter((s) => s <= TECHO_COMANDO_MM2) : [...base];
+  const sinTecho = base.filter((s) => s >= minimoMm2);
+  return modo === "multifilar" ? sinTecho.filter((s) => s <= TECHO_COMANDO_MM2) : [...sinTecho];
 }
 
 /**

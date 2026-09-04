@@ -5976,3 +5976,67 @@ Sin errores de consola.
 `tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
 `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py` en verde.
+
+## E60 — Dimensiones de barra normadas, canalización por tramo, mínimo AEA por rol
+
+Cierra los tres ítems elegidos del "qué quedó pendiente": 2 (AEA/IEC
+no diferenciadas), 3 (dimensiones de barra en texto libre) y 4
+(canalización por conductor entero, no por tramo). El usuario dio
+instrucción concreta para el 3: "las dimensiones deben ser las
+normalizadas, seleccionamos primero 30mm o 40mm... y luego la otra
+dimensión 3mm o 4mm...".
+
+**Dimensiones de barra, tres selectores en cascada** (`ancho` →
+`espesor` → `barras apiladas`), sobre la MISMA tabla real DIN 43671 ya
+cargada en `lib/barras.ts` (E56/E57) — no una lista aparte. Sin
+escape a texto libre a propósito: el pedido era justamente que no se
+pudiera cargar cualquier número. `lib/barras.ts` suma
+`anchosBarraDisponiblesMm()`, `espesoresBarraDisponiblesMm(ancho)` y
+`cantidadesBarraDisponibles(ancho, espesor)`, derivadas de la tabla.
+
+**Bug real encontrado y corregido en el camino**: la primera versión
+del selector derivaba el estado directo de la prop `valor` en cada
+render — al elegir un ancho nuevo, como todavía faltaba el espesor,
+emitía `dimensiones: ""` al padre, que en el siguiente render volvía a
+parsear "" y perdía el ancho recién elegido (la lista de espesores
+quedaba vacía). Se corrigió con estado LOCAL en el componente
+(`useState` + un `useEffect` que solo resincroniza cuando `valor`
+cambia por algo que el propio componente no generó), verificado en
+vivo: antes del fix, elegir "40mm" de ancho dejaba la lista de
+espesores vacía; después, muestra correctamente "3 mm, 5 mm, 10 mm".
+
+**Canalización por TRAMO, no por cable entero**: se mueve de
+nivel superior a sub-campo de cada tramo en `conductor.schema.json` —
+un cable puede compartir bandeja con otros en un tramo y seguir solo
+en el resto de su recorrido. `lib/calculo.ts` → `calcularIzA()` deja
+de recibir un número fijo de circuitos agrupados y pasa a recibir una
+función `circuitosAgrupadosDe(canalización)`, que cada tramo consulta
+con SU PROPIA canalización. `PanelAtributos.tsx` arma el mapa
+recorriendo los tramos de toda la hoja activa, no un solo cable.
+
+**Mínimo de sección por rol de circuito y normativa (AEA vs IEC)**:
+`lib/secciones.ts` suma `seccionMinimaMm2(normativa, rol)` — AEA
+90364-7-771, Tabla 771.13.I (verificada por búsqueda, no
+transcripción completa): 1,5 mm² circuitos terminales, 2,5 mm²
+seccionales, 4 mm² líneas principales. El `rol` se infiere solo: una
+conexión cualquiera es "terminal"; un alimentador es "seccional" si su
+hoja tiene `hojaPadreId` (cuelga de otra, va a un tablero seccional) o
+"principal" si es la hoja raíz. **Acá está la diferencia real entre
+AEA e IEC** que faltaba desde E54: no se consiguió una tabla de
+mínimos por rol para IEC igual de verificable — se deja en el mínimo
+general (1,5 mm²) para los tres roles en vez de inventar una
+diferenciación que no se pudo confirmar, en lugar de fingir que las
+dos normativas son iguales sin decirlo.
+
+Verificado en vivo con Playwright contra el proyecto real del PPS: la
+barra 30×10mm (dato real) aparece pre-seleccionada correctamente en
+los tres selectores; elegir 40×5mm ×2 barras da "836 A (DIN 43671)"
+(coincide exacto con la fila real de la tabla); el campo Canalización
+aparece DENTRO de cada tarjeta de tramo; una conexión regular muestra
+"Mínimo para este circuito (terminal, AEA): 1,5 mm²" y el alimentador
+de la hoja raíz muestra "(principal, AEA): 4 mm²". Sin errores de
+consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.

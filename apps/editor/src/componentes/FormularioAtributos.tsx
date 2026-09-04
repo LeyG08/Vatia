@@ -1,4 +1,4 @@
-import { Fragment, useMemo, type ReactElement } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactElement } from "react";
 import {
   type FamiliaAtributos,
   camposDeFamilia,
@@ -7,7 +7,12 @@ import {
   campoVisible,
 } from "../lib/esquemas";
 import { esAccesorioReferencia } from "../lib/referencia";
-import { estimarCorrienteAdmisibleBarraA } from "../lib/barras";
+import {
+  estimarCorrienteAdmisibleBarraA,
+  anchosBarraDisponiblesMm,
+  espesoresBarraDisponiblesMm,
+  cantidadesBarraDisponibles,
+} from "../lib/barras";
 import SelectorConEscape from "./SelectorConEscape";
 
 interface UsoReferencia {
@@ -39,6 +44,129 @@ interface Props {
 
 function valorComoTexto(v: unknown): string {
   return v === undefined || v === null ? "" : String(v);
+}
+
+interface DimensionesBarra {
+  cantidad: number;
+  ancho: number | undefined;
+  espesor: number | undefined;
+}
+
+/** Parsea el texto de `dimensiones` en (cantidad, ancho, espesor) — los
+ * mismos dos formatos reales que ya entiende `lib/barras.ts`. */
+function parsearDimensiones(valor: string): DimensionesBarra {
+  const m3 = /^\s*(\d+)\s*x\s*(\d+)\s*x\s*(\d+)/i.exec(valor);
+  if (m3) return { cantidad: Number(m3[1]), ancho: Number(m3[2]), espesor: Number(m3[3]) };
+  const m2 = /^\s*(\d+)\s*x\s*(\d+)/i.exec(valor);
+  if (m2) return { cantidad: 1, ancho: Number(m2[1]), espesor: Number(m2[2]) };
+  return { cantidad: 1, ancho: undefined, espesor: undefined };
+}
+
+/** Compone (cantidad, ancho, espesor) de vuelta al texto de
+ * `dimensiones` — inverso de `parsearDimensiones`. "" si todavía falta
+ * ancho o espesor (selección a medio hacer). */
+function componerDimensiones({ cantidad, ancho, espesor }: DimensionesBarra): string {
+  if (ancho === undefined || espesor === undefined) return "";
+  return cantidad > 1 ? `${cantidad}x${ancho}x${espesor}mm` : `${ancho}x${espesor}mm`;
+}
+
+/**
+ * Dimensiones de barra (E60): tres selectores en cascada sobre la
+ * MISMA tabla real DIN 43671 de `lib/barras.ts` — pedido explícito del
+ * usuario: "las dimensiones deben ser las normalizadas, seleccionamos
+ * primero 30mm o 40mm... y luego la otra dimensión 3mm o 4mm...". Sin
+ * escape a texto libre a propósito: el pedido es justamente que no se
+ * pueda cargar cualquier número.
+ *
+ * Estado LOCAL, no derivado directo de `valor`: elegir el ancho todavía
+ * no compone una `dimensiones` válida (falta el espesor) — emitir ""
+ * al padre en ese momento borraba el ancho recién elegido en el
+ * siguiente render (encontrado en vivo: la lista de espesores quedaba
+ * vacía después de elegir el ancho). El efecto solo resincroniza desde
+ * afuera cuando `valor` cambia por algo que ESTE componente no generó
+ * (otro nodo seleccionado, deshacer, etc.).
+ */
+function SelectorDimensionesBarra({
+  valor,
+  onChange,
+}: {
+  valor: string;
+  onChange: (v: string) => void;
+}) {
+  const [estado, setEstado] = useState<DimensionesBarra>(() => parsearDimensiones(valor));
+
+  useEffect(() => {
+    if (valor !== componerDimensiones(estado)) {
+      setEstado(parsearDimensiones(valor));
+    }
+    // Solo resincroniza cuando CAMBIA `valor` desde afuera — comparar
+    // contra `estado` acá adentro dispararía en cada tecla propia.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valor]);
+
+  const anchos = anchosBarraDisponiblesMm();
+  const espesores = estado.ancho !== undefined ? espesoresBarraDisponiblesMm(estado.ancho) : [];
+  const cantidades =
+    estado.ancho !== undefined && estado.espesor !== undefined
+      ? cantidadesBarraDisponibles(estado.ancho, estado.espesor)
+      : [1];
+
+  function actualizar(cambio: Partial<DimensionesBarra>) {
+    const siguiente = { ...estado, ...cambio };
+    setEstado(siguiente);
+    const compuesto = componerDimensiones(siguiente);
+    if (compuesto) onChange(compuesto);
+  }
+
+  return (
+    <span className="selector-dimensiones-barra">
+      <select
+        value={estado.ancho ?? ""}
+        onChange={(e) =>
+          actualizar({
+            ancho: e.target.value ? Number(e.target.value) : undefined,
+            espesor: undefined,
+            cantidad: 1,
+          })
+        }
+      >
+        <option value="">Ancho —</option>
+        {anchos.map((a) => (
+          <option key={a} value={a}>
+            {a} mm
+          </option>
+        ))}
+      </select>
+      <select
+        value={estado.espesor ?? ""}
+        disabled={estado.ancho === undefined}
+        onChange={(e) =>
+          actualizar({
+            espesor: e.target.value ? Number(e.target.value) : undefined,
+            cantidad: 1,
+          })
+        }
+      >
+        <option value="">Espesor —</option>
+        {espesores.map((e) => (
+          <option key={e} value={e}>
+            {e} mm
+          </option>
+        ))}
+      </select>
+      <select
+        value={estado.cantidad}
+        disabled={estado.ancho === undefined || estado.espesor === undefined}
+        onChange={(e) => actualizar({ cantidad: Number(e.target.value) })}
+      >
+        {cantidades.map((c) => (
+          <option key={c} value={c}>
+            {c} {c === 1 ? "barra" : "barras"}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
 }
 
 
@@ -176,6 +304,13 @@ export default function FormularioAtributos({
               onChange={(v) => actualizar(nombre, v || undefined)}
               placeholder="ej. KM1"
               etiquetaVacio="— sin vincular —"
+            />
+          );
+        } else if (familia === "barra" && nombre === "dimensiones") {
+          control = (
+            <SelectorDimensionesBarra
+              valor={valorComoTexto(valorActual)}
+              onChange={(v) => actualizar(nombre, v || undefined)}
             />
           );
         } else if (esquema.enum) {

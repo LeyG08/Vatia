@@ -10,7 +10,7 @@
     "dimensiones": {
       "type": "string",
       "x-obligatorio": true,
-      "description": "Dimensiones del perfil de la barra (alto x ancho x espesor en mm). Plano: \"3x30x10mm\", \"3x50x5mm\".",
+      "description": "Dimensiones del perfil de la barra: cantidad de barras apiladas por fase (si hay más de una) x ancho x espesor en mm, de la tabla normada DIN 43671 (E60, ver lib/barras.ts) — se eligen por selectores en cascada, no por texto libre. Plano: \"30x10mm\", \"3x50x5mm\".",
       "title": "Dimensiones del perfil"
     },
     "es_conjunto": {

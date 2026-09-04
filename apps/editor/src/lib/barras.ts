@@ -109,6 +109,38 @@ function filaTabla(anchoMm: number, espesorMm: number): FilaBarra | null {
 }
 
 /**
+ * Anchos normados disponibles (mm) — E60: pedido explícito del
+ * usuario, "las dimensiones deben ser las normalizadas, seleccionamos
+ * primero 30mm o 40mm... y luego la otra dimensión". Salen de la MISMA
+ * tabla DIN 43671 ya cargada arriba, no de una lista aparte.
+ */
+export function anchosBarraDisponiblesMm(): number[] {
+  return [...new Set(TABLA_DIN_43671_CU.map((f) => f.anchoMm))].sort((a, b) => a - b);
+}
+
+/** Espesores tabulados PARA un ancho dado — la segunda selección,
+ * en cascada con la primera (E60). Vacío si el ancho no es uno de los
+ * normados. */
+export function espesoresBarraDisponiblesMm(anchoMm: number): number[] {
+  return TABLA_DIN_43671_CU.filter((f) => f.anchoMm === anchoMm)
+    .map((f) => f.espesorMm)
+    .sort((a, b) => a - b);
+}
+
+/** Cantidades de barras apiladas por fase con dato REAL de tabla para
+ * un (ancho, espesor) — 1 a 4, según lo que la ficha real tabule para
+ * esa sección (las secciones chicas no llegan a 4: no se apilan en la
+ * práctica). Si el par no está en la tabla, devuelve solo `[1]` (no
+ * hay agrupamiento tabulado para inventar). */
+export function cantidadesBarraDisponibles(anchoMm: number, espesorMm: number): number[] {
+  const fila = filaTabla(anchoMm, espesorMm);
+  if (!fila) return [1];
+  return fila.corrienteCuA
+    .map((v, i) => (v != null ? i + 1 : null))
+    .filter((n): n is number => n !== null);
+}
+
+/**
  * Parsea `dimensiones` — el campo acepta DOS formatos reales, vistos
  * en proyectos reales de Vatia: "30x10mm" (ancho x espesor de una
  * barra, cantidad implícita 1) o "3x30x10mm" (cantidad de barras
