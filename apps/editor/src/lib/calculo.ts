@@ -165,7 +165,7 @@ export function longitudTotalM(tramos: TramoInstalacion[] | undefined): number |
  * antes el cable tenía un solo método de instalación para todo el
  * recorrido, que no siempre es real). `null` si falta algún dato común
  * (material/aislación/sección) o si NINGÚN tramo tiene su método
- * cargado, o cuyo método todavía no está en la tabla (E, F, G — ver
+ * cargado, o cuya combinación de método+sección no está tabulada (ver
  * docs/normativa/iz-corriente-admisible.md).
  *
  * NO incluye la corrección por resistividad térmica del terreno
@@ -215,8 +215,12 @@ export function calcularIzA(
     // El agrupamiento (Tabla B52-17) solo está cargado para el caso "al
     // aire, ítem 1" — no corresponde aplicarlo a un método enterrado
     // (D1/D2 tienen sus propias tablas de agrupamiento, B52-18 a
-    // B52-21, todavía sin cargar).
-    const factorAgrupamiento = enterrado
+    // B52-21, todavía sin cargar). El método G ("separados un diámetro")
+    // tampoco lleva este factor: la Tabla B52-1 (continuación) marca la
+    // columna de agrupamiento con "-" para G — separar los cables un
+    // diámetro es justamente lo que evita el efecto que este factor
+    // corrige, así que la norma no pide una reducción adicional acá.
+    const factorAgrupamiento = enterrado || metodo === "G"
       ? 1
       : factorPorAgrupamiento(circuitosAgrupadosDe(tramo.canalizacion));
     const izCorregidaA = izBaseA * factorTemperatura * factorAgrupamiento;

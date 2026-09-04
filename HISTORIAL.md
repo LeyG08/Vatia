@@ -6040,3 +6040,63 @@ consola.
 `tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
 `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py` en verde.
+
+## E61 — Métodos de instalación E, F y G (cables al aire libre, tablas B52-10 a B52-13)
+
+Elegido por el usuario entre los dos ítems restantes del "qué sigue"
+("Métodos E, F, G (más chico)", frente al motor de simulación CADe
+SIMU). Cierra el hueco documentado desde E54: hasta ahora
+`metodo_instalacion` aceptaba "E"/"F"/"G" en el schema pero
+`corrienteAdmisibleBaseA()` no tenía ninguna tabla cargada para esos
+tres códigos y devolvía `null` (Iz no calculable).
+
+**Origen de los datos**: mismo criterio de verificación que las
+tablas A1-D2 ya cargadas — nada de OCR ni transcripción de memoria.
+El PDF de la norma (`AEA-90364-5-2006.pdf`, 189 MB) excede el límite
+de 100 MB de la herramienta de lectura, así que las páginas se
+renderizaron a PNG con PyMuPDF (150 DPI) y se leyeron como imagen.
+Se transcribieron a mano las cuatro tablas reales: B52-10 (PVC, Cu),
+B52-11 (PVC, Al), B52-12 (XLPE/EPR, Cu) y B52-13 (XLPE/EPR, Al).
+Aislación mineral (B52-8, B52-9) se deja sin cargar, consistente con
+el mismo gap ya documentado para B52-6/B52-7 en los métodos A-D.
+
+**Hallazgo clave que simplificó el trabajo**: la Tabla B52-1
+(continuación) muestra que los factores de corrección por
+temperatura (B52-14) y por agrupamiento (B52-17) YA CUBREN los
+métodos E/F/G — no hacía falta cargar tablas nuevas para eso, solo
+las cuatro tablas de Iz base.
+
+**Decisión de diseño no trivial, documentada en el código**: la norma
+subdivide método F en tres disposiciones físicas de cables unipolares
+y método G en dos planos, mientras que el modelo de Vatia solo separa
+2 vs 3 conductores cargados (sin campo de "disposición"). Se resolvió
+así, con el mismo criterio conservador que ya rige "cantidad no
+tabulada → escalón inferior" en `calculo.ts`: para F con 3 cargados se
+usa "trébol/cuadrete" (siempre el valor más bajo de las dos
+disposiciones tabuladas, en las cuatro tablas); para G con 3 cargados,
+"plano vertical" (ídem, siempre el más bajo). Para G con 2 cargados no
+hay NINGÚN valor tabulado en la norma — no es un dato que falte
+cargar, la Tabla B52-1 directamente no lo define — así que se
+devuelve `null`, honesto en vez de inventar. Además, la Tabla B52-1
+marca con "-" la columna de agrupamiento para método G:
+`calcularIzA()` ahora trata a G igual que a los métodos enterrados,
+sin aplicarle el factor de B52-17.
+
+Todo documentado en el comentario que antecede a `TABLAS` en
+`tablaIzAea90364552.mjs` y en `docs/normativa/iz-corriente-admisible.md`.
+
+Verificado en vivo con Playwright contra la conexión real del PPS
+"c1" (240 mm², Cu, PVC, trifásico): antes de esta etapa, elegir
+método E, F o G en su tramo no mostraba ningún Iz (`null`). Después,
+método A1 (control, sin cambios) sigue en 249,0 A; E pasa a mostrar
+374,0 A; F, 422,0 A; G, 495,0 A — los tres coinciden exactos con la
+fila de 240 mm² transcripta de la Tabla B52-10 (columnas E-3cargados,
+F-trébol y G-vertical respectivamente). Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs` (21 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+Queda pendiente, sin elegir todavía por el usuario: el motor de
+simulación CADe SIMU (recorrer el circuito, decidir bobinas
+energizadas, propagar a contactos, modo interactivo).
