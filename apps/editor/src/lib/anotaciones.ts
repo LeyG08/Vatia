@@ -42,6 +42,14 @@ function pdccEnA(v: unknown): string {
  */
 function anotacionAparato(a: Record<string, unknown>): string[] {
   const l: string[] = [];
+  // Designación de referencia (IEC 61346, ej. "KM1"): primera línea,
+  // separada de marca/modelo — es lo que en el futuro va a permitir
+  // reconocer qué contactos pertenecen a qué bobina para simular el
+  // circuito de comando (E47, primer paso: solo el dato, sin simular
+  // todavía).
+  if (typeof a.referencia === "string" && a.referencia.trim() !== "") {
+    l.push(a.referencia.trim());
+  }
   const mm = [capitalizar(a.marca), capitalizar(a.modelo)]
     .filter(Boolean)
     .join(" ");

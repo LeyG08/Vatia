@@ -375,6 +375,12 @@
       "description": "Campos comunes a todos los subtipos.",
       "properties": {
         "tipo_aparato": true,
+        "referencia": {
+          "type": "string",
+          "x-obligatorio": false,
+          "description": "Designación de referencia del dispositivo (IEC 61346), ej: KM1, K1, S1, F1. Varios símbolos con la MISMA referencia se entienden como partes del mismo dispositivo físico — por ejemplo, la bobina de un contactor y sus contactos auxiliares repartidos por el esquema. Es la base para poder simular el circuito de comando más adelante.",
+          "title": "Referencia"
+        },
         "marca": {
           "type": "string",
           "x-obligatorio": false,

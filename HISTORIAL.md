@@ -5317,3 +5317,42 @@ en la segunda). Sin errores de consola en ningún caso.
 Con esto cierra el punch list original salvo CADe SIMU (símbolos
 multipolares + simulación de comando) — el ítem más grande, todavía
 sin encarar, es prácticamente un producto nuevo dentro del editor.
+
+## E47 — Referencia de dispositivo (IEC 61346): primer paso hacia CADe SIMU
+
+Arranca el ítem más grande que queda pendiente: "poder colocar
+simbología con múltiples polos como CADe SIMU, que además puede
+simular la parte de comando." Es, en la práctica, un producto nuevo
+dentro del editor — no algo para resolver de una sola vez. Este es
+el **primer paso**, la base sin la cual nada de lo demás se puede
+construir: no hay forma de simular un circuito de comando si el
+programa no sabe qué contactos pertenecen a qué bobina.
+
+Se agrega **`referencia`** (designación de dispositivo según IEC
+61346 — ej. "KM1", "K1", "S1") como campo opcional común a **todos**
+los aparatos (`base_comun` en `aparato.schema.json`), no solo a los
+de comando: es una convención real de planos eléctricos en general,
+no algo exclusivo del multifilar. Varios símbolos con la MISMA
+referencia se entienden como partes del mismo dispositivo físico —
+la bobina de un contactor y sus contactos auxiliares, repartidos por
+el esquema.
+
+Se muestra como primera línea de la anotación junto al símbolo
+(`anotacionAparato()`), antes de marca/modelo — mismo mecanismo que
+ya imprime el resto de los datos de chapa, sin agregar un sistema
+nuevo. Verificado en vivo: colocada una "Bobina de contactor/relé" y
+un "Contacto auxiliar NA" con `referencia: "KM1"` en los dos, el
+plano muestra "KM1" junto a la bobina y "KM1 · Contacto NA" junto al
+contacto — visualmente ligados sin todavía simular nada.
+
+**Lo que sigue, sin encarar todavía** (son las partes grandes de
+verdad): agrupar visualmente los polos de un mismo dispositivo como
+un símbolo compuesto (en vez de piezas sueltas que comparten
+referencia), y el motor de simulación en sí — recorrer el circuito,
+evaluar qué bobinas quedan energizadas, propagar el estado a sus
+contactos, un "modo simulación" interactivo con pulsadores/selectores
+clickeables. Cada una de esas es una etapa propia.
+
+Verificado: `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde. Sin errores
+de consola colocando y vinculando los dos símbolos de prueba.
