@@ -6100,3 +6100,67 @@ F-trébol y G-vertical respectivamente). Sin errores de consola.
 Queda pendiente, sin elegir todavía por el usuario: el motor de
 simulación CADe SIMU (recorrer el circuito, decidir bobinas
 energizadas, propagar a contactos, modo interactivo).
+
+## E62 — Motor de simulación: bobinas, contactos y autoenclavamiento (primera etapa)
+
+Elegido por el usuario ("VAMOS CON ESO") como el ítem que quedaba: el
+motor de simulación tipo CADe SIMU (pedido original en E47/E50: "dejar
+al contactor con su bobina asociada"). Primera etapa: el núcleo de
+cálculo puro (`apps/editor/src/lib/simulacion.ts`), sin todavía un
+"modo simulación" en la interfaz — se corta acá a propósito, es un
+punto de control natural antes de decidir cómo se ve/usa desde la UI.
+
+**Decisión de modelado que hubo que consultar**: la librería no tiene
+ningún símbolo de "riel" de fase de mando (L) ni de neutro/común (N)
+para dibujar un circuito de comando entre ellos. Se preguntó y el
+usuario confirmó reusar la "barra" ya existente para los dos rieles:
+la barra que recibe el alimentador de la hoja es la fase de mando: la
+otra barra de la misma hoja es el común/neutro. Documentado como
+convención de dibujo de este proyecto, no como norma, en el comentario
+que encabeza `simulacion.ts`.
+
+**Algoritmo**: Union-Find por hoja (cada conexión dibujada conduce;
+una barra une TODOS sus terminales entre sí; un interruptor cerrado
+une sus dos terminales; una bobina NUNCA une las suyas), con punto fijo
+iterado entre bobinas y contactos — necesario porque un contactor que
+se autoenclanca con su propio contacto auxiliar es una dependencia
+circular bobina→contacto→bobina.
+
+**El hallazgo más importante de esta etapa**: un autoenclavamiento es,
+por definición, BIESTABLE — con el pulsador de marcha soltado, tanto
+"sigue enclavado" como "está abierto" son puntos fijos igual de válidos
+del mismo circuito. La primera versión arrancaba la iteración siempre
+desde el conjunto vacío y esto rompía el enclavamiento apenas se
+soltaba el pulsador (sesgaba la solución hacia "todo apagado"). Se
+corrigió agregando `estadoInicial` a `simular()`: quien la llama tiene
+que guardar el `bobinasEnergizadas` que devuelve y pasarlo de vuelta en
+la próxima llamada, así el punto fijo que gana es el más cercano al
+estado físico anterior — igual que un contactor real, que sigue
+mecánicamente energizado hasta que algo interrumpe SU propio camino,
+no el botón que lo arrancó.
+
+**Verificado** con un circuito real de manual (arranque directo con
+enclavamiento: pulsador de Parada NC en serie con Marcha NA en
+paralelo con el contacto auxiliar NA de KM1, alimentando la bobina
+KM1) montado en memoria y corrido con `simular()` vía import directo
+del módulo TS en el navegador (dev server + Playwright, sin fixture
+en disco): en reposo nada energizado; al presionar Marcha, KM1 se
+energiza Y el contactor de fuerza (otra hoja, mismo `referencia:
+"KM1"`) cierra y el motor pasa a energizado; al SOLTAR Marcha
+(pasando el estado anterior), KM1 sigue enclavado — motor sigue
+encendido; al presionar Parada, todo se corta; al soltar Parada, no
+vuelve a arrancar solo. Las cinco transiciones coinciden exactas con
+el comportamiento real de este circuito clásico.
+
+Queda fuera de esta etapa (documentado en el propio módulo): familia
+"carga" (S00120) todavía no entra en el cálculo; protecciones se
+asumen siempre sanas (sin campo de disparo); `selector` no es
+simulable (el schema no define qué contacto cierra en qué posición);
+`temporizador` se resuelve instantáneo, sin la dimensión de tiempo.
+Y, sobre todo, falta TODA la interfaz: un "modo simulación", accionar
+pulsadores con el mouse y resaltar en el lienzo qué conduce y qué no.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs` (21 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde (ninguno tocaba el módulo nuevo, pero se
+corrieron igual para no dejar pasar una regresión).
