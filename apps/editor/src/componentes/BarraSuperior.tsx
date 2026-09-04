@@ -1,11 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from "react";
-import { useReactFlow } from "@xyflow/react";
 import { useEditor, historial, construirEstadoHoja } from "../lib/store";
-import { serializarProyecto } from "../lib/tipos";
+import { serializarProyecto, type Hoja } from "../lib/tipos";
 import { armarChecklist } from "../lib/checklist";
-import { ZOOM_IMPRESION, medidasPaginaMm } from "../lib/impresion";
-import DialogoExportarProyecto from "./DialogoExportarProyecto";
-import DialogoExportarA0 from "./DialogoExportarA0";
 
 function BarraSuperior() {
   const nombre = useEditor((s) => s.nombreProyecto);
@@ -25,19 +21,10 @@ function BarraSuperior() {
   const puedeRehacer = version >= 0 && historial.puedeRehacer;
   const inputArchivo = useRef<HTMLInputElement>(null);
 
-  const nodos = useEditor((s) => s.nodos);
-  const conexiones = useEditor((s) => s.conexiones);
-  const hoja = useEditor((s) => s.hoja);
-  const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
-  const iniciarExportacionFn = useEditor((s) => s.iniciarExportacionCompleta);
-  const finalizarExportacionFn = useEditor((s) => s.finalizarExportacionCompleta);
-  const iniciarExportacionA0Fn = useEditor((s) => s.iniciarExportacionA0);
-  const finalizarExportacionA0Fn = useEditor((s) => s.finalizarExportacionA0);
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+  const iniciarExportacionPdfFn = useEditor((s) => s.iniciarExportacionPdf);
   const pedirConfirmacion = useEditor((s) => s.pedirConfirmacion);
   const mostrarAlerta = useEditor((s) => s.mostrarAlerta);
-  const { setViewport, getViewport, setEdges } = useReactFlow();
-  const [dialogoExportar, setDialogoExportar] = useState<{ totalPendientes: number } | null>(null);
-  const [dialogoExportarA0, setDialogoExportarA0] = useState(false);
 
   const [oscuro, setOscuro] = useState(() => {
     return localStorage.getItem("vatia-tema") === "dark";
@@ -77,125 +64,69 @@ function BarraSuperior() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [guardar]);
 
-  /**
-   * Exportación a PDF: se reusa el mismo React Flow que ya está en
-   * pantalla (ver lib/impresion.ts sobre por qué el zoom no es 1), solo
-   * cambia el viewport y se llama a `window.print()` — no hay un
-   * renderer paralelo que pueda desincronizarse del dibujo real.
-   *
-   * V1 exporta la hoja ACTIVA únicamente (una hoja por vez); exportar el
-   * proyecto entero en un solo PDF multipágina queda como una etapa
-   * siguiente del mismo punch list.
-   */
-  function exportarPdf() {
-    const problemas = armarChecklist(nodos, conexiones, hoja.modo);
-    const totalPendientes = problemas.reduce((t, p) => t + p.mensajes.length, 0);
-    if (totalPendientes > 0) {
-      pedirConfirmacion(
-        `Esta hoja tiene ${totalPendientes} pendiente${totalPendientes === 1 ? "" : "s"} de ficha técnica (Checklist AEA). ¿Exportar igual?`,
-        confirmarExportarPdf,
-      );
-      return;
-    }
-    confirmarExportarPdf();
-  }
-
-  function confirmarExportarPdf() {
-    seleccionarNodosFn([]);
-    setEdges((eds) => eds.map((e) => (e.selected ? { ...e, selected: false } : e)));
-
-    const { anchoMm, altoMm } = medidasPaginaMm(hoja);
-    const estiloPagina = document.createElement("style");
-    estiloPagina.id = "estilo-pagina-impresion";
-    estiloPagina.textContent = `@page { size: ${anchoMm}mm ${altoMm}mm; margin: 0; }`;
-    document.head.appendChild(estiloPagina);
-
-    const viewportPrevio = getViewport();
-    setViewport({ x: 0, y: 0, zoom: ZOOM_IMPRESION }, { duration: 0 });
-
-    function restaurar() {
-      setViewport(viewportPrevio, { duration: 0 });
-      estiloPagina.remove();
-      window.removeEventListener("afterprint", restaurar);
-    }
-    window.addEventListener("afterprint", restaurar);
-
-    // Dos frames: uno para que React aplique el cambio de viewport, otro
-    // para que el navegador termine de pintar antes de abrir el diálogo.
-    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
-  }
-
-  /**
-   * Exportación del proyecto ENTERO: monta `<ExportacionProyecto>`
-   * (una página React Flow por hoja + lista de materiales, ver ese
-   * componente) y llama a `window.print()` — el navegador arma un único
-   * PDF multipágina porque cada página tiene su propio `page-break-after`
-   * (ver estilos.css). `document.body` recibe una clase mientras dura el
-   * export para que el CSS de impresión sepa que tiene que ocultar el
-   * lienzo interactivo normal y mostrar esta vista en su lugar.
-   *
-   * `serializar()` es el primer paso, no un detalle: vuelca la hoja
-   * ACTIVA (nodos/conexiones "en vivo" en el store) a `proyecto.hojas`
-   * ANTES de leer nada. Sin esto, la última hoja que el usuario editó
-   * quedaría afuera del PDF y de la lista de materiales — su trabajo
-   * más reciente vive en `nodos`/`conexiones` hasta que algo lo vuelca
-   * (cambiar de hoja, o esto), no en `proyecto.hojas` todavía.
-   */
-  function exportarProyectoCompletoPdf() {
-    const hojasFrescas = serializar().hojas;
-    const totalPendientes = hojasFrescas.reduce((acc, h) => {
+  /** Total de pendientes de ficha técnica (Checklist AEA) de un grupo de
+   * hojas — mismo cálculo para descargar una sola hoja o el proyecto
+   * entero, contra datos FRESCOS (no el estado en memoria de la hoja
+   * activa, que puede estar desactualizado para las demás). */
+  function totalPendientesDe(hojas: Hoja[]): number {
+    return hojas.reduce((acc, h) => {
       const estado = construirEstadoHoja(h);
       const problemas = armarChecklist(estado.nodos, estado.conexiones, estado.cfg.modo);
       return acc + problemas.reduce((t, p) => t + p.mensajes.length, 0);
     }, 0);
-    setDialogoExportar({ totalPendientes });
-  }
-
-  function confirmarExportarProyectoCompletoPdf(incluirBom: boolean) {
-    setDialogoExportar(null);
-    iniciarExportacionFn(incluirBom);
-    document.body.classList.add("exportando-todo");
-
-    function restaurar() {
-      finalizarExportacionFn();
-      document.body.classList.remove("exportando-todo");
-      window.removeEventListener("afterprint", restaurar);
-    }
-    window.addEventListener("afterprint", restaurar);
-
-    // `window.print()` NO se llama acá: <ExportacionProyecto> monta N
-    // instancias de React Flow NUEVAS (una por hoja), y React Flow mide
-    // sus nodos de forma asíncrona (ResizeObserver) antes de mostrarlos
-    // — quedan en `visibility:hidden` hasta esa primera medición (mismo
-    // mecanismo que la regresión de E35). Un puñado de
-    // requestAnimationFrame no alcanza a esperarla de forma confiable:
-    // imprimir antes de tiempo salía con hojas en blanco (encontrado en
-    // vivo). <ExportacionProyecto> llama a `window.print()` recién
-    // cuando CADA página avisa que terminó de medir sus nodos.
   }
 
   /**
-   * Combina todos los unifilares en hoja(s) A0 (E46) — misma mecánica
-   * que `confirmarExportarProyectoCompletoPdf` (reusa la clase
-   * `exportando-todo`: es el mismo gancho de CSS, `<ExportacionA0>`
-   * solo agrega SU PROPIO contenido debajo). `window.print()` tampoco
-   * se llama acá por el mismo motivo — ver `ExportacionA0.tsx`.
+   * Descarga directa de PDF (html2canvas + jsPDF, ver lib/exportarPdf.ts
+   * y ExportacionProyecto.tsx): no hay diálogo de impresión del
+   * navegador de por medio, el archivo se genera y se descarga solo — el
+   * usuario se encarga de imprimirlo después, como cualquier PDF.
+   *
+   * `serializar()` es el primer paso siempre: vuelca la hoja ACTIVA
+   * (nodos/conexiones "en vivo" en el store) a `proyecto.hojas` ANTES de
+   * leer nada. Sin esto, la última hoja que el usuario editó quedaría
+   * afuera del PDF — su trabajo más reciente vive en `nodos`/`conexiones`
+   * hasta que algo lo vuelca (cambiar de hoja, o esto), no en
+   * `proyecto.hojas` todavía.
    */
-  function exportarUnifilaresA0() {
-    setDialogoExportarA0(true);
+  function descargarPlanoActivo() {
+    const hojaFresca = serializar().hojas.find((h) => h.id === hojaActivaId);
+    if (!hojaFresca) {
+      mostrarAlerta("No se encontró la hoja activa.");
+      return;
+    }
+    const totalPendientes = totalPendientesDe([hojaFresca]);
+    if (totalPendientes > 0) {
+      pedirConfirmacion(
+        `Esta hoja tiene ${totalPendientes} pendiente${totalPendientes === 1 ? "" : "s"} de ficha técnica (Checklist AEA). ¿Descargar igual?`,
+        () => iniciarExportacionPdfFn("planos", [hojaFresca]),
+      );
+      return;
+    }
+    iniciarExportacionPdfFn("planos", [hojaFresca]);
   }
 
-  function confirmarExportarUnifilaresA0(permitirVariasPaginas: boolean) {
-    setDialogoExportarA0(false);
-    iniciarExportacionA0Fn(permitirVariasPaginas);
-    document.body.classList.add("exportando-todo");
-
-    function restaurar() {
-      finalizarExportacionA0Fn();
-      document.body.classList.remove("exportando-todo");
-      window.removeEventListener("afterprint", restaurar);
+  /** Todas las hojas del proyecto en un solo PDF, cada una en su propia
+   * página a su tamaño real (respeta el formato/orientación de cada
+   * hoja — no hace falta que coincidan entre sí). */
+  function descargarTodosLosPlanos() {
+    const hojasFrescas = serializar().hojas;
+    const totalPendientes = totalPendientesDe(hojasFrescas);
+    if (totalPendientes > 0) {
+      pedirConfirmacion(
+        `El proyecto tiene ${totalPendientes} pendiente${totalPendientes === 1 ? "" : "s"} de ficha técnica (Checklist AEA, todas las hojas). ¿Descargar igual?`,
+        () => iniciarExportacionPdfFn("planos", hojasFrescas),
+      );
+      return;
     }
-    window.addEventListener("afterprint", restaurar);
+    iniciarExportacionPdfFn("planos", hojasFrescas);
+  }
+
+  /** Lista de materiales de TODO el proyecto, en su propio PDF aparte de
+   * los planos — pedido explícito: "de un lado la lista de materiales
+   * para imprimir y de otro lado salga el plano". */
+  function descargarListaDeMateriales() {
+    iniciarExportacionPdfFn("bom", serializar().hojas);
   }
 
   function nuevoProyecto() {
@@ -227,19 +158,6 @@ function BarraSuperior() {
 
   return (
     <>
-      {dialogoExportar && (
-        <DialogoExportarProyecto
-          totalPendientes={dialogoExportar.totalPendientes}
-          onCancelar={() => setDialogoExportar(null)}
-          onConfirmar={confirmarExportarProyectoCompletoPdf}
-        />
-      )}
-      {dialogoExportarA0 && (
-        <DialogoExportarA0
-          onCancelar={() => setDialogoExportarA0(false)}
-          onConfirmar={confirmarExportarUnifilaresA0}
-        />
-      )}
       <header className="barra-superior">
         <strong className="marca">Vatia</strong>
       {modoAdmin && (
@@ -285,24 +203,24 @@ function BarraSuperior() {
       </button>
       <button
         type="button"
-        onClick={exportarPdf}
-        title="Exportar la hoja activa a PDF (imprimir)"
+        onClick={descargarPlanoActivo}
+        title="Descargar la hoja activa como PDF"
       >
-        🖨️ Exportar PDF
+        ⬇️ Plano PDF
       </button>
       <button
         type="button"
-        onClick={exportarProyectoCompletoPdf}
-        title="Exportar TODAS las hojas del proyecto a un solo PDF, con lista de materiales"
+        onClick={descargarTodosLosPlanos}
+        title="Descargar TODAS las hojas del proyecto en un solo PDF"
       >
-        🖨️ Exportar proyecto
+        ⬇️ Todos los planos
       </button>
       <button
         type="button"
-        onClick={exportarUnifilaresA0}
-        title="Combinar todos los unifilares en una hoja A0, a escala real"
+        onClick={descargarListaDeMateriales}
+        title="Descargar la lista de materiales de todo el proyecto como PDF, aparte de los planos"
       >
-        🖨️ Exportar A0
+        ⬇️ Lista de materiales
       </button>
       <button
         type="button"

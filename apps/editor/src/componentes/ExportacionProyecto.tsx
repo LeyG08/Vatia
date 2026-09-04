@@ -6,6 +6,7 @@ import { anotacionNodo } from "../lib/anotaciones";
 import { medidasPaginaMm, ZOOM_IMPRESION } from "../lib/impresion";
 import { dimensionesHoja, type FamiliaAtributos, type Hoja } from "../lib/tipos";
 import { nodeTypes, edgeTypes, crearNodoHoja } from "../lib/tiposFlow";
+import { descargarPlanosPdf, descargarListaDeMaterialesPdf } from "../lib/exportarPdf";
 
 interface FilaBom {
   codigo: string;
@@ -76,71 +77,31 @@ function construirBomDeHoja(
   return [...filas.values()].sort((a, b) => a.codigo.localeCompare(b.codigo));
 }
 
-/** Una página de impresión por hoja: su propio <ReactFlow> aislado (no
- * comparte provider con el lienzo interactivo), fijo en la escala física
- * de impresión — ver lib/impresion.ts.
- *
- * `pageName` identifica una página CSS con nombre (Paged Media): cada
- * hoja puede tener su propio formato (A3, A1…), y `window.print()`
- * arma UN solo trabajo de impresión con TODAS — sin esto, "Exportar
- * proyecto" salía siempre con el tamaño de página por defecto del
- * navegador (A4/Carta), sin importar el formato real configurado, y el
- * contenido quedaba recortado o mal escalado. `exportarPdf()` (una
- * sola hoja) no tiene este problema porque inyecta un único `@page`
- * global — acá hace falta uno DISTINTO por página del mismo trabajo.
- *
- * La propiedad `page` se asigna por CLASE, no por `style` inline:
- * Chromium no la respeta puesta inline (probado en vivo generando PDFs
- * reales — con `style={{page: ...}}` aparecía una página extra en
- * blanco, con tamaño por defecto del navegador, antes de la primera
- * hoja real; con una regla de hoja de estilos como `.pagina-hoja-0 {
- * page: hoja-0 }` pagina correctamente). La regla la arma
- * `ExportacionProyecto` en un único `<style>` (ver ahí por qué).
+/**
+ * El `<ReactFlow>` de UNA hoja, sizeado a su propio tamaño real. Se monta
+ * fuera de pantalla (ver `.exportacion-offscreen` en estilos.css) y avisa
+ * por `marcarListo` cuando terminó de medir sus nodos — recién ahí se
+ * puede capturar con html2canvas sin que salga en blanco.
  *
  * `marcarListo`: React Flow mide los nodos de forma ASÍNCRONA
  * (ResizeObserver) antes de mostrarlos — quedan en `visibility:hidden`
- * hasta esa primera medición. Como esta es una instancia de
- * `<ReactFlow>` NUEVA (no la del lienzo interactivo, que ya está
- * medida de antes), `window.print()` no puede llamarse enseguida de
- * montar: salía con la hoja en blanco (encontrado en vivo).
+ * hasta esa primera medición. Como esta es una instancia de `<ReactFlow>`
+ * NUEVA (no la del lienzo interactivo, que ya está medida de antes), no
+ * se puede capturar enseguida de montar: salía con la hoja en blanco
+ * (encontrado en vivo, en la época de `window.print()` — el problema es
+ * el mismo con html2canvas).
  *
  * El hook oficial de la librería para esto (`useNodesInitialized`) NO
- * sirve acá: solo se recalcula cuando el prop `nodes` vuelve a
- * cambiar (dispara `setNodes()` internamente), y estos nodos son
- * estáticos — no hay ningún cambio posterior que lo dispare, así que
- * queda pegado en `false` para siempre aunque los nodos ya estén
- * visibles (confirmado leyendo la fuente de la librería y viéndolo en
- * vivo). Se verifica el DOM directamente en su lugar: mientras quede
- * algún `.react-flow__node` con `visibility: hidden` todavía no
- * terminó de medir. Tope de seguridad a los ~3s por si algún nodo
- * nunca llega a medirse — mejor una hoja rara que un export que nunca
- * imprime. */
-function PaginaHoja({
-  hoja,
-  pageName,
-  marcarListo,
-}: {
-  hoja: Hoja;
-  pageName: string;
-  marcarListo: (id: string) => void;
-}) {
-  const { anchoMm, altoMm } = medidasPaginaMm(hoja);
-  return (
-    <div
-      className={`pagina-impresion pagina-${pageName}`}
-      style={{ width: `${anchoMm}mm`, height: `${altoMm}mm` }}
-    >
-      <HojaCanvas hoja={hoja} marcarListo={marcarListo} />
-    </div>
-  );
-}
-
-/**
- * El `<ReactFlow>` de UNA hoja, sizeado a su propio tamaño real —
- * compartido entre `PaginaHoja` (una hoja = una página completa) y
- * `ExportacionA0` (varias hojas posicionadas dentro de una misma
- * página A0, ver ese archivo). Separado de `PaginaHoja` para no
- * duplicar la lógica de espera de medición entre los dos usos. */
+ * sirve acá: solo se recalcula cuando el prop `nodes` vuelve a cambiar
+ * (dispara `setNodes()` internamente), y estos nodos son estáticos — no
+ * hay ningún cambio posterior que lo dispare, así que queda pegado en
+ * `false` para siempre aunque los nodos ya estén visibles (confirmado
+ * leyendo la fuente de la librería y viéndolo en vivo). Se verifica el
+ * DOM directamente en su lugar: mientras quede algún `.react-flow__node`
+ * con `visibility: hidden` todavía no terminó de medir. Tope de
+ * seguridad a los ~3s por si algún nodo nunca llega a medirse — mejor un
+ * PDF raro que uno que nunca se genera.
+ */
 export function HojaCanvas({
   hoja,
   marcarListo,
@@ -214,13 +175,15 @@ export function HojaCanvas({
   );
 }
 
-/** Tamaño fijo A4 vertical: es una tabla, no un plano a escala — no
- * necesita heredar el formato de ninguna hoja.
+/** Tamaño fijo A4 de ancho, alto libre: es una tabla, no un plano a
+ * escala — lib/exportarPdf.ts la reparte en tantas páginas A4 como haga
+ * falta según cuánto crezca.
  *
  * Agrupada por hoja (un subtítulo + su propia tabla, en vez de una
  * columna "Hoja" repetida en cada fila) y con encabezado de documento
  * (proyecto, fecha, total de ítems) — pedido explícito del usuario:
- * "más descriptivo… que tenga título y se vea mejor". */
+ * "más descriptivo… que tenga título y se vea mejor".
+ */
 function PaginaListaDeMateriales({
   hojas,
   nombreProyecto,
@@ -242,10 +205,7 @@ function PaginaListaDeMateriales({
   const fecha = new Date().toLocaleDateString("es-AR");
 
   return (
-    <div
-      className="pagina-impresion pagina-bom"
-      style={{ width: "210mm", height: "297mm" }}
-    >
+    <div className="pagina-bom">
       <header className="pagina-bom-header">
         <h1>Lista de materiales</h1>
         <dl className="pagina-bom-meta">
@@ -303,89 +263,136 @@ function PaginaListaDeMateriales({
 }
 
 /**
- * Vista de impresión de TODO el proyecto (todas las hojas + lista de
- * materiales), un PDF multipágina con `window.print()` — ver
- * BarraSuperior.exportarProyectoCompletoPdf().
+ * Motor de exportación a PDF: monta contenido FUERA de pantalla según lo
+ * que haya pedido `s.exportacionPdf` (ver store.ts), espera a que esté
+ * listo para capturar y dispara la descarga con lib/exportarPdf.ts. Dos
+ * modos, pedidos como archivos SEPARADOS por el usuario ("de un lado la
+ * lista de materiales… de otro lado el plano"):
  *
- * Solo se monta contenido mientras `exportandoTodo` está activo: fuera de
- * eso no vale la pena mantener N instancias de React Flow (una por hoja)
- * vivas en memoria todo el tiempo por si acaso se exporta.
+ * - `"planos"`: una hoja o TODAS, cada una en su propia página del PDF, a
+ *   su tamaño real.
+ * - `"bom"`: la lista de materiales de esas hojas, sola, en su propio PDF.
+ *
+ * Solo se monta contenido mientras hay una exportación pendiente: fuera
+ * de eso no vale la pena mantener N instancias de React Flow vivas en
+ * memoria por si acaso.
  */
 export default function ExportacionProyecto() {
-  const exportando = useEditor((s) => s.exportandoTodo);
-  const incluirBom = useEditor((s) => s.incluirBomEnExportacion);
-  const hojas = useEditor((s) => s.proyecto.hojas);
+  const solicitud = useEditor((s) => s.exportacionPdf);
+  const finalizar = useEditor((s) => s.finalizarExportacionPdf);
+  const mostrarAlerta = useEditor((s) => s.mostrarAlerta);
   const nombreProyecto = useEditor((s) => s.nombreProyecto);
   const tensionFaseV = useEditor((s) => s.proyecto.datosProyecto.tension_fase_v);
   const tensionLineaV = useEditor((s) => s.proyecto.datosProyecto.tension_linea_v);
   const [listas, setListas] = useState<Set<string>>(new Set());
-  const [exportandoPrevio, setExportandoPrevio] = useState(exportando);
+  const refsHojas = useRef<Map<string, HTMLDivElement>>(new Map());
+  const bomRef = useRef<HTMLDivElement>(null);
+  const disparado = useRef(false);
+  const [solicitudPrevia, setSolicitudPrevia] = useState(solicitud);
 
-  // Vuelve a cero cada vez que arranca un export nuevo — si no, un
-  // segundo export reusaría el "listo" del anterior y podría imprimir
-  // antes de que las hojas NUEVAS terminen de medirse. Ajustar estado
-  // en base a un cambio de prop/store DURANTE el render (no en un
-  // efecto) es el patrón recomendado por React para esto: evita el
-  // repintado extra de un efecto que solo sincroniza estado local.
-  if (exportando !== exportandoPrevio) {
-    setExportandoPrevio(exportando);
-    if (exportando) setListas(new Set());
+  // Vuelve a cero cada vez que arranca una solicitud nueva — si no, una
+  // segunda exportación reusaría el "listo" de la anterior. Ajustar
+  // estado durante el RENDER (no en un efecto) es el patrón recomendado
+  // por React para esto: evita el repintado extra de un efecto que solo
+  // sincroniza estado local con un cambio de prop/store. `refsHojas` NO
+  // hace falta vaciarlo acá: las entradas de hojas que ya no forman
+  // parte de la solicitud nueva quedan sin leerse (solo se consultan por
+  // el id de las hojas de LA solicitud actual), y las que sí se repiten
+  // se sobrescriben solas cuando su `ref` vuelve a montar.
+  if (solicitud !== solicitudPrevia) {
+    setSolicitudPrevia(solicitud);
+    setListas(new Set());
   }
+
+  useEffect(() => {
+    disparado.current = false;
+  }, [solicitud]);
 
   const marcarListo = useCallback((id: string) => {
     setListas((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
   }, []);
 
   useEffect(() => {
-    if (!exportando || listas.size < hojas.length) return;
-    // Todas las páginas de hoja terminaron de medir sus nodos recién
-    // acá — antes de esto, imprimir salía con hojas en blanco (ver
-    // PaginaHoja/AvisoListo). Dos frames más para que el navegador
-    // termine de pintar el último cambio antes de abrir el diálogo.
-    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
-  }, [exportando, listas, hojas.length]);
+    if (!solicitud || disparado.current) return;
+    const totalHojas = solicitud.hojas.length;
 
-  if (!exportando) return null;
+    async function generarYDescargar() {
+      if (!solicitud) return;
+      try {
+        if (solicitud.tipo === "planos") {
+          const paginas = solicitud.hojas.map((h) => {
+            const el = refsHojas.current.get(h.id);
+            const { anchoMm, altoMm } = medidasPaginaMm(h);
+            return el ? { anchoMm, altoMm, el } : null;
+          });
+          if (paginas.some((p) => p === null)) return;
+          const base = nombreProyecto || "proyecto";
+          const nombreArchivo =
+            solicitud.hojas.length > 1
+              ? `${base}-planos.pdf`
+              : `${base}-${solicitud.hojas[0].nombre}.pdf`;
+          await descargarPlanosPdf(
+            paginas as { anchoMm: number; altoMm: number; el: HTMLElement }[],
+            nombreArchivo,
+          );
+        } else {
+          if (!bomRef.current) return;
+          await descargarListaDeMaterialesPdf(
+            bomRef.current,
+            `${nombreProyecto || "proyecto"}-lista-de-materiales.pdf`,
+          );
+        }
+      } catch (err) {
+        mostrarAlerta(`No se pudo generar el PDF: ${String(err)}`);
+      } finally {
+        finalizar();
+      }
+    }
 
-  /* Las reglas @page de TODAS las hojas van en una única hoja de
-   * estilos, declarada ANTES de la primera .pagina-impresion — con una
-   * <style> por página (repartidas dentro de cada una) Chromium armaba
-   * una primera página fantasma en blanco con el tamaño por defecto del
-   * navegador, antes de llegar a la primera hoja real (encontrado en
-   * vivo generando un PDF real de más de una hoja). Cada regla trae
-   * también el `page: <nombre>` que asigna esa página al elemento — por
-   * CLASE (`.pagina-hoja-0`), no por `style` inline (ver el porqué en
-   * PaginaHoja más arriba). */
-  const reglasPagina = hojas
-    .map((h, i) => {
-      const { anchoMm, altoMm } = medidasPaginaMm(h);
-      return `@page hoja-${i} { size: ${anchoMm}mm ${altoMm}mm; margin: 0; } .pagina-hoja-${i} { page: hoja-${i}; }`;
-    })
-    .concat(
-      incluirBom
-        ? ["@page bom { size: 210mm 297mm; margin: 0; } .pagina-bom { page: bom; }"]
-        : [],
-    )
-    .join("\n");
+    if (solicitud.tipo === "bom") {
+      // Contenido HTML puro: no hay medición asíncrona de React Flow, el
+      // layout ya está listo apenas monta. `setTimeout` y no
+      // `requestAnimationFrame`: html2canvas se CUELGA (nunca resuelve
+      // ni rechaza, sin error) cuando se lo llama desde DENTRO de un
+      // callback de rAF — confirmado en vivo comparando la misma
+      // llamada, con los mismos parámetros, disparada por rAF (se
+      // cuelga siempre) contra disparada por setTimeout/evaluate directo
+      // (resuelve en <1s). html2canvas no necesita esperar una pintura
+      // real: lee estilos computados del DOM, no el framebuffer.
+      disparado.current = true;
+      setTimeout(generarYDescargar, 0);
+      return;
+    }
+
+    if (listas.size < totalHojas) return;
+    disparado.current = true;
+    setTimeout(generarYDescargar, 0);
+  }, [solicitud, listas, nombreProyecto, mostrarAlerta, finalizar]);
+
+  if (!solicitud) return null;
 
   return (
-    <div className="exportacion-proyecto">
-      <style>{reglasPagina}</style>
-      {hojas.map((h, i) => (
-        <PaginaHoja
-          key={h.id}
-          hoja={h}
-          pageName={`hoja-${i}`}
-          marcarListo={marcarListo}
-        />
-      ))}
-      {incluirBom && (
-        <PaginaListaDeMateriales
-          hojas={hojas}
-          nombreProyecto={nombreProyecto}
-          tensionFaseV={tensionFaseV}
-          tensionLineaV={tensionLineaV}
-        />
+    <div className="exportacion-offscreen">
+      {solicitud.tipo === "planos" &&
+        solicitud.hojas.map((h) => (
+          <div
+            key={h.id}
+            ref={(el) => {
+              if (el) refsHojas.current.set(h.id, el);
+            }}
+          >
+            <HojaCanvas hoja={h} marcarListo={marcarListo} />
+          </div>
+        ))}
+      {solicitud.tipo === "bom" && (
+        <div ref={bomRef}>
+          <PaginaListaDeMateriales
+            hojas={solicitud.hojas}
+            nombreProyecto={nombreProyecto}
+            tensionFaseV={tensionFaseV}
+            tensionLineaV={tensionLineaV}
+          />
+        </div>
       )}
     </div>
   );

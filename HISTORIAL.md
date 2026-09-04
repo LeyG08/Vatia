@@ -5356,3 +5356,386 @@ clickeables. Cada una de esas es una etapa propia.
 Verificado: `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
 `verificar_alineacion.mjs` y `lint_simbolos.py` en verde. Sin errores
 de consola colocando y vinculando los dos símbolos de prueba.
+
+## E48 — Elimina "Exportar A0" y reemplaza el export por descarga directa de PDF
+
+Pedido explícito del usuario, un turno después de construido E46:
+"Elimina lo de exportar A0 no me gusta no fue buena idea, y el tema de
+exportar proyecto sigue pasando que sale mal el plano, sino hace que
+se pueda obtener de un lado la lista de materiales para imprimir y de
+otro lado salga el plano, y que todo se descargue directamente en pdf
+y que el usuario luego se encargue de imprimirlo correctamente."
+
+**A0 fuera.** Se borran `ExportacionA0.tsx`, `DialogoExportarA0.tsx` y
+toda referencia (botón, estado del store `exportandoA0` /
+`permitirVariasPaginasA0`, acciones `iniciarExportacionA0` /
+`finalizarExportacionA0`).
+
+**Reemplaza `window.print()` por descarga directa (html2canvas +
+jsPDF).** Toda la cadena de bugs de exportación de esta sesión (E40,
+E42, E43, E44 — páginas en blanco, colores según el tema, tamaño de
+página equivocado, datos de la hoja incorrecta) tenía la misma raíz:
+dependía del motor de impresión del navegador (`window.print()`,
+`@media print`, `@page`), difícil de controlar con precisión. Se
+reemplaza enteramente: cada hoja se captura tal como está renderizada
+en pantalla con `html2canvas`, y las imágenes resultantes se
+empaquetan en un PDF con `jsPDF` (`lib/exportarPdf.ts`), que se
+descarga directo — sin diálogo de impresión de por medio. El usuario
+se encarga de imprimir el archivo después, como cualquier PDF.
+
+**Separa el plano de la lista de materiales**, pedido explícito ("de
+un lado la lista de materiales para imprimir y de otro lado salga el
+plano"): tres botones independientes, tres archivos independientes —
+"Plano PDF" (hoja activa), "Todos los planos" (todas las hojas, un
+PDF multipágina, cada página a su tamaño real) y "Lista de
+materiales" (BOM de todo el proyecto, aparte, paginada en A4 si no
+entra en una sola página). Antes había un solo export combinado con
+un checkbox para incluir la lista de materiales como última página;
+ese diálogo (`DialogoExportarProyecto.tsx`) se borra, ya no hace
+falta.
+
+Reutiliza `HojaCanvas` (extraído en E46): cada hoja a exportar se
+monta fuera de pantalla, en su propia instancia de `<ReactFlow>`, a
+su tamaño real — la diferencia con antes es que ya NO hace falta
+ningún truco de `@page`/paginación CSS: cada imagen capturada se
+agrega a `jsPDF` como una página de tamaño exacto.
+
+**El forzado de negro-sobre-blanco se reescribe sin `@media print`**:
+`html2canvas` lee el render de PANTALLA tal cual está, nunca pasa por
+esa media query — las reglas de `estilos.css` que antes vivían adentro
+de `@media print` (color, `border-color`, fondo) se mueven a una clase
+plana `.captura-pdf-negro`, que `lib/exportarPdf.ts` agrega al
+elemento justo antes de cada captura y saca después (incluso si
+`html2canvas` tira una excepción, así una exportación fallida nunca
+deja algo pisado en blanco y negro).
+
+**Bug real encontrado y corregido en el camino, no trivial**: la
+primera versión colgaba `html2canvas` INDEFINIDAMENTE (sin error, sin
+resolver, más de 60 s de espera) — pero SOLO en el flujo real de la
+app, nunca en pruebas manuales aisladas con los mismos parámetros.
+Aislado en vivo (congelando `requestAnimationFrame` globalmente para
+eliminar la carrera y probando la captura a mano con los mismos
+parámetros exactos: resolvía en menos de 1 segundo): la causa era
+disparar `html2canvas` desde DENTRO de un callback anidado de
+`requestAnimationFrame` (heredado literalmente del viejo código de
+`window.print()`, que sí necesitaba esperar una pintura real) — algo
+en cómo Chromium entrelaza el `rAF` del documento con el trabajo
+interno de `html2canvas` deja la promesa colgada para siempre, sin
+lanzar error. Se reemplazó el disparo por `setTimeout(fn, 0)`:
+`html2canvas` no necesita esperar una pintura real (lee estilos
+computados del DOM, no el framebuffer), así que no hace falta `rAF`.
+
+Verificado en vivo con Playwright contra el proyecto real del PPS
+(agregando una segunda hoja para probar el PDF multipágina): las tres
+descargas producen archivos PDF válidos (cabecera `%PDF-`, 150 KB a
+540 KB), sin errores de consola en ningún paso.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E49 — Fix: texto de ayuda solapado en "Datos del proyecto"
+
+Señalado en vivo con una captura (modo oscuro): el párrafo que explica
+que la fuente de cortocircuito se mudó a nivel de hoja (E39) se
+solapaba visualmente con el selector "Esquema de puesta a tierra" de
+arriba.
+
+Causa: `PanelProyecto.tsx` reusaba la clase `.panel-hoja-ayuda`,
+pensada para OTRO contexto (`PanelHoja.tsx`, debajo de los botones de
+"Tipo de esquema") con un `margin-top: -6px` — negativo a propósito
+ahí porque el elemento anterior en ESE panel deja aire de sobra. En
+"Datos del proyecto" el bloque anterior (`.panel-hoja-bloque`) no
+tiene margen propio abajo, así que el mismo `-6px` se comía el último
+campo del formulario.
+
+Fix: `PanelProyecto.tsx` usa ahora una clase propia,
+`.panel-proyecto-ayuda`, con margen positivo (`8px 0`) en vez de
+reusar la clase ajena.
+
+Verificado en vivo con captura de pantalla (modo oscuro, Playwright):
+gap real de 8px entre el bloque y el texto, sin superposición.
+
+## E50 — Referencia de dispositivo automática al colocar el símbolo
+
+Pedido explícito: "sobre el tema de referencia eso debe ser
+automatico" — el campo `referencia` (IEC 61346, agregado en E47)
+pedía texto libre; el usuario no quiere escribirlo a mano.
+
+Se agrega `lib/referencia.ts`: un mapa de prefijo IEC 61346 por
+`tipo_aparato` (Q = maniobra de potencia, KM = contactores, F =
+protección, M = motores, T = transformadores, C = capacitores, H =
+señalización, P = medición, K = relés/temporizadores auxiliares,
+S = mando/pulsadores/selectores — convención habitual en planos
+industriales) y `proximaReferencia()`, que busca el número más alto
+YA usado con ese prefijo en TODO el proyecto (no solo en la hoja
+activa) y devuelve el siguiente.
+
+Se dispara en `store.ts` → `agregarSimbolo()`, en el momento en que
+se coloca el símbolo en el lienzo: si su ficha trae un `tipo_aparato`
+fijo (`atributos_base`, por símbolo) y todavía no tiene `referencia`,
+se le asigna sola (el primer interruptor termomagnético colocado en
+el proyecto queda con "Q1", el segundo con "Q2"…). El campo sigue
+siendo editable en la ficha técnica: la asignación automática numera
+cada aparato por separado, pero no puede saber que la bobina de un
+contactor y sus contactos auxiliares, colocados como símbolos
+distintos, tienen que compartir la misma referencia — esa vinculación
+la sigue haciendo el usuario a mano, corrigiendo el campo.
+
+Verificado en vivo con Playwright: al arrastrar "Interruptor
+termomagnético" al lienzo, la ficha técnica muestra `referencia: "Q1"`
+sin que el usuario haya escrito nada.
+
+`tsc -b`, `lint` y `build` en verde.
+
+## E51 — Limpieza de la librería: nombres, polos del fusible, paleta por categorías
+
+Mensaje denso del usuario con al menos 8 pedidos distintos; se acordó
+con el usuario arrancar por el bloque de librería (bajo riesgo,
+autocontenido) y dejar para etapas separadas, con decisión previa del
+usuario: validar la referencia al editarla a mano (incompatibilidad),
+el vínculo bobina↔contacto en multifilar para la simulación, y el
+catálogo de secciones normadas (AEA/IEC, mínimos/máximos,
+unifilar/multifilar) para conductores **y barras** — señalado en el
+mensaje que las barras habían quedado afuera de todo lo hecho hasta
+acá, correcto: `barra.schema.json` no tiene ninguna noción de
+normativa.
+
+Del mismo mensaje, respondida en el momento como pregunta (no
+implementación todavía): "circuitos agrupados" hoy es un número
+suelto que el usuario tipea por cable, sin que el sistema sepa CUÁLES
+comparten canalización — moverlo a la carga no lo resuelve (el dato es
+del conductor, no del destino: dos cables pueden compartir bandeja en
+un tramo y separarse después). La mejora real, para cuando se encare
+esa etapa, es identificar la canalización por conductor y que el
+sistema CUENTE solo cuántos la comparten, en vez de un número
+manual.
+
+**Nombres de símbolo, solo el nombre del elemento**: se sacó
+descripción sobrante de 11 de los 32 símbolos de la librería (19
+unifilar + 13 comando) — "Fusible 1P" → "Fusible" (el "1P" ahora es un
+dato de ficha técnica, ver abajo), "Contactor de potencia" →
+"Contactor", "Transformador dos bobinados" → "Transformador", "Carga
+de circuito" → "Carga", "Interruptor automático en caja moldeada
+(MCCB)" → "Interruptor MCCB", "Relé térmico (RT)" → "Relé térmico",
+"Transformador de corriente (TI)" → "Transformador de corriente",
+"Interruptor diferencial (ID/RCD)" → "Interruptor diferencial", "Relé
+de protección de tensión" → "Relé de tensión", "Sirena / alarma
+sonora" → "Sirena de alarma", "Instrumento de medición (voltímetro)"
+→ "Voltímetro". Se conservaron los nombres que distinguen variantes
+reales (p. ej. "Guardamotor termomagnético" vs. "Guardamotor
+magnético", "MCCB" como sigla que el electricista realmente usa) —
+solo se sacaron abreviaturas redundantes que repetían lo que el
+nombre ya decía.
+
+**Cantidad de polos en fusible y seccionador fusible**: eran los dos
+únicos tipos de aparato de maniobra/protección SIN `cantidad_polos`
+(interruptor, contactor, MCCB, guardamotor, diferencial ya lo tenían)
+— se agrega a `fusible` y `portafusible` en `aparato.schema.json`
+(obligatorio, sin tope superior — los fusibles no conmutan neutro,
+mismo criterio que contactor/guardamotor/relé térmico) y se refleja en
+`anotacionAparato()` como "3P" junto al resto de los datos de chapa.
+No se extendió a relés/pulsadores/contactos auxiliares: son
+dispositivos de señal, no de maniobra de potencia — "polos" no aplica
+igual ahí.
+
+**Paleta organizada por categorías** (`lib/categoriasAparato.ts`):
+los símbolos de familia "aparato" (los dos modos, unifilar Y
+multifilar/comando) se reparten en Protección, Maniobra, Motores y
+transformadores, Medición y compensación, Señalización y alarmas,
+Mando, Contactos y bobinas, Detección — en vez de una sola lista larga
+bajo "Aparatos". Un tipo sin categoría mapeada cae en "Otros
+aparatos" en vez de desaparecer de la paleta (defensivo, por si se
+agrega un tipo nuevo sin actualizar el mapa).
+
+Verificado en vivo con Playwright: los grupos de la paleta aparecen en
+el orden esperado (Alimentación, Protección, Maniobra… Barras, Cargas,
+Auxiliares), el ítem "Fusible" existe sin "1P" en el nombre, y al
+colocarlo la ficha técnica muestra el campo "Cantidad de polos".
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde (los ejemplos existentes no usan
+`fusible`/`portafusible` salvo `regresion-barra.json`, que no corre
+checklist de ficha técnica — sin impacto).
+
+## E52 — Avisa incompatibilidad al editar la referencia a mano
+
+Bloque B del mensaje anterior (el usuario eligió el orden: "B").
+Pedido explícito: "Si te permite cambiar la referencia deberia
+decirte que hay incopatiblidad de ello."
+
+`lib/referencia.ts` suma `avisoIncompatibilidadReferencia()`, con dos
+chequeos, ninguno bloqueante — se muestra como aviso (mismo estilo
+`.form-atributos-aviso` que ya usa "alguno obligatorio") pegado al
+campo, no un diálogo que interrumpa cada tecla tipeada:
+
+1. **Prefijo sospechoso**: si el tipo de aparato tiene un prefijo IEC
+   61346 fijo (E50) y lo tipeado no empieza con ese prefijo, avisa
+   ("F1" en un contactor, que espera "KM" — probable error de tipeo).
+2. **Conflicto entre dos aparatos distintos**: si la misma referencia
+   ya la usa, en cualquier hoja del proyecto, un aparato de un tipo
+   DISTINTO — dos aparatos distintos no pueden ser el mismo
+   dispositivo físico (un fusible con la referencia de un contactor ya
+   existente).
+
+**El caso que casi rompe el diseño, encontrado ANTES de escribir
+código, no en producción**: el símbolo multifilar "Bobina de
+contactor/relé" (S00130) tiene `tipo_aparato: "rele_auxiliar"` fijo
+— es el MISMO símbolo genérico tanto para la bobina de un contactor
+real (que en el unifilar tiene su propio cuerpo con prefijo "KM") como
+para un relé auxiliar suelto (prefijo "K"). Validar su prefijo a
+rajatabla habría roto el caso de uso CENTRAL de la referencia (E47/E50:
+vincular la bobina de un contactor con su cuerpo en el unifilar,
+tipeando "KM1" a mano) — el aviso hubiera saltado justo cuando el
+usuario hace lo correcto. Se resuelve con un concepto de tipo
+"accesorio" (`contacto_auxiliar` y `rele_auxiliar`, en `lib/referencia.ts`):
+nunca tienen designación propia fija, siempre representan una PARTE de
+otro aparato, así que quedan afuera de los dos chequeos — pueden
+adoptar cualquier prefijo ya existente en el proyecto sin generar aviso.
+
+Se calcula en `PanelAtributos.tsx` (necesita ver TODO el proyecto, no
+solo el nodo seleccionado: un mapa referencia → tipos de aparato que ya
+la usan, recorriendo todas las hojas + los nodos en vivo de la activa)
+y se pasa como prop a `FormularioAtributos`, que lo renderiza pegado
+al campo "referencia" en su lugar en el loop genérico del formulario.
+
+Verificado en vivo con Playwright, los 5 casos: dos contactores
+(KM1/KM2 automáticos, sin aviso), un contactor editado a mano a "F5"
+(avisa prefijo), un fusible editado a "KM1" ya usado por el contactor
+(avisa), la bobina "de contactor/relé" editada a "KM1" (SIN aviso,
+caso permitido) y un contacto auxiliar editado a "KM1" (SIN aviso,
+caso permitido). Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E53 — Vínculo bobina↔contacto: selector + resaltado en el lienzo
+
+Bloque C del mensaje de dos turnos atrás (orden elegido por el
+usuario: B, después C). Pedido explícito, reconfirmado antes de
+escribir código porque la frase original era ambigua ("en los
+multifilares... a la hora de hacerlo quedan vinculados para la
+simulación"): construir LOS DOS a la vez — un selector para vincular
+(en vez de tipear la referencia a ciegas) y un resaltado visual del
+vínculo ya hecho.
+
+**Selector en vez de texto libre**, solo para las piezas "accesorio"
+(`contacto_auxiliar`, la bobina genérica "de contactor/relé" — ver
+`esAccesorioReferencia()`, E52): el campo "Referencia" de su ficha
+técnica pasa a ser un `<select>` con todas las referencias que YA
+existen en el proyecto (con una etiqueta legible: "KM1 — Contactor"),
+más "Otra… (escribir)" para volver a texto libre la primera vez que se
+crea una referencia nueva. Elegir de la lista directamente es el
+vínculo — sin poder tipear mal. Los aparatos "cuerpo" (contactor,
+interruptor…) NO usan este selector: siguen con su numeración
+automática (E50) más el aviso de incompatibilidad (E52) si se editan a
+mano.
+
+**"Vinculado con…"**: la ficha de cualquier aparato con referencia
+muestra, debajo del campo, el resto de los símbolos que comparten esa
+MISMA referencia — con su nombre y la hoja donde están, aunque sea
+otra. Es la traza completa, ya que el resaltado visual (ver abajo)
+solo puede pintar lo que está en la hoja activa.
+
+**Resaltado en el lienzo**: al seleccionar un símbolo con referencia,
+los demás símbolos de la MISMA hoja que comparten esa referencia se
+marcan con un borde punteado violeta (`--vinculo`, token nuevo,
+deliberadamente distinto del teal `--acento` de la selección — tienen
+que leerse como dos estados diferentes de un vistazo). Se calcula en
+`NodoSimbolo.tsx` con un selector de Zustand que devuelve un
+`string | null` (la referencia seleccionada): aunque el selector se
+reevalúa en cada cambio del store, solo dispara un re-render si ESE
+valor cambió, así que no hay costo real por tener el resaltado
+"siempre encendido".
+
+Los tres puntos comparten una sola base de datos en
+`PanelAtributos.tsx` (`usosPorReferencia`, recorre todas las hojas del
+proyecto + los nodos en vivo de la activa), de la que se derivan
+`tiposPorReferencia` (E52), `opcionesReferencia` (el selector) y
+`vinculosReferencia` (el texto "vinculado con") — un solo recorrido de
+nodos, no tres.
+
+Sobre la otra mitad del pedido original ("los nodos de la bobina no
+los marques en rojo si no se conectan"): se verificó ANTES de tocar
+código que ya no aplica — el único "marcado en rojo" que existe hoy
+(`armarChecklist`, "sin conexión a ningún alimentador") ya está
+completamente desactivado en hojas multifilar, y el contactor unifilar
+no tiene puntos de conexión propios para la bobina (2 puntos en total,
+solo la línea de potencia). No hizo falta cambiar nada ahí.
+
+Verificado en vivo con Playwright: contactor → KM1 (auto, hoja
+unifilar); bobina "de contactor/relé" en una hoja multifilar nueva,
+selector con las opciones ["K1 — Bobina de contactor/relé", "KM1 —
+Contactor"], elegida "KM1"; un contacto auxiliar NA vinculado también a
+"KM1" desde el mismo selector, cuya ficha muestra "Vinculado con:
+Contactor (Hoja 1) · Bobina de contactor/relé (Hoja 2)"; al
+seleccionar la bobina, 1 nodo (el contacto auxiliar) queda marcado
+`.nodo-simbolo-vinculado` en el lienzo. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E54 — Secciones de conductor normadas y discretas (cables y barras)
+
+Bloque D del mensaje de tres turnos atrás, el último del punch list de
+esa ronda. Pedido explícito: "la sección se debería colocar o
+aumentar pero de forma discreta 1.5 2 4 6 10 16 y así, y dependiendo la
+norma hay un mínimo y máximo, y también dependiendo si la norma se
+trata de multifilares o unifilares permite una sección o no" — más la
+corrección "no consideraste las barras".
+
+**No se inventó una lista nueva.** Antes de tocar código apareció que
+el proyecto YA tiene una tabla Iz real, cargada y verificada
+visualmente contra el PDF de la norma
+(`libreria-simbolos/normativa/tablaIzAea90364552.mjs`, ver
+`docs/normativa/iz-corriente-admisible.md`) — con las secciones
+normadas REALES de las Tablas B52-2 a B52-5 (AEA 90364-5-52 / IEC
+60364-5-52): cobre 1,5 a 300 mm², aluminio 2,5 a 300 mm² (la norma no
+tabula aluminio de 1,5 mm² — el "mínimo" ya sale solo del material, sin
+inventar un número). `lib/secciones.ts` reusa esa tabla en vez de
+declarar una propia.
+
+**Consecuencia colateral real, no buscada**: el cálculo de Iz
+(`lib/calculo.ts`, ya en producción) busca la sección EXACTA en la
+tabla (`indexOf`) — con el campo de texto libre de antes, tipear
+cualquier valor que no fuera uno de los tabulados hacía que Iz
+desapareciera en silencio, sin aviso. Con la sección como lista
+cerrada, el valor SIEMPRE tiene fila en la tabla — verificado en vivo:
+Iz no salía en una conexión real del PPS (le faltaba longitud/método
+de instalación, datos de sitio ya señalados como pendientes en
+sesiones anteriores) y apareció (301 A) apenas se cargaron esos dos
+campos.
+
+**Fuerza vs. comando** ("dependiendo si la norma se trata de
+multifilares o unifilares permite una sección o no"): en una hoja
+multifilar la lista se recorta a ≤4 mm², el techo habitual del
+cableado de mando de un tablero — **esto NO es un límite tabulado de
+la norma** (la tabla cargada es de fuerza; ningún documento del
+proyecto tiene todavía una tabla de mando), es un techo de práctica
+de tablero. Se documenta así explícitamente en el código en vez de
+disfrazarlo de cita normativa. "Otra…" (mismo componente que el
+selector de E53, extraído a `SelectorConEscape.tsx` para no duplicar
+el patrón) sigue disponible por si un caso real lo necesita.
+
+**Mínimo de tierra (PE)**: aviso (no bloqueante) si la sección de
+tierra cargada queda por debajo de la regla proporcional de IEC
+60364-5-54 / AEA 90364-5-54 (S≤16→Spe=S, 16<S≤35→Spe=16, S>35→Spe=S/2)
+respecto de la sección de fase del mismo cable.
+
+**Barras, la corrección del usuario**: `barra.schema.json` no tenía
+ninguna noción de normativa. Como las barras se dimensionan por perfil
+físico (`dimensiones`, texto libre, decisión C8 anterior) y no por una
+lista discreta de sección como el cable, no le cabe la misma lista —
+se le agregó en cambio un rango de PLAUSIBILIDAD a
+`corriente_admisible_A` (16 A a 6300 A, lo habitual en juegos de barra
+de tablero BT) para atrapar errores de tipeo, mismo espíritu que el
+`pdcc_kA: 2500` ya documentado en la revisión del proyecto.
+
+Verificado en vivo con Playwright contra el proyecto real del PPS: el
+campo "Sección mm²" es un `<select>` con las opciones reales de la
+tabla, preserva el valor existente (240 mm²) sin forzar "Otra…", y al
+cambiar el material a Al "1,5 mm²" desaparece de la lista. `tsc -b`,
+`lint`, `build`, `e2e/conexiones.mjs`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.

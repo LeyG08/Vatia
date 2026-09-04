@@ -378,7 +378,7 @@
         "referencia": {
           "type": "string",
           "x-obligatorio": false,
-          "description": "Designación de referencia del dispositivo (IEC 61346), ej: KM1, K1, S1, F1. Varios símbolos con la MISMA referencia se entienden como partes del mismo dispositivo físico — por ejemplo, la bobina de un contactor y sus contactos auxiliares repartidos por el esquema. Es la base para poder simular el circuito de comando más adelante.",
+          "description": "Designación de referencia del dispositivo (IEC 61346), ej: KM1, K1, S1, F1. Se asigna sola al colocar el símbolo (próximo número libre para su tipo de aparato) — este campo queda para corregirla, por ejemplo para que un contacto auxiliar comparta la MISMA referencia que la bobina de su contactor: varios símbolos con la misma referencia se entienden como partes del mismo dispositivo físico. Es la base para poder simular el circuito de comando más adelante.",
           "title": "Referencia"
         },
         "marca": {
@@ -519,6 +519,13 @@
         "tipo_aparato": {
           "const": "fusible",
           "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "description": "Polos que protege (fases). Es un unifilar de fuerza: el trazo es una línea sola aunque el fusible sea de varios polos. Plano: \"3P\".",
+          "title": "Cantidad de polos"
         },
         "portafusible_tension_v": {
           "type": "number",
@@ -1045,6 +1052,13 @@
         "tipo_aparato": {
           "const": "portafusible",
           "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "description": "Polos del seccionador fusible (fases). Es un unifilar de fuerza: el trazo es una línea sola aunque sea de varios polos. Plano: \"3P\".",
+          "title": "Cantidad de polos"
         },
         "portafusible_tension_v": {
           "type": "number",

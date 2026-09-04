@@ -2,12 +2,19 @@ import { lineasCable } from "../lib/anotaciones";
 import type { CampoDescriptor } from "../lib/esquemas";
 import { camposDeFamilia } from "../lib/esquemas";
 import type { ResultadoIz } from "../lib/calculo";
+import { seccionesDisponiblesMm2, seccionMinimaPeMm2 } from "../lib/secciones";
+import type { ModoHoja } from "../lib/tipos";
+import SelectorConEscape from "./SelectorConEscape";
 
 interface Props {
   atributos: Record<string, unknown>;
   onChange: (nuevosAtributos: Record<string, unknown>) => void;
   /** Campo extra arriba del cuerpo (ej.: "Desde dónde viene" del alimentador) */
   encabezado?: React.ReactNode;
+  /** Modo de la hoja activa (E54): decide qué secciones normadas se
+   * ofrecen — el rango completo de fuerza en unifilar, recortado a la
+   * práctica de comando en multifilar. */
+  modo: ModoHoja;
   /**
    * Ib (A), ΔU% e Iz ya calculados por el llamador (necesita recorrer la
    * topología completa, algo que este formulario no tiene por qué saber
@@ -18,6 +25,16 @@ interface Props {
     caidaPct: number | null;
     iz: ResultadoIz | null;
   };
+}
+
+/** Opciones del selector de sección — "6 mm²" en vez de solo "6", para
+ * que se lea igual que el resto de la ficha técnica. */
+function opcionesSeccion(material: unknown, modo: ModoHoja) {
+  const mat = material === "Al" ? "Al" : "Cu";
+  return seccionesDisponiblesMm2(mat, modo).map((s) => ({
+    valor: String(s),
+    etiqueta: `${s} mm²`,
+  }));
 }
 
 function valorComoTexto(v: unknown): string {
@@ -83,7 +100,7 @@ function Llave({
  * unipolar/multipolar y vista previa de la notación del plano.
  * El resto de campos (material, aislación, norma) usa el render común.
  */
-export default function FormularioConductor({ atributos, onChange, encabezado, calculo }: Props) {
+export default function FormularioConductor({ atributos, onChange, encabezado, modo, calculo }: Props) {
   const fases =
     typeof atributos.cantidad_conductores === "number"
       ? atributos.cantidad_conductores
@@ -140,22 +157,20 @@ export default function FormularioConductor({ atributos, onChange, encabezado, c
         </div>
       </div>
 
-      {/* ---- Sección de fase ---- */}
+      {/* ---- Sección de fase ----
+       * Lista normada (E54), no texto libre: son los valores REALES de
+       * la tabla Iz ya cargada (Tablas B52-2 a B52-5, ver
+       * lib/secciones.ts) — así el cálculo de Iz más abajo nunca falla
+       * en silencio por una sección que la norma no tabula. */}
       <label className="campo-atributo">
         <span>Sección mm²<em className="obligatorio">*</em></span>
-        <input
-          type="number"
-          min={0}
-          step="any"
-          value={(atributos.seccion_fase_mm2 as number | undefined) ?? ""}
-          onChange={(e) =>
-            onChange(
-              poner(
-                atributos,
-                "seccion_fase_mm2",
-                e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
-              ),
-            )
+        <SelectorConEscape
+          valor={valorComoTexto(atributos.seccion_fase_mm2)}
+          opciones={opcionesSeccion(atributos.material, modo)}
+          placeholder="mm²"
+          etiquetaVacio="—"
+          onChange={(v) =>
+            onChange(poner(atributos, "seccion_fase_mm2", v === "" ? undefined : Number.parseFloat(v)))
           }
         />
       </label>
@@ -197,20 +212,13 @@ export default function FormularioConductor({ atributos, onChange, encabezado, c
       {atributos.lleva_neutro === true && (
         <label className="campo-atributo fc-sub">
           <span>↳ Sección distinta</span>
-          <input
-            type="number"
-            min={0}
-            step="any"
-            placeholder="= fase"
-            value={(atributos.seccion_neutro_mm2 as number | undefined) ?? ""}
-            onChange={(e) =>
-              onChange(
-                poner(
-                  atributos,
-                  "seccion_neutro_mm2",
-                  e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
-                ),
-              )
+          <SelectorConEscape
+            valor={valorComoTexto(atributos.seccion_neutro_mm2)}
+            opciones={opcionesSeccion(atributos.material, modo)}
+            placeholder="mm²"
+            etiquetaVacio="= fase"
+            onChange={(v) =>
+              onChange(poner(atributos, "seccion_neutro_mm2", v === "" ? undefined : Number.parseFloat(v)))
             }
           />
         </label>
@@ -231,24 +239,35 @@ export default function FormularioConductor({ atributos, onChange, encabezado, c
       {atributos.lleva_tierra === true && (
         <label className="campo-atributo fc-sub">
           <span>↳ Sección distinta</span>
-          <input
-            type="number"
-            min={0}
-            step="any"
-            placeholder="= fase"
-            value={(atributos.seccion_tierra_mm2 as number | undefined) ?? ""}
-            onChange={(e) =>
-              onChange(
-                poner(
-                  atributos,
-                  "seccion_tierra_mm2",
-                  e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
-                ),
-              )
+          <SelectorConEscape
+            valor={valorComoTexto(atributos.seccion_tierra_mm2)}
+            opciones={opcionesSeccion(atributos.material, modo)}
+            placeholder="mm²"
+            etiquetaVacio="= fase"
+            onChange={(v) =>
+              onChange(poner(atributos, "seccion_tierra_mm2", v === "" ? undefined : Number.parseFloat(v)))
             }
           />
         </label>
       )}
+      {/* Mínimo de PE recomendado (E54): regla proporcional IEC
+       * 60364-5-54 / AEA 90364-5-54 respecto de la sección de fase —
+       * S≤16→Spe=S, 16<S≤35→Spe=16, S>35→Spe=S/2. Solo avisa si el
+       * usuario cargó una sección de tierra MENOR a la que pide la
+       * regla: tener más cobre que el mínimo nunca es un problema. */}
+      {atributos.lleva_tierra === true &&
+        typeof atributos.seccion_tierra_mm2 === "number" &&
+        (() => {
+          const minimo = seccionMinimaPeMm2(atributos.seccion_fase_mm2 as number | undefined);
+          if (minimo === null || (atributos.seccion_tierra_mm2 as number) >= minimo) return null;
+          return (
+            <p className="form-atributos-aviso">
+              La sección de tierra ({atributos.seccion_tierra_mm2 as number} mm²) queda por
+              debajo del mínimo recomendado para {atributos.seccion_fase_mm2 as number} mm² de
+              fase: {minimo} mm² (IEC 60364-5-54 / AEA 90364-5-54).
+            </p>
+          );
+        })()}
 
       {/* ---- Resto: campos que faltan (desde schema) ----
        * Cubre enum/número/entero/booleano/texto, igual que el renderer

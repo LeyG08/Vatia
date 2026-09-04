@@ -3,12 +3,14 @@ import { useStore } from "@xyflow/react";
 import {
   useEditor,
   tamanoNodoPx,
+  esDatosAlimentador,
   type DatosAlimentador,
   type DatosSimbolo,
 } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
 import { calcularTopologia } from "../lib/topologia";
 import { calcularCaidaTensionPct, calcularIbA, calcularIzA } from "../lib/calculo";
+import { avisoIncompatibilidadReferencia, esAccesorioReferencia } from "../lib/referencia";
 import FormularioAtributos from "./FormularioAtributos";
 import FormularioConductor from "./FormularioConductor";
 import FormularioCarga from "./FormularioCarga";
@@ -44,6 +46,9 @@ export default function PanelAtributos() {
   const nodos = useEditor((s) => s.nodos);
   const conexiones = useEditor((s) => s.conexiones);
   const datosProyecto = useEditor((s) => s.proyecto.datosProyecto);
+  const proyectoHojas = useEditor((s) => s.proyecto.hojas);
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+  const modo = useEditor((s) => s.hoja.modo);
   const actualizarNodo = useEditor((s) => s.actualizarAtributosNodo);
   const actualizarConexion = useEditor((s) => s.actualizarAtributosConexion);
   const actualizarAlimentador = useEditor((s) => s.actualizarDatosAlimentador);
@@ -86,6 +91,101 @@ export default function PanelAtributos() {
     const iz = calcularIzA(atributosConductor, trifasica);
     return { ibA, caidaPct, iz };
   }, [edge, nodos, conexiones, datosProyecto]);
+
+  // Todo uso de "referencia" en el proyecto entero (todas las hojas,
+  // incluida la activa vía `nodos` en vivo — su entrada en
+  // `proyecto.hojas` puede estar desactualizada hasta que algo la
+  // vuelque). Base común para tres cosas de la ficha técnica de aparato
+  // (E52/E53, ver lib/referencia.ts): el aviso de incompatibilidad al
+  // editar a mano, el selector "vincular con…" de las piezas accesorio
+  // (contacto auxiliar / bobina) y la lista de "vinculado con" que
+  // muestra dónde más aparece esa misma referencia — pedido explícito:
+  // "en los multifilares... a la hora de hacerlo quedan vinculados para
+  // la simulación". Se recalcula solo cuando cambia el árbol de nodos,
+  // no en cada tecla tipeada de otros campos.
+  const usosPorReferencia = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { id: string; tipoAparato: string; etiqueta: string; hoja: string }[]
+    >();
+    function registrar(
+      id: string,
+      codigoIec: string | undefined,
+      atributos: Record<string, unknown> | undefined,
+      nombreHoja: string,
+    ) {
+      const ref = atributos?.referencia;
+      const tipo = atributos?.tipo_aparato;
+      if (typeof ref !== "string" || ref.trim() === "" || typeof tipo !== "string") return;
+      const base = (codigoIec && obtenerSimbolo(codigoIec)?.metadata.nombre) ?? codigoIec ?? "Símbolo";
+      const mm = [atributos?.marca, atributos?.modelo]
+        .filter((v) => typeof v === "string" && v !== "")
+        .join(" ");
+      const clave = ref.trim();
+      if (!mapa.has(clave)) mapa.set(clave, []);
+      mapa.get(clave)!.push({
+        id,
+        tipoAparato: tipo,
+        etiqueta: mm ? `${base} · ${mm}` : base,
+        hoja: nombreHoja,
+      });
+    }
+    for (const h of proyectoHojas) {
+      if (h.id === hojaActivaId) continue; // la activa se lee de `nodos`, en vivo
+      for (const n of h.nodos ?? []) registrar(n.id, n.codigo_iec, n.atributos, h.nombre);
+    }
+    const nombreHojaActiva =
+      proyectoHojas.find((h) => h.id === hojaActivaId)?.nombre ?? "esta hoja";
+    for (const n of nodos) {
+      const d = n.data as DatosSimbolo;
+      registrar(n.id, d.codigo_iec, d.atributos, nombreHojaActiva);
+    }
+    return mapa;
+  }, [proyectoHojas, nodos, hojaActivaId]);
+
+  const tiposPorReferencia = useMemo(() => {
+    const mapa = new Map<string, Set<string>>();
+    for (const [ref, usos] of usosPorReferencia) {
+      mapa.set(ref, new Set(usos.map((u) => u.tipoAparato)));
+    }
+    return mapa;
+  }, [usosPorReferencia]);
+
+  // Referencias ya usadas en el proyecto, para el selector de las
+  // piezas "accesorio" — con una etiqueta representativa (preferí un
+  // aparato "cuerpo" si hay uno, es el dato más útil para reconocerlo).
+  const opcionesReferencia = useMemo(() => {
+    const out: { referencia: string; etiqueta: string }[] = [];
+    for (const [ref, usos] of usosPorReferencia) {
+      const cuerpo = usos.find((u) => !esAccesorioReferencia(u.tipoAparato));
+      const rep = cuerpo ?? usos[0];
+      out.push({ referencia: ref, etiqueta: `${ref} — ${rep.etiqueta}` });
+    }
+    return out.sort((a, b) => a.referencia.localeCompare(b.referencia));
+  }, [usosPorReferencia]);
+
+  const avisoReferencia = useMemo(() => {
+    if (!nodo || esDatosAlimentador(nodo.data)) return null;
+    const data = nodo.data as DatosSimbolo;
+    const a = data.atributos ?? {};
+    const tipo = a.tipo_aparato;
+    const ref = a.referencia;
+    if (typeof tipo !== "string" || typeof ref !== "string") return null;
+    return avisoIncompatibilidadReferencia(tipo, ref, tiposPorReferencia);
+  }, [nodo, tiposPorReferencia]);
+
+  // "Vinculado con…": el resto de los símbolos que comparten la MISMA
+  // referencia que el seleccionado, para que se vea aunque estén en otra
+  // hoja (el resaltado en el lienzo, más abajo en NodoSimbolo.tsx, solo
+  // puede pintar los de la hoja activa).
+  const vinculosReferencia = useMemo(() => {
+    if (!nodo || esDatosAlimentador(nodo.data)) return [];
+    const data = nodo.data as DatosSimbolo;
+    const ref = data.atributos?.referencia;
+    if (typeof ref !== "string" || ref.trim() === "") return [];
+    const usos = usosPorReferencia.get(ref.trim()) ?? [];
+    return usos.filter((u) => u.id !== nodo.id);
+  }, [nodo, usosPorReferencia]);
 
   const idActual = nodo?.id ?? edge?.id ?? null;
   const [delta, setDelta] = useState({ x: 0, y: 0 });
@@ -175,6 +275,7 @@ export default function PanelAtributos() {
             onChange={(attrs) =>
               actualizarAlimentador(nodo.id, { atributos: attrs })
             }
+            modo={modo}
             encabezado={
               <label className="campo-atributo">
                 <span>
@@ -210,6 +311,9 @@ export default function PanelAtributos() {
             }
             atributos={(nodo.data as DatosSimbolo).atributos}
             onChange={(attrs) => actualizarNodo(nodo.id, attrs)}
+            avisoReferencia={avisoReferencia}
+            opcionesReferencia={opcionesReferencia}
+            vinculosReferencia={vinculosReferencia}
           />
         )
       ) : (
@@ -219,6 +323,7 @@ export default function PanelAtributos() {
             {}
           }
           onChange={(attrs) => actualizarConexion(edge!.id, attrs)}
+          modo={modo}
           calculo={calculoEdge}
         />
       )}

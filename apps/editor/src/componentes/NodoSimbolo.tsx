@@ -67,10 +67,26 @@ function rotarPunto(
   };
 }
 
-function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
+function NodoSimbolo({ data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const simbolo = obtenerSimbolo(data.codigo_iec);
   const tensionFaseV = useEditor((s) => s.proyecto.datosProyecto.tension_fase_v);
   const tensionLineaV = useEditor((s) => s.proyecto.datosProyecto.tension_linea_v);
+  // Resalta en el lienzo los símbolos que comparten la MISMA referencia
+  // (IEC 61346) que el seleccionado — pedido explícito: "en los
+  // multifilares... a la hora de hacerlo quedan vinculados para la
+  // simulación" (E53). Selector primitivo (string|null): zustand
+  // solo re-renderiza este nodo si el valor realmente cambia, aunque el
+  // selector recorra `nodos` en cada actualización del store.
+  const referenciaSeleccionada = useEditor((s) => {
+    if (selected) return null; // el propio seleccionado no se resalta a sí mismo
+    const sel = s.nodos.find((n) => n.selected && n.type === "simbolo");
+    if (!sel) return null;
+    const ref = (sel.data as DatosSimbolo).atributos?.referencia;
+    return typeof ref === "string" && ref.trim() !== "" ? ref.trim() : null;
+  });
+  const miReferencia =
+    typeof data.atributos?.referencia === "string" ? data.atributos.referencia.trim() : "";
+  const vinculado = referenciaSeleccionada !== null && miReferencia === referenciaSeleccionada;
 
   if (!simbolo) {
     return <div className="nodo-faltante">? {data.codigo_iec}</div>;
@@ -98,7 +114,7 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
 
   return (
     <div
-      className="nodo-simbolo"
+      className={`nodo-simbolo${vinculado ? " nodo-simbolo-vinculado" : ""}`}
       style={{ width: anchoPx, height: altoPx }}
       title={simbolo.metadata.nombre}
     >

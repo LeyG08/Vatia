@@ -35,8 +35,9 @@
     "seccion_neutro_mm2": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 300,
       "x-obligatorio": false,
-      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_neutro=true, se asume igual a seccion_fase_mm2.",
+      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_neutro=true, se asume igual a seccion_fase_mm2. Techo 300 mm²: tope de la tabla de secciones normadas cargada (E54, ver lib/secciones.ts).",
       "title": "Sección neutro (mm²)"
     },
     "lleva_tierra": {
@@ -48,15 +49,17 @@
     "seccion_tierra_mm2": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 300,
       "x-obligatorio": false,
-      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_tierra=true, se asume igual a seccion_fase_mm2.",
+      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_tierra=true, se asume igual a seccion_fase_mm2. Techo 300 mm²: tope de la tabla de secciones normadas cargada (E54, ver lib/secciones.ts).",
       "title": "Sección tierra (mm²)"
     },
     "seccion_fase_mm2": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 300,
       "x-obligatorio": true,
-      "description": "Sección de cada conductor de fase. Plano: \"25mm²\".",
+      "description": "Sección de cada conductor de fase, de la lista normada (E54): 1,5 a 300 mm² para cobre, 2,5 a 300 mm² para aluminio (Tablas B52-2 a B52-5, ver lib/secciones.ts). Plano: \"25mm²\".",
       "title": "Sección de fase (mm²)"
     },
     "longitud_m": {

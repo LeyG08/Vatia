@@ -77,6 +77,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       break;
     }
     case "fusible": {
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
       const porta = [capitalizar(a.marca), capitalizar(a.modelo)]
         .filter(Boolean)
         .join(" ");
@@ -162,6 +163,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       // marca/modelo del portafusible ya salen en el prefijo genérico
       // de arriba (a.marca/a.modelo, de base_comun) — no hace falta un
       // campo aparte solo para este subtipo.
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
       if (n(a.portafusible_tension_v)) l.push(`${n(a.portafusible_tension_v)} V`);
       break;
     }

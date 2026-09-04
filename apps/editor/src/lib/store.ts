@@ -12,6 +12,7 @@ import {
 import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
 import { GRILLA_PX } from "./ruta";
+import { proximaReferencia } from "./referencia";
 import {
   ALIMENTADOR_POR_DEFECTO,
   DATOS_PROYECTO_POR_DEFECTO,
@@ -505,24 +506,13 @@ interface EstadoEditor {
   /** true justo después de recuperar un autoguardado al abrir la app */
   avisoRecuperado: boolean;
   descartarAvisoRecuperado: () => void;
-  /** true mientras se arma la vista de impresión de TODAS las hojas
-   * (exportarProyectoCompletoPdf en BarraSuperior) — ver ExportacionProyecto.tsx */
-  exportandoTodo: boolean;
-  /** si la exportación en curso agrega la página de lista de materiales
-   * al final — se pregunta cada vez (BarraSuperior), no es una preferencia
-   * fija: no toda impresión necesita la lista. */
-  incluirBomEnExportacion: boolean;
-  iniciarExportacionCompleta: (incluirBom: boolean) => void;
-  finalizarExportacionCompleta: () => void;
-  /** true mientras se arma la vista de impresión de los unifilares
-   * combinados en hoja(s) A0 (E46) — ver ExportacionA0.tsx */
-  exportandoA0: boolean;
-  /** si el usuario permitió partir en varias hojas A0 cuando el
-   * combinado no entra en una sola — opción explícita, no automática
-   * ("esto debe ser una opción para el que lo quiera así"). */
-  permitirVariasPaginasA0: boolean;
-  iniciarExportacionA0: (permitirVariasPaginas: boolean) => void;
-  finalizarExportacionA0: () => void;
+  /** Solicitud de descarga de PDF en curso — ver ExportacionProyecto.tsx.
+   * `"planos"` arma un PDF con las hojas dadas (una o todas), cada una en
+   * su propia página a tamaño real; `"bom"` arma un PDF aparte solo con
+   * la lista de materiales de esas hojas. `null` = nada pendiente. */
+  exportacionPdf: { tipo: "planos" | "bom"; hojas: Hoja[] } | null;
+  iniciarExportacionPdf: (tipo: "planos" | "bom", hojas: Hoja[]) => void;
+  finalizarExportacionPdf: () => void;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
@@ -836,10 +826,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     panelProyectoAbierto: false,
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
     avisoRecuperado: false,
-    exportandoTodo: false,
-    incluirBomEnExportacion: false,
-    exportandoA0: false,
-    permitirVariasPaginasA0: false,
+    exportacionPdf: null,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
     promptCortocircuitoHojaId: null,
@@ -865,18 +852,11 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       set({ confirmacion: null });
     },
 
-    iniciarExportacionCompleta(incluirBom) {
-      set({ exportandoTodo: true, incluirBomEnExportacion: incluirBom });
+    iniciarExportacionPdf(tipo, hojas) {
+      set({ exportacionPdf: { tipo, hojas } });
     },
-    finalizarExportacionCompleta() {
-      set({ exportandoTodo: false });
-    },
-
-    iniciarExportacionA0(permitirVariasPaginas) {
-      set({ exportandoA0: true, permitirVariasPaginasA0: permitirVariasPaginas });
-    },
-    finalizarExportacionA0() {
-      set({ exportandoA0: false });
+    finalizarExportacionPdf() {
+      set({ exportacionPdf: null });
     },
 
     alternarPaleta() {
@@ -957,11 +937,37 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         });
         return;
       }
+      const atributosBase: Record<string, unknown> = { ...simbolo.metadata.atributos_base };
+      // Referencia automática (IEC 61346, ver lib/referencia.ts): solo si
+      // el símbolo ya trae un tipo_aparato fijo (atributos_base) y todavía
+      // no tiene referencia propia — nunca pisa una ya cargada.
+      if (
+        typeof atributosBase.tipo_aparato === "string" &&
+        atributosBase.referencia == null
+      ) {
+        const usadas: string[] = [];
+        for (const n of get().nodos) {
+          const r = (n.data as Record<string, unknown>).atributos as
+            | Record<string, unknown>
+            | undefined;
+          if (typeof r?.referencia === "string" && r.referencia.trim() !== "") {
+            usadas.push(r.referencia);
+          }
+        }
+        for (const h of get().proyecto.hojas) {
+          for (const hn of h.nodos ?? []) {
+            const r = hn.atributos?.referencia;
+            if (typeof r === "string" && r.trim() !== "") usadas.push(r);
+          }
+        }
+        const siguiente = proximaReferencia(atributosBase.tipo_aparato, usadas);
+        if (siguiente) atributosBase.referencia = siguiente;
+      }
       const data: DatosSimbolo = {
         tipo: "simbolo",
         codigo_iec: codigoIec,
         rotacion: 0,
-        atributos: { ...simbolo.metadata.atributos_base },
+        atributos: atributosBase,
       };
       const pos = limitarAHoja(x, y, data);
       const nodo: Node<NodoData> = {

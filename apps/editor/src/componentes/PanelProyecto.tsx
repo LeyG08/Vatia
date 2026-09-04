@@ -98,7 +98,7 @@ function PanelProyecto() {
           </label>
         </div>
 
-        <p className="panel-hoja-ayuda">
+        <p className="panel-proyecto-ayuda">
           La fuente de cortocircuito (Scc / Icc) ahora se carga por
           alimentador, en Hoja… → Fuente de cortocircuito de la hoja del
           alimentador principal — no es un dato único de todo el proyecto,

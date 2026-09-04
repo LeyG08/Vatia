@@ -28,6 +28,11 @@
   --error: #b8442f;
   --error-suave: #fbeae6;
   --ok: #2f7d4f;
+  /* Resalta símbolos vinculados por "referencia" (E53) — violeta,
+   * a propósito distinto del --acento teal de la selección: tienen que
+   * leerse como dos estados DIFERENTES ("esto está seleccionado" vs.
+   * "esto está vinculado a lo seleccionado") de un vistazo. */
+  --vinculo: #7c3aed;
 
   --bg-canvas: #d9e0e8;
   --bg-surface: #ffffff;
@@ -62,6 +67,7 @@
   --error: #e08267;
   --error-suave: #3a221c;
   --ok: #5bb884;
+  --vinculo: #a78bfa;
 
   --bg-canvas: #0b1116;
   --bg-surface: #19232a;
@@ -491,6 +497,20 @@ body,
   box-shadow:
     0 0 0 4px rgba(var(--acento-rgb), 0.15),
     0 0 10px rgba(var(--acento-rgb), 0.35);
+  pointer-events: none;
+}
+
+/* Resalta los símbolos que comparten "referencia" con el seleccionado
+ * (E53: bobina ↔ contactos, "a la hora de hacerlo quedan vinculados
+ * para la simulación") — punteado violeta, deliberadamente distinto
+ * del borde sólido teal de arriba para no confundirse con "esto está
+ * seleccionado". */
+.nodo-simbolo-vinculado::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 2px dashed var(--vinculo);
+  border-radius: 4px;
   pointer-events: none;
 }
 
@@ -1314,6 +1334,19 @@ body.arrastrando .paleta-item {
   line-height: 1.4;
 }
 
+/* Misma pinta que .panel-hoja-ayuda, pero con margen POSITIVO: en
+ * "Datos del proyecto" va después de un .panel-hoja-bloque que no
+ * deja aire propio abajo, y el -6px de la otra clase (pensado para ir
+ * pegado a los botones de Tipo de esquema en Configuración de hoja)
+ * quedaba solapado contra el último campo — señalado en vivo con una
+ * captura. */
+.panel-proyecto-ayuda {
+  margin: 8px 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* Accesorios de la lista de materiales (terminales, peines, bornera…) */
 .panel-hoja-accesorios {
   gap: 6px;
@@ -1544,6 +1577,31 @@ body.arrastrando .paleta-item {
   border: 1px solid #fcd34d;
   border-radius: 6px;
   padding: 5px 7px;
+}
+
+/* "Vinculado con…" (E53): informativo, no una advertencia — mismo
+ * formato de caja que .form-atributos-aviso pero en el tono neutro del
+ * panel, no en ámbar. */
+.form-atributos-vinculos {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.selector-referencia {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selector-referencia-volver {
+  font-size: 10px;
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
 .campo-atributo {
@@ -2964,286 +3022,162 @@ body.arrastrando .paleta-item {
 }
 
 /* ================================================================
-   IMPRESIÓN / EXPORTACIÓN A PDF
-   Se reusa el lienzo real (React Flow) — ver lib/impresion.ts. Acá
-   solo se oculta el resto de la interfaz y se deja el lienzo ocupando
-   toda la página; el tamaño físico real (@page) lo inyecta
-   BarraSuperior.exportarPdf() por hoja, porque el formato/orientación
-   son datos de la hoja activa, no una constante CSS.
+   EXPORTACIÓN A PDF (descarga directa)
+   Cada plano y la lista de materiales se arman con una instancia de
+   React Flow (o HTML puro, para la lista) montada FUERA de pantalla
+   (`.exportacion-offscreen`, ver ExportacionProyecto.tsx), se capturan
+   con html2canvas y se empaquetan en un PDF con jsPDF que se descarga
+   directo — ver lib/exportarPdf.ts. Reemplaza el `window.print()` +
+   `@media print` que tenía esto antes: html2canvas lee el render de
+   PANTALLA tal cual está, nunca pasa por esa media query, así que las
+   reglas de acá tienen que aplicar SIEMPRE, no adentro de @media print.
    ================================================================ */
-@media print {
-  .barra-superior,
-  .pestanas-hoja,
-  .paleta,
-  .panel-atributos,
-  .panel-hoja,
-  .paneles-flotantes,
-  .aviso-fuera-hoja,
-  .toast-mover,
-  .fantasma-arrastre,
-  .modal-fondo,
-  .ayuda-atajos,
-  .dialogo-caja,
-  .react-flow__background,
-  .react-flow__minimap,
-  .react-flow__controls,
-  .react-flow__attribution,
-  .react-flow__panel {
-    display: none !important;
-  }
 
-  html,
-  body,
-  .app,
-  .cuerpo,
-  .lienzo,
-  .react-flow {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    background: #fff !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
-  /* `height: 100%` + `overflow: hidden` fijan el documento a UNA sola
-   * página — hace falta para exportar una hoja sola (`.app` incluido:
-   * `.cuerpo` es `flex:1` y necesita que `.app` tenga una altura
-   * DEFINIDA para poder repartirla, si no `.lienzo` con `height:100%`
-   * no tiene contra qué resolver el porcentaje y React Flow mide un
-   * contenedor de alto 0 — probado en vivo: forzar `.app` a `auto` acá
-   * sin excepción dejaba "Exportar PDF" (una sola hoja) en blanco).
-   * Para exportar el proyecto ENTERO (`body.exportando-todo`, más abajo
-   * en este archivo) esto se excluye: `.app`/`.cuerpo` son los mismos
-   * ancestros por los que también cuelga `.exportacion-proyecto`, y
-   * fijarles una altura de una sola página recortaba todo lo que
-   * excediera la primera hoja — encontrado en vivo generando un PDF
-   * real con más de una hoja ("Exportar proyecto" salía con una sola
-   * página, el resto desaparecía sin avisar). Durante esa exportación
-   * el documento tiene que poder crecer libremente para que el salto
-   * de página entre hojas funcione. */
-  body:not(.exportando-todo) .app,
-  body:not(.exportando-todo) .cuerpo,
-  body:not(.exportando-todo),
-  html:not(:has(body.exportando-todo)),
-  .lienzo,
-  .react-flow {
-    height: 100% !important;
-    /* `visible` dejaba que el borrón del box-shadow de .hoja (una
-     * sombra puramente de pantalla) se saliera del área de una página
-     * y el navegador agregaba una SEGUNDA página casi en blanco solo
-     * para ese borde — encontrado generando un PDF real de prueba. */
-    overflow: hidden !important;
-  }
-
-  /* El puntillado de grilla (ver regla base de .hoja) es una ayuda de
-   * edición en pantalla, no algo que tenga que salir en el plano
-   * impreso — sin esto toda la hoja se veía punteada/grisácea. El fondo
-   * blanco de `.hoja` (var(--bg-surface) es casi negro en modo oscuro)
-   * se fuerza más abajo, junto con el resto de los fondos oscuros. */
-  .hoja {
-    background-image: none !important;
-    box-shadow: none !important;
-  }
-
-  /* El papel es blanco sin importar qué tema esté activo en pantalla: si
-   * se exporta en modo oscuro, --text-primary resolvía a su valor OSCURO
-   * (un gris casi blanco pensado para fondo oscuro) y el plano salía
-   * grisáceo en vez de negro. `body { color }` no alcanza: la mayoría de
-   * los textos y símbolos fijan su PROPIO color (clase o inline style),
-   * y eso siempre gana sobre lo heredado del body sin importar el
-   * `!important` del ancestro — hace falta pisar cada elemento
-   * directamente con el selector universal. Los colores explícitos de la
-   * librería (puntos de conexión #e11d48, el círculo de neutro #fdfdfd)
-   * no se tocan porque usan `fill`/`stroke` propios, no `color`. */
-  .lienzo,
-  .lienzo *,
-  .exportacion-proyecto,
-  .exportacion-proyecto * {
-    color: #000 !important;
-  }
-  .react-flow__edge-path {
-    stroke: #000 !important;
-  }
-  /* `border-color` no es `color`: la regla de arriba no lo toca. El
-   * marco de la hoja Y las líneas del rótulo IRAM 4508 (`--text-primary`,
-   * un azul-gris casi negro) salían visiblemente grises al lado de todo
-   * lo demás ya forzado a negro puro — señalado en vivo dos veces ("el
-   * marco sale en gris", después "las líneas del rótulo siguen
-   * grises": el rótulo usa `border` por `style` inline, no por clase,
-   * así que necesita su propia regla separada de `.hoja-marco`). */
-  .hoja-marco,
-  .zona-protegida,
-  .zona-protegida * {
-    border-color: #000 !important;
-  }
-
-  /* Mismo problema que el color, pero de fondo: en modo oscuro las
-   * etiquetas de cable, las fichas de aparato y las celdas del rótulo
-   * traen su propio `background: var(--bg-surface)` (casi negro) — con
-   * el texto ya forzado a negro por la regla de arriba, quedaban
-   * ilegibles (negro sobre casi negro). Transparente deja ver el blanco
-   * de `.hoja` de abajo — por eso esta regla tiene que ir DESPUÉS de la
-   * de arriba en el archivo: sin orden, `.hoja *` también matchea
-   * `.hoja` y pisaría su propio fondo blanco. */
-  .lienzo *,
-  .exportacion-proyecto * {
-    background: transparent !important;
-  }
-  .hoja {
-    background-color: #fff !important;
-  }
-}
-
-/* ---- Exportación del proyecto ENTERO (todas las hojas + BOM) ----
- * ExportacionProyecto.tsx solo existe en el DOM mientras se exporta; acá
- * además hay que apagar el lienzo interactivo normal (que el bloque de
- * arriba deja visible para la exportación de UNA hoja) y mostrar esta
- * vista multipágina en su lugar. */
-.exportacion-proyecto {
-  display: none;
-}
-/* Visible pero lejos de la pantalla apenas arranca el export — TIENE
- * que tener layout real (no `display:none`) antes de imprimir: React
- * Flow mide sus nodos vía ResizeObserver, y ese observer nunca dispara
- * en un elemento sin layout. Si esto se revelaba recién bajo
- * `@media print` (como antes), `window.print()` se llamaba con los
- * nodos todavía sin medir — salía con las hojas en blanco (encontrado
- * en vivo). `ExportacionProyecto.tsx` espera a que cada página avise
- * que terminó de medir antes de llamar a `window.print()`; bajo
- * `@media print`, un poco más abajo, se reposiciona a estático para
- * que imprima en su lugar normal. */
-body.exportando-todo .exportacion-proyecto {
-  display: block;
+/* Necesita layout REAL (no `display:none`) para que React Flow pueda
+ * medir sus nodos vía ResizeObserver — un elemento sin layout nunca
+ * dispara ese observer, y html2canvas tampoco puede capturar algo sin
+ * tamaño. Lejos de la pantalla en vez de oculto por eso. */
+.exportacion-offscreen {
   position: fixed;
   top: 0;
   left: -99999px;
 }
-@media print {
-  /* `.cuerpo` no está en la lista general de "ocultar en impresión"
-   * porque el export de UNA hoja lo necesita visible (contiene
-   * `.lienzo`). Acá sí hace falta ocultarlo ENTERO, no solo sus hijos:
-   * un `<div>` vacío pero VISIBLE (aunque mida 0 de alto) como hermano
-   * de `.exportacion-proyecto` le basta a Chromium para insertar una
-   * página fantasma en blanco antes de la primera hoja real — pasa con
-   * cualquier `display` (incluso `block`), no es un tema de flex.
-   * Encontrado en vivo generando un PDF real con más de una hoja. */
-  body.exportando-todo .lienzo,
-  body.exportando-todo .paleta,
-  body.exportando-todo .cuerpo {
-    display: none !important;
-  }
-  body.exportando-todo .exportacion-proyecto {
-    position: static;
-    left: auto;
-  }
-  .pagina-impresion {
-    position: relative;
-    overflow: hidden;
-    background: #fff;
-    page-break-after: always;
-    break-after: page;
-  }
-  .pagina-impresion:last-child {
-    page-break-after: auto;
-    break-after: auto;
-  }
-  .pagina-bom {
-    padding: 15mm;
-    font-family: system-ui, sans-serif;
-    color: var(--text-primary);
-    display: flex;
-    flex-direction: column;
-  }
-  .pagina-bom-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10mm;
-    border-bottom: 2px solid #000;
-    padding-bottom: 4mm;
-    margin-bottom: 8mm;
-  }
-  .pagina-bom-header h1 {
-    font-size: 18px;
-    margin: 0;
-    letter-spacing: 0.2px;
-  }
-  .pagina-bom-meta {
-    display: flex;
-    gap: 8mm;
-    margin: 0;
-    font-size: 9px;
-  }
-  .pagina-bom-meta div {
-    display: flex;
-    flex-direction: column;
-    gap: 1mm;
-    text-align: right;
-  }
-  .pagina-bom-meta dt {
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    color: #666;
-  }
-  .pagina-bom-meta dd {
-    margin: 0;
-    font-weight: 600;
-    font-size: 11px;
-  }
-  .pagina-bom-vacio {
-    font-size: 11px;
-    color: #666;
-  }
-  .pagina-bom-grupo {
-    margin-bottom: 7mm;
-  }
-  .pagina-bom-grupo h2 {
-    font-size: 12px;
-    margin: 0 0 2mm;
-    padding-bottom: 1mm;
-    border-bottom: 1px solid #000;
-  }
-  .pagina-bom table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 9.5px;
-    table-layout: fixed;
-  }
-  .pagina-bom th,
-  .pagina-bom td {
-    border: 1px solid #000;
-    padding: 2.5px 5px;
-    text-align: left;
-    overflow-wrap: break-word;
-  }
-  .pagina-bom th {
-    background: #f1f5f9;
-    font-size: 8.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  .pagina-bom th:nth-child(1),
-  .pagina-bom td:nth-child(1) {
-    width: 10%;
-  }
-  .pagina-bom th:nth-child(2),
-  .pagina-bom td:nth-child(2) {
-    width: 18%;
-  }
-  .pagina-bom th:nth-child(3),
-  .pagina-bom td:nth-child(3) {
-    width: 34%;
-  }
-  .pagina-bom th:nth-child(4),
-  .pagina-bom td:nth-child(4),
-  .pagina-bom th:nth-child(5),
-  .pagina-bom td:nth-child(5) {
-    width: 15%;
-  }
-  .pagina-bom td:last-child,
-  .pagina-bom th:last-child {
-    width: 8%;
-    text-align: right;
-  }
+
+/* Fuerza negro sobre blanco durante la CAPTURA, sin importar el tema
+ * activo en pantalla — lib/exportarPdf.ts agrega/saca esta clase justo
+ * antes/después de cada llamada a html2canvas. El papel tiene que ser
+ * blanco pase lo que pase: en modo oscuro, --text-primary resuelve a
+ * su valor casi blanco pensado para fondo oscuro, y el plano salía
+ * grisáceo en vez de negro. `border-color` no es `color` (el marco de
+ * la hoja y las líneas del rótulo IRAM 4508 usan `border`, no
+ * `color`) y el fondo tampoco (etiquetas de cable y fichas de aparato
+ * traen su propio `background: var(--bg-surface)`, casi negro en modo
+ * oscuro) — cada uno necesita su propia regla, en ese orden: el fondo
+ * transparente va DESPUÉS del texto negro, si no `.hoja *` también
+ * matchea `.hoja` y pisa su propio fondo blanco. */
+.captura-pdf-negro,
+.captura-pdf-negro * {
+  color: #000 !important;
+}
+.captura-pdf-negro .react-flow__edge-path {
+  stroke: #000 !important;
+}
+.captura-pdf-negro .hoja-marco,
+.captura-pdf-negro .zona-protegida,
+.captura-pdf-negro .zona-protegida * {
+  border-color: #000 !important;
+}
+.captura-pdf-negro * {
+  background: transparent !important;
+}
+.captura-pdf-negro .hoja {
+  background-color: #fff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* ---- Lista de materiales: PDF propio, aparte de los planos ----
+ * Ancho fijo A4 (es una tabla, no un plano a escala); el alto queda
+ * libre para crecer con la cantidad de ítems — lib/exportarPdf.ts
+ * captura el elemento entero y lo reparte en tantas páginas A4 como
+ * haga falta, no hay salto de página por CSS acá. */
+.pagina-bom {
+  width: 210mm;
+  padding: 15mm;
+  font-family: system-ui, sans-serif;
+  color: #000;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.pagina-bom-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10mm;
+  border-bottom: 2px solid #000;
+  padding-bottom: 4mm;
+  margin-bottom: 8mm;
+}
+.pagina-bom-header h1 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+.pagina-bom-meta {
+  display: flex;
+  gap: 8mm;
+  margin: 0;
+  font-size: 9px;
+}
+.pagina-bom-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  text-align: right;
+}
+.pagina-bom-meta dt {
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #666;
+}
+.pagina-bom-meta dd {
+  margin: 0;
+  font-weight: 600;
+  font-size: 11px;
+}
+.pagina-bom-vacio {
+  font-size: 11px;
+  color: #666;
+}
+.pagina-bom-grupo {
+  margin-bottom: 7mm;
+}
+.pagina-bom-grupo h2 {
+  font-size: 12px;
+  margin: 0 0 2mm;
+  padding-bottom: 1mm;
+  border-bottom: 1px solid #000;
+}
+.pagina-bom table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5px;
+  table-layout: fixed;
+}
+.pagina-bom th,
+.pagina-bom td {
+  border: 1px solid #000;
+  padding: 2.5px 5px;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+.pagina-bom th {
+  background: #f1f5f9;
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.pagina-bom th:nth-child(1),
+.pagina-bom td:nth-child(1) {
+  width: 10%;
+}
+.pagina-bom th:nth-child(2),
+.pagina-bom td:nth-child(2) {
+  width: 18%;
+}
+.pagina-bom th:nth-child(3),
+.pagina-bom td:nth-child(3) {
+  width: 34%;
+}
+.pagina-bom th:nth-child(4),
+.pagina-bom td:nth-child(4),
+.pagina-bom th:nth-child(5),
+.pagina-bom td:nth-child(5) {
+  width: 15%;
+}
+.pagina-bom td:last-child,
+.pagina-bom th:last-child {
+  width: 8%;
+  text-align: right;
 }

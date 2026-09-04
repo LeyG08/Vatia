@@ -1,6 +1,6 @@
 {
   "codigo_iec": "S00131",
-  "nombre": "Sirena / alarma sonora",
+  "nombre": "Sirena de alarma",
   "familia_atributos": "aparato",
   "estado_revision": "verificado",
   "puntos_conexion": [

@@ -1,17 +1,17 @@
 /**
- * Exportación a PDF (impresión del navegador): la hoja activa se imprime
- * TAL COMO ESTÁ dibujada en el lienzo — no hay un renderer paralelo, se
- * reusa el mismo React Flow que ya se ve en pantalla. Lo único que hace
- * falta es (a) ocultar el resto de la interfaz bajo `@media print`
- * (ver estilos.css) y (b) llevar el viewport a la escala física real
- * antes de llamar a `window.print()`.
+ * Exportación a PDF (descarga directa con html2canvas + jsPDF, ver
+ * lib/exportarPdf.ts): cada hoja se dibuja en una instancia de React Flow
+ * propia, montada fuera de pantalla al tamaño físico real, y se captura
+ * TAL COMO QUEDA dibujada — no hay un renderer paralelo.
  *
- * Por qué el zoom no es 1: la hoja se dibuja a `PX_POR_MM` unidades de
- * React Flow por milímetro real (hoy 4). Al imprimir, el navegador trata
- * 1 unidad de React Flow como 1 px CSS, y 1 px CSS son 1/96", no 1/(4·mm).
- * El factor que corrige esa diferencia es constante — no depende del
- * formato de hoja (A4..A0) ni de la orientación, porque `PX_POR_MM` es
- * fijo — así que se calcula una sola vez acá.
+ * Por qué el zoom no es 1: el contenedor de cada hoja se fija a su
+ * tamaño real en milímetros (ver HojaCanvas), que el navegador resuelve
+ * a píxeles CSS a 96 dpi. La hoja se dibuja a `PX_POR_MM` unidades de
+ * React Flow por milímetro (hoy 4) — sin corregir el zoom del viewport,
+ * el contenido no llenaría ese contenedor a su tamaño real. El factor
+ * que corrige esa diferencia es constante — no depende del formato de
+ * hoja (A4..A0) ni de la orientación, porque `PX_POR_MM` es fijo — así
+ * que se calcula una sola vez acá.
  */
 import { PX_POR_MM, TAMANIOS_HOJA_MM, type HojaConfig } from "./tipos";
 

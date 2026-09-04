@@ -1,4 +1,4 @@
-import { useMemo, type ReactElement } from "react";
+import { Fragment, useMemo, type ReactElement } from "react";
 import {
   type FamiliaAtributos,
   camposDeFamilia,
@@ -6,16 +6,40 @@ import {
   parAutomatico,
   campoVisible,
 } from "../lib/esquemas";
+import { esAccesorioReferencia } from "../lib/referencia";
+import SelectorConEscape from "./SelectorConEscape";
+
+interface UsoReferencia {
+  id: string;
+  tipoAparato: string;
+  etiqueta: string;
+  hoja: string;
+}
 
 interface Props {
   familia: FamiliaAtributos;
   atributos: Record<string, unknown>;
   onChange: (nuevosAtributos: Record<string, unknown>) => void;
+  /** Aviso de incompatibilidad del campo "referencia" (E52, ver
+   * lib/referencia.ts) — calculado por el padre, que es quien tiene
+   * acceso al resto del proyecto; se muestra pegado al campo, no
+   * bloquea el guardado. */
+  avisoReferencia?: string | null;
+  /** Referencias YA usadas en el proyecto — para las piezas "accesorio"
+   * (contacto auxiliar, bobina genérica) el campo "referencia" se
+   * ofrece como lista en vez de texto libre: elegir de acá ES vincular
+   * la pieza a un aparato existente (E53). */
+  opcionesReferencia?: { referencia: string; etiqueta: string }[];
+  /** El resto de los símbolos que comparten la MISMA referencia que
+   * este — se muestra como "Vinculado con…" debajo del campo, aunque
+   * estén en otra hoja (E53). */
+  vinculosReferencia?: UsoReferencia[];
 }
 
 function valorComoTexto(v: unknown): string {
   return v === undefined || v === null ? "" : String(v);
 }
+
 
 /** Campos del JUEGO DE BARRAS que maneja el bloque de composición
  * (chips): nunca se renderizan como campos sueltos. */
@@ -55,7 +79,14 @@ function estimarInA(a: Record<string, unknown>): number | null {
   return Math.round(i * 10) / 10;
 }
 
-export default function FormularioAtributos({ familia, atributos, onChange }: Props) {
+export default function FormularioAtributos({
+  familia,
+  atributos,
+  onChange,
+  avisoReferencia,
+  opcionesReferencia,
+  vinculosReferencia,
+}: Props) {
   const campos = useMemo(() => camposDeFamilia(familia, atributos), [familia, atributos]);
   const alguno = useMemo(() => algunoObligatorio(familia, atributos), [familia, atributos]);
   const reglaPar = useMemo(() => parAutomatico(familia, atributos), [familia, atributos]);
@@ -130,7 +161,23 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
 
         let control: ReactElement;
 
-        if (esquema.enum) {
+        if (
+          nombre === "referencia" &&
+          typeof atributos.tipo_aparato === "string" &&
+          esAccesorioReferencia(atributos.tipo_aparato) &&
+          opcionesReferencia &&
+          opcionesReferencia.length > 0
+        ) {
+          control = (
+            <SelectorConEscape
+              valor={valorComoTexto(valorActual)}
+              opciones={opcionesReferencia.map((o) => ({ valor: o.referencia, etiqueta: o.etiqueta }))}
+              onChange={(v) => actualizar(nombre, v || undefined)}
+              placeholder="ej. KM1"
+              etiquetaVacio="— sin vincular —"
+            />
+          );
+        } else if (esquema.enum) {
           control = (
             <select
               value={valorComoTexto(valorActual)}
@@ -188,13 +235,26 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
         }
 
         return (
-          <label key={nombre} className="campo-atributo" title={esquema.description}>
-            <span>
-              {title ?? nombre}
-              {obligatorio && <em className="obligatorio" aria-label="obligatorio">*</em>}
-            </span>
-            {control}
-          </label>
+          <Fragment key={nombre}>
+            <label className="campo-atributo" title={esquema.description}>
+              <span>
+                {title ?? nombre}
+                {obligatorio && <em className="obligatorio" aria-label="obligatorio">*</em>}
+              </span>
+              {control}
+            </label>
+            {nombre === "referencia" && avisoReferencia && (
+              <p className="form-atributos-aviso">{avisoReferencia}</p>
+            )}
+            {nombre === "referencia" && vinculosReferencia && vinculosReferencia.length > 0 && (
+              <p className="form-atributos-vinculos">
+                Vinculado con:{" "}
+                {vinculosReferencia
+                  .map((v) => `${v.etiqueta} (${v.hoja})`)
+                  .join(" · ")}
+              </p>
+            )}
+          </Fragment>
         );
       })}
 

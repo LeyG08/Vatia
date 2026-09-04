@@ -55,9 +55,10 @@
     },
     "corriente_admisible_A": {
       "type": "number",
-      "exclusiveMinimum": 0,
+      "minimum": 16,
+      "maximum": 6300,
       "x-obligatorio": true,
-      "description": "Corriente admisible de la barra en amperes.",
+      "description": "Corriente admisible de la barra en amperes. Rango de plausibilidad (16 A a 6300 A, lo habitual en juegos de barra de tablero BT según fabricante/IRAM 2181) para atrapar errores de tipeo, ej. un valor en otra unidad cargado por error — no reemplaza la tabla real del fabricante.",
       "title": "Corriente admisible (A)"
     }
   }

@@ -1,6 +1,6 @@
 {
   "codigo_iec": "S00121",
-  "nombre": "Interruptor automático en caja moldeada (MCCB)",
+  "nombre": "Interruptor MCCB",
   "familia_atributos": "aparato",
   "estado_revision": "verificado",
   "atributos_base": {
