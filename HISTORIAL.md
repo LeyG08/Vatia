@@ -5739,3 +5739,145 @@ tabla, preserva el valor existente (240 mm²) sin forzar "Otra…", y al
 cambiar el material a Al "1,5 mm²" desaparece de la lista. `tsc -b`,
 `lint`, `build`, `e2e/conexiones.mjs`, `verificar_proyecto_real.mjs`,
 `verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E55 — Estimación de corriente admisible de barra por dimensiones y material
+
+Corrección del usuario sobre E54, después de commitear: "de las
+barras hay tablas de corriente admisible por sus dimensiones y
+normativa, que la normativa cambia si es Cu o Al" — el rango de
+plausibilidad de E54 (16-6300 A) no alcanzaba, hacía falta derivar el
+valor de la sección real, como con los cables.
+
+**Investigación honesta antes de escribir un número.** Se buscó
+`IRAM 2181` (la norma de tableros BT que rige el dimensionamiento de
+barras) en la misma carpeta `D:\Drive\Normativas\` de donde salió la
+tabla de cables verificada — no está. El usuario pidió entonces
+buscarla en la web. Se encontraron:
+
+- Una tabla de fabricante (GRL Copper) con corriente por sección de
+  barra de cobre, pero resultó ser exactamente `área_mm² × 1,55` en
+  DC y `× ~1,5` en AC para TODAS las filas — no una tabla con efectos
+  térmicos reales por forma, un coeficiente lineal disfrazado de tabla.
+- Documentos de Scribd/Studocu ("Tablas B187", "Ampacidad de Barras de
+  Cobre") con el contenido real bloqueado detrás de una vista previa —
+  no se pudo extraer ni verificar ningún valor de ahí.
+- Rangos de densidad de corriente de guías técnicas de fabricante para
+  barras de tablero BT en gabinete: cobre 1,0–1,6 A/mm², aluminio
+  0,7–1,2 A/mm² (cobre soporta ~25-30% más que aluminio a igual
+  sección, por su mayor conductividad — ahí sí "la normativa cambia si
+  es Cu o Al", aunque no sea una norma IRAM sino una convención de
+  fabricante).
+
+**No hay una tabla normativa verificable para transcribir**, a
+diferencia de los cables. En vez de fabricar una tabla con precisión
+falsa, `lib/barras.ts` implementa una ESTIMACIÓN — mismo patrón ya
+usado en este formulario para la corriente de motor trifásico
+(`estimarInA`): parsea `dimensiones` (acepta los DOS formatos que
+existen en proyectos reales — "30x10mm" ancho×espesor, o
+"3x30x10mm" con cantidad de barras apiladas por fase), calcula el
+área y la multiplica por el punto medio de cada rango (Cu 1,3 A/mm²,
+Al 0,9 A/mm²), y se ofrece con un botón "usar" — nunca pisa un valor
+real ya cargado.
+
+**Encontrado en vivo, corrigiendo el propio código recién escrito**: el
+primer intento de `estimarCorrienteAdmisibleBarraA()` solo entendía el
+formato "cantidad x ancho x espesor" (3 números) — la barra REAL del
+proyecto del PPS usa "30x10mm" (2 números, sin cantidad), y la
+estimación devolvía `null` en silencio. Se corrigió para aceptar
+ambos formatos, cantidad=1 si no está explícita.
+
+Verificado en vivo con Playwright contra la barra real del PPS
+(30×10mm, Cu, con `corriente_admisible_A: 573` ya cargado en el
+proyecto real): al vaciar el campo aparece "Corriente admisible ≈ 390
+A (estimado)" (300 mm² × 1,3 A/mm²) — más baja que el valor real de
+catálogo (573 A), lo cual es coherente con ser una estimación
+conservadora de regla general, no la tabla real del fabricante. Click
+en "usar" carga 390 correctamente. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E56 — Tabla real DIN 43671 para barras de cobre (corrige E55)
+
+El usuario, después de leer E55: "DIN 43671 donde esta normado
+corriente admisible y dimensiones" — señalando la norma exacta que
+E55 no había identificado (buscó "IRAM 2181" y una tabla genérica de
+fabricante, sin dar con el número de norma correcto).
+
+**Búsqueda ampliada, siguiendo la pista del usuario.** DIN 43671 no
+está en `D:\Drive\Normativas\` (se había revisado antes, en E55) ni en
+el resto del disco del usuario. Buscando en la web con el número de
+norma correcto sí apareció una fuente real y verificable: "Rated
+currents of busbars E-Cu (DIN 43 671)", Rittal Catálogo 33 "Power
+distribution", 11.2012, páginas 152-153 — descargada y leída
+visualmente (mismo criterio que la tabla de cables, no OCR). El propio
+documento trae un ejemplo resuelto: barra de cobre 30×10mm → 573 A —
+que **coincide exacto** con el valor ya cargado en el proyecto real del
+PPS, confirmando de forma independiente que es la fuente correcta (el
+proyecto cita IRAM 2181-1, que remite al mismo criterio de DIN 43671
+para barras de cobre).
+
+**Hallazgo real, no una decisión de diseño**: la corriente admisible
+NO escala linealmente con el área — una barra de 12×2mm (24 mm²) da
+~4,5 A/mm², mientras que una de 100×10mm (1000 mm²) da ~1,5 A/mm² (a
+mayor sección, peor relación superficie/volumen para disipar calor).
+La estimación por "densidad de corriente constante" de E55 era, por
+diseño, una aproximación gruesa — confirmado numéricamente: para
+30×10mm daba 390 A estimados contra 573 A reales, un 32% de error.
+
+**`lib/barras.ts` reescrito**: 22 filas reales de la tabla (12×2 a
+100×10mm, corriente CA continua, barra de cobre desnuda) con búsqueda
+EXACTA por (ancho, espesor) — la norma no interpola entre pasos,
+tampoco se inventa acá. Aluminio: **es una norma DISTINTA** (DIN
+43670, no 43671 — "la normativa cambia si es Cu o Al" es literal, no
+solo la tabla), y no se consiguió una fuente de aluminio igual de
+verificable — se deriva de la tabla de cobre con el factor de
+conversión habitual (cobre admite ~1,27 veces más que aluminio a igual
+sección), documentado como derivado, no transcripto. Fuera de la tabla
+(sección no tabulada, o varias barras apiladas — el agrupamiento no es
+lineal por calentamiento mutuo, y no hay tabla de grupo verificada) se
+sigue cayendo a la estimación de E55, ahora claramente marcada
+"(estimado)" en vez de mezclarse con los valores reales "(DIN 43671)".
+
+Verificado en vivo con Playwright, tres casos: 30×10mm Cu → "573 A
+(DIN 43671)" (exacto, coincide con el dato real del proyecto);
+30×10mm Al → "451 A (DIN 43671)" (derivado, 573÷1,27); 33×10mm Cu
+(sección no tabulada) → "429 A (estimado)" (cae a la densidad de
+corriente, sin fingir precisión de tabla). Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E57 — Tabla DIN 43671 más completa, con barras apiladas reales
+
+Encontrada en el propio disco del usuario, en un hallazgo que llegó
+por una notificación de una búsqueda en segundo plano lanzada durante
+E56 (buscaba "43671" en TODO `D:\Drive\Facultad` y `D:\Drive\
+Normativas`, no solo en la carpeta de normativas): `D:\Drive\Facultad\
+PPS\Hojas de datos\ficha_tecnica_pletina_de_cobre.pdf` — ficha de
+Bronmetal, "Pletinas de cobre para aplicaciones eléctricas, según EN
+13601", con la tabla "INTENSIDAD ADMISIBLE. DIN 43671" completa. Vive
+en la carpeta del PROPIO PPS del usuario — casi seguro es la fuente
+real que se usó para cargar el dato del proyecto (30×10mm → 573 A
+coincide exacto, igual que con la tabla de Rittal de E56 — las dos
+fuentes independientes se corroboran entre sí).
+
+Esta ficha es más completa que la de Rittal en dos sentidos: más filas
+(hasta 200×10mm) y, sobre todo, **corriente real para 2, 3 y 4 barras
+apiladas por fase** — el caso que en E55/E56 quedaba sin tabla (el
+agrupamiento no es lineal por calentamiento mutuo entre barras, así
+que antes caía siempre a la estimación por densidad de corriente, sin
+importar cuántas barras apiladas se cargaran). `lib/barras.ts` se
+reescribe con esta tabla (27 filas × hasta 4 columnas de cantidad de
+barras) y la búsqueda ahora es por (ancho, espesor, cantidad) exacta,
+no solo (ancho, espesor).
+
+Verificado en vivo con Playwright: 30×10mm × 1 barra → "573 A (DIN
+43671)" (sigue exacto); 30×10mm × 2 barras (antes cadía a
+"estimado") → "1060 A (DIN 43671)", valor real de tabla; 40×10mm × 3
+barras → "1770 A (DIN 43671)"; 30×10mm × 5 barras (fuera de la tabla,
+la ficha solo llega a 4) → "1950 A (estimado)", cae correctamente sin
+fingir precisión que no tiene. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.

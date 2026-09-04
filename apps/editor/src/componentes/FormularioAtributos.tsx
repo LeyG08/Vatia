@@ -7,6 +7,7 @@ import {
   campoVisible,
 } from "../lib/esquemas";
 import { esAccesorioReferencia } from "../lib/referencia";
+import { estimarCorrienteAdmisibleBarraA } from "../lib/barras";
 import SelectorConEscape from "./SelectorConEscape";
 
 interface UsoReferencia {
@@ -329,6 +330,41 @@ export default function FormularioAtributos({
             <div className="estimacion-in">
               <span title="Estimación desde potencia de eje + η + cosφ + tensión; no reemplaza el dato de placa">
                 In ≈ {est} A (estimado, η={ef}% · cosφ={cos})
+              </span>
+              <button type="button" onClick={usarEstimacion}>
+                usar
+              </button>
+            </div>
+          );
+        })()}
+
+      {/* Barra: si falta la corriente admisible, ofrecé el valor de
+          DIN 43671 (cobre, tabla real) o una ESTIMACIÓN por densidad de
+          corriente si la sección no está tabulada o hay varias barras
+          apiladas (E55/E56, ver lib/barras.ts). Nunca pisa un valor
+          real ya cargado. */}
+      {familia === "barra" &&
+        atributos.corriente_admisible_A == null &&
+        (() => {
+          const est = estimarCorrienteAdmisibleBarraA(
+            atributos.dimensiones as string | undefined,
+            atributos.material as "Cu" | "Al" | undefined,
+          );
+          if (est === null) return null;
+          const usarEstimacion = () =>
+            onChange({ ...atributos, corriente_admisible_A: est.corrienteA });
+          const esTabla = est.fuente === "tabla";
+          return (
+            <div className="estimacion-in">
+              <span
+                title={
+                  esTabla
+                    ? "DIN 43671 (barras de cobre desnudas, 35°C aire / 65°C barra) — aluminio derivado con el factor de conversión Cu→Al habitual (÷1,27). Ver lib/barras.ts."
+                    : "Estimación por densidad de corriente típica de barra de tablero BT — sección no tabulada en DIN 43671, o varias barras apiladas (el agrupamiento no es lineal). No reemplaza la tabla real del fabricante. Ver lib/barras.ts."
+                }
+              >
+                Corriente admisible ≈ {est.corrienteA} A
+                {esTabla ? " (DIN 43671)" : " (estimado)"}
               </span>
               <button type="button" onClick={usarEstimacion}>
                 usar
