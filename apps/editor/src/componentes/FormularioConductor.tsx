@@ -24,6 +24,9 @@ interface Props {
     ibA: number | null;
     caidaPct: number | null;
     iz: ResultadoIz | null;
+    /** Cuántos conductores comparten la misma "canalización" que este
+     * (E58), contado solo — 1 = va solo, sin agrupamiento. */
+    circuitosAgrupados: number;
   };
 }
 
@@ -35,6 +38,14 @@ function opcionesSeccion(material: unknown, modo: ModoHoja) {
     valor: String(s),
     etiqueta: `${s} mm²`,
   }));
+}
+
+/** Un tramo del recorrido físico del cable (E59) — ver TramoInstalacion
+ * en lib/calculo.ts, mismo shape. */
+interface Tramo {
+  metodo_instalacion?: string;
+  longitud_m?: number;
+  temperatura_ambiente_c?: number;
 }
 
 function valorComoTexto(v: unknown): string {
@@ -115,14 +126,20 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
     "lleva_tierra",
     "seccion_tierra_mm2",
     "seccion_fase_mm2",
+    "tramos",
   ]);
-  const camposRestantes = (camposDeFamilia("conductor", atributos) ?? []).filter(
+  const simples = (camposDeFamilia("conductor", atributos) ?? []).filter(
     (c: CampoDescriptor) => !manejados.has(c.nombre),
   );
-  // Método de instalación se saca del loop genérico: lleva un recordatorio
-  // propio de códigos que no tiene ningún otro campo del schema.
-  const metodoInstalacionCampo = camposRestantes.find((c) => c.nombre === "metodo_instalacion");
-  const simples = camposRestantes.filter((c) => c.nombre !== "metodo_instalacion");
+
+  const tramos = Array.isArray(atributos.tramos) ? (atributos.tramos as Tramo[]) : [];
+  function actualizarTramos(nuevos: Tramo[]) {
+    onChange(poner(atributos, "tramos", nuevos.length > 0 ? nuevos : undefined));
+  }
+  function actualizarTramo(indice: number, campo: keyof Tramo, valor: unknown) {
+    const nuevos = tramos.map((t, i) => (i === indice ? { ...t, [campo]: valor } : t));
+    actualizarTramos(nuevos);
+  }
 
   const preview = lineasCable(atributos);
 
@@ -349,41 +366,106 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
         );
       })}
 
-      {/* ---- Método de instalación: código + recordatorio siempre visible ----
-       * Pedido del usuario: se elige SOLO por el código (A1, B2, C...),
-       * pero con un recordatorio de a qué corresponde cada uno — nadie
-       * los recuerda de memoria, y ocultarlo detrás de un hover no
-       * alcanza para consultarlo mientras se completa la ficha. */}
-      {metodoInstalacionCampo && (
-        <label className="campo-atributo" title={metodoInstalacionCampo.esquema.description}>
-          <span>
-            {metodoInstalacionCampo.title ?? "Método de instalación"}
-            {metodoInstalacionCampo.obligatorio && <em className="obligatorio">*</em>}
-          </span>
-          <select
-            value={valorComoTexto(atributos.metodo_instalacion)}
-            onChange={(e) => onChange(poner(atributos, "metodo_instalacion", e.target.value || undefined))}
-          >
-            <option value="">—</option>
-            {METODOS_INSTALACION.map(({ codigo }) => (
-              <option key={codigo} value={codigo}>{codigo}</option>
-            ))}
-          </select>
-        </label>
-      )}
-      {metodoInstalacionCampo && (
-        <details className="fc-metodos-recordatorio">
-          <summary>Qué es cada método de instalación</summary>
-          <dl>
-            {METODOS_INSTALACION.map(({ codigo, descripcion }) => (
-              <div key={codigo}>
-                <dt>{codigo}</dt>
-                <dd>{descripcion}</dd>
+      {/* ---- Tramos de instalación (E59) ----
+       * Un mismo cable puede recorrer varios métodos de instalación
+       * distintos (parte encañado en pared, parte enterrado…) — pedido
+       * explícito del usuario. El caso común (un solo tramo) es
+       * simplemente una lista de un elemento, sin ceremonia extra. El
+       * tramo que resultó el más restrictivo (el que fija el Iz del
+       * cable entero) se marca cuando hay más de uno. */}
+      <div className="fc-tramos">
+        <span className="fc-tramos-titulo">
+          Tramos de instalación<em className="obligatorio">*</em>
+        </span>
+        {tramos.length === 0 && (
+          <p className="form-atributos-vacio">Sin tramos cargados todavía.</p>
+        )}
+        {tramos.map((tramo, i) => (
+          <div className="fc-tramo" key={i}>
+            {tramos.length > 1 && (
+              <div className="fc-tramo-encabezado">
+                <span>
+                  Tramo {i + 1}
+                  {calculo?.iz?.tramoLimitante === i + 1 && (
+                    <em className="fc-tramo-limitante" title="Es el tramo más restrictivo: el que fija el Iz del cable entero.">
+                      {" "}
+                      · más restrictivo
+                    </em>
+                  )}
+                </span>
+                <button type="button" onClick={() => actualizarTramos(tramos.filter((_, j) => j !== i))}>
+                  Quitar
+                </button>
               </div>
-            ))}
-          </dl>
-        </details>
-      )}
+            )}
+            <label className="campo-atributo" title="Código de método de instalación (AEA 90364-5-52 / IEC 60364-5-52, Anexo B, Tabla B52-1) DE ESTE TRAMO.">
+              <span>
+                Método<em className="obligatorio">*</em>
+              </span>
+              <select
+                value={valorComoTexto(tramo.metodo_instalacion)}
+                onChange={(e) => actualizarTramo(i, "metodo_instalacion", e.target.value || undefined)}
+              >
+                <option value="">—</option>
+                {METODOS_INSTALACION.map(({ codigo }) => (
+                  <option key={codigo} value={codigo}>{codigo}</option>
+                ))}
+              </select>
+            </label>
+            <label className="campo-atributo">
+              <span>
+                Longitud (m)<em className="obligatorio">*</em>
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="any"
+                value={valorComoTexto(tramo.longitud_m)}
+                onChange={(e) =>
+                  actualizarTramo(
+                    i,
+                    "longitud_m",
+                    e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+                  )
+                }
+              />
+            </label>
+            <label className="campo-atributo fc-sub">
+              <span>↳ Temperatura ambiente (°C)</span>
+              <input
+                type="number"
+                step="any"
+                value={valorComoTexto(tramo.temperatura_ambiente_c)}
+                onChange={(e) =>
+                  actualizarTramo(
+                    i,
+                    "temperatura_ambiente_c",
+                    e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+                  )
+                }
+              />
+            </label>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="fc-tramo-agregar"
+          onClick={() => actualizarTramos([...tramos, {}])}
+        >
+          + Agregar tramo
+        </button>
+      </div>
+      <details className="fc-metodos-recordatorio">
+        <summary>Qué es cada método de instalación</summary>
+        <dl>
+          {METODOS_INSTALACION.map(({ codigo, descripcion }) => (
+            <div key={codigo}>
+              <dt>{codigo}</dt>
+              <dd>{descripcion}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
 
       {/* ---- Vista previa de la notación ---- */}
       {preview.length > 0 && (
@@ -413,6 +495,15 @@ export default function FormularioConductor({ atributos, onChange, encabezado, m
             <div className="fc-calculo-linea">
               <span>Iz (corriente admisible)</span>
               <strong>{calculo.iz.izCorregidaA.toFixed(1)} A</strong>
+            </div>
+          )}
+          {calculo.circuitosAgrupados > 1 && (
+            <div
+              className="fc-calculo-linea"
+              title="Cuántos conductores del proyecto comparten el campo Canalización con este — ya está incluido en la corrección de Iz de arriba."
+            >
+              <span>Circuitos agrupados (canalización)</span>
+              <strong>{calculo.circuitosAgrupados}</strong>
             </div>
           )}
           {calculo.ibA !== null && calculo.iz && (

@@ -99,8 +99,23 @@ export function problemasCable(a) {
   if (esVacio(a.material)) msj.push("Falta material.");
   if (esVacio(a.aislacion)) msj.push("Falta aislación.");
   if (esVacio(a.norma_iram)) msj.push("Falta norma IRAM.");
-  if (esVacio(a.longitud_m)) msj.push("Falta la longitud del tramo.");
-  if (esVacio(a.metodo_instalacion)) msj.push("Falta el método de instalación.");
+
+  // Tramos (E59): el cable puede recorrer varios métodos de instalación
+  // distintos (parte encañado, parte enterrado…) — cada tramo necesita
+  // su propia longitud y método. Sin ningún tramo cargado, el mensaje es
+  // el mismo de siempre (no distingue "0 tramos" de "el único tramo
+  // vacío" para no romper el texto que ya conocía el usuario).
+  const tramos = Array.isArray(a.tramos) ? a.tramos : [];
+  if (tramos.length === 0) {
+    msj.push("Falta la longitud del tramo.");
+    msj.push("Falta el método de instalación.");
+  } else {
+    tramos.forEach((t, i) => {
+      const etiqueta = tramos.length > 1 ? ` (tramo ${i + 1})` : "";
+      if (esVacio(t?.longitud_m)) msj.push(`Falta la longitud del tramo${etiqueta}.`);
+      if (esVacio(t?.metodo_instalacion)) msj.push(`Falta el método de instalación${etiqueta}.`);
+    });
+  }
 
   // Coherencia llaves ↔ secciones
   if (!neutro && sNeutro) {

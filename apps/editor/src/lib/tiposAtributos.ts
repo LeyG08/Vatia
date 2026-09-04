@@ -37,6 +37,8 @@ export type TipoAparato =
 export interface AparatoBancoCapacitores {
   /** Tipo de aparato */
   tipo_aparato: "banco_capacitores";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -54,6 +56,8 @@ export interface AparatoBancoCapacitores {
 export interface AparatoContactoAuxiliar {
   /** Tipo de aparato */
   tipo_aparato: "contacto_auxiliar";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -69,6 +73,8 @@ export interface AparatoContactoAuxiliar {
 export interface AparatoContactor {
   /** Tipo de aparato */
   tipo_aparato: "contactor";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -89,10 +95,14 @@ export interface AparatoContactor {
 export interface AparatoFusible {
   /** Tipo de aparato */
   tipo_aparato: "fusible";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
   modelo?: string;
+  /** Cantidad de polos */
+  cantidad_polos?: number;
   /** Tensión del portafusible (V) */
   portafusible_tension_v?: number;
   /** Categoría del portafusible */
@@ -112,6 +122,8 @@ export interface AparatoFusible {
 /** Guardamotor magnético (IEC 60947-2/4-1): protege SOLO contra cortocircuito, con disparo magnético instantáneo. No lleva disparador térmico, por eso no declara rango de ajuste térmico Ir; la protección contra sobrecarga la aporta un relé térmico aparte. Simbólicamente se distingue del termomagnético en que lleva una sola caja de disparador. */
 export interface AparatoGuardamotorMagnetico {
   tipo_aparato: "guardamotor_magnetico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -133,6 +145,8 @@ export interface AparatoGuardamotorMagnetico {
 export interface AparatoGuardamotorTermomagnetico {
   /** Tipo de aparato */
   tipo_aparato: "guardamotor_termomagnetico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -158,6 +172,8 @@ export interface AparatoGuardamotorTermomagnetico {
 export interface AparatoInstrumentoMedicion {
   /** Tipo de aparato */
   tipo_aparato: "instrumento_medicion";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -173,6 +189,8 @@ export interface AparatoInstrumentoMedicion {
 export interface AparatoInterruptorDiferencial {
   /** Tipo de aparato */
   tipo_aparato: "interruptor_diferencial";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -197,6 +215,8 @@ export interface AparatoInterruptorDiferencial {
 export interface AparatoInterruptorPosicion {
   /** Tipo de aparato */
   tipo_aparato: "interruptor_posicion";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -210,6 +230,8 @@ export interface AparatoInterruptorPosicion {
 export interface AparatoInterruptorTermomagnetico {
   /** Tipo de aparato */
   tipo_aparato: "interruptor_termomagnetico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -230,6 +252,8 @@ export interface AparatoInterruptorTermomagnetico {
 export interface AparatoLamparaPiloto {
   /** Tipo de aparato */
   tipo_aparato: "lampara_piloto";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -246,6 +270,8 @@ export interface AparatoLamparaPiloto {
 export interface AparatoMccbCajaMoldeada {
   /** Tipo de aparato */
   tipo_aparato: "mccb_caja_moldeada";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -277,6 +303,8 @@ export interface AparatoMccbCajaMoldeada {
 export interface AparatoMotorTrifasico {
   /** Tipo de aparato */
   tipo_aparato: "motor_trifasico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -300,10 +328,14 @@ export interface AparatoMotorTrifasico {
 export interface AparatoPortafusible {
   /** Tipo de aparato */
   tipo_aparato: "portafusible";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
   modelo?: string;
+  /** Cantidad de polos */
+  cantidad_polos?: number;
   /** Tensión del portafusible (V) */
   portafusible_tension_v?: number;
   /** Categoría del portafusible */
@@ -316,6 +348,8 @@ export interface AparatoPortafusible {
 export interface AparatoPulsador {
   /** Tipo de aparato */
   tipo_aparato: "pulsador";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -336,6 +370,8 @@ export interface AparatoPulsador {
 export interface AparatoPulsadorEmergencia {
   /** Tipo de aparato */
   tipo_aparato: "pulsador_emergencia";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -347,6 +383,8 @@ export interface AparatoPulsadorEmergencia {
 export interface AparatoReleAuxiliar {
   /** Tipo de aparato */
   tipo_aparato: "rele_auxiliar";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -362,6 +400,8 @@ export interface AparatoReleAuxiliar {
 export interface AparatoReleProteccionTension {
   /** Tipo de aparato */
   tipo_aparato: "rele_proteccion_tension";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -381,6 +421,8 @@ export interface AparatoReleProteccionTension {
 export interface AparatoReleTermico {
   /** Tipo de aparato */
   tipo_aparato: "rele_termico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -403,6 +445,8 @@ export interface AparatoReleTermico {
 export interface AparatoSelector {
   /** Tipo de aparato */
   tipo_aparato: "selector";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -418,6 +462,8 @@ export interface AparatoSelector {
 export interface AparatoSirenaAlarma {
   /** Tipo de aparato */
   tipo_aparato: "sirena_alarma";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -434,6 +480,8 @@ export interface AparatoSirenaAlarma {
 export interface AparatoTemporizador {
   /** Tipo de aparato */
   tipo_aparato: "temporizador";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -449,6 +497,8 @@ export interface AparatoTemporizador {
 export interface AparatoTransformador {
   /** Tipo de aparato */
   tipo_aparato: "transformador";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -466,6 +516,8 @@ export interface AparatoTransformador {
 export interface AparatoTransformadorCorriente {
   /** Tipo de aparato */
   tipo_aparato: "transformador_corriente";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -525,16 +577,12 @@ export interface AtributosConductor {
   seccion_tierra_mm2?: number;
   /** Sección de fase (mm²) */
   seccion_fase_mm2?: number;
-  /** Longitud (m) */
-  longitud_m?: number;
   /** Material */
   material?: "Cu" | "Al";
-  /** Método de instalación */
-  metodo_instalacion?: "A1" | "A2" | "B1" | "B2" | "C" | "D1" | "D2" | "E" | "F" | "G";
-  /** Temperatura ambiente (°C) */
-  temperatura_ambiente_c?: number;
-  /** Circuitos agrupados */
-  cantidad_circuitos_agrupados?: number;
+  /** Tramos de instalación */
+  tramos?: unknown;
+  /** Canalización */
+  canalizacion?: string;
   /** Aislación */
   aislacion?: "PVC" | "XLPE" | "EPR";
   /** Norma IRAM */

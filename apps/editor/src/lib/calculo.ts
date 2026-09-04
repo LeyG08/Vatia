@@ -113,13 +113,20 @@ function factorPorTemperatura(
   return tabla[elegido] ?? 1;
 }
 
+/** Un TRAMO del recorrido físico del cable (E59): un mismo circuito
+ * real puede ir parte encañado en pared y parte enterrado, cada tramo
+ * con su propio método de instalación y temperatura ambiente. */
+export interface TramoInstalacion {
+  metodo_instalacion?: string;
+  longitud_m?: number;
+  temperatura_ambiente_c?: number;
+}
+
 export interface DatosCableParaIz {
   material?: "Cu" | "Al";
   aislacion?: "PVC" | "XLPE" | "EPR";
-  metodo_instalacion?: string;
   seccion_fase_mm2?: number;
-  temperatura_ambiente_c?: number;
-  cantidad_circuitos_agrupados?: number;
+  tramos?: TramoInstalacion[];
 }
 
 export interface ResultadoIz {
@@ -130,59 +137,94 @@ export interface ResultadoIz {
   izCorregidaA: number;
   factorTemperatura: number;
   factorAgrupamiento: number;
+  /** Nº de tramo (1-based) que resultó el más restrictivo — el que fija
+   * el Iz del cable entero. `1` si hay un solo tramo (el caso común). */
+  tramoLimitante: number;
+}
+
+/** Suma la longitud de todos los tramos — la caída de tensión depende
+ * de la longitud TOTAL del recorrido, no de un tramo en particular.
+ * `undefined` si no hay ningún tramo con longitud cargada. */
+export function longitudTotalM(tramos: TramoInstalacion[] | undefined): number | undefined {
+  if (!tramos || tramos.length === 0) return undefined;
+  const total = tramos.reduce(
+    (acc, t) => acc + (typeof t.longitud_m === "number" ? t.longitud_m : 0),
+    0,
+  );
+  return total > 0 ? total : undefined;
 }
 
 /**
- * Corriente admisible corregida, o `null` si falta algún dato o el
- * método de instalación todavía no está cargado (E, F, G — ver
+ * Corriente admisible corregida del cable ENTERO: se calcula Iz por
+ * CADA tramo (su propio método + temperatura) y se toma el MÍNIMO — el
+ * tramo más restrictivo manda, AEA 90364-5-52 / IEC 60364-5-52 (E59:
+ * antes el cable tenía un solo método de instalación para todo el
+ * recorrido, que no siempre es real). `null` si falta algún dato común
+ * (material/aislación/sección) o si NINGÚN tramo tiene su método
+ * cargado, o cuyo método todavía no está en la tabla (E, F, G — ver
  * docs/normativa/iz-corriente-admisible.md).
  *
  * NO incluye la corrección por resistividad térmica del terreno
  * (Tabla B52-16, métodos D1/D2): el schema de conductor todavía no
  * tiene ese campo, así que ese factor queda implícitamente en 1 — un
- * cable enterrado en un terreno de peor resistividad térmica que la de
+ * tramo enterrado en un terreno de peor resistividad térmica que la de
  * referencia (1 K·m/W) puede admitir MENOS de lo que este cálculo diga.
+ *
+ * `circuitosAgrupados`: cuántos conductores comparten canalización con
+ * este, INCLUIDO él (mínimo 1) — una sola cifra para TODO el cable
+ * (simplificación deliberada: no se modela agrupamiento distinto por
+ * tramo). Es responsabilidad del que llama contarlos (recorriendo el
+ * campo `canalizacion` del resto del proyecto, ver PanelAtributos.tsx)
+ * — este módulo no conoce el resto de los conductores.
  */
 export function calcularIzA(
   cable: DatosCableParaIz,
   trifasica: boolean,
+  circuitosAgrupados = 1,
 ): ResultadoIz | null {
-  const { material, aislacion, metodo_instalacion, seccion_fase_mm2 } = cable;
-  if (!material || !aislacion || !metodo_instalacion || !seccion_fase_mm2) {
+  const { material, aislacion, seccion_fase_mm2, tramos } = cable;
+  if (!material || !aislacion || !seccion_fase_mm2 || !tramos || tramos.length === 0) {
     return null;
   }
-  const izBaseA = corrienteAdmisibleBaseA({
-    aislacion,
-    conductoresCargados: trifasica ? 3 : 2,
-    material,
-    metodoInstalacion: metodo_instalacion,
-    seccionMm2: seccion_fase_mm2,
+
+  let mejor: ResultadoIz | null = null;
+  tramos.forEach((tramo, indice) => {
+    const metodo = tramo.metodo_instalacion;
+    if (!metodo) return;
+    const izBaseA = corrienteAdmisibleBaseA({
+      aislacion,
+      conductoresCargados: trifasica ? 3 : 2,
+      material,
+      metodoInstalacion: metodo,
+      seccionMm2: seccion_fase_mm2,
+    });
+    if (izBaseA === null) return;
+
+    const enterrado = METODOS_ENTERRADOS.has(metodo);
+    const tablaTemp = enterrado
+      ? FACTOR_TEMPERATURA_ENTERRADO[aislacion]
+      : FACTOR_TEMPERATURA_AIRE[aislacion];
+    const factorTemperatura = factorPorTemperatura(tablaTemp, tramo.temperatura_ambiente_c);
+
+    // El agrupamiento (Tabla B52-17) solo está cargado para el caso "al
+    // aire, ítem 1" — no corresponde aplicarlo a un método enterrado
+    // (D1/D2 tienen sus propias tablas de agrupamiento, B52-18 a
+    // B52-21, todavía sin cargar).
+    const factorAgrupamiento = enterrado ? 1 : factorPorAgrupamiento(circuitosAgrupados);
+    const izCorregidaA = izBaseA * factorTemperatura * factorAgrupamiento;
+
+    if (!mejor || izCorregidaA < mejor.izCorregidaA) {
+      mejor = {
+        izBaseA,
+        izCorregidaA,
+        factorTemperatura,
+        factorAgrupamiento,
+        tramoLimitante: indice + 1,
+      };
+    }
   });
-  if (izBaseA === null) return null;
 
-  const enterrado = METODOS_ENTERRADOS.has(metodo_instalacion);
-  const tablaTemp = enterrado
-    ? FACTOR_TEMPERATURA_ENTERRADO[aislacion]
-    : FACTOR_TEMPERATURA_AIRE[aislacion];
-  const factorTemperatura = factorPorTemperatura(
-    tablaTemp,
-    cable.temperatura_ambiente_c,
-  );
-
-  // El agrupamiento (Tabla B52-17) solo está cargado para el caso "al
-  // aire, ítem 1" — no corresponde aplicarlo a un método enterrado
-  // (D1/D2 tienen sus propias tablas de agrupamiento, B52-18 a B52-21,
-  // todavía sin cargar).
-  const factorAgrupamiento = enterrado
-    ? 1
-    : factorPorAgrupamiento(cable.cantidad_circuitos_agrupados);
-
-  return {
-    izBaseA,
-    izCorregidaA: izBaseA * factorTemperatura * factorAgrupamiento,
-    factorTemperatura,
-    factorAgrupamiento,
-  };
+  return mejor;
 }
 
 /** Cantidades no tabuladas (10, 11, 13...) toman el escalón inferior

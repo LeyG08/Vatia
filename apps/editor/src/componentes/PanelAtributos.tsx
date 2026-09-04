@@ -9,7 +9,13 @@ import {
 } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
 import { calcularTopologia } from "../lib/topologia";
-import { calcularCaidaTensionPct, calcularIbA, calcularIzA } from "../lib/calculo";
+import {
+  calcularCaidaTensionPct,
+  calcularIbA,
+  calcularIzA,
+  longitudTotalM,
+  type TramoInstalacion,
+} from "../lib/calculo";
 import { avisoIncompatibilidadReferencia, esAccesorioReferencia } from "../lib/referencia";
 import FormularioAtributos from "./FormularioAtributos";
 import FormularioConductor from "./FormularioConductor";
@@ -71,6 +77,32 @@ export default function PanelAtributos() {
       ? conexionesSel[0]
       : null;
 
+  // Circuitos agrupados (E58): cuántos conductores del proyecto (esta
+  // hoja + las demás) comparten el mismo identificador de canalización
+  // que el cable seleccionado, contado solo — reemplaza el número que
+  // antes se tipeaba a mano por cable (fácil de desincronizar). Solo
+  // recorre la hoja ACTIVA (vía `conexiones`/`nodos` en vivo): agrupar
+  // circuitos entre hojas distintas no es un caso real (cada hoja es
+  // su propio tablero, con su propio recorrido físico de canalizaciones).
+  const circuitosAgrupados = useMemo(() => {
+    if (!edge) return 1;
+    const canal = (edge.data?.atributosConductor as Record<string, unknown> | undefined)
+      ?.canalizacion;
+    if (typeof canal !== "string" || canal.trim() === "") return 1;
+    const clave = canal.trim();
+    let cuenta = 0;
+    for (const c of conexiones) {
+      const a = (c.data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
+      if (typeof a.canalizacion === "string" && a.canalizacion.trim() === clave) cuenta += 1;
+    }
+    for (const n of nodos) {
+      if (!esDatosAlimentador(n.data)) continue;
+      const a = n.data.atributos ?? {};
+      if (typeof a.canalizacion === "string" && a.canalizacion.trim() === clave) cuenta += 1;
+    }
+    return Math.max(1, cuenta);
+  }, [edge, conexiones, nodos]);
+
   // Cálculo (Ib / ΔU%) del cable seleccionado — ver lib/calculo.ts. Solo
   // tiene sentido para una conexión real (no para el alimentador: ahí la
   // potencia "aguas abajo" ya es la del proyecto entero, no un tramo).
@@ -82,15 +114,16 @@ export default function PanelAtributos() {
     const ibA = calcularIbA(potenciaVa, trifasica, datosProyecto);
     const atributosConductor =
       (edge.data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
+    const tramos = atributosConductor.tramos as TramoInstalacion[] | undefined;
     const caidaPct = calcularCaidaTensionPct(
-      atributosConductor,
+      { ...atributosConductor, longitud_m: longitudTotalM(tramos) },
       ibA,
       trifasica,
       datosProyecto,
     );
-    const iz = calcularIzA(atributosConductor, trifasica);
-    return { ibA, caidaPct, iz };
-  }, [edge, nodos, conexiones, datosProyecto]);
+    const iz = calcularIzA(atributosConductor, trifasica, circuitosAgrupados);
+    return { ibA, caidaPct, iz, circuitosAgrupados };
+  }, [edge, nodos, conexiones, datosProyecto, circuitosAgrupados]);
 
   // Todo uso de "referencia" en el proyecto entero (todas las hojas,
   // incluida la activa vía `nodos` en vivo — su entrada en

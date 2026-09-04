@@ -5881,3 +5881,98 @@ fingir precisión que no tiene. Sin errores de consola.
 
 `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
 `verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E58 — "Circuitos agrupados" pasa a contarse solo por canalización
+
+Único ítem que quedaba pendiente de la ronda de 8 pedidos del bloque D
+(el resto — E51 a E57 — ya estaba cerrado). Era una pregunta del
+usuario que se había respondido en su momento sin implementar todavía:
+"circuitos agrupados hoy es un número suelto que el usuario tipea a
+mano por cable, sin que el sistema sepa CUÁLES — la mejora real es
+identificar la canalización por conductor y que el sistema CUENTE
+solo, en vez de un número manual que se puede desactualizar."
+
+`conductor.schema.json`: `cantidad_circuitos_agrupados` (entero
+manual) se reemplaza por `canalizacion` (texto libre — "Bandeja 1",
+"Caño 2"). Se regeneraron los tipos (`python
+scripts/generar_tipos_atributos.py`, `tiposAtributos.ts` es generado,
+no se edita a mano). Sin proyectos de ejemplo con el campo viejo
+cargado — no hizo falta migración.
+
+`lib/calculo.ts` → `calcularIzA()` deja de leer
+`cable.cantidad_circuitos_agrupados` de la ficha propia del cable: pasa
+a recibir `circuitosAgrupados` como parámetro, que calcula quien
+llama. `PanelAtributos.tsx` lo cuenta recorriendo todas las
+conexiones + alimentadores de la HOJA ACTIVA (no entre hojas distintas
+— cada hoja es su propio tablero, con su propio recorrido físico) y
+contando cuántos tienen el mismo valor de `canalizacion`, incluido el
+cable seleccionado. `FormularioConductor.tsx` muestra la línea
+"Circuitos agrupados (canalización): N" en el bloque de cálculo, solo
+cuando N > 1 (no hay nada que mostrar si va solo).
+
+Verificado en vivo con Playwright contra el proyecto real del PPS, con
+dos cables DISTINTOS (confirmado antes con un debug aparte: dos
+índices de `.react-flow__edge` pueden resolver al MISMO edge lógico —
+hay que verificar identidad antes de asumir "son dos"): Cable A con
+"Bandeja A" y solo → Iz 301,0 A, sin línea de agrupados. Cable B con
+la MISMA "Bandeja A" → Iz 119,2 A, "Circuitos agrupados: 2". Al volver
+a Cable A sin tocarlo, su Iz bajó SOLO a 240,8 A (301 × 0,8, el factor
+real de Tabla B52-17 para 2 circuitos) — la corrección se propaga
+automáticamente al resto de la canalización sin que nadie la vuelva a
+tipear. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E59 — Un conductor puede recorrer varios métodos de instalación
+
+Observación del usuario tras cerrar la ronda de 8 pedidos: "habría que
+considerar que algunos circuitos tienen múltiples métodos de
+instalación en ellos" — un mismo cable real puede ir parte encañado en
+pared (B1) y parte enterrado (D1), por ejemplo. Se le ofrecieron dos
+caminos (uno rápido, sin tocar el modelo de datos; el completo, con
+una lista de tramos por conductor) y eligió el completo.
+
+**`conductor.schema.json`**: `metodo_instalacion` / `longitud_m` /
+`temperatura_ambiente_c`, que antes eran TRES campos únicos por cable,
+pasan a ser sub-campos de `tramos` (array) — cada tramo con su propio
+método, longitud y temperatura. El caso común (un solo tramo) sigue
+siendo una lista de un elemento, sin ceremonia de más. Se regeneraron
+los tipos (`python scripts/generar_tipos_atributos.py`).
+
+**`lib/calculo.ts` → `calcularIzA()`**: calcula el Iz de CADA tramo por
+separado (su propio método + temperatura) y toma el MÍNIMO — el tramo
+más restrictivo manda (AEA 90364-5-52 / IEC 60364-5-52), en vez de un
+solo método para todo el cable. El agrupamiento (`circuitosAgrupados`,
+E58) sigue siendo una sola cifra para todo el cable — simplificación
+deliberada, documentada en el código, para no explotar el alcance de
+esta etapa modelando agrupamiento distinto por tramo. Nueva función
+`longitudTotalM()`: suma la longitud de todos los tramos para la caída
+de tensión, que depende del recorrido completo, no de un tramo suelto.
+
+**`libreria-simbolos/verificacion/reglasFicha.mjs`** (compartido con
+`scripts/verificar_proyecto_real.mjs`): `problemasCable()` valida cada
+tramo por separado — sin ningún tramo cargado, el mensaje es el mismo
+de siempre ("Falta la longitud del tramo." / "Falta el método de
+instalación."); con más de uno, cada mensaje incompleto lleva el
+sufijo "(tramo N)" para saber cuál falta.
+
+**`FormularioConductor.tsx`**: el campo único "Método de instalación"
+se reemplaza por una lista de tarjetas "Tramo 1", "Tramo 2"… (método +
+longitud + temperatura ambiente cada una), con "+ Agregar tramo" y
+"Quitar" por tarjeta. El tramo que resultó el más restrictivo (el que
+fija el Iz del cable entero) se marca "· más restrictivo" cuando hay
+más de uno, para que se vea de un vistazo cuál es el que manda.
+
+Verificado en vivo con Playwright contra una conexión real del PPS:
+con 1 tramo (B1, 15 m) → Iz 301,0 A; agregado un 2º tramo (D1, 10 m) →
+Iz se mantuvo en 301,0 A y el Tramo 1 quedó marcado "más restrictivo"
+(el tramo enterrado admitía MÁS corriente para esta sección/aislación
+— resultado real, no forzado). El checklist, con el 2º tramo
+incompleto a propósito, mostró el mensaje con el sufijo "(tramo 2)".
+Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
