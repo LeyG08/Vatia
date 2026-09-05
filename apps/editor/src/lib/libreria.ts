@@ -1,5 +1,6 @@
 import type { ProblemaCarga, SimboloDef } from "./tipos";
 import { validarMetadata } from "./validadorMetadata";
+import { obtenerSimboloComando } from "./libreriaComando";
 
 const metasRaw = import.meta.glob("../../../../libreria-simbolos/simbolos/*/metadata.json", {
   query: "?raw",
@@ -139,8 +140,12 @@ if (import.meta.hot) {
   });
 }
 
+/** Busca en la librería de fuerza y, si no está, en la de comando (Paso
+ * 3) — los códigos no se pisan entre carpetas, así que un único lookup
+ * alcanza para todo el código de render/lógica que no necesita saber de
+ * qué carpeta viene el símbolo. */
 export function obtenerSimbolo(codigo: string): SimboloDef | null {
-  return SIMBOLOS.get(codigo) ?? null;
+  return SIMBOLOS.get(codigo) ?? obtenerSimboloComando(codigo);
 }
 
 export function svgLimpio(svg: string): string {

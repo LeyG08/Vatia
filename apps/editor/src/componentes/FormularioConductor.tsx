@@ -1,12 +1,65 @@
 import { lineasCable } from "../lib/anotaciones";
 import type { CampoDescriptor } from "../lib/esquemas";
 import { camposDeFamilia } from "../lib/esquemas";
+import type { ResultadoIz } from "../lib/calculo";
+import {
+  seccionesDisponiblesMm2,
+  seccionMinimaPeMm2,
+  seccionMinimaMm2,
+  type RolCircuito,
+} from "../lib/secciones";
+import type { ModoHoja, Normativa } from "../lib/tipos";
+import SelectorConEscape from "./SelectorConEscape";
 
 interface Props {
   atributos: Record<string, unknown>;
   onChange: (nuevosAtributos: Record<string, unknown>) => void;
   /** Campo extra arriba del cuerpo (ej.: "Desde dónde viene" del alimentador) */
   encabezado?: React.ReactNode;
+  /** Modo de la hoja activa (E54): decide qué secciones normadas se
+   * ofrecen — el rango completo de fuerza en unifilar, recortado a la
+   * práctica de comando en multifilar. */
+  modo: ModoHoja;
+  /** Normativa del proyecto (E60) — decide el mínimo de sección junto
+   * con `rol`. */
+  normativa: Normativa;
+  /** Rol de este circuito (E60): una conexión cualquiera es "terminal";
+   * un alimentador es "seccional" (hoja con padre) o "principal" (hoja
+   * raíz) — determina el mínimo AEA, ver lib/secciones.ts. */
+  rol: RolCircuito;
+  /**
+   * Ib (A), ΔU% e Iz ya calculados por el llamador (necesita recorrer la
+   * topología completa, algo que este formulario no tiene por qué saber
+   * hacer). Ausentes cuando falta algún dato para calcularlos.
+   */
+  calculo?: {
+    ibA: number | null;
+    caidaPct: number | null;
+    iz: ResultadoIz | null;
+    /** Cuántos conductores comparten la canalización dada, contado
+     * solo — 1 = va solo, sin agrupamiento. Función y no un número: la
+     * canalización es por TRAMO (E60), no por cable entero. */
+    circuitosAgrupadosDe: (canalizacion: string | undefined) => number;
+  };
+}
+
+/** Opciones del selector de sección — "6 mm²" en vez de solo "6", para
+ * que se lea igual que el resto de la ficha técnica. */
+function opcionesSeccion(material: unknown, modo: ModoHoja, minimoMm2: number) {
+  const mat = material === "Al" ? "Al" : "Cu";
+  return seccionesDisponiblesMm2(mat, modo, minimoMm2).map((s) => ({
+    valor: String(s),
+    etiqueta: `${s} mm²`,
+  }));
+}
+
+/** Un tramo del recorrido físico del cable (E59/E60) — ver
+ * TramoInstalacion en lib/calculo.ts, mismo shape. */
+interface Tramo {
+  metodo_instalacion?: string;
+  longitud_m?: number;
+  temperatura_ambiente_c?: number;
+  canalizacion?: string;
 }
 
 function valorComoTexto(v: unknown): string {
@@ -26,7 +79,7 @@ function poner(
 
 /**
  * Referencia de los códigos de método de instalación (AEA 90364-5-52 /
- * IEC 60364-5-52, tabla 52-C1). Notas propias y resumidas, no una
+ * IEC 60364-5-52, Anexo B, Tabla B52-1). Notas propias y resumidas, no una
  * transcripción de la norma — ver docs/normativa/README.md sobre por qué
  * no se versiona el texto completo de la tabla acá.
  */
@@ -36,7 +89,8 @@ const METODOS_INSTALACION: { codigo: string; descripcion: string }[] = [
   { codigo: "B1", descripcion: "Conductores aislados en tubo sobre pared o embutido en mampostería (el caso más común en obra civil)." },
   { codigo: "B2", descripcion: "Cable multipolar en tubo sobre pared o embutido en mampostería." },
   { codigo: "C", descripcion: "Cable mono o multipolar fijado directamente sobre la pared, sin tubo." },
-  { codigo: "D", descripcion: "Cable multipolar en conducto o directamente enterrado." },
+  { codigo: "D1", descripcion: "Cable multipolar dentro de caño o conducto enterrado." },
+  { codigo: "D2", descripcion: "Cable multipolar directamente enterrado, sin caño." },
   { codigo: "E", descripcion: "Cable multipolar al aire libre, en bandeja o escalera (no en contacto mutuo con otros cables)." },
   { codigo: "F", descripcion: "Cables monopolares en contacto mutuo, al aire libre en bandeja." },
   { codigo: "G", descripcion: "Cables monopolares separados entre sí (espaciados), al aire libre en bandeja." },
@@ -71,11 +125,20 @@ function Llave({
  * unipolar/multipolar y vista previa de la notación del plano.
  * El resto de campos (material, aislación, norma) usa el render común.
  */
-export default function FormularioConductor({ atributos, onChange, encabezado }: Props) {
+export default function FormularioConductor({
+  atributos,
+  onChange,
+  encabezado,
+  modo,
+  normativa,
+  rol,
+  calculo,
+}: Props) {
   const fases =
     typeof atributos.cantidad_conductores === "number"
       ? atributos.cantidad_conductores
       : 0;
+  const minimoFaseMm2 = seccionMinimaMm2(normativa, rol);
 
   // Campos simples restantes, resueltos desde el schema (sin hardcodear)
   const manejados = new Set([
@@ -86,14 +149,20 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
     "lleva_tierra",
     "seccion_tierra_mm2",
     "seccion_fase_mm2",
+    "tramos",
   ]);
-  const camposRestantes = (camposDeFamilia("conductor", atributos) ?? []).filter(
+  const simples = (camposDeFamilia("conductor", atributos) ?? []).filter(
     (c: CampoDescriptor) => !manejados.has(c.nombre),
   );
-  // Método de instalación se saca del loop genérico: lleva un recordatorio
-  // propio de códigos que no tiene ningún otro campo del schema.
-  const metodoInstalacionCampo = camposRestantes.find((c) => c.nombre === "metodo_instalacion");
-  const simples = camposRestantes.filter((c) => c.nombre !== "metodo_instalacion");
+
+  const tramos = Array.isArray(atributos.tramos) ? (atributos.tramos as Tramo[]) : [];
+  function actualizarTramos(nuevos: Tramo[]) {
+    onChange(poner(atributos, "tramos", nuevos.length > 0 ? nuevos : undefined));
+  }
+  function actualizarTramo(indice: number, campo: keyof Tramo, valor: unknown) {
+    const nuevos = tramos.map((t, i) => (i === indice ? { ...t, [campo]: valor } : t));
+    actualizarTramos(nuevos);
+  }
 
   const preview = lineasCable(atributos);
 
@@ -128,22 +197,25 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
         </div>
       </div>
 
-      {/* ---- Sección de fase ---- */}
-      <label className="campo-atributo">
+      {/* ---- Sección de fase ----
+       * Lista normada (E54), no texto libre: son los valores REALES de
+       * la tabla Iz ya cargada (Tablas B52-2 a B52-5, ver
+       * lib/secciones.ts) — así el cálculo de Iz más abajo nunca falla
+       * en silencio por una sección que la norma no tabula. Recortada
+       * al mínimo AEA por rol de circuito (E60) — "Otra…" sigue
+       * permitiendo bajar de ahí a mano, para el caso excepcional. */}
+      <label
+        className="campo-atributo"
+        title={`Mínimo para este circuito (${rol}, ${normativa}): ${minimoFaseMm2} mm².`}
+      >
         <span>Sección mm²<em className="obligatorio">*</em></span>
-        <input
-          type="number"
-          min={0}
-          step="any"
-          value={(atributos.seccion_fase_mm2 as number | undefined) ?? ""}
-          onChange={(e) =>
-            onChange(
-              poner(
-                atributos,
-                "seccion_fase_mm2",
-                e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
-              ),
-            )
+        <SelectorConEscape
+          valor={valorComoTexto(atributos.seccion_fase_mm2)}
+          opciones={opcionesSeccion(atributos.material, modo, minimoFaseMm2)}
+          placeholder="mm²"
+          etiquetaVacio="—"
+          onChange={(v) =>
+            onChange(poner(atributos, "seccion_fase_mm2", v === "" ? undefined : Number.parseFloat(v)))
           }
         />
       </label>
@@ -185,20 +257,13 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
       {atributos.lleva_neutro === true && (
         <label className="campo-atributo fc-sub">
           <span>↳ Sección distinta</span>
-          <input
-            type="number"
-            min={0}
-            step="any"
-            placeholder="= fase"
-            value={(atributos.seccion_neutro_mm2 as number | undefined) ?? ""}
-            onChange={(e) =>
-              onChange(
-                poner(
-                  atributos,
-                  "seccion_neutro_mm2",
-                  e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
-                ),
-              )
+          <SelectorConEscape
+            valor={valorComoTexto(atributos.seccion_neutro_mm2)}
+            opciones={opcionesSeccion(atributos.material, modo, 0)}
+            placeholder="mm²"
+            etiquetaVacio="= fase"
+            onChange={(v) =>
+              onChange(poner(atributos, "seccion_neutro_mm2", v === "" ? undefined : Number.parseFloat(v)))
             }
           />
         </label>
@@ -219,24 +284,35 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
       {atributos.lleva_tierra === true && (
         <label className="campo-atributo fc-sub">
           <span>↳ Sección distinta</span>
-          <input
-            type="number"
-            min={0}
-            step="any"
-            placeholder="= fase"
-            value={(atributos.seccion_tierra_mm2 as number | undefined) ?? ""}
-            onChange={(e) =>
-              onChange(
-                poner(
-                  atributos,
-                  "seccion_tierra_mm2",
-                  e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
-                ),
-              )
+          <SelectorConEscape
+            valor={valorComoTexto(atributos.seccion_tierra_mm2)}
+            opciones={opcionesSeccion(atributos.material, modo, 0)}
+            placeholder="mm²"
+            etiquetaVacio="= fase"
+            onChange={(v) =>
+              onChange(poner(atributos, "seccion_tierra_mm2", v === "" ? undefined : Number.parseFloat(v)))
             }
           />
         </label>
       )}
+      {/* Mínimo de PE recomendado (E54): regla proporcional IEC
+       * 60364-5-54 / AEA 90364-5-54 respecto de la sección de fase —
+       * S≤16→Spe=S, 16<S≤35→Spe=16, S>35→Spe=S/2. Solo avisa si el
+       * usuario cargó una sección de tierra MENOR a la que pide la
+       * regla: tener más cobre que el mínimo nunca es un problema. */}
+      {atributos.lleva_tierra === true &&
+        typeof atributos.seccion_tierra_mm2 === "number" &&
+        (() => {
+          const minimo = seccionMinimaPeMm2(atributos.seccion_fase_mm2 as number | undefined);
+          if (minimo === null || (atributos.seccion_tierra_mm2 as number) >= minimo) return null;
+          return (
+            <p className="form-atributos-aviso">
+              La sección de tierra ({atributos.seccion_tierra_mm2 as number} mm²) queda por
+              debajo del mínimo recomendado para {atributos.seccion_fase_mm2 as number} mm² de
+              fase: {minimo} mm² (IEC 60364-5-54 / AEA 90364-5-54).
+            </p>
+          );
+        })()}
 
       {/* ---- Resto: campos que faltan (desde schema) ----
        * Cubre enum/número/entero/booleano/texto, igual que el renderer
@@ -318,41 +394,129 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
         );
       })}
 
-      {/* ---- Método de instalación: código + recordatorio siempre visible ----
-       * Pedido del usuario: se elige SOLO por el código (A1, B2, C...),
-       * pero con un recordatorio de a qué corresponde cada uno — nadie
-       * los recuerda de memoria, y ocultarlo detrás de un hover no
-       * alcanza para consultarlo mientras se completa la ficha. */}
-      {metodoInstalacionCampo && (
-        <label className="campo-atributo" title={metodoInstalacionCampo.esquema.description}>
-          <span>
-            {metodoInstalacionCampo.title ?? "Método de instalación"}
-            {metodoInstalacionCampo.obligatorio && <em className="obligatorio">*</em>}
-          </span>
-          <select
-            value={valorComoTexto(atributos.metodo_instalacion)}
-            onChange={(e) => onChange(poner(atributos, "metodo_instalacion", e.target.value || undefined))}
-          >
-            <option value="">—</option>
-            {METODOS_INSTALACION.map(({ codigo }) => (
-              <option key={codigo} value={codigo}>{codigo}</option>
-            ))}
-          </select>
-        </label>
-      )}
-      {metodoInstalacionCampo && (
-        <details className="fc-metodos-recordatorio">
-          <summary>Qué es cada método de instalación</summary>
-          <dl>
-            {METODOS_INSTALACION.map(({ codigo, descripcion }) => (
-              <div key={codigo}>
-                <dt>{codigo}</dt>
-                <dd>{descripcion}</dd>
+      {/* ---- Tramos de instalación (E59) ----
+       * Un mismo cable puede recorrer varios métodos de instalación
+       * distintos (parte encañado en pared, parte enterrado…) — pedido
+       * explícito del usuario. El caso común (un solo tramo) es
+       * simplemente una lista de un elemento, sin ceremonia extra. El
+       * tramo que resultó el más restrictivo (el que fija el Iz del
+       * cable entero) se marca cuando hay más de uno. */}
+      <div className="fc-tramos">
+        <span className="fc-tramos-titulo">
+          Tramos de instalación<em className="obligatorio">*</em>
+        </span>
+        {tramos.length === 0 && (
+          <p className="form-atributos-vacio">Sin tramos cargados todavía.</p>
+        )}
+        {tramos.map((tramo, i) => (
+          <div className="fc-tramo" key={i}>
+            {tramos.length > 1 && (
+              <div className="fc-tramo-encabezado">
+                <span>
+                  Tramo {i + 1}
+                  {calculo?.iz?.tramoLimitante === i + 1 && (
+                    <em className="fc-tramo-limitante" title="Es el tramo más restrictivo: el que fija el Iz del cable entero.">
+                      {" "}
+                      · más restrictivo
+                    </em>
+                  )}
+                </span>
+                <button type="button" onClick={() => actualizarTramos(tramos.filter((_, j) => j !== i))}>
+                  Quitar
+                </button>
               </div>
-            ))}
-          </dl>
-        </details>
-      )}
+            )}
+            <label className="campo-atributo" title="Código de método de instalación (AEA 90364-5-52 / IEC 60364-5-52, Anexo B, Tabla B52-1) DE ESTE TRAMO.">
+              <span>
+                Método<em className="obligatorio">*</em>
+              </span>
+              <select
+                value={valorComoTexto(tramo.metodo_instalacion)}
+                onChange={(e) => actualizarTramo(i, "metodo_instalacion", e.target.value || undefined)}
+              >
+                <option value="">—</option>
+                {METODOS_INSTALACION.map(({ codigo }) => (
+                  <option key={codigo} value={codigo}>{codigo}</option>
+                ))}
+              </select>
+            </label>
+            <label className="campo-atributo">
+              <span>
+                Longitud (m)<em className="obligatorio">*</em>
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="any"
+                value={valorComoTexto(tramo.longitud_m)}
+                onChange={(e) =>
+                  actualizarTramo(
+                    i,
+                    "longitud_m",
+                    e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+                  )
+                }
+              />
+            </label>
+            <label className="campo-atributo fc-sub">
+              <span>↳ Temperatura ambiente (°C)</span>
+              <input
+                type="number"
+                step="any"
+                value={valorComoTexto(tramo.temperatura_ambiente_c)}
+                onChange={(e) =>
+                  actualizarTramo(
+                    i,
+                    "temperatura_ambiente_c",
+                    e.target.value === "" ? undefined : Number.parseFloat(e.target.value),
+                  )
+                }
+              />
+            </label>
+            <label
+              className="campo-atributo"
+              title="Identificador de la canalización que comparte ESTE TRAMO con otros conductores del proyecto (ej. 'Bandeja 1') — un cable puede compartir bandeja en un tramo y seguir solo en el resto de su recorrido."
+            >
+              <span>Canalización</span>
+              <input
+                type="text"
+                placeholder="ej. Bandeja 1"
+                value={valorComoTexto(tramo.canalizacion)}
+                onChange={(e) => actualizarTramo(i, "canalizacion", e.target.value || undefined)}
+              />
+            </label>
+            {calculo &&
+              typeof tramo.canalizacion === "string" &&
+              tramo.canalizacion.trim() !== "" &&
+              calculo.circuitosAgrupadosDe(tramo.canalizacion) > 1 && (
+                <p
+                  className="fc-tramo-agrupados"
+                  title="Cuántos tramos del proyecto comparten esta canalización — ya está incluido en el Iz de este tramo."
+                >
+                  Circuitos agrupados: {calculo.circuitosAgrupadosDe(tramo.canalizacion)}
+                </p>
+              )}
+          </div>
+        ))}
+        <button
+          type="button"
+          className="fc-tramo-agregar"
+          onClick={() => actualizarTramos([...tramos, {}])}
+        >
+          + Agregar tramo
+        </button>
+      </div>
+      <details className="fc-metodos-recordatorio">
+        <summary>Qué es cada método de instalación</summary>
+        <dl>
+          {METODOS_INSTALACION.map(({ codigo, descripcion }) => (
+            <div key={codigo}>
+              <dt>{codigo}</dt>
+              <dd>{descripcion}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
 
       {/* ---- Vista previa de la notación ---- */}
       {preview.length > 0 && (
@@ -360,6 +524,54 @@ export default function FormularioConductor({ atributos, onChange, encabezado }:
           {preview.map((linea, i) => (
             <div key={i}>{linea}</div>
           ))}
+        </div>
+      )}
+
+      {/* ---- Cálculo (informativo, Paso "motor de cálculo") ----
+       * Ib y ΔU% son una estimación (modelo resistivo, ignora la
+       * reactancia del cable). Iz sale de la tabla real AEA 90364-5-52 /
+       * IEC 60364-5-52 (ver docs/normativa/iz-corriente-admisible.md) —
+       * no es una estimación, pero todavía no cubre los métodos E/F/G ni
+       * corrige por resistividad térmica del terreno en enterrados. */}
+      {calculo && (calculo.ibA !== null || calculo.caidaPct !== null || calculo.iz) && (
+        <div className="fc-calculo">
+          <span className="fc-calculo-titulo">Cálculo</span>
+          {calculo.ibA !== null && (
+            <div className="fc-calculo-linea">
+              <span>Ib (corriente de cálculo)</span>
+              <strong>{calculo.ibA.toFixed(1)} A</strong>
+            </div>
+          )}
+          {calculo.iz && (
+            <div className="fc-calculo-linea">
+              <span>Iz (corriente admisible)</span>
+              <strong>{calculo.iz.izCorregidaA.toFixed(1)} A</strong>
+            </div>
+          )}
+          {calculo.ibA !== null && calculo.iz && (
+            <div
+              className={`fc-calculo-linea fc-calculo-veredicto${
+                calculo.ibA <= calculo.iz.izCorregidaA ? " ok" : " mal"
+              }`}
+            >
+              <span>Ib ≤ Iz</span>
+              <strong>
+                {calculo.ibA <= calculo.iz.izCorregidaA ? "✓ cumple" : "✗ no cumple"}
+              </strong>
+            </div>
+          )}
+          {calculo.caidaPct !== null && (
+            <div className="fc-calculo-linea">
+              <span>ΔU (caída de tensión, estimada)</span>
+              <strong>{calculo.caidaPct.toFixed(2)} %</strong>
+            </div>
+          )}
+          <p className="fc-calculo-nota">
+            Ib y ΔU%: estimación (modelo resistivo). Iz: Tabla AEA 90364-5-52
+            / IEC 60364-5-52 — no cubre todavía los métodos E, F, G ni la
+            resistividad térmica del terreno en enterrados. No reemplaza el
+            cálculo normativo completo (falta comparar contra la protección).
+          </p>
         </div>
       )}
     </div>

@@ -12,6 +12,8 @@ import {
 import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
 import { GRILLA_PX } from "./ruta";
+import { proximaReferencia } from "./referencia";
+import { simular, type ResultadoSimulacion } from "./simulacion";
 import {
   ALIMENTADOR_POR_DEFECTO,
   DATOS_PROYECTO_POR_DEFECTO,
@@ -19,7 +21,7 @@ import {
   NOTAS_GABINETE_POR_DEFECTO,
   ROTULO_POR_DEFECTO,
   hojaNuevaDesde,
-  migrarAProyectoV3,
+  migrarAProyectoV5,
   rectanguloUtil,
   type AlimentadorConfig,
   type ConexionProyecto,
@@ -147,6 +149,7 @@ function fusionarHoja(
     hoja: {
       formato: parcial.formato ?? base.formato,
       orientacion: parcial.orientacion ?? base.orientacion,
+      modo: parcial.modo ?? base.modo,
       tablero: tableroGuardado,
       notasGabinete,
       notaSeguridad:
@@ -154,6 +157,17 @@ function fusionarHoja(
           ? parcial.notaSeguridad
           : base.notaSeguridad,
       rotulo: fusionarRotulo(parcial.rotulo),
+      // Campos opcionales simples: se pasan tal cual si están, sin
+      // fusión de subcampos (a diferencia de rotulo/notasGabinete). Antes
+      // "accesorios" quedaba afuera de este objeto por completo, así que
+      // el espejo `s.hoja` lo perdía cada vez que se cambiaba de pestaña
+      // (los datos reales sobrevivían en `proyecto.hojas` porque el merge
+      // de más arriba no toca claves ausentes, pero la UI mostraba la
+      // lista vacía hasta la próxima edición) — bug real, no cosmético.
+      accesorios: Array.isArray(parcial.accesorios)
+        ? parcial.accesorios
+        : base.accesorios,
+      fuente_cortocircuito: parcial.fuente_cortocircuito,
     },
     alimentadoresLegado,
   };
@@ -165,6 +179,17 @@ export interface DatosSimbolo extends Record<string, unknown> {
   rotacion: number;
   /** Ficha técnica de la familia aparato (C4); semilla = atributos_base */
   atributos: Record<string, unknown>;
+  /**
+   * Solo la usa el nodo "hoja" (marco/rótulo, ver tiposFlow.ts): en el
+   * lienzo interactivo (una sola instancia de `<ReactFlow>`) no hace
+   * falta, `HojaNode` lee la hoja activa directo del store. Pero
+   * durante "Exportar proyecto" (E43) hay VARIAS instancias de
+   * `<ReactFlow>` a la vez, una por hoja — sin esto, todas leían la
+   * MISMA hoja activa global y el rótulo/tablero de todas las páginas
+   * salvo la activa quedaba mal (bug real, encontrado en vivo con dos
+   * hojas de tablero distinto).
+   */
+  hojaOverride?: Hoja;
 }
 
 export interface DatosAlimentador extends Record<string, unknown> {
@@ -323,7 +348,7 @@ function nuevoIdEn(existentes: { id: string }[], prefijo: string): string {
  * alimentadores legados del encabezado y descartando conexiones huérfanas.
  * Devuelve también la HojaConfig normalizada de esa hoja.
  */
-function construirEstadoHoja(hojaSer: Hoja): {
+export function construirEstadoHoja(hojaSer: Hoja): {
   cfg: HojaConfig;
   nodos: Node<NodoData>[];
   conexiones: Edge[];
@@ -479,25 +504,79 @@ interface EstadoEditor {
   panelHojaAbierto: boolean;
   panelProyectoAbierto: boolean;
   modoAdmin: boolean;
+  /**
+   * Modo simulación (E62/E63): recorre el proyecto entero con
+   * `lib/simulacion.ts` y permite accionar pulsadores/interruptores de
+   * posición con el mouse. Mientras está activo se bloquea el arrastre
+   * de nodos, las conexiones nuevas y la paleta — es un modo de USO, no
+   * de edición.
+   */
+  modoSimulacion: boolean;
+  /** Claves `${hojaId}:${nodoId}` de los contactos manuales accionados
+   * ahora mismo (pulsador presionado, fin de carrera activado…). */
+  simulacionManual: Set<string>;
+  /**
+   * Memoria de bobinas energizadas ENTRE llamadas a `simular()` — no es
+   * para la UI, es el `estadoInicial` que hace posible el autoenclavamiento
+   * (ver el comentario grande al principio de `simulacion.ts`). Sin esto,
+   * cada clic reiniciaría la iteración desde "todo apagado" y ningún
+   * contacto quedaría enclavado al soltar el pulsador de marcha.
+   */
+  simulacionEstado: Set<string>;
+  /** Último resultado calculado — lo leen NodoSimbolo.tsx (resaltado) y
+   * eventualmente ConexionEdge.tsx. `null` fuera de modo simulación. */
+  simulacionResultado: ResultadoSimulacion | null;
+  alternarSimulacion: () => void;
+  /** Presiona/suelta (o togglea, para `pulsador_emergencia`) un contacto
+   * manual de la hoja ACTIVA y recalcula todo el proyecto. */
+  accionarSimulacion: (nodoId: string, accionado: boolean) => void;
+  /** true justo después de recuperar un autoguardado al abrir la app */
+  avisoRecuperado: boolean;
+  descartarAvisoRecuperado: () => void;
+  /** Solicitud de descarga de PDF en curso — ver ExportacionProyecto.tsx.
+   * `"planos"` arma un PDF con las hojas dadas (una o todas), cada una en
+   * su propia página a tamaño real; `"bom"` arma un PDF aparte solo con
+   * la lista de materiales de esas hojas. `null` = nada pendiente. */
+  exportacionPdf: { tipo: "planos" | "bom"; hojas: Hoja[] } | null;
+  iniciarExportacionPdf: (tipo: "planos" | "bom", hojas: Hoja[]) => void;
+  finalizarExportacionPdf: () => void;
   /** Config de la hoja activa (espejo para componentes) */
   hoja: HojaConfig;
   version: number;
+  /**
+   * Id de la hoja para la que se acaba de colocar el primer alimentador
+   * (E39): dispara el prompt de "Fuente de cortocircuito" una sola vez,
+   * en el momento en que tiene sentido preguntarlo. `null` = sin prompt
+   * pendiente.
+   */
+  promptCortocircuitoHojaId: string | null;
+  cerrarPromptCortocircuito: () => void;
+  /**
+   * Reemplaza `window.confirm`/`window.alert` (E41): esos diálogos
+   * nativos del navegador no se pueden estilar ni quedan integrados a
+   * la página — el usuario los señaló como algo que no quiere ver más.
+   * `null` = sin diálogo pendiente. `onConfirmar` es `undefined` para
+   * una alerta simple (un solo botón "Aceptar").
+   */
+  confirmacion: { mensaje: string; onConfirmar?: () => void } | null;
+  pedirConfirmacion: (mensaje: string, onConfirmar: () => void) => void;
+  mostrarAlerta: (mensaje: string) => void;
+  cerrarConfirmacion: () => void;
   alternarPaleta: () => void;
   alternarPanelHoja: () => void;
   alternarPanelProyecto: () => void;
   alternarAdmin: () => void;
   actualizarHoja: (
-    patch: Partial<Omit<HojaConfig, "rotulo" | "notasGabinete">> & {
+    patch: Partial<
+      Omit<HojaConfig, "rotulo" | "notasGabinete" | "fuente_cortocircuito">
+    > & {
       rotulo?: Partial<RotuloConfig>;
       notasGabinete?: Partial<NotasGabineteConfig>;
-    },
-  ) => void;
-  /** Datos eléctricos base del proyecto (tensión, esquema PAT, normativa) */
-  actualizarDatosProyecto: (
-    patch: Partial<Omit<DatosProyecto, "fuente_cortocircuito">> & {
       fuente_cortocircuito?: Partial<FuenteCortocircuito>;
     },
   ) => void;
+  /** Datos eléctricos base del proyecto (tensión, esquema PAT, normativa) */
+  actualizarDatosProyecto: (patch: Partial<DatosProyecto>) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
   agregarAlimentador: (x?: number, y?: number) => void;
   actualizarDatosAlimentador: (
@@ -571,8 +650,18 @@ interface EstadoEditor {
   moverSeleccionAHoja: (
     destinoId: string,
   ) => { movidos: number; cortadas: number } | null;
+  /** Jerarquía de hojas: crea (o, si ya existe, navega a) la hoja hija
+   * que cuelga de una carga seccional de la hoja activa. */
+  crearOIrAHojaHija: (nodoId: string) => string;
+  /** Hoja padre de la activa según hojaPadreId, si tiene */
+  hojaPadreDeActiva: () => Hoja | null;
+  irAHojaPadre: () => void;
   guardarViewport: (vp: Viewport) => void;
   cargarProyecto: (entrada: ProyectoJSON | Proyecto | string) => void;
+  /** Empieza un proyecto en blanco y borra el autoguardado — es la única
+   * forma de "soltar" un proyecto recuperado sin querer, ya que ahora
+   * recargar la página lo trae de vuelta en vez de arrancar en blanco. */
+  nuevoProyecto: () => void;
   serializarActual: () => Proyecto;
 }
 
@@ -605,6 +694,34 @@ function nuevoId(existentes: { id: string }[], prefijo: string): string {
 /** Copia profunda de una config de hoja (datos planos JSON-safe) */
 function clonarCfg(cfg: HojaConfig): HojaConfig {
   return JSON.parse(JSON.stringify(cfg)) as HojaConfig;
+}
+
+/**
+ * Vuelca el estado de trabajo (nodos/conexiones de React Flow) de la hoja
+ * activa dentro de `proyecto.hojas`, en un objeto NUEVO — sin llamar a
+ * `set()`. Función pura para que el autosave (fuera del store) pueda leer
+ * el proyecto completo sin disparar otra notificación de zustand (eso
+ * causaría un `set()` dentro del propio listener del autosave → loop).
+ */
+function proyectoVolcado(
+  estado: Pick<EstadoEditor, "proyecto" | "hojaActivaId" | "nodos" | "conexiones" | "hoja">,
+  viewport?: Viewport,
+): Proyecto {
+  const { proyecto, hojaActivaId, nodos, conexiones, hoja } = estado;
+  return {
+    ...proyecto,
+    hojas: proyecto.hojas.map((h) =>
+      h.id === hojaActivaId
+        ? {
+            ...h,
+            ...clonarCfg(hoja),
+            nodos: nodos.map(rfANodoProyecto),
+            conexiones: conexiones.map(rfAConexionProyecto),
+            viewport: viewport ?? h.viewport,
+          }
+        : h,
+    ),
+  };
 }
 
 const historial = new Historial();
@@ -651,7 +768,7 @@ function proyectoInicial(): { proyecto: Proyecto; hojaId: string } {
   const hoja = hojaNuevaDesde(HOJA_POR_DEFECTO(), "Hoja 1");
   return {
     proyecto: {
-      version: 3,
+      version: 5,
       meta: {
         nombre: "proyecto_sin_nombre",
         fechaCreacion: new Date().toISOString(),
@@ -665,6 +782,16 @@ function proyectoInicial(): { proyecto: Proyecto; hojaId: string } {
 }
 
 const inicial = proyectoInicial();
+
+/**
+ * Autoguardado en el navegador (Paso "finalizar el editor"): hasta acá el
+ * único guardado era la descarga manual de un JSON — cerrar la pestaña sin
+ * haber guardado perdía todo el trabajo. Esto es una red de seguridad
+ * local, no un reemplazo: "Guardar" sigue descargando el archivo igual
+ * que siempre. Si el día de mañana existe guardado en la nube, esta misma
+ * clave de localStorage puede convivir con eso sin tocarse.
+ */
+const CLAVE_AUTOGUARDADO = "vatia-autoguardado";
 
 export const useEditor = create<EstadoEditor>((set, get) => {
   /** Vuelca SOLO la config (rótulo/notas/formato) a la entrada activa */
@@ -711,23 +838,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
 
   /** Guarda el estado de trabajo actual dentro de la entrada de la hoja activa */
   function volcarActiva(viewport?: Viewport): void {
-    const { proyecto, hojaActivaId, nodos, conexiones, hoja } = get();
-    set({
-      proyecto: {
-        ...proyecto,
-        hojas: proyecto.hojas.map((h) =>
-          h.id === hojaActivaId
-            ? {
-                ...h,
-                ...clonarCfg(hoja),
-                nodos: nodos.map(rfANodoProyecto),
-                conexiones: conexiones.map(rfAConexionProyecto),
-                viewport: viewport ?? h.viewport,
-              }
-            : h,
-        ),
-      },
-    });
+    set({ proyecto: proyectoVolcado(get(), viewport) });
   }
 
   return {
@@ -741,8 +852,43 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     panelHojaAbierto: false,
     panelProyectoAbierto: false,
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
+    modoSimulacion: false,
+    simulacionManual: new Set(),
+    simulacionEstado: new Set(),
+    simulacionResultado: null,
+    avisoRecuperado: false,
+    exportacionPdf: null,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
     version: 0,
+    promptCortocircuitoHojaId: null,
+    confirmacion: null,
+
+    descartarAvisoRecuperado() {
+      set({ avisoRecuperado: false });
+    },
+
+    cerrarPromptCortocircuito() {
+      set({ promptCortocircuitoHojaId: null });
+    },
+
+    pedirConfirmacion(mensaje, onConfirmar) {
+      set({ confirmacion: { mensaje, onConfirmar } });
+    },
+
+    mostrarAlerta(mensaje) {
+      set({ confirmacion: { mensaje } });
+    },
+
+    cerrarConfirmacion() {
+      set({ confirmacion: null });
+    },
+
+    iniciarExportacionPdf(tipo, hojas) {
+      set({ exportacionPdf: { tipo, hojas } });
+    },
+    finalizarExportacionPdf() {
+      set({ exportacionPdf: null });
+    },
 
     alternarPaleta() {
       set((s) => ({ paletaVisible: !s.paletaVisible }));
@@ -760,17 +906,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       set((s) => ({
         proyecto: {
           ...s.proyecto,
-          datosProyecto: {
-            ...s.proyecto.datosProyecto,
-            ...patch,
-            fuente_cortocircuito:
-              patch.fuente_cortocircuito !== undefined
-                ? {
-                    ...s.proyecto.datosProyecto.fuente_cortocircuito,
-                    ...patch.fuente_cortocircuito,
-                  }
-                : s.proyecto.datosProyecto.fuente_cortocircuito,
-          },
+          datosProyecto: { ...s.proyecto.datosProyecto, ...patch },
         },
       }));
     },
@@ -780,6 +916,41 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         const siguiente = !s.modoAdmin;
         localStorage.setItem("vatia-admin", String(siguiente));
         return { modoAdmin: siguiente };
+      });
+    },
+
+    alternarSimulacion() {
+      const activando = !get().modoSimulacion;
+      if (!activando) {
+        set({
+          modoSimulacion: false,
+          simulacionManual: new Set(),
+          simulacionEstado: new Set(),
+          simulacionResultado: null,
+        });
+        return;
+      }
+      const resultado = simular(proyectoVolcado(get()));
+      set({
+        modoSimulacion: true,
+        simulacionManual: new Set(),
+        simulacionEstado: resultado.bobinasEnergizadas,
+        simulacionResultado: resultado,
+      });
+    },
+
+    accionarSimulacion(nodoId, accionado) {
+      const { simulacionManual, simulacionEstado, hojaActivaId } = get();
+      const clave = `${hojaActivaId}:${nodoId}`;
+      if (simulacionManual.has(clave) === accionado) return; // sin cambio
+      const manual = new Set(simulacionManual);
+      if (accionado) manual.add(clave);
+      else manual.delete(clave);
+      const resultado = simular(proyectoVolcado(get()), manual, simulacionEstado);
+      set({
+        simulacionManual: manual,
+        simulacionEstado: resultado.bobinasEnergizadas,
+        simulacionResultado: resultado,
       });
     },
 
@@ -795,6 +966,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             ...(patch.notasGabinete ?? {}),
           },
           rotulo: { ...s.hoja.rotulo, ...(patch.rotulo ?? {}) },
+          fuente_cortocircuito:
+            patch.fuente_cortocircuito !== undefined
+              ? { ...s.hoja.fuente_cortocircuito, ...patch.fuente_cortocircuito }
+              : s.hoja.fuente_cortocircuito,
         },
       }));
       const espejo = get().hoja;
@@ -806,12 +981,23 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       // La barra de distribución es un nodo propio (C8): estirable,
       // con puntos de conexión a lo largo de toda su extensión
       if (codigoIec === BARRA_CODIGO) {
+        // E64: en una hoja multifilar la barra hace de RIEL de comando
+        // (fase viva / neutro / tierra, ver barra.schema.json), no de
+        // barra de distribución de fuerza — se pretipa acá para que la
+        // ficha abra ya mostrando los campos correctos, sin que el
+        // usuario tenga que elegir "Tipo de barra" a mano cada vez.
+        const esRielMultifilar = get().hoja.modo === "multifilar";
+        const atributos: Record<string, unknown> = {
+          ...simbolo.metadata.atributos_base,
+          tipo_barra: esRielMultifilar ? "riel_multifilar" : "fuerza",
+        };
+        if (esRielMultifilar) atributos.funcion_riel = "fase_viva";
         const data: DatosBarra = {
           tipo: "barra",
           codigo_iec: BARRA_CODIGO,
           rotacion: 0,
           largoPx: LARGO_BARRA_DEFECTO_PX,
-          atributos: { ...simbolo.metadata.atributos_base },
+          atributos,
         };
         const pos = limitarAHoja(x, y, data);
         const nodo: Node<NodoData> = {
@@ -828,11 +1014,37 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         });
         return;
       }
+      const atributosBase: Record<string, unknown> = { ...simbolo.metadata.atributos_base };
+      // Referencia automática (IEC 61346, ver lib/referencia.ts): solo si
+      // el símbolo ya trae un tipo_aparato fijo (atributos_base) y todavía
+      // no tiene referencia propia — nunca pisa una ya cargada.
+      if (
+        typeof atributosBase.tipo_aparato === "string" &&
+        atributosBase.referencia == null
+      ) {
+        const usadas: string[] = [];
+        for (const n of get().nodos) {
+          const r = (n.data as Record<string, unknown>).atributos as
+            | Record<string, unknown>
+            | undefined;
+          if (typeof r?.referencia === "string" && r.referencia.trim() !== "") {
+            usadas.push(r.referencia);
+          }
+        }
+        for (const h of get().proyecto.hojas) {
+          for (const hn of h.nodos ?? []) {
+            const r = hn.atributos?.referencia;
+            if (typeof r === "string" && r.trim() !== "") usadas.push(r);
+          }
+        }
+        const siguiente = proximaReferencia(atributosBase.tipo_aparato, usadas);
+        if (siguiente) atributosBase.referencia = siguiente;
+      }
       const data: DatosSimbolo = {
         tipo: "simbolo",
         codigo_iec: codigoIec,
         rotacion: 0,
-        atributos: { ...simbolo.metadata.atributos_base },
+        atributos: atributosBase,
       };
       const pos = limitarAHoja(x, y, data);
       const nodo: Node<NodoData> = {
@@ -876,6 +1088,22 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         do: () => set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), nodo] })),
         undo: () => set((s) => ({ nodos: s.nodos.filter((n) => n.id !== nodo.id) })),
       });
+
+      // Primer alimentador de una hoja RAÍZ (alimentador principal) que
+      // todavía no tiene fuente de cortocircuito cargada: se pregunta acá
+      // mismo, en el momento en que "se le asigna al alimentador" (E39) —
+      // en vez de dejarlo escondido en Configuración de hoja hasta que a
+      // alguien se le ocurra ir a buscarlo. Una hoja seccional (cuelga de
+      // otro tablero) no tiene fuente propia, así que no se pregunta ahí.
+      const fuenteActual = get().hoja.fuente_cortocircuito;
+      if (
+        existentes === 0 &&
+        get().hojaPadreDeActiva() === null &&
+        !fuenteActual?.scc_mva &&
+        !fuenteActual?.icc_ka
+      ) {
+        set({ promptCortocircuitoHojaId: get().hojaActivaId });
+      }
     },
 
     actualizarDatosAlimentador(id, patch) {
@@ -1318,6 +1546,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const idsNodos = new Set(nodosSel.map((n) => n.id));
       const snapshotNodos = get().nodos;
       const snapshotEdges = get().conexiones;
+      const snapshotHojas = get().proyecto.hojas;
+      const hojaActivaId = get().hojaActivaId;
       ejecutar({
         descripcion: "eliminar selección",
         do: () =>
@@ -1329,8 +1559,25 @@ export const useEditor = create<EstadoEditor>((set, get) => {
                 !idsNodos.has(e.target) &&
                 !edgesSel.some((se) => se.id === e.id),
             ),
+            // Si el nodo borrado era el origen de una hoja hija, se
+            // desvincula (la hoja no se toca, solo pierde el link).
+            proyecto: {
+              ...s.proyecto,
+              hojas: s.proyecto.hojas.map((h) =>
+                h.hojaPadreId === hojaActivaId &&
+                h.nodoOrigenId &&
+                idsNodos.has(h.nodoOrigenId)
+                  ? { ...h, hojaPadreId: undefined, nodoOrigenId: undefined }
+                  : h,
+              ),
+            },
           })),
-        undo: () => set({ nodos: snapshotNodos, conexiones: snapshotEdges }),
+        undo: () =>
+          set((s) => ({
+            nodos: snapshotNodos,
+            conexiones: snapshotEdges,
+            proyecto: { ...s.proyecto, hojas: snapshotHojas },
+          })),
       });
     },
 
@@ -1459,6 +1706,62 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       return nueva.id;
     },
 
+    crearOIrAHojaHija(nodoId) {
+      const { proyecto, hojaActivaId, nodos } = get();
+      // Ya existe una hoja hija de este nodo puntual: navegar, no duplicar.
+      const existente = proyecto.hojas.find(
+        (h) => h.hojaPadreId === hojaActivaId && h.nodoOrigenId === nodoId,
+      );
+      if (existente) {
+        get().cambiarHojaActiva(existente.id);
+        return existente.id;
+      }
+
+      const nodo = nodos.find((n) => n.id === nodoId);
+      const atributos = (nodo?.data as { atributos?: Record<string, unknown> } | undefined)
+        ?.atributos;
+      const sugerido =
+        (typeof atributos?.descripcion === "string" && atributos.descripcion.trim()) ||
+        (typeof atributos?.codigo_circuito === "string" &&
+          `Tablero ${atributos.codigo_circuito}`) ||
+        "Hoja hija";
+      const nombres = new Set(proyecto.hojas.map((h) => h.nombre));
+      let nombre = sugerido;
+      let sufijo = 2;
+      while (nombres.has(nombre)) {
+        nombre = `${sugerido} (${sufijo})`;
+        sufijo += 1;
+      }
+
+      const nueva: Hoja = {
+        ...hojaNuevaDesde(HOJA_POR_DEFECTO(), nombre),
+        modo: get().hoja.modo,
+        hojaPadreId: hojaActivaId,
+        nodoOrigenId: nodoId,
+      };
+      const indice = proyecto.hojas.findIndex((h) => h.id === hojaActivaId);
+      const hojas = [...proyecto.hojas];
+      hojas.splice(indice + 1, 0, nueva);
+      set((s) => ({
+        proyecto: { ...s.proyecto, hojas },
+        version: s.version + 1,
+      }));
+      get().cambiarHojaActiva(nueva.id);
+      return nueva.id;
+    },
+
+    hojaPadreDeActiva() {
+      const { proyecto, hojaActivaId } = get();
+      const activa = proyecto.hojas.find((h) => h.id === hojaActivaId);
+      if (!activa?.hojaPadreId) return null;
+      return proyecto.hojas.find((h) => h.id === activa.hojaPadreId) ?? null;
+    },
+
+    irAHojaPadre() {
+      const padre = get().hojaPadreDeActiva();
+      if (padre) get().cambiarHojaActiva(padre.id);
+    },
+
     eliminarHoja(id) {
       const { proyecto, hojaActivaId } = get();
       if (proyecto.hojas.length <= 1) return; // nunca sin hojas
@@ -1482,7 +1785,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       historial.eliminarHoja(id);
 
       // Barrido defensivo: ninguna conexión de las hojas restantes debe
-      // apuntar a nodos inexistentes (por invariante no debería pasar)
+      // apuntar a nodos inexistentes (por invariante no debería pasar), y
+      // ninguna hoja hija debe quedar apuntando a un padre borrado — se
+      // desvincula (queda como hoja de nivel raíz), nunca se borra en
+      // cadena: es contenido del usuario.
       set((s) => ({
         proyecto: {
           ...s.proyecto,
@@ -1493,9 +1799,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
               const [b] = c.hasta.split(".");
               return ids.has(a) && ids.has(b);
             });
-            return filtradas.length === h.conexiones.length
-              ? h
-              : { ...h, conexiones: filtradas };
+            const huerfana = h.hojaPadreId === id;
+            if (filtradas.length === h.conexiones.length && !huerfana) return h;
+            return {
+              ...h,
+              conexiones: filtradas,
+              ...(huerfana ? { hojaPadreId: undefined, nodoOrigenId: undefined } : {}),
+            };
           }),
         },
       }));
@@ -1543,6 +1853,13 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         nodos: nodosCopiados,
         conexiones: conexionesCopiadas,
         viewport: orig.viewport ? { ...orig.viewport } : undefined,
+        // clonarCfg clona TODO lo que trae orig en tiempo de ejecución
+        // (JSON.stringify no respeta el tipo HojaConfig), así que si la
+        // fuente era una hoja hija, el link se colaría acá también: dos
+        // hojas no pueden "colgar" del mismo nodo de origen. La copia
+        // nace independiente.
+        hojaPadreId: undefined,
+        nodoOrigenId: undefined,
       };
       const hojas = [...get().proyecto.hojas];
       hojas.splice(indice + 1, 0, copia);
@@ -1726,7 +2043,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
 
     cargarProyecto(entrada) {
-      const bruto = migrarAProyectoV3(entrada);
+      const bruto = migrarAProyectoV5(entrada);
 
       const problemas: string[] = [];
       const hojasNormalizadas: Hoja[] = bruto.hojas.map((h) => {
@@ -1747,7 +2064,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       }
 
       const proyecto: Proyecto = {
-        version: 3,
+        version: 5,
         meta: bruto.meta ?? {
           nombre: "proyecto_sin_nombre",
           fechaCreacion: new Date().toISOString(),
@@ -1773,6 +2090,29 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       });
     },
 
+    nuevoProyecto() {
+      try {
+        localStorage.removeItem(CLAVE_AUTOGUARDADO);
+      } catch {
+        /* localStorage no disponible: igual arranca en blanco en memoria */
+      }
+      const fresco = proyectoInicial();
+      historial.limpiar();
+      historial.usar(fresco.hojaId);
+      const estado = construirEstadoHoja(fresco.proyecto.hojas[0]);
+      set({
+        proyecto: fresco.proyecto,
+        hojaActivaId: fresco.hojaId,
+        nodos: estado.nodos,
+        conexiones: estado.conexiones,
+        nombreProyecto: fresco.proyecto.meta.nombre,
+        problemasProyecto: [],
+        hoja: estado.cfg,
+        avisoRecuperado: false,
+        version: get().version + 1,
+      });
+    },
+
     serializarActual() {
       volcarActiva();
       return get().proyecto;
@@ -1782,5 +2122,36 @@ export const useEditor = create<EstadoEditor>((set, get) => {
 
 // La hoja inicial tiene su pila de historial desde el arranque
 historial.usar(inicial.hojaId);
+
+(function recuperarAutoguardado() {
+  try {
+    const guardado = localStorage.getItem(CLAVE_AUTOGUARDADO);
+    if (guardado) {
+      useEditor.getState().cargarProyecto(guardado);
+      useEditor.setState({ avisoRecuperado: true });
+    }
+  } catch {
+    /* localStorage no disponible o el JSON guardado está corrupto:
+     * arranca en blanco, como si no hubiera autoguardado. */
+  }
+})();
+
+let temporizadorAutoguardado: ReturnType<typeof setTimeout> | undefined;
+useEditor.subscribe(() => {
+  clearTimeout(temporizadorAutoguardado);
+  temporizadorAutoguardado = setTimeout(() => {
+    try {
+      // proyectoVolcado (no serializarActual): NO llama a set(), para no
+      // volver a notificar a este mismo listener y reprogramarse solo
+      // para siempre.
+      const proyecto = proyectoVolcado(useEditor.getState());
+      localStorage.setItem(CLAVE_AUTOGUARDADO, JSON.stringify(proyecto));
+    } catch {
+      /* cuota de localStorage excedida u otro error: se ignora — el
+       * trabajo en memoria no se pierde por esto, solo la red de
+       * seguridad queda sin actualizar hasta el próximo cambio. */
+    }
+  }, 1000);
+});
 
 export { historial };

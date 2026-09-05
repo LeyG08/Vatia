@@ -3,6 +3,8 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  Controls,
+  ControlButton,
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -10,46 +12,22 @@ import "@xyflow/react/dist/style.css";
 import BarraSuperior from "./componentes/BarraSuperior";
 import Paleta from "./componentes/Paleta";
 import PanelProblemas from "./componentes/PanelProblemas";
+import AvisoAutoguardado from "./componentes/AvisoAutoguardado";
 import ChecklistAea from "./componentes/ChecklistAea";
 import PanelHoja from "./componentes/PanelHoja";
 import PanelProyecto from "./componentes/PanelProyecto";
 import PanelAtributos from "./componentes/PanelAtributos";
 import PestanasHoja from "./componentes/PestanasHoja";
-import NodoSimbolo from "./componentes/NodoSimbolo";
-import AlimentadorNode from "./componentes/AlimentadorNode";
-import BarraNode from "./componentes/BarraNode";
-import HojaNode from "./componentes/HojaNode";
-import ConexionEdge from "./componentes/ConexionEdge";
+import ExportacionProyecto from "./componentes/ExportacionProyecto";
+import AyudaAtajos from "./componentes/AyudaAtajos";
+import DialogoFuenteCortocircuito from "./componentes/DialogoFuenteCortocircuito";
+import DialogoConfirmacion from "./componentes/DialogoConfirmacion";
 import EditorSimbolos from "./componentes/EditorSimbolos";
 import { ESCALA, useEditor, tamanoNodoPx, esDatosAlimentador, type NodoData } from "./lib/store";
 import { obtenerSimbolo, svgLimpio } from "./lib/libreria";
 import { dimensionesHoja, rectanguloUtil } from "./lib/tipos";
 import { GRILLA_PX } from "./lib/ruta";
-
-const nodeTypes = {
-  simbolo: NodoSimbolo,
-  alimentador: AlimentadorNode,
-  barra: BarraNode,
-  hoja: HojaNode,
-} as const;
-const edgeTypes = { conexion: ConexionEdge } as const;
-
-const NODO_HOJA: Node<NodoData> = {
-  id: "hoja",
-  type: "hoja",
-  position: { x: 0, y: 0 },
-  data: { codigo_iec: "", rotacion: 0, atributos: {} },
-  draggable: false,
-  selectable: false,
-  deletable: false,
-  connectable: false,
-  style: { zIndex: -1 } as React.CSSProperties,
-  // Exenta del clamp global: la lámina es MÁS grande que el marco útil
-  extent: [
-    [-100000, -100000],
-    [100000, 100000],
-  ],
-};
+import { nodeTypes, edgeTypes, crearNodoHoja } from "./lib/tiposFlow";
 
 interface ArrastreEnCurso {
   codigo: string;
@@ -101,6 +79,7 @@ function Editor() {
   const hoja = useEditor((s) => s.hoja);
   const paletaVisible = useEditor((s) => s.paletaVisible);
   const modoAdmin = useEditor((s) => s.modoAdmin);
+  const modoSimulacion = useEditor((s) => s.modoSimulacion);
   const onNodesChange = useEditor((s) => s.onNodesChange);
   const onEdgesChange = useEditor((s) => s.onEdgesChange);
   const onConnect = useEditor((s) => s.onConnect);
@@ -123,12 +102,58 @@ function Editor() {
   const moverSeleccionAHojaFn = useEditor((s) => s.moverSeleccionAHoja);
   const cambiarHojaActivaFn = useEditor((s) => s.cambiarHojaActiva);
   const fijarPosicionesFn = useEditor((s) => s.fijarPosiciones);
+  const panelHojaAbierto = useEditor((s) => s.panelHojaAbierto);
+  const panelProyectoAbierto = useEditor((s) => s.panelProyectoAbierto);
+  const alternarPanelHojaFn = useEditor((s) => s.alternarPanelHoja);
+  const alternarPanelProyectoFn = useEditor((s) => s.alternarPanelProyecto);
+  const [ayudaAtajosAbierta, setAyudaAtajosAbierta] = useState(false);
   const [arrastre, setArrastre] = useState<ArrastreEnCurso | null>(null);
   const arrastreRef = useRef<ArrastreEnCurso | null>(null);
   useEffect(() => {
     arrastreRef.current = arrastre;
   }, [arrastre]);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getViewport, setViewport } = useReactFlow();
+
+  /* Desplazar con el botón central del mouse: `panOnDrag={[1]}` de React
+   * Flow (botón central en su convención) está documentado y bien
+   * configurado, pero verificado en vivo (eventos pointerdown/pointermove
+   * con el bitmask correcto, capturados en .react-flow__pane) el
+   * viewport nunca se movía — no se llegó a la causa exacta dentro de
+   * d3-zoom/d3-drag en el tiempo disponible. Se implementa acá, a mano,
+   * como reemplazo confiable en vez de seguir dependiendo de ese prop. */
+  useEffect(() => {
+    let arrastrando = false;
+    let ultimoX = 0;
+    let ultimoY = 0;
+    function onDown(e: MouseEvent) {
+      if (e.button !== 1) return;
+      if (!(e.target as HTMLElement | null)?.closest(".react-flow")) return;
+      e.preventDefault();
+      arrastrando = true;
+      ultimoX = e.clientX;
+      ultimoY = e.clientY;
+    }
+    function onMove(e: MouseEvent) {
+      if (!arrastrando) return;
+      const dx = e.clientX - ultimoX;
+      const dy = e.clientY - ultimoY;
+      ultimoX = e.clientX;
+      ultimoY = e.clientY;
+      const vp = getViewport();
+      setViewport({ x: vp.x + dx, y: vp.y + dy, zoom: vp.zoom }, { duration: 0 });
+    }
+    function onUp(e: MouseEvent) {
+      if (e.button === 1) arrastrando = false;
+    }
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [getViewport, setViewport]);
 
   /* Aviso posterior a un movimiento de contenido entre hojas:
    * ofrece saltar a la hoja destino o cerrar el mensaje */
@@ -268,6 +293,11 @@ function Editor() {
         alternarAdminFn();
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        seleccionarNodosFn(nodos.map((n) => n.id));
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         copiarSeleccion();
         return;
@@ -276,7 +306,39 @@ function Editor() {
         pegarFn();
         return;
       }
+      if (e.key === "Escape") {
+        // Un paso por vez: primero lo más "encima", después lo demás.
+        if (ayudaAtajosAbierta) setAyudaAtajosAbierta(false);
+        else if (panelProyectoAbierto) alternarPanelProyectoFn();
+        else if (panelHojaAbierto) alternarPanelHojaFn();
+        else seleccionarNodosFn([]);
+        return;
+      }
+      if (e.key === "?") {
+        setAyudaAtajosAbierta((a) => !a);
+        return;
+      }
       if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (e.key.startsWith("Arrow")) {
+        const seleccionados = nodos.filter((n) => n.selected);
+        if (seleccionados.length === 0) return;
+        e.preventDefault();
+        const paso = e.shiftKey ? GRILLA_PX * 5 : GRILLA_PX;
+        let dx = 0;
+        let dy = 0;
+        if (e.key === "ArrowUp") dy = -paso;
+        else if (e.key === "ArrowDown") dy = paso;
+        else if (e.key === "ArrowLeft") dx = -paso;
+        else if (e.key === "ArrowRight") dx = paso;
+        else return;
+        const despues: Record<string, { x: number; y: number }> = {};
+        for (const n of seleccionados) {
+          despues[n.id] = { x: n.position.x + dx, y: n.position.y + dy };
+        }
+        registrarArrastre(seleccionados.map((n) => n.id));
+        confirmarArrastre(despues);
+        return;
+      }
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         rotarSeleccion();
@@ -289,12 +351,21 @@ function Editor() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     alternarAdminFn,
+    alternarPanelHojaFn,
+    alternarPanelProyectoFn,
+    ayudaAtajosAbierta,
+    confirmarArrastre,
     copiarSeleccion,
     deshacerFn,
     eliminarSeleccion,
+    nodos,
+    panelHojaAbierto,
+    panelProyectoAbierto,
     pegarFn,
+    registrarArrastre,
     rehacerFn,
     rotarSeleccion,
+    seleccionarNodosFn,
   ]);
 
   useEffect(() => {
@@ -401,7 +472,7 @@ function Editor() {
   }
 
   const nodosConHoja = useMemo<Node<NodoData>[]>(
-    () => [NODO_HOJA, ...nodos],
+    () => [crearNodoHoja(), ...nodos],
     [nodos],
   );
 
@@ -432,7 +503,7 @@ function Editor() {
   );
 
   // Reencuadra la hoja cuando cambia el formato u orientación
-  const { fitView, setViewport } = useReactFlow();
+  const { fitView } = useReactFlow();
   useEffect(() => {
     const t = window.setTimeout(() => fitView({ padding: 0.12, duration: 150 }), 60);
     return () => window.clearTimeout(t);
@@ -503,7 +574,9 @@ function Editor() {
   return (
     <div className="cuerpo">
       {modoAdmin && <EditorSimbolos />}
-      {paletaVisible && !modoAdmin && <Paleta onIniciarArrastre={iniciarArrastre} />}
+      {paletaVisible && !modoAdmin && !modoSimulacion && (
+        <Paleta onIniciarArrastre={iniciarArrastre} />
+      )}
       <div className="lienzo">
         {idsFuera.size > 0 && (
           <div className="aviso-fuera-hoja" role="alert">
@@ -553,7 +626,6 @@ function Editor() {
           onConnectEnd={() => desmarcarConexion()}
           onReconnectStart={(_, __, t) => marcarConexion(t)}
           onReconnectEnd={() => desmarcarConexion()}
-          edgesReconnectable={true}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
           onNodeDragStart={(_, nodo) => {
             registrarArrastre([nodo.id]);
@@ -635,7 +707,10 @@ function Editor() {
           snapToGrid
           snapGrid={[10, 10]}
           deleteKeyCode={[]}
-          panOnDrag={[1]}
+          nodesDraggable={!modoSimulacion}
+          nodesConnectable={!modoSimulacion}
+          edgesReconnectable={!modoSimulacion}
+          panOnDrag={false}
           selectionOnDrag
           multiSelectionKeyCode="Control"
           zoomOnDoubleClick={false}
@@ -652,14 +727,37 @@ function Editor() {
            * fino: mover extremos de conexión queda sencillo. */
           connectionRadius={30}
           fitView
+          // React Flow mueve solo los nodos seleccionados con las flechas
+          // del teclado (1 px, fuera de grilla, sin pasar por el
+          // historial de deshacer propio). El nudge de App.tsx hace lo
+          // mismo pero en pasos de grilla y SÍ queda en el historial —
+          // sin esto, las dos implementaciones se sumaban (20 px en vez
+          // de 10 al apretar una vez, encontrado al verificar).
+          disableKeyboardA11y
           proOptions={{ hideAttribution: true }}
-        />
+        >
+          <Controls showInteractive={false} position="top-right">
+            <ControlButton
+              onClick={() => setAyudaAtajosAbierta(true)}
+              title="Atajos de teclado (?)"
+              aria-label="Atajos de teclado"
+            >
+              ?
+            </ControlButton>
+          </Controls>
+        </ReactFlow>
+        {ayudaAtajosAbierta && (
+          <AyudaAtajos onCerrar={() => setAyudaAtajosAbierta(false)} />
+        )}
         <div className="paneles-flotantes">
           <ChecklistAea />
           <PanelProblemas />
+          <AvisoAutoguardado />
         </div>
         <PanelHoja />
         <PanelProyecto />
+        <DialogoFuenteCortocircuito />
+        <DialogoConfirmacion />
       </div>
       {arrastre && simboloFantasma && (
         <div
@@ -686,6 +784,7 @@ export default function App() {
         <BarraSuperior />
         <PestanasHoja />
         <Editor />
+        <ExportacionProyecto />
       </div>
     </ReactFlowProvider>
   );

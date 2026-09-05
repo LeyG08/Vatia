@@ -1,46 +1,115 @@
 :root {
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    "Helvetica Neue",
+    sans-serif;
   color-scheme: light;
-  --borde: #d4d4d8;
-  --fondo-panel: #fafafa;
-  --acento: #2563eb;
-  --error: #dc2626;
 
-  --bg-canvas: #d8dfe8;
+  /* Petróleo/teal: trazo de circuito, no el azul genérico de plantilla.
+   * El neutro base tiene una leve inclinación fría (azulada), a tono con
+   * el papel de plano ("blueprint") en vez de un gris puro de librería. */
+  --borde: #d7dde4;
+  --fondo-panel: #f7f9fa;
+  --acento: #0d6e6a;
+  --acento-fuerte: #0a5652;
+  --acento-suave: #e3f3f1;
+  /* Color de texto SOBRE un fondo --acento sólido. En claro el acento es
+   * oscuro → texto blanco; en oscuro el acento es claro/brillante →
+   * hace falta texto oscuro (blanco ahí daba ~1,9:1 de contraste,
+   * prácticamente invisible — encontrado en vivo: "no se ve cuándo está
+   * seleccionada una opción"). */
+  --acento-texto: #ffffff;
+  /* Componentes RGB de --acento, para los halos/glows del lienzo que
+   * necesitan variar la opacidad (rgba() no puede leer los canales de
+   * un color hexadecimal directo). */
+  --acento-rgb: 13, 110, 106;
+  --error: #b8442f;
+  --error-suave: #fbeae6;
+  --ok: #2f7d4f;
+  /* Resalta símbolos vinculados por "referencia" (E53) — violeta,
+   * a propósito distinto del --acento teal de la selección: tienen que
+   * leerse como dos estados DIFERENTES ("esto está seleccionado" vs.
+   * "esto está vinculado a lo seleccionado") de un vistazo. */
+  --vinculo: #7c3aed;
+
+  --bg-canvas: #d9e0e8;
   --bg-surface: #ffffff;
-  --bg-surface-alt: #f1f5f9;
-  --bg-hover: #eff6ff;
-  --text-primary: #111827;
-  --text-secondary: #475569;
-  --text-muted: #71717a;
-  --text-faint: #a1a1aa;
-  --border-strong: #111827;
+  --bg-surface-alt: #eef1f4;
+  --bg-hover: #e5f2f0;
+  --text-primary: #172128;
+  --text-secondary: #47576a;
+  /* Verificado contra --bg-surface (blanco): 5,24:1, AA para texto
+     normal. El valor anterior (#71808f) daba 4,05:1, por debajo del
+     mínimo de 4,5:1 — se usa en mucho texto de ayuda chico. */
+  --text-muted: #5f6e7c;
+  --text-faint: #a7b1bd;
+  --border-strong: #172128;
   --chip-bg: #ffffff;
-  --chip-border: #cbd5e1;
+  --chip-border: #c6d0da;
+
+  --radio: 6px;
+  --radio-chico: 4px;
+  --sombra-panel: 0 10px 28px rgba(23, 33, 40, 0.14), 0 1px 3px rgba(23, 33, 40, 0.08);
+  --anillo-foco: 0 0 0 3px rgba(13, 110, 106, 0.35);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --borde: #3f3f46;
-  --fondo-panel: #18181b;
-  --acento: #60a5fa;
-  --error: #f87171;
+  --borde: #34424c;
+  --fondo-panel: #131b21;
+  --acento: #4fd1c7;
+  --acento-fuerte: #7ee4dc;
+  --acento-suave: #163632;
+  --acento-texto: #0b1116;
+  --acento-rgb: 79, 209, 199;
+  --error: #e08267;
+  --error-suave: #3a221c;
+  --ok: #5bb884;
+  --vinculo: #a78bfa;
 
-  --bg-canvas: #0f0f11;
-  --bg-surface: #27272a;
-  --bg-surface-alt: #1c1c1f;
-  --bg-hover: #1e3a5f;
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-faint: #52525b;
-  --border-strong: #e4e4e7;
-  --chip-bg: #27272a;
-  --chip-border: #52525b;
+  --bg-canvas: #0b1116;
+  --bg-surface: #19232a;
+  --bg-surface-alt: #131b21;
+  --bg-hover: #17322f;
+  --text-primary: #e7edf1;
+  --text-secondary: #aab7c2;
+  /* Verificado contra --bg-surface: 5,15:1. El valor anterior (#7c8996)
+     daba 4,47:1, apenas debajo del mínimo AA de 4,5:1. */
+  --text-muted: #8794a0;
+  --text-faint: #4c5a67;
+  --border-strong: #e7edf1;
+  --chip-bg: #19232a;
+  --chip-border: #3a4a56;
+
+  --sombra-panel: 0 12px 32px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --anillo-foco: 0 0 0 3px rgba(79, 209, 199, 0.4);
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Dígitos de ancho fijo: en una herramienta técnica los números aparecen
+ * en columnas (secciones de cable, corrientes, fechas) y con las cifras
+ * proporcionales bailan de ancho al cambiar; con tabulares quedan
+ * alineadas. */
+input[type="number"],
+.fc-calculo-linea strong,
+.panel-hoja-dimension,
+.ayuda-atajos-teclas kbd {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accesibilidad: anillo de foco visible y consistente para navegación
+ * por teclado — antes dependía del outline por defecto del navegador,
+ * inconsistente entre Chrome/Firefox y a veces recortado por overflow.
+ * `:focus-visible` (no `:focus`) para no mostrarlo en clics de mouse. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--anillo-foco);
+  border-radius: var(--radio-chico);
 }
 
 html,
@@ -69,7 +138,10 @@ body,
 
 .marca {
   color: var(--acento);
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  margin-right: 2px;
 }
 
 .nombre-proyecto {
@@ -82,15 +154,31 @@ body,
 
 .barra-superior button {
   border: 1px solid var(--borde);
-  border-radius: 4px;
+  border-radius: var(--radio-chico);
   background: #fff;
   padding: 4px 10px;
   cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 
 .barra-superior button:hover:not(:disabled) {
   border-color: var(--acento);
   color: var(--acento);
+}
+
+/* La acción que de verdad importa distinguir del resto: guardar el
+ * trabajo. El resto de los botones son iguales entre sí a propósito
+ * (ninguno pesa más que otro) — este es el único que lo amerita. */
+.barra-superior button.primario {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+}
+.barra-superior button.primario:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
+  color: #fff;
 }
 
 .barra-superior button:disabled {
@@ -107,8 +195,18 @@ body,
 
 .ayuda {
   margin-left: auto;
-  color: #71717a;
+  color: var(--text-muted);
   font-size: 12px;
+}
+.ayuda kbd {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 10.5px;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--borde);
+  border-bottom-width: 2px;
+  border-radius: var(--radio-chico);
+  padding: 1px 6px;
+  color: var(--text-primary);
 }
 
 /* ---- Cuerpo ---- */
@@ -137,7 +235,7 @@ body,
   border-bottom: none;
   border-radius: 6px 6px 0 0;
   background: #f1f5f9;
-  color: #475569;
+  color: var(--text-secondary);
   padding: 5px 10px;
   font-size: 12px;
   cursor: pointer;
@@ -166,8 +264,44 @@ body,
   background: #fff;
 }
 
+.pestana-hoja.hija {
+  background: #eef2f7;
+  font-size: 11.5px;
+}
+
+.pestana-hoja-padre {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--borde);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #eef2f7;
+  color: var(--text-secondary);
+  padding: 5px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pestana-hoja-padre:hover {
+  color: var(--acento);
+}
+
 .pestana-nombre {
   pointer-events: none;
+}
+
+.pestana-modo {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
+  background: var(--acento);
+  color: var(--acento-texto);
+  vertical-align: middle;
 }
 
 .pestana-nombre-input {
@@ -202,7 +336,7 @@ body,
 
 .pestana-hoja.nueva {
   border-style: dashed;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
@@ -219,13 +353,13 @@ body,
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #52525b;
+  color: var(--text-secondary);
   margin: 4px 0 8px;
 }
 
 .paleta-grupo h3 {
   font-size: 12px;
-  color: #71717a;
+  color: var(--text-muted);
   margin: 10px 0 4px;
   border-bottom: 1px dashed var(--borde);
   padding-bottom: 2px;
@@ -299,7 +433,8 @@ body,
 
 .handle-entrada,
 .handle-salida,
-.handle-tierra {
+.handle-tierra,
+.handle-auxiliar {
   z-index: 3;
 }
 
@@ -313,6 +448,7 @@ body,
 .react-flow__handle.handle-entrada,
 .react-flow__handle.handle-salida,
 .react-flow__handle.handle-tierra,
+.react-flow__handle.handle-auxiliar,
 .nodo-alimentador .react-flow__handle.react-flow__handle {
   width: 0;
   height: 0;
@@ -325,7 +461,8 @@ body,
    NodoSimbolo) para que el cable llegue al CENTRO exacto. */
 .handle-entrada::before,
 .handle-salida::before,
-.handle-tierra::before {
+.handle-tierra::before,
+.handle-auxiliar::before {
   content: "";
   position: absolute;
   left: -5px;
@@ -334,17 +471,18 @@ body,
   height: 10px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 1.5px solid rgba(37, 99, 235, 0.55);
+  border: 1.5px solid rgba(var(--acento-rgb), 0.55);
 }
 
 .handle-entrada:hover::after,
 .handle-salida:hover::after,
-.handle-tierra:hover::after {
+.handle-tierra:hover::after,
+.handle-auxiliar:hover::after {
   content: "";
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.25);
+  background: rgba(var(--acento-rgb), 0.25);
 }
 
 /* Selección de nodos — C17: bien VISIBLE (borde sólido + halo), no
@@ -357,9 +495,55 @@ body,
   border: 2px solid var(--acento);
   border-radius: 4px;
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.15),
-    0 0 10px rgba(37, 99, 235, 0.35);
+    0 0 0 4px rgba(var(--acento-rgb), 0.15),
+    0 0 10px rgba(var(--acento-rgb), 0.35);
   pointer-events: none;
+}
+
+/* Resalta los símbolos que comparten "referencia" con el seleccionado
+ * (E53: bobina ↔ contactos, "a la hora de hacerlo quedan vinculados
+ * para la simulación") — punteado violeta, deliberadamente distinto
+ * del borde sólido teal de arriba para no confundirse con "esto está
+ * seleccionado". */
+.nodo-simbolo-vinculado::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 2px dashed var(--vinculo);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* ---- Modo simulación (E63) ---- */
+
+/* Aparato conduce/está energizado según lib/simulacion.ts: halo verde,
+ * el mismo color que --ok en el resto del editor. */
+.nodo-simbolo-energizado .simbolo-svg {
+  filter: drop-shadow(0 0 3px var(--ok)) drop-shadow(0 0 3px var(--ok));
+  color: var(--ok);
+}
+
+/* Contacto manual (pulsador/interruptor de posición/paro de emergencia)
+ * clicable en modo simulación: cursor de mano, sin mover el nodo. */
+.nodo-simbolo-accionable {
+  cursor: pointer;
+}
+
+/* Feedback inmediato de "lo tengo presionado", independiente de si el
+ * circuito aguas abajo terminó energizado o no. */
+.nodo-simbolo-presionado .simbolo-svg {
+  color: var(--acento);
+  transform-origin: center;
+  scale: 0.94;
+}
+
+/* La librería trae su propio gris claro por defecto (--xy-edge-stroke-
+ * default: #b1b1b7, ver @xyflow/react/dist/style.css) — en un plano
+ * eléctrico el conductor tiene que leerse como trazo firme, no como una
+ * guía tenue. Mismo tono oscuro que ya usan los símbolos (currentColor
+ * → --text-primary en oscuro), así se adapta al tema igual que ellos. */
+.react-flow__edge-path {
+  stroke: var(--border-strong);
 }
 
 /* Selección de conexiones */
@@ -367,7 +551,7 @@ body,
 .react-flow__edge:focus .react-flow__edge-path {
   stroke: var(--acento);
   stroke-width: 2.5;
-  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.6));
+  filter: drop-shadow(0 0 3px rgba(var(--acento-rgb), 0.6));
 }
 
 .nodo-faltante {
@@ -435,7 +619,38 @@ body,
 .sin-problemas {
   margin: 0;
   padding: 0 10px 8px;
-  color: #16a34a;
+  /* #16a34a (verde estándar) daba 3,18:1 sobre el fondo ámbar del
+     checklist — por debajo del mínimo WCAG AA de texto (4,5:1).
+     #15803d da 4,84:1, verificado. */
+  color: #15803d;
+}
+
+/* ---- Aviso de autoguardado recuperado ---- */
+.aviso-autoguardado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 440px;
+  background: var(--acento-suave);
+  border: 1px solid var(--acento);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+  color: #1e3a8a;
+  padding: 6px 8px 6px 10px;
+}
+
+.aviso-autoguardado button {
+  all: unset;
+  cursor: pointer;
+  padding: 2px 5px;
+  margin-left: auto;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.aviso-autoguardado button:hover {
+  opacity: 1;
 }
 
 /* ---- Checklist AEA (C5): pendientes de ficha técnica, no bloqueante ---- */
@@ -531,14 +746,14 @@ body.arrastrando .paleta-item {
 
 .paleta-ayuda {
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
   margin: 0 0 8px;
 }
 
 .barra-superior button.activo {
   border-color: var(--acento);
   color: var(--acento);
-  background: #eff6ff;
+  background: var(--acento-suave);
 }
 
 /* ---- Hoja de plano ---- */
@@ -563,7 +778,7 @@ body.arrastrando .paleta-item {
 
 /* Símbolos que quedan fuera del marco útil: se pasan a otra hoja */
 .react-flow__node.nodo-fuera-hoja .nodo-simbolo {
-  outline: 2px dashed #dc2626;
+  outline: 2px dashed var(--error);
   outline-offset: 3px;
 }
 
@@ -577,7 +792,7 @@ body.arrastrando .paleta-item {
   align-items: center;
   gap: 10px;
   background: #fef2f2;
-  border: 1px solid #dc2626;
+  border: 1px solid var(--error);
   color: #991b1b;
   font-size: 12px;
   font-weight: 600;
@@ -587,7 +802,7 @@ body.arrastrando .paleta-item {
 }
 
 .aviso-fuera-hoja button {
-  border: 1px solid #dc2626;
+  border: 1px solid var(--error);
   border-radius: 999px;
   background: #fff;
   color: #991b1b;
@@ -598,7 +813,7 @@ body.arrastrando .paleta-item {
 }
 
 .aviso-fuera-hoja button:hover {
-  background: #dc2626;
+  background: var(--error);
   color: #fff;
 }
 
@@ -634,7 +849,9 @@ body.arrastrando .paleta-item {
 }
 
 .toast-mover button:hover {
-  background: #16a34a;
+  /* #16a34a con texto blanco daba 3,30:1 (bajo el mínimo AA de 4,5:1
+     para texto normal). #15803d da 5,02:1, verificado. */
+  background: #15803d;
   color: #fff;
 }
 
@@ -672,13 +889,108 @@ body.arrastrando .paleta-item {
 
 .panel-hoja h2 {
   margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--acento-suave);
   font-size: 16px;
+  letter-spacing: 0.2px;
+}
+
+/* Configuración de hoja tiene demasiados campos para una sola lista larga
+ * (formato, encabezado, notas del gabinete, rótulo IRAM completo,
+ * materiales) — se agrupa en secciones navegables en vez de todo apilado. */
+.panel-hoja--tabulado {
+  width: min(760px, 94vw);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-hoja--tabulado h2 {
+  flex: 0 0 auto;
+}
+
+.panel-hoja-layout {
+  display: flex;
+  gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.panel-hoja-tabs {
+  flex: 0 0 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px solid var(--borde);
+  padding-right: 12px;
+  overflow-y: auto;
+}
+
+.panel-hoja-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.panel-hoja-tabs button:hover {
+  background: var(--bg-surface-alt);
+}
+
+.panel-hoja-tabs button.activo {
+  background: var(--acento-suave);
+  border-color: var(--acento);
+  color: var(--acento);
+  font-weight: 600;
+}
+
+.panel-hoja-tab-icono {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.panel-hoja-contenido {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.panel-hoja--tabulado .panel-hoja-pie {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .panel-hoja-layout {
+    flex-direction: column;
+  }
+
+  .panel-hoja-tabs {
+    flex-direction: row;
+    flex: 0 0 auto;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--borde);
+    padding-right: 0;
+    padding-bottom: 8px;
+  }
+
+  .panel-hoja-tabs button {
+    flex: 0 0 auto;
+  }
 }
 
 .panel-hoja h3 {
   margin: 14px 0 8px;
   font-size: 13px;
-  color: #52525b;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -697,7 +1009,7 @@ body.arrastrando .paleta-item {
 }
 
 .panel-hoja-campo span {
-  color: #52525b;
+  color: var(--text-secondary);
 }
 
 .panel-hoja-campo input,
@@ -743,7 +1055,7 @@ body.arrastrando .paleta-item {
 
 .panel-hoja-item button:hover {
   background: #fef2f2;
-  border-color: #dc2626;
+  border-color: var(--error);
 }
 
 .panel-hoja-agregar {
@@ -768,13 +1080,18 @@ body.arrastrando .paleta-item {
 .orientacion-opciones button.activo {
   border-color: var(--acento);
   color: var(--acento);
-  background: #eff6ff;
+  background: var(--acento-suave);
+}
+
+.orientacion-opciones button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .panel-hoja-dimension {
   margin: 0;
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 .panel-hoja-pie {
@@ -788,7 +1105,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-pie p {
   margin: 0;
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 .panel-hoja-pie button {
@@ -802,6 +1119,200 @@ body.arrastrando .paleta-item {
 .panel-hoja-pie button:hover {
   border-color: var(--acento);
   color: var(--acento);
+}
+
+/* ---- Ayuda de atajos de teclado ("?") ---- */
+.ayuda-atajos {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 91;
+  width: min(560px, 92vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-panel);
+  padding: 16px 18px;
+}
+.ayuda-atajos header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--acento-suave);
+}
+.ayuda-atajos h2 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+.ayuda-atajos header button {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+.ayuda-atajos header button:hover {
+  color: var(--error);
+}
+.ayuda-atajos-grupos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+.ayuda-atajos-grupo h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+.ayuda-atajos-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ayuda-atajos-teclas {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.ayuda-atajos-teclas kbd {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 10.5px;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--borde);
+  border-bottom-width: 2px;
+  border-radius: var(--radio-chico);
+  padding: 2px 6px;
+  color: var(--text-primary);
+}
+
+/* ---- Diálogo "Exportar proyecto" (reemplaza los window.confirm) ---- */
+/* Caja genérica de diálogo modal chico (confirmaciones, prompts
+ * puntuales) — la usan DialogoExportarProyecto y
+ * DialogoFuenteCortocircuito, y cualquier diálogo nuevo del mismo tipo. */
+.dialogo-caja {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 91;
+  width: min(400px, 92vw);
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-panel);
+  padding: 16px 18px;
+}
+.dialogo-caja h2 {
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--acento-suave);
+  font-size: 16px;
+  letter-spacing: 0.2px;
+}
+.dialogo-mensaje {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-line;
+}
+.dialogo-aviso {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: var(--radio-chico);
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.4;
+}
+[data-theme="dark"] .dialogo-aviso {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: #fbbf24;
+}
+.dialogo-exportar-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+.dialogo-exportar-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--acento);
+  cursor: pointer;
+}
+.dialogo-pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+.dialogo-pie button {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.dialogo-pie button:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+.dialogo-pie button.primario {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: var(--acento-texto);
+  font-weight: 600;
+}
+.dialogo-pie button.primario:hover {
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
+  color: var(--acento-texto);
+}
+
+/* ---- Controles nativos de React Flow (zoom / encuadre) ----
+ * Especificidad extra (repetir la clase) a propósito: la hoja de estilos
+ * propia de la librería (@xyflow/react/dist/style.css) se importa DESPUÉS
+ * de este archivo en el bundle final, así que a igual especificidad
+ * ganaba siempre la de la librería. */
+.react-flow__controls.react-flow__controls {
+  box-shadow: var(--sombra-panel);
+  border-radius: var(--radio-chico);
+  overflow: hidden;
+}
+.react-flow__controls-button.react-flow__controls-button {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--borde);
+  color: var(--text-secondary);
+  fill: var(--text-secondary);
+}
+.react-flow__controls-button.react-flow__controls-button:hover {
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+.react-flow__controls-button.react-flow__controls-button svg {
+  fill: currentColor;
 }
 
 /* Dos campos por fila dentro del panel de hoja */
@@ -822,7 +1333,7 @@ body.arrastrando .paleta-item {
 
 .panel-hoja-resp em {
   font-style: normal;
-  color: #52525b;
+  color: var(--text-secondary);
 }
 
 .panel-hoja-resp input {
@@ -837,6 +1348,78 @@ body.arrastrando .paleta-item {
 .panel-hoja-resp input.invalido {
   border-color: var(--error);
   background: #fef2f2;
+}
+
+.panel-hoja-ayuda {
+  margin: -6px 0 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Misma pinta que .panel-hoja-ayuda, pero con margen POSITIVO: en
+ * "Datos del proyecto" va después de un .panel-hoja-bloque que no
+ * deja aire propio abajo, y el -6px de la otra clase (pensado para ir
+ * pegado a los botones de Tipo de esquema en Configuración de hoja)
+ * quedaba solapado contra el último campo — señalado en vivo con una
+ * captura. */
+.panel-proyecto-ayuda {
+  margin: 8px 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Accesorios de la lista de materiales (terminales, peines, bornera…) */
+.panel-hoja-accesorios {
+  gap: 6px;
+}
+
+.accesorio-fila {
+  display: grid;
+  grid-template-columns: 1fr 48px 80px 80px auto;
+  gap: 5px;
+  align-items: center;
+}
+
+.accesorio-fila input {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
+  min-width: 0;
+}
+
+.accesorio-cantidad {
+  text-align: center;
+}
+
+.accesorio-quitar {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--error);
+  cursor: pointer;
+  padding: 3px 7px;
+  line-height: 1;
+}
+.accesorio-quitar:hover {
+  border-color: var(--error);
+}
+
+.accesorio-agregar {
+  align-self: start;
+  margin-top: 4px;
+  border: 1px dashed var(--borde);
+  border-radius: 4px;
+  background: #fff;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.accesorio-agregar:hover {
+  border-color: var(--acento);
+  color: var(--acento);
 }
 
 /* ---- Nodo alimentador: conductor viniente «Desde …» (vertical) ----
@@ -859,14 +1442,14 @@ body.arrastrando .paleta-item {
 /* C17: hover suave, selección FUERTE (mismo criterio que los
  * símbolos: se tiene que ver qué está elegido). */
 .nodo-alimentador:hover {
-  border-color: #93c5fd;
+  border-color: var(--acento-fuerte);
 }
 
 .nodo-alimentador.sel {
   border-color: var(--acento);
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.15),
-    0 0 10px rgba(37, 99, 235, 0.35);
+    0 0 0 4px rgba(var(--acento-rgb), 0.15),
+    0 0 10px rgba(var(--acento-rgb), 0.35);
 }
 
 .alim-col {
@@ -910,7 +1493,7 @@ body.arrastrando .paleta-item {
 }
 
 .alim-origen::placeholder {
-  color: #a1a1aa;
+  color: var(--text-faint);
   font-weight: 400;
 }
 
@@ -927,7 +1510,7 @@ body.arrastrando .paleta-item {
 .alim-nota {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9px;
-  color: #71717a;
+  color: var(--text-muted);
   line-height: 1.35;
   text-align: right;
   white-space: normal;
@@ -980,7 +1563,7 @@ body.arrastrando .paleta-item {
   border: 1px solid #cbd5e1;
   border-radius: 14px;
   background: #fff;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   line-height: 1;
   padding: 5px 12px;
@@ -989,19 +1572,19 @@ body.arrastrando .paleta-item {
 }
 
 .chip:hover:not(:disabled) {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  border-color: var(--acento-fuerte);
+  background: var(--acento-suave);
 }
 
 .chip.on {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
   color: #fff;
   font-weight: 600;
 }
 
 .chip.on:hover {
-  background: #1e40af;
+  background: var(--acento-fuerte);
 }
 
 .chip:disabled {
@@ -1017,6 +1600,43 @@ body.arrastrando .paleta-item {
   border: 1px solid #fcd34d;
   border-radius: 6px;
   padding: 5px 7px;
+}
+
+/* "Vinculado con…" (E53): informativo, no una advertencia — mismo
+ * formato de caja que .form-atributos-aviso pero en el tono neutro del
+ * panel, no en ámbar. */
+.form-atributos-vinculos {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+
+.selector-referencia {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Dimensiones de barra (E60): tres selectores en cascada (ancho →
+ * espesor → barras apiladas) sobre la tabla real DIN 43671. */
+.selector-dimensiones-barra {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.selector-dimensiones-barra select {
+  min-width: 0;
+  flex: 1;
+}
+
+.selector-referencia-volver {
+  font-size: 10px;
+  padding: 2px 6px;
+  white-space: nowrap;
 }
 
 .campo-atributo {
@@ -1035,7 +1655,7 @@ body.arrastrando .paleta-item {
 }
 
 .campo-atributo .obligatorio {
-  color: #dc2626;
+  color: var(--error);
   font-style: normal;
   margin-left: 2px;
 }
@@ -1050,7 +1670,7 @@ body.arrastrando .paleta-item {
 .form-atributos-vacio {
   margin: 4px 2px;
   font-size: 12px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 /* ---- Panel de atributos (Fase C4) ---- */
@@ -1064,7 +1684,7 @@ body.arrastrando .paleta-item {
   max-height: 60vh;
   overflow-y: auto;
   background: #ffffff;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   padding: 10px;
@@ -1081,7 +1701,7 @@ body.arrastrando .paleta-item {
 .panel-atributos-sub {
   font-size: 10px;
   font-weight: 400;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 /* ---- Ajustes C4b: panel junto al elemento + anotaciones en hoja ---- */
@@ -1101,7 +1721,7 @@ body.arrastrando .paleta-item {
   touch-action: none;
   padding-bottom: 6px;
   margin-bottom: 8px;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 2px solid var(--acento-suave);
 }
 
 .panel-atributos h3:active {
@@ -1109,7 +1729,7 @@ body.arrastrando .paleta-item {
 }
 
 .panel-atributos-mover {
-  color: #a1a1aa;
+  color: var(--text-faint);
   font-size: 11px;
 }
 
@@ -1124,7 +1744,7 @@ body.arrastrando .paleta-item {
   font-size: 9px;
   line-height: 1.3;
   white-space: nowrap;
-  color: #71717a;
+  color: var(--text-muted);
   pointer-events: none;
 }
 
@@ -1154,15 +1774,15 @@ body.arrastrando .paleta-item {
   height: 11px;
   border-radius: 50%;
   background: #fdfdfd;
-  border: 2px solid rgba(37, 99, 235, 0.85);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  border: 2px solid rgba(var(--acento-rgb), 0.85);
+  box-shadow: 0 0 0 3px rgba(var(--acento-rgb), 0.18);
   cursor: grab;
   pointer-events: auto;
 }
 
 .paso-grip:hover {
-  background: #dbeafe;
-  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.25);
+  background: var(--acento-suave);
+  box-shadow: 0 0 0 5px rgba(var(--acento-rgb), 0.25);
 }
 
 .paso-grip:active {
@@ -1173,7 +1793,7 @@ body.arrastrando .paleta-item {
    más chica y más clara — jerarquía visual sin trucos de texto */
 .anotacion-nodo .anotacion-sec {
   font-size: 8px;
-  color: #9ca3af;
+  color: var(--text-faint);
   margin-top: -1px;
 }
 
@@ -1221,7 +1841,7 @@ body.arrastrando .paleta-item {
 /* C17: barra seleccionada = eje azul + halo (visible de lejos) */
 .nodo-barra.sel .barra-eje {
   background: var(--acento);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 0 0 3px rgba(var(--acento-rgb), 0.25);
 }
 
 .barra-eje {
@@ -1272,7 +1892,7 @@ body.arrastrando .paleta-item {
   height: 9px;
   box-sizing: border-box;
   border-radius: 50%;
-  border: 1.5px solid rgba(37, 99, 235, 0.55);
+  border: 1.5px solid rgba(var(--acento-rgb), 0.55);
 }
 
 .nodo-barra:hover .handle-barra,
@@ -1291,7 +1911,8 @@ body.arrastrando .paleta-item {
 .conectando-source .handle-salida,
 .conectando-target .hb-destino,
 .conectando-target .handle-entrada,
-.conectando-target .handle-tierra {
+.conectando-target .handle-tierra,
+.conectando-target .handle-auxiliar {
   pointer-events: none !important;
 }
 
@@ -1301,7 +1922,7 @@ body.arrastrando .paleta-item {
   height: 18px;
   transform: translate(-50%, -50%);
   border-radius: 3px;
-  background: rgba(37, 99, 235, 0.35);
+  background: rgba(var(--acento-rgb), 0.35);
   cursor: ew-resize;
   /* C22: con la caja en pointer-events:none, los tiradores vuelven a
    * capturar explícitamente (estirar sigue funcionando). */
@@ -1309,7 +1930,7 @@ body.arrastrando .paleta-item {
 }
 
 .barra-grip:hover {
-  background: #2563eb;
+  background: var(--acento);
 }
 
 .barra-grip-izq {
@@ -1323,6 +1944,30 @@ body.arrastrando .paleta-item {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 11px;
   color: #6b7280;
+}
+
+.panel-atributos-hoja-hija {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--borde);
+}
+
+.panel-atributos-hoja-hija button {
+  width: 100%;
+  border: 1px solid var(--acento);
+  background: var(--acento-suave);
+  color: var(--acento);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.panel-atributos-hoja-hija button:hover {
+  background: var(--acento);
+  color: var(--acento-texto);
 }
 
 
@@ -1343,7 +1988,7 @@ body.arrastrando .paleta-item {
   gap: 8px;
   margin-top: -6px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .estimacion-in button {
@@ -1351,13 +1996,13 @@ body.arrastrando .paleta-item {
   border-radius: 6px;
   padding: 2px 10px;
   background: #eef2ff;
-  color: #1d4ed8;
+  color: var(--acento-fuerte);
   font-size: 11px;
   cursor: pointer;
 }
 
 .estimacion-in button:hover {
-  background: #dbeafe;
+  background: var(--acento-suave);
 }
 
 /* Texto del cable sobre la conexión, sin marco para no invadir.
@@ -1369,7 +2014,7 @@ body.arrastrando .paleta-item {
   background: color-mix(in srgb, var(--bg-surface) 75%, transparent);
   padding: 0 3px;
   border-radius: 2px;
-  color: #71717a;
+  color: var(--text-muted);
   pointer-events: none;
   max-width: 130px;
   white-space: normal;
@@ -1389,9 +2034,9 @@ body.arrastrando .paleta-item {
 .fc-paso {
   width: 22px;
   height: 22px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 5px;
-  background: #fafafa;
+  background: var(--fondo-panel);
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
@@ -1407,7 +2052,7 @@ body.arrastrando .paleta-item {
   text-align: center;
   font-size: 13px;
   font-weight: 600;
-  color: #18181b;
+  color: var(--text-primary);
 }
 
 .fc-tipos {
@@ -1420,16 +2065,16 @@ body.arrastrando .paleta-item {
   flex: 1;
   font-size: 10.5px;
   padding: 3px 4px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 5px;
-  background: #fafafa;
+  background: var(--fondo-panel);
   cursor: pointer;
 }
 
 .fc-tipo.activa {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #ffffff;
+  background: var(--acento);
+  border-color: var(--acento);
+  color: var(--acento-texto);
 }
 
 .fc-llave {
@@ -1437,7 +2082,7 @@ body.arrastrando .paleta-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--borde);
   border-radius: 999px;
   background: #f4f4f5;
   padding: 2px 6px;
@@ -1450,51 +2095,100 @@ body.arrastrando .paleta-item {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #a1a1aa;
+  background: var(--text-faint);
   transition: margin-left 0.15s, background 0.15s;
 }
 
 .fc-llave-texto {
   font-size: 10px;
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 .fc-llave.activa {
-  background: #dbeafe;
-  border-color: #93c5fd;
+  background: var(--acento-suave);
+  border-color: var(--acento-fuerte);
   justify-content: flex-end;
 }
 
 .fc-llave.activa .fc-llave-perilla {
-  background: #2563eb;
+  background: var(--acento);
 }
 
 .fc-llave.activa .fc-llave-texto {
-  color: #1d4ed8;
+  color: var(--acento-fuerte);
 }
 
 .fc-sub > span {
   padding-left: 10px;
-  color: #71717a;
+  color: var(--text-muted);
   width: 108px;
   min-width: 108px;
 }
 
 .fc-preview {
   margin-top: 6px;
-  border: 1px dashed #d4d4d8;
+  border: 1px dashed var(--borde);
   border-radius: 5px;
   padding: 4px 7px;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9.5px;
-  color: #18181b;
-  background: #fafafa;
+  color: var(--text-primary);
+  background: var(--fondo-panel);
+}
+
+/* Tramos de instalación (E59): un mismo cable puede recorrer varios
+ * métodos distintos (parte encañado, parte enterrado…) — cada tramo es
+ * su propia mini-ficha con método/longitud/temperatura. */
+.fc-tramos {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fc-tramos-titulo {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.fc-tramo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--borde);
+  border-radius: 5px;
+  background: var(--fondo-panel);
+}
+.fc-tramo-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.fc-tramo-encabezado button {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+.fc-tramo-limitante {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--acento-fuerte);
+}
+.fc-tramo-agregar {
+  align-self: flex-start;
+  font-size: 11px;
+}
+.fc-tramo-agrupados {
+  margin: 0;
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 .fc-metodos-recordatorio {
   margin-top: 2px;
   font-size: 10px;
-  color: #52525b;
+  color: var(--text-secondary);
 }
 .fc-metodos-recordatorio summary {
   cursor: pointer;
@@ -1503,19 +2197,62 @@ body.arrastrando .paleta-item {
 .fc-metodos-recordatorio dl {
   margin: 5px 0 0;
   padding: 6px 8px;
-  border: 1px dashed #d4d4d8;
+  border: 1px dashed var(--borde);
   border-radius: 5px;
-  background: #fafafa;
+  background: var(--fondo-panel);
 }
 .fc-metodos-recordatorio dt {
   float: left;
   clear: left;
   width: 20px;
   font-weight: 600;
-  color: #18181b;
+  color: var(--text-primary);
 }
 .fc-metodos-recordatorio dd {
   margin: 0 0 3px 24px;
+}
+
+.fc-calculo {
+  margin-top: 8px;
+  border: 1px solid var(--acento-fuerte);
+  border-radius: 5px;
+  padding: 6px 8px;
+  background: var(--acento-suave);
+}
+.fc-calculo-titulo {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--acento-fuerte);
+  margin-bottom: 3px;
+}
+.fc-calculo-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+.fc-calculo-linea + .fc-calculo-linea {
+  margin-top: 2px;
+}
+.fc-calculo-veredicto {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--borde);
+  font-weight: 600;
+}
+.fc-calculo-veredicto.ok strong {
+  color: var(--ok);
+}
+.fc-calculo-veredicto.mal strong {
+  color: var(--error);
+}
+.fc-calculo-nota {
+  margin: 5px 0 0;
+  font-size: 9.5px;
+  color: var(--text-secondary);
+  line-height: 1.3;
 }
 
 /* ================================================================
@@ -1530,7 +2267,7 @@ body.arrastrando .paleta-item {
 /* React Flow viewport */
 [data-theme="dark"] .lienzo .react-flow {
   background-color: var(--bg-canvas);
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Barra superior */
@@ -1554,6 +2291,17 @@ body.arrastrando .paleta-item {
   background: var(--bg-hover);
   color: var(--acento);
   border-color: var(--acento);
+}
+
+[data-theme="dark"] .barra-superior button.primario {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #0b1116;
+}
+[data-theme="dark"] .barra-superior button.primario:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
+  color: #0b1116;
 }
 
 [data-theme="dark"] .nombre-proyecto {
@@ -1597,6 +2345,13 @@ body.arrastrando .paleta-item {
 
 [data-theme="dark"] .pestana-hoja.nueva {
   color: var(--text-muted);
+}
+
+[data-theme="dark"] .pestana-hoja.hija,
+[data-theme="dark"] .pestana-hoja-padre {
+  background: var(--bg-surface-alt);
+  border-color: var(--borde);
+  color: var(--text-secondary);
 }
 
 /* Paleta */
@@ -1659,6 +2414,11 @@ body.arrastrando .paleta-item {
   color: #fbbf24;
 }
 
+[data-theme="dark"] .aviso-autoguardado {
+  background: var(--bg-surface-alt);
+  color: var(--text-primary);
+}
+
 /* Checklist AEA */
 [data-theme="dark"] .checklist-aea {
   background: var(--bg-surface-alt);
@@ -1703,14 +2463,18 @@ body.arrastrando .paleta-item {
 [data-theme="dark"] .panel-hoja-agregar,
 [data-theme="dark"] .orientacion-opciones button,
 [data-theme="dark"] .panel-hoja-pie button,
-[data-theme="dark"] .panel-hoja-resp input {
+[data-theme="dark"] .panel-hoja-resp input,
+[data-theme="dark"] .accesorio-fila input,
+[data-theme="dark"] .accesorio-quitar,
+[data-theme="dark"] .accesorio-agregar {
   background: var(--bg-surface-alt);
   border-color: var(--borde);
   color: var(--text-primary);
 }
 
 [data-theme="dark"] .panel-hoja-pie p,
-[data-theme="dark"] .panel-hoja-dimension {
+[data-theme="dark"] .panel-hoja-dimension,
+[data-theme="dark"] .panel-hoja-ayuda {
   color: var(--text-muted);
 }
 
@@ -1747,6 +2511,10 @@ body.arrastrando .paleta-item {
   color: var(--error);
 }
 
+[data-theme="dark"] .panel-atributos-hoja-hija button {
+  background: var(--bg-surface-alt);
+}
+
 /* Chips */
 [data-theme="dark"] .chip {
   background: var(--chip-bg);
@@ -1755,14 +2523,18 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .chip:hover:not(:disabled) {
-  border-color: #60a5fa;
+  border-color: var(--acento);
   background: var(--bg-hover);
 }
 
 [data-theme="dark"] .chip.on {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
+  background: var(--acento);
+  border-color: var(--acento);
+  /* Texto blanco sobre el acento oscuro (claro y brillante) daba
+   * 1,86:1 — prácticamente invisible; por eso "no se ve cuándo está
+   * seleccionada una opción". #0b1116 da 10,2:1. */
+  color: #0b1116;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .form-atributos-aviso {
@@ -1773,7 +2545,7 @@ body.arrastrando .paleta-item {
 
 /* Anotaciones sobre el plano — heredan color del tema vía var() */
 [data-theme="dark"] .anotacion-nodo .anotacion-sec {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 [data-theme="dark"] .alim-origen::placeholder {
@@ -1851,12 +2623,12 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .fc-llave.activa {
-  background: #1e3a5f;
-  border-color: #60a5fa;
+  background: var(--bg-hover);
+  border-color: var(--acento);
 }
 
 [data-theme="dark"] .fc-llave.activa .fc-llave-texto {
-  color: #93c5fd;
+  color: var(--acento-fuerte);
 }
 
 [data-theme="dark"] .fc-sub > span {
@@ -1867,6 +2639,20 @@ body.arrastrando .paleta-item {
   background: var(--bg-surface-alt);
   border-color: var(--borde);
   color: var(--text-primary);
+}
+
+[data-theme="dark"] .fc-calculo {
+  background: var(--bg-hover);
+  border-color: #3b6dbf;
+}
+[data-theme="dark"] .fc-calculo-titulo {
+  color: var(--acento-fuerte);
+}
+[data-theme="dark"] .fc-calculo-linea {
+  color: var(--text-primary);
+}
+[data-theme="dark"] .fc-calculo-nota {
+  color: var(--text-muted);
 }
 
 [data-theme="dark"] .fc-metodos-recordatorio {
@@ -1893,17 +2679,17 @@ body.arrastrando .paleta-item {
    color del contenedor. Los puntos de conexión conservan #e11d48. */
 [data-theme="dark"] .simbolo-svg,
 [data-theme="dark"] .simbolo-svg svg {
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Paleta thumbnails — mismo color */
 [data-theme="dark"] .paleta-thumb svg {
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Fantasma de arrastre */
 [data-theme="dark"] .fantasma-arrastre svg {
-  color: #e4e4e7;
+  color: var(--text-primary);
 }
 
 /* Panel de atributos: borde superior del drag handle */
@@ -1923,7 +2709,7 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .paso-grip:hover {
-  background: #1e3a5f;
+  background: var(--bg-hover);
 }
 
 /* Botón de toggle dark mode */
@@ -1951,7 +2737,21 @@ body.arrastrando .paleta-item {
   letter-spacing: 0.5px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: #dc2626;
+  background: var(--error);
+  color: #fff;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+/* ---- Badge de modo simulación (E63) ---- */
+.badge-simulacion {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--ok);
   color: #fff;
   line-height: 1.4;
   vertical-align: middle;
@@ -2034,13 +2834,13 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-item.activo {
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
 }
 
 .editor-simbolos-item.activo .editor-simbolos-codigo,
 .editor-simbolos-item.activo .editor-simbolos-nombre,
 .editor-simbolos-item.activo .editor-simbolos-badge {
-  color: #fff;
+  color: var(--acento-texto);
 }
 
 .editor-simbolos-mini {
@@ -2084,9 +2884,11 @@ body.arrastrando .paleta-item {
 .editor-simbolos-nombre {
   font-size: 11px;
   color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Antes truncaba con "..." a una sola línea — nombres largos como
+   * "Interruptor automático en caja moldeada (MCCB)" quedaban cortados
+   * sin forma de leerlos completos. La fila es flex sin alto fijo, así
+   * que dejar que envuelva a 2 líneas no rompe nada. */
+  overflow-wrap: break-word;
 }
 
 .editor-simbolos-badge {
@@ -2102,17 +2904,21 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-badge.verificado {
   background: #dcfce7;
-  color: #16a34a;
+  /* #16a34a daba 3,00:1 sobre este verde claro (bajo AA 4,5:1);
+     #166534 da 6,49:1, verificado. */
+  color: #166534;
 }
 
 .editor-simbolos-badge.pendiente_revision {
   background: #fef9c3;
-  color: #ca8a04;
+  /* #ca8a04 daba 2,74:1 sobre este amarillo claro — bien por debajo del
+     mínimo AA (4,5:1). #92400e da 6,60:1, verificado. */
+  color: #92400e;
 }
 
 .editor-simbolos-badge.corregido {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--acento-suave);
+  color: var(--acento);
 }
 
 [data-theme="dark"] .editor-simbolos-badge.verificado {
@@ -2126,8 +2932,8 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .editor-simbolos-badge.corregido {
-  background: rgba(37, 99, 235, 0.2);
-  color: #60a5fa;
+  background: rgba(var(--acento-rgb), 0.2);
+  color: var(--acento);
 }
 
 [data-theme="dark"] .editor-simbolos-toolbar button {
@@ -2143,7 +2949,7 @@ body.arrastrando .paleta-item {
 
 [data-theme="dark"] .editor-simbolos-toolbar button.activo {
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
   border-color: var(--acento);
 }
 
@@ -2154,8 +2960,15 @@ body.arrastrando .paleta-item {
 .editor-simbolos-canvas-wrap {
   flex: 1;
   position: relative;
-  background: var(--bg-surface-alt);
+  /* Gris neutro fijo, no el token de fondo del resto de la app: acá se
+   * edita geometría de precisión (como en un editor vectorial), y un
+   * fondo con tinte de color (el resto de la app lo tiene a propósito,
+   * tono "plano azul") hace más difícil juzgar el trazo a ojo. */
+  background: #e4e4e4;
   overflow: hidden;
+}
+[data-theme="dark"] .editor-simbolos-canvas-wrap {
+  background: #262626;
 }
 
 .editor-simbolos-canvas-wrap canvas {
@@ -2225,7 +3038,7 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-toolbar button.activo {
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
   border-color: var(--acento);
 }
 
@@ -2304,4 +3117,165 @@ body.arrastrando .paleta-item {
   color: var(--text-muted);
   font-size: 14px;
   pointer-events: none;
+}
+
+/* ================================================================
+   EXPORTACIÓN A PDF (descarga directa)
+   Cada plano y la lista de materiales se arman con una instancia de
+   React Flow (o HTML puro, para la lista) montada FUERA de pantalla
+   (`.exportacion-offscreen`, ver ExportacionProyecto.tsx), se capturan
+   con html2canvas y se empaquetan en un PDF con jsPDF que se descarga
+   directo — ver lib/exportarPdf.ts. Reemplaza el `window.print()` +
+   `@media print` que tenía esto antes: html2canvas lee el render de
+   PANTALLA tal cual está, nunca pasa por esa media query, así que las
+   reglas de acá tienen que aplicar SIEMPRE, no adentro de @media print.
+   ================================================================ */
+
+/* Necesita layout REAL (no `display:none`) para que React Flow pueda
+ * medir sus nodos vía ResizeObserver — un elemento sin layout nunca
+ * dispara ese observer, y html2canvas tampoco puede capturar algo sin
+ * tamaño. Lejos de la pantalla en vez de oculto por eso. */
+.exportacion-offscreen {
+  position: fixed;
+  top: 0;
+  left: -99999px;
+}
+
+/* Fuerza negro sobre blanco durante la CAPTURA, sin importar el tema
+ * activo en pantalla — lib/exportarPdf.ts agrega/saca esta clase justo
+ * antes/después de cada llamada a html2canvas. El papel tiene que ser
+ * blanco pase lo que pase: en modo oscuro, --text-primary resuelve a
+ * su valor casi blanco pensado para fondo oscuro, y el plano salía
+ * grisáceo en vez de negro. `border-color` no es `color` (el marco de
+ * la hoja y las líneas del rótulo IRAM 4508 usan `border`, no
+ * `color`) y el fondo tampoco (etiquetas de cable y fichas de aparato
+ * traen su propio `background: var(--bg-surface)`, casi negro en modo
+ * oscuro) — cada uno necesita su propia regla, en ese orden: el fondo
+ * transparente va DESPUÉS del texto negro, si no `.hoja *` también
+ * matchea `.hoja` y pisa su propio fondo blanco. */
+.captura-pdf-negro,
+.captura-pdf-negro * {
+  color: #000 !important;
+}
+.captura-pdf-negro .react-flow__edge-path {
+  stroke: #000 !important;
+}
+.captura-pdf-negro .hoja-marco,
+.captura-pdf-negro .zona-protegida,
+.captura-pdf-negro .zona-protegida * {
+  border-color: #000 !important;
+}
+.captura-pdf-negro * {
+  background: transparent !important;
+}
+.captura-pdf-negro .hoja {
+  background-color: #fff !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* ---- Lista de materiales: PDF propio, aparte de los planos ----
+ * Ancho fijo A4 (es una tabla, no un plano a escala); el alto queda
+ * libre para crecer con la cantidad de ítems — lib/exportarPdf.ts
+ * captura el elemento entero y lo reparte en tantas páginas A4 como
+ * haga falta, no hay salto de página por CSS acá. */
+.pagina-bom {
+  width: 210mm;
+  padding: 15mm;
+  font-family: system-ui, sans-serif;
+  color: #000;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+.pagina-bom-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10mm;
+  border-bottom: 2px solid #000;
+  padding-bottom: 4mm;
+  margin-bottom: 8mm;
+}
+.pagina-bom-header h1 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 0.2px;
+}
+.pagina-bom-meta {
+  display: flex;
+  gap: 8mm;
+  margin: 0;
+  font-size: 9px;
+}
+.pagina-bom-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  text-align: right;
+}
+.pagina-bom-meta dt {
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #666;
+}
+.pagina-bom-meta dd {
+  margin: 0;
+  font-weight: 600;
+  font-size: 11px;
+}
+.pagina-bom-vacio {
+  font-size: 11px;
+  color: #666;
+}
+.pagina-bom-grupo {
+  margin-bottom: 7mm;
+}
+.pagina-bom-grupo h2 {
+  font-size: 12px;
+  margin: 0 0 2mm;
+  padding-bottom: 1mm;
+  border-bottom: 1px solid #000;
+}
+.pagina-bom table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5px;
+  table-layout: fixed;
+}
+.pagina-bom th,
+.pagina-bom td {
+  border: 1px solid #000;
+  padding: 2.5px 5px;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+.pagina-bom th {
+  background: #f1f5f9;
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.pagina-bom th:nth-child(1),
+.pagina-bom td:nth-child(1) {
+  width: 10%;
+}
+.pagina-bom th:nth-child(2),
+.pagina-bom td:nth-child(2) {
+  width: 18%;
+}
+.pagina-bom th:nth-child(3),
+.pagina-bom td:nth-child(3) {
+  width: 34%;
+}
+.pagina-bom th:nth-child(4),
+.pagina-bom td:nth-child(4),
+.pagina-bom th:nth-child(5),
+.pagina-bom td:nth-child(5) {
+  width: 15%;
+}
+.pagina-bom td:last-child,
+.pagina-bom th:last-child {
+  width: 8%;
+  text-align: right;
 }

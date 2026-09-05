@@ -390,7 +390,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elmt", required=True, type=Path)
     parser.add_argument("--codigo", required=True)
-    parser.add_argument("--familia", required=True, choices=("aparato", "conductor", "barra"))
+    parser.add_argument(
+        "--familia",
+        required=True,
+        choices=("aparato", "conductor", "barra", "carga", "sin_ficha_tecnica"),
+    )
     parser.add_argument("--nombre-es", dest="nombre_es")
     parser.add_argument("--repo-raiz", type=Path, default=None)
     parser.add_argument("--commit-qet", dest="commit_qet", default=None)

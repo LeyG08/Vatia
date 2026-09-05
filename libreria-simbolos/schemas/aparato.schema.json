@@ -278,6 +278,96 @@
       "then": {
         "$ref": "#/$defs/guardamotor_magnetico"
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "pulsador"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/pulsador"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "selector"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/selector"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "pulsador_emergencia"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/pulsador_emergencia"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "lampara_piloto"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/lampara_piloto"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "interruptor_posicion"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/interruptor_posicion"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
+            "const": "temporizador"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/temporizador"
+      }
     }
   ],
   "$defs": {
@@ -285,6 +375,12 @@
       "description": "Campos comunes a todos los subtipos.",
       "properties": {
         "tipo_aparato": true,
+        "referencia": {
+          "type": "string",
+          "x-obligatorio": false,
+          "description": "Designación de referencia del dispositivo (IEC 61346), ej: KM1, K1, S1, F1. Se asigna sola al colocar el símbolo (próximo número libre para su tipo de aparato) — este campo queda para corregirla, por ejemplo para que un contacto auxiliar comparta la MISMA referencia que la bobina de su contactor: varios símbolos con la misma referencia se entienden como partes del mismo dispositivo físico. Es la base para poder simular el circuito de comando más adelante.",
+          "title": "Referencia"
+        },
         "marca": {
           "type": "string",
           "x-obligatorio": false,
@@ -407,6 +503,22 @@
           "x-obligatorio": false,
           "description": "Plano: \"220 [V] AC\".",
           "title": "Tensión de bobina (V)"
+        },
+        "rol_reversor": {
+          "enum": [
+            "adelante",
+            "atras"
+          ],
+          "x-obligatorio": false,
+          "description": "E64. Marca este contactor como parte de un arranque reversible (dos contactores entrelazados que invierten dos fases del motor para cambiar el sentido de giro): \"adelante\" o \"atrás\" según cuál de los dos sea. Vacío/ausente = contactor normal, sin sentido de giro asociado.",
+          "title": "Rol en arranque reversible"
+        },
+        "motor_asociado": {
+          "type": "string",
+          "x-obligatorio": false,
+          "x-visible-si": "rol_reversor:adelante|atras",
+          "description": "Referencia (IEC 61346) del motor cuyo sentido de giro gobierna este contactor — tiene que coincidir con la Referencia del símbolo del motor. El motor de simulación busca, para cada motor, el contactor \"adelante\" y el \"atrás\" que compartan esta referencia y calcula el sentido según cuál esté cerrado.",
+          "title": "Motor asociado (referencia)"
         }
       }
     },
@@ -423,6 +535,13 @@
         "tipo_aparato": {
           "const": "fusible",
           "title": "Tipo de aparato"
+        },
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "description": "Polos que protege (fases). Es un unifilar de fuerza: el trazo es una línea sola aunque el fusible sea de varios polos. Plano: \"3P\".",
+          "title": "Cantidad de polos"
         },
         "portafusible_tension_v": {
           "type": "number",
@@ -642,8 +761,15 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "x-obligatorio": true,
-          "description": "Poder de corte en kA (IEC 60947-2 Icu/Icn).",
-          "title": "Poder de corte (kA)"
+          "description": "Poder de corte último Icu en kA (IEC 60947-2).",
+          "title": "Poder de corte Icu (kA)"
+        },
+        "ics_kA": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Poder de corte de servicio Ics en kA (IEC 60947-2) — la corriente de cortocircuito que el aparato puede cortar y seguir siendo apto para servicio normal después, distinta de Icu (que solo garantiza el corte, no la reutilización). Hace falta para verificar filiación entre protecciones.",
+          "title": "Poder de corte Ics (kA)"
         },
         "categoria_utilizacion": {
           "enum": [
@@ -744,7 +870,7 @@
           "exclusiveMinimum": 0,
           "x-obligatorio": false,
           "description": "Poder de corte de servicio Ics en kA.",
-          "title": "Poder de corte servicio Ics (A)"
+          "title": "Poder de corte servicio Ics (kA)"
         }
       }
     },
@@ -943,15 +1069,12 @@
           "const": "portafusible",
           "title": "Tipo de aparato"
         },
-        "portafusible_marca": {
-          "type": "string",
-          "x-obligatorio": false,
-          "title": "Marca del portafusible"
-        },
-        "portafusible_modelo": {
-          "type": "string",
-          "x-obligatorio": false,
-          "title": "Modelo del portafusible"
+        "cantidad_polos": {
+          "type": "integer",
+          "minimum": 1,
+          "x-obligatorio": true,
+          "description": "Polos del seccionador fusible (fases). Es un unifilar de fuerza: el trazo es una línea sola aunque sea de varios polos. Plano: \"3P\".",
+          "title": "Cantidad de polos"
         },
         "portafusible_tension_v": {
           "type": "number",
@@ -1053,7 +1176,7 @@
           "const": "rele_proteccion_tension",
           "title": "Tipo de aparato"
         },
-        "ue_v": {
+        "ue_V": {
           "type": "number",
           "exclusiveMinimum": 0,
           "x-obligatorio": true,
@@ -1255,6 +1378,230 @@
         }
       },
       "description": "Guardamotor magnético (IEC 60947-2/4-1): protege SOLO contra cortocircuito, con disparo magnético instantáneo. No lleva disparador térmico, por eso no declara rango de ajuste térmico Ir; la protección contra sobrecarga la aporta un relé térmico aparte. Simbólicamente se distingue del termomagnético en que lleva una sola caja de disparador."
+    },
+    "pulsador": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "pulsador",
+          "title": "Tipo de aparato"
+        },
+        "tipo_contacto": {
+          "enum": [
+            "NA",
+            "NC"
+          ],
+          "x-obligatorio": true,
+          "description": "Lo fija el símbolo elegido (Pulsador NA / Pulsador NC): no cambia el dibujo, es para que la ficha lo declare explícito.",
+          "title": "Tipo de contacto"
+        },
+        "iluminado": {
+          "type": "boolean",
+          "x-obligatorio": false,
+          "title": "Iluminado"
+        },
+        "color": {
+          "enum": [
+            "RD",
+            "YE",
+            "GN",
+            "BU",
+            "WH"
+          ],
+          "x-obligatorio": false,
+          "x-visible-si": "iluminado",
+          "description": "Código de color IEC 60617 (RD rojo, YE amarillo, GN verde, BU azul, WH blanco). Solo aplica si el pulsador es iluminado.",
+          "title": "Color"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        },
+        "es_parada_emergencia": {
+          "type": "boolean",
+          "x-obligatorio": false,
+          "description": "Corrección del usuario: no existe un símbolo aparte para el pulsador de emergencia (nunca lo vio dibujado distinto en la práctica, pese a que la norma sí define uno — 07-72-06). Es un Pulsador NC común (S00136); esta marca lo distingue en la ficha para anotarlo en el plano.",
+          "title": "Es parada de emergencia"
+        }
+      },
+      "description": "Pulsador de mando (IEC 60617 07-72-02): contacto momentáneo, retorno automático por resorte al soltar."
+    },
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "selector",
+          "title": "Tipo de aparato"
+        },
+        "posiciones": {
+          "type": "integer",
+          "minimum": 2,
+          "x-obligatorio": true,
+          "title": "Cantidad de posiciones"
+        },
+        "con_retorno_automatico": {
+          "type": "boolean",
+          "x-obligatorio": false,
+          "description": "Falso (mantiene posición) es lo habitual en un selector; un selector con retorno se comporta como pulsador giratorio.",
+          "title": "Con retorno automático"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        }
+      },
+      "description": "Selector rotativo de mando (IEC 60617 07-72-04): mantiene la posición elegida, sin retorno automático salvo que se indique lo contrario."
+    },
+    "pulsador_emergencia": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "pulsador_emergencia",
+          "title": "Tipo de aparato"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        }
+      },
+      "description": "Pulsador de parada de emergencia, cabeza de seta (IEC 60617 07-72-06): contacto NC con maniobra positiva de apertura y retención mecánica — queda enclavado hasta liberarlo a mano (girar o tirar), no vuelve solo. El contacto es siempre NC: la parada de emergencia corta, nunca cierra."
+    },
+    "lampara_piloto": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "lampara_piloto",
+          "title": "Tipo de aparato"
+        },
+        "color": {
+          "enum": [
+            "RD",
+            "YE",
+            "GN",
+            "BU",
+            "WH"
+          ],
+          "x-obligatorio": true,
+          "description": "Código de color IEC 60617 (RD rojo, YE amarillo, GN verde, BU azul, WH blanco).",
+          "title": "Color"
+        },
+        "tipo_lampara": {
+          "enum": [
+            "LED",
+            "IN",
+            "Ne",
+            "FL"
+          ],
+          "x-obligatorio": false,
+          "description": "LED (diodo de emisión de luz), IN (incandescente), Ne (neón), FL (fluorescente).",
+          "title": "Tipo de lámpara"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Tensión (V)"
+        }
+      },
+      "description": "Lámpara piloto / de señalización, símbolo general (IEC 60617 08-80-44)."
+    },
+    "interruptor_posicion": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "interruptor_posicion",
+          "title": "Tipo de aparato"
+        },
+        "tipo_contacto": {
+          "enum": [
+            "NA",
+            "NC"
+          ],
+          "x-obligatorio": true,
+          "description": "Lo fija el símbolo elegido (Interruptor de posición NA / NC): no cambia el dibujo, es para que la ficha lo declare explícito.",
+          "title": "Tipo de contacto"
+        },
+        "ith_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Capacidad térmica de contactos Ith en amperes.",
+          "title": "Capacidad térmica Ith (A)"
+        }
+      },
+      "description": "Interruptor de posición / fin de carrera (IEC 60617 07-72-07/08): contacto accionado mecánicamente (leva, rodillo, vástago), no por mando eléctrico ni manual."
+    },
+    "temporizador": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "temporizador",
+          "title": "Tipo de aparato"
+        },
+        "tipo_retardo": {
+          "const": "a_la_conexion",
+          "description": "Por ahora la librería solo tiene el retardo a la conexión (07-76-08) — al energizarse, retarda el cambio de estado. El retardo a la desconexión (07-76-07) queda para una ampliación futura.",
+          "title": "Tipo de retardo"
+        },
+        "tiempo_retardo_s": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Tiempo de retardo (s)"
+        },
+        "tension_bobina_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión de bobina (V)"
+        }
+      },
+      "description": "Relé temporizador (IEC 60617 07-76-08): bobina con retardo a la conexión. Sus contactos (NA/NC) se dibujan por separado con los símbolos de contacto temporizado (07-71-15/17)."
     }
   }
 }

@@ -1,4 +1,7 @@
-export type RolConexion = "entrada" | "salida" | "tierra";
+/** "auxiliar" existe en metadata.schema.json pero ningún símbolo lo usa
+ * todavía; se trata como "target" en NodoSimbolo.tsx (mismo fallback
+ * que entrada/tierra) hasta que un caso real defina qué debería ser. */
+export type RolConexion = "entrada" | "salida" | "tierra" | "auxiliar";
 export type FamiliaAtributos =
   | "aparato"
   | "conductor"
@@ -249,9 +252,29 @@ export function NOTAS_GABINETE_POR_DEFECTO(): NotasGabineteConfig {
   };
 }
 
+/** Paso 3: qué librería de símbolos y convención de trazado usa la hoja.
+ * "unifilar" = fuerza (comportamiento de siempre). "multifilar" = comando/
+ * control — misma mecánica de canvas, otra paleta de símbolos. */
+export type ModoHoja = "unifilar" | "multifilar";
+
+/**
+ * Ítem de la lista de materiales que NO tiene símbolo propio en el plano:
+ * terminales, peines de conexión, bornera de distribución, precintos,
+ * canaleta — lo que haga falta. La lista de materiales del PDF combina
+ * esto con los símbolos ya colocados (código, marca, modelo, cantidad).
+ */
+export interface ItemAccesorio {
+  id: string;
+  descripcion: string;
+  cantidad: number;
+  marca?: string;
+  modelo?: string;
+}
+
 export interface HojaConfig {
   formato: FormatoHoja;
   orientacion: OrientacionHoja;
+  modo: ModoHoja;
   /** Nombre del tablero documentado; se dibuja arriba, sobre el recuadro */
   tablero: string;
   /** Notas constructivas del gabinete (estructura fija, arriba a la izquierda) */
@@ -260,18 +283,32 @@ export interface HojaConfig {
   notaSeguridad: string;
   /** Rótulo IRAM 4508 del vértice inferior derecho */
   rotulo: RotuloConfig;
+  /** Accesorios sin símbolo propio, para la lista de materiales. Opcional
+   * (no exige migración de formato): ausente = sin accesorios cargados. */
+  accesorios?: ItemAccesorio[];
+  /**
+   * Fuente de cortocircuito de la RED que alimenta este tablero (C42/E39).
+   * Vive en la hoja, no en el proyecto: solo tiene sentido en la hoja del
+   * alimentador principal (la hoja raíz, sin `hojaPadreId`) — las hojas de
+   * tableros seccionales cuelgan de un circuito ya existente y heredan el
+   * recorrido en vez de declarar su propia fuente. Opcional, igual que
+   * `accesorios`: ausente = sin cargar.
+   */
+  fuente_cortocircuito?: FuenteCortocircuito;
 }
 
 export function HOJA_POR_DEFECTO(): HojaConfig {
   return {
     formato: "A3",
     orientacion: "horizontal",
+    modo: "unifilar",
     // C13: sin nombre predeterminado — el usuario escribe el suyo
     // (el placeholder solo sugiere, no guarda dato).
     tablero: "",
     notasGabinete: NOTAS_GABINETE_POR_DEFECTO(),
     notaSeguridad: "",
     rotulo: ROTULO_POR_DEFECTO(),
+    accesorios: [],
   };
 }
 
@@ -299,6 +336,17 @@ export interface Hoja extends HojaConfig {
   conexiones: ConexionProyecto[];
   /** Viewport guardado al cambiar de pestaña */
   viewport?: { x: number; y: number; zoom: number };
+  /**
+   * Jerarquía de hojas (Paso "editor completo"): esta hoja cuelga de una
+   * carga `tipo_carga: "seccional"` de otra hoja — no es una jerarquía
+   * libre, sigue la instalación real (el tablero seccional que un
+   * circuito origina). `hojaPadreId` + `nodoOrigenId` juntos identifican
+   * esa carga; ausentes = hoja de nivel raíz (o desvinculada porque se
+   * borró el padre o el nodo de origen — la hoja en sí nunca se borra
+   * sola por eso).
+   */
+  hojaPadreId?: string;
+  nodoOrigenId?: string;
 }
 
 /** Normativa de cálculo del proyecto — condiciona tablas de Iz, límites
@@ -309,11 +357,17 @@ export type Normativa = "AEA" | "IEC";
 export type EsquemaPAT = "TT" | "TN-S" | "TN-C" | "IT";
 
 /**
- * Datos de cortocircuito de la fuente principal del proyecto. Sirve de
- * base para verificar Icc aguas abajo; no se consume todavía en ningún
- * cálculo — eso pertenece a la etapa de topología (recorrido del grafo),
- * junto con la idea de crear automáticamente el alimentador de las
- * cargas marcadas como "seccional" a partir de este dato.
+ * Datos de cortocircuito de la red que alimenta un tablero. Sirve de base
+ * para verificar Icc aguas abajo; no se consume todavía en ningún cálculo
+ * — eso pertenece a la etapa de topología (recorrido del grafo), junto con
+ * la idea de crear automáticamente el alimentador de las cargas marcadas
+ * como "seccional" a partir de este dato.
+ *
+ * Vivió en `DatosProyecto` hasta v4 (un solo valor para todo el
+ * proyecto); desde v5 es un campo de `HojaConfig` (E39): cada alimentador
+ * principal tiene su propia red aguas arriba, y un tablero seccional no
+ * tiene una fuente propia — hereda el recorrido del alimentador del que
+ * cuelga.
  */
 export interface FuenteCortocircuito {
   scc_mva?: number;
@@ -334,7 +388,6 @@ export interface DatosProyecto {
   /** Tensión fase-fase, en V */
   tension_linea_v: number;
   esquema_pat: EsquemaPAT;
-  fuente_cortocircuito?: FuenteCortocircuito;
 }
 
 export function DATOS_PROYECTO_POR_DEFECTO(): DatosProyecto {
@@ -347,8 +400,11 @@ export function DATOS_PROYECTO_POR_DEFECTO(): DatosProyecto {
 }
 
 export interface Proyecto {
-  /** Versión del formato de archivo: 3 = datos de proyecto (C41) */
-  version: 3;
+  /** Versión del formato de archivo: 3 = datos de proyecto (C41),
+   * 4 = modo de hoja unifilar/multifilar (Paso 3), 5 = fuente de
+   * cortocircuito movida del proyecto a la hoja del alimentador
+   * principal (E39) */
+  version: 5;
   meta: {
     nombre: string;
     fechaCreacion: string;
@@ -391,9 +447,12 @@ function migrarEstructuraHojas(datos: unknown): EstructuraHastaV2 {
   const obj = parsed as Record<string, unknown>;
   const ahora = new Date().toISOString();
 
-  // Ya es v2 o v3
+  // Ya es v2, v3, v4 o v5
   if (
-    (obj.version === 2 || obj.version === 3) &&
+    (obj.version === 2 ||
+      obj.version === 3 ||
+      obj.version === 4 ||
+      obj.version === 5) &&
     Array.isArray(obj.hojas)
   ) {
     return parsed as EstructuraHastaV2;
@@ -441,14 +500,49 @@ function migrarEstructuraHojas(datos: unknown): EstructuraHastaV2 {
   };
 }
 
-/** Migra cualquier dato guardado (v0/v1/v2/v3, objeto o JSON string) a v3 */
-export function migrarAProyectoV3(datos: unknown): Proyecto {
+/** Forma de una hoja guardada antes de que existiera "modo" (< v4) */
+type HojaSinModoGarantizado = Omit<Hoja, "modo"> & { modo?: ModoHoja };
+
+/** Forma de `datosProyecto` guardada antes de mover la fuente de
+ * cortocircuito a la hoja (< v5) */
+type DatosProyectoConFuenteLegada = DatosProyecto & {
+  fuente_cortocircuito?: FuenteCortocircuito;
+};
+
+/** Migra cualquier dato guardado (v0..v5, objeto o JSON string) a v5 */
+export function migrarAProyectoV5(datos: unknown): Proyecto {
   const estructura = migrarEstructuraHojas(datos);
+  const datosProyectoBruto: DatosProyectoConFuenteLegada =
+    estructura.datosProyecto ?? DATOS_PROYECTO_POR_DEFECTO();
+  // v4 → v5: la fuente de cortocircuito era un dato único de todo el
+  // proyecto; pasa a vivir en la hoja del alimentador principal (E39).
+  // Como antes solo podía haber un valor, se traslada a la primera hoja
+  // — es la que representaba ese único alimentador antes de que la
+  // jerarquía de hojas existiera. Si esa hoja ya trae su propio valor
+  // (el archivo ya era v5) no se pisa.
+  const fuenteLegada = datosProyectoBruto.fuente_cortocircuito;
+  const hojas = (estructura.hojas as HojaSinModoGarantizado[]).map(
+    (h, i) => ({
+      ...h,
+      // Hojas guardadas antes de "modo" (< v4) no lo traen: se completan
+      // con "unifilar" para no cambiar el comportamiento de proyectos viejos.
+      modo: h.modo ?? "unifilar",
+      ...(i === 0 && fuenteLegada && !h.fuente_cortocircuito
+        ? { fuente_cortocircuito: fuenteLegada }
+        : {}),
+    }),
+  );
+  const datosProyecto: DatosProyecto = {
+    normativa: datosProyectoBruto.normativa,
+    tension_fase_v: datosProyectoBruto.tension_fase_v,
+    tension_linea_v: datosProyectoBruto.tension_linea_v,
+    esquema_pat: datosProyectoBruto.esquema_pat,
+  };
   return {
-    version: 3,
+    version: 5,
     meta: estructura.meta,
-    hojas: estructura.hojas,
-    datosProyecto: estructura.datosProyecto ?? DATOS_PROYECTO_POR_DEFECTO(),
+    hojas,
+    datosProyecto,
   };
 }
 

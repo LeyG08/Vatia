@@ -59,8 +59,8 @@ def n(v: float) -> str:
     return f"{v:g}"
 
 
-def linea(x1, y1, x2, y2):
-    return f'  <line x1="{n(x1)}" y1="{n(y1)}" x2="{n(x2)}" y2="{n(y2)}"/>\n'
+def linea(x1, y1, x2, y2, extra=""):
+    return f'  <line x1="{n(x1)}" y1="{n(y1)}" x2="{n(x2)}" y2="{n(y2)}"{extra}/>\n'
 
 
 def polilinea(pts, extra=""):
@@ -304,26 +304,296 @@ def s00129():
     return hoja, c, "Relé de protección de tensión", "IEC 60617 07-73-18"
 
 
-# S00130 (rele/contactor auxiliar) ya NO se genera aca: por decision del
-# usuario paso a libreria-simbolos/pendiente-multifilar/, porque es un aparato
-# de COMANDO. Su bobina la energiza el circuito de control y sus contactos
-# actuan en el control; no lleva corriente de potencia, asi que no tiene lugar
-# en un unifilar de fuerza.
-
-
-SIMBOLOS = {
+SIMBOLOS_FUERZA = {
     "S00121": s00121, "S00122": s00122, "S00123": s00123, "S00127": s00127,
     "S00128": s00128, "S00129": s00129, "S00133": s00133,
+}
+
+
+# ---------------------------------------------------------------------------
+# COMANDO (Paso 1 del rediseno del editor, C42): lote piloto de 8 simbolos
+# para validar el nivel visual antes de escalar al resto de la libreria de
+# mando. Section 7 "071 Contactos" y "072 Dispositivos de Maniobra" de la
+# norma; el general de lampara sale de la Section 8 "080".
+#
+# Composicion: el contacto NA/NC es el mismo bloque "cuchilla" que ya usa la
+# libreria de fuerza (07-71-01/02), pivotando sobre el borne inferior. Los
+# aparatos accionados a mano (pulsador, selector, seta) le agregan un
+# ACTUADOR a la izquierda, unido por un enlace mecanico punteado (03-31-01) -
+# composicion HORIZONTAL, a diferencia de los calificadores de fuerza
+# (07-70-xx) que van ARRIBA de la cuchilla.
+# ---------------------------------------------------------------------------
+
+PUNTEADO = ' stroke-dasharray="1.5,1.5"'
+
+
+def contacto_na(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
+    """07-71-01 Forma 1: contacto NA, abierto en reposo.
+
+    Borne fijo arriba, cuchilla pivotando desde el borne movil (abajo) hasta
+    una punta que queda separada del borne fijo (hueco visible = abierto).
+    """
+    c = linea(cx, y_arriba, cx, -8)
+    c += linea(cx, 8, cx - 6, -8)
+    c += linea(cx, 8, cx, y_abajo)
+    return c
+
+
+def contacto_nc(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
+    """07-71-02: contacto NC, cerrado en reposo.
+
+    El borne fijo baja y dobla en codo hacia la izquierda; la cuchilla sale
+    de ese codo YA TOCANDO el borne movil (cerrado) -- eso solo (cerrado
+    vs. el hueco abierto de contacto_na) es lo que distingue NC de NA.
+
+    Sin marca de corte: cuatro rondas de correccion sobre esa marca (gancho
+    corto, cruz a angulo raro, cruz a 90 grados corta, cruz a 90 grados mas
+    larga) y seguia sin convencer. Decision del usuario: sacarla en vez de
+    seguir iterando sobre un detalle que no estaba saliendo bien.
+    """
+    codo = (cx - 6, -8.0)
+    pivote = (cx, 8.0)
+
+    c = linea(cx, y_arriba, cx, -8)
+    c += linea(cx, -8, codo[0], codo[1])
+    c += linea(codo[0], codo[1], pivote[0], pivote[1])
+    c += linea(cx, 8, cx, y_abajo)
+    return c
+
+
+def actuador_pulsador(cx, cy):
+    """07-72-02: cabeza de pulsador, corchete a la izquierda del contacto."""
+    c = linea(cx, cy - 4, cx, cy + 4)
+    c += linea(cx, cy - 4, cx + 3, cy - 4)
+    c += linea(cx, cy + 4, cx + 3, cy + 4)
+    return c
+
+
+def actuador_rotativo(cx, cy):
+    """07-72-04: botón giratorio (selector), letra "F"."""
+    c = linea(cx, cy - 5, cx, cy + 5)
+    c += linea(cx, cy - 5, cx + 3, cy - 5)
+    c += linea(cx, cy, cx + 3, cy)
+    return c
+
+
+def s00124():
+    hoja = "-10.0 -25.0 20.0 50.0"
+    return hoja, contacto_na(), "Contacto auxiliar NA", "IEC 60617 07-71-01 Forma 1"
+
+
+def s00134():
+    hoja = "-10.0 -25.0 20.0 50.0"
+    return hoja, contacto_nc(), "Contacto auxiliar NC", "IEC 60617 07-71-02"
+
+
+def s00135():
+    """Pulsador NA - 07-72-02: corchete de pulsador + enlace punteado hasta
+    la MITAD de la cuchilla del contacto NA. Corrección del usuario: el
+    enlace no va al extremo/codo, va al medio del recorrido de la cuchilla
+    (punto medio entre el pivote (0,8) y la punta abierta (-6,-8): (-3,0)).
+    Corrección del usuario (ronda siguiente): mover SOLO la punta del
+    enlace no alcanzaba, quedaba una diagonal que se metía a cruzar la
+    cuchilla y confundía toda la lectura del símbolo. Se bajó el corchete
+    completo a la altura (-3,0) del medio, igual que quedó aprobado en el
+    selector (S00137): enlace HORIZONTAL limpio, sin diagonales."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = actuador_pulsador(-15, 0)
+    c += linea(-15, 0, -3, 0, PUNTEADO)
+    c += contacto_na()
+    return hoja, c, "Pulsador NA", "IEC 60617 07-72-02"
+
+
+def s00136():
+    """Pulsador NC - mismo corchete, mismo enlace horizontal a la mitad de
+    la cuchilla del contacto NC (mismo punto medio (-3,0) que el NA: ambas
+    cuchillas van entre los mismos dos puntos, cerrada o abierta)."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = actuador_pulsador(-15, 0)
+    c += linea(-15, 0, -3, 0, PUNTEADO)
+    c += contacto_nc()
+    return hoja, c, "Pulsador NC", "IEC 60617 07-72-02 + 07-71-02"
+
+
+def s00137():
+    """Selector 2 posiciones - contacto conmutador de 3 bornes (07-71-03),
+    no el contacto simple de 07-72-04 (corrección del usuario: 2 bornes solo
+    alcanzan para un pulsador con una posición abierta). Común abajo,
+    posición 1 cerrada en reposo y posición 2 abierta a los costados.
+
+    El actuador va como el pulsador — a la IZQUIERDA, a la altura media de
+    la cuchilla activa, enlace horizontal limpio al punto medio entre pos1
+    y el común. Sin marca de corte en pos1: mismo criterio que
+    contacto_nc(), sacada tras el pedido del usuario ("sácale la cruz...
+    también al selector biestado")."""
+    hoja = "-20.0 -25.0 40.0 50.0"
+    comun = (0.0, 8.0)
+    pos1 = (-10.0, -8.0)  # borne fijo, cerrado en reposo
+    pos2 = (10.0, -8.0)   # borne fijo, abierto en reposo (no toca la cuchilla)
+    c = actuador_rotativo(-17, 0)
+    c += linea(-14, 0, -5, 0, PUNTEADO)
+    c += linea(pos1[0], -20, pos1[0], pos1[1])
+    c += linea(pos1[0], pos1[1], comun[0], comun[1])
+    c += linea(pos2[0], -20, pos2[0], pos2[1] - 4)
+    c += linea(comun[0], comun[1], comun[0], 20)
+    return hoja, c, "Selector 2 posiciones", "IEC 60617 07-71-03 + 07-72-04"
+
+
+def s00130():
+    """Bobina de contactor/relé, símbolo general - 07-76-01 Forma 1: un
+    rectángulo con un borne saliendo de cada lado corto."""
+    hoja = "-10.0 -25.0 20.0 50.0"
+    c = linea(0, -20, 0, -7.5)
+    c += rectangulo(-5, -7.5, 10, 15)
+    c += linea(0, 7.5, 0, 20)
+    return hoja, c, "Bobina de contactor/relé", "IEC 60617 07-76-01 Forma 1"
+
+
+def s00139():
+    """Lámpara piloto, símbolo general - 08-80-44: círculo con una cruz
+    adentro."""
+    hoja = "-10.0 -25.0 20.0 50.0"
+    c = linea(0, -20, 0, -7)
+    c += circulo(0, 0, 7)
+    c += linea(-4.95, -4.95, 4.95, 4.95)
+    c += linea(-4.95, 4.95, 4.95, -4.95)
+    c += linea(0, 7, 0, 20)
+    return hoja, c, "Lámpara piloto", "IEC 60617 08-80-44"
+
+
+# ---------------------------------------------------------------------------
+# Paso 2 de la librería de comando (C43): contactos/bobina de temporizador,
+# interruptor de posición, selector de 3 posiciones. Reutilizan
+# contacto_na()/contacto_nc()/actuador_rotativo() del piloto ya aprobado.
+# ---------------------------------------------------------------------------
+
+def qualif_posicion(cx, cy, ancho=4.0, alto=2.6):
+    """07-70-06: triángulo sólido apuntando hacia abajo, calificador de
+    "contacto de posición" — se agrega a un contacto simple para marcarlo
+    como interruptor de posición (fin de carrera) sin tener que dibujar un
+    símbolo distinto para cada variante NA/NC."""
+    return poligono(
+        [(cx - ancho / 2, cy - alto / 2), (cx + ancho / 2, cy - alto / 2), (cx, cy + alto / 2)],
+        ' fill="#000000"',
+    )
+
+
+def retardo_horizontal(punto, largo=4.5, sep=1.0, r=2.6):
+    """03-31-05 "acción retardada" (mismo "efecto paracaídas" que ya
+    describe la norma en 07-71-15/17): doble línea horizontal + arco que
+    se abre hacia la cuchilla, extendiendo el extremo abierto/codo del
+    contacto (mismo punto (cx-6,-8) que ya usan contacto_na/contacto_nc)
+    hacia la izquierda. El arco es la misma polilínea que ya funcionó bien
+    para la cabeza de seta retirada — sin comandos de arco SVG."""
+    x0, y0 = punto
+    x1 = x0 - largo
+    c = linea(x0, y0 - sep / 2, x1, y0 - sep / 2)
+    c += linea(x0, y0 + sep / 2, x1, y0 + sep / 2)
+    pts = [
+        (x1 + r * math.cos(math.pi / 2 + i * math.pi / 8), y0 + r * math.sin(math.pi / 2 + i * math.pi / 8))
+        for i in range(9)
+    ]
+    c += polilinea(pts)
+    return c
+
+
+def s00140():
+    """Interruptor de posición, contacto de cierre - 07-72-07: contacto NA
+    con el calificador de posición (07-70-06) al costado, para que no se
+    confunda con un contacto auxiliar común (07-72-07 no lo trae en la
+    norma porque ya está bajo el encabezado "Interruptor de Posición" de
+    la tabla; un símbolo suelto en la librería sí lo necesita)."""
+    hoja = "-15.0 -25.0 30.0 50.0"
+    c = contacto_na()
+    c += qualif_posicion(6, 0)
+    return hoja, c, "Interruptor de posición NA", "IEC 60617 07-72-07 + 07-70-06"
+
+
+def s00141():
+    """Interruptor de posición, contacto de apertura - 07-72-08: igual,
+    sobre el contacto NC."""
+    hoja = "-15.0 -25.0 30.0 50.0"
+    c = contacto_nc()
+    c += qualif_posicion(6, 0)
+    return hoja, c, "Interruptor de posición NC", "IEC 60617 07-72-08 + 07-70-06"
+
+
+def s00142():
+    """Selector 3 posiciones - misma estructura que el selector de 2
+    (S00137, ya aprobado): conmutador con común abajo, posición 1 cerrada
+    en reposo, y ahora DOS posiciones abiertas a los costados en vez de
+    una. Mismo patrón de actuador a la izquierda con enlace horizontal al
+    punto medio de la cuchilla activa."""
+    hoja = "-20.0 -25.0 40.0 50.0"
+    comun = (0.0, 8.0)
+    pos1 = (-15.0, -8.0)  # cerrada en reposo
+    pos2 = (0.0, -8.0)    # abierta
+    pos3 = (15.0, -8.0)   # abierta
+    c = actuador_rotativo(-18, 0)
+    c += linea(-15, 0, -7.5, 0, PUNTEADO)
+    c += linea(pos1[0], -20, pos1[0], pos1[1])
+    c += linea(pos1[0], pos1[1], comun[0], comun[1])
+    c += linea(pos2[0], -20, pos2[0], pos2[1] - 4)
+    c += linea(pos3[0], -20, pos3[0], pos3[1] - 4)
+    c += linea(comun[0], comun[1], comun[0], 20)
+    return hoja, c, "Selector 3 posiciones", "IEC 60617 07-71-03 + 07-72-04"
+
+
+def s00143():
+    """Bobina de temporizador, retardo a la conexión - 07-76-08: mismo
+    rectángulo que la bobina general (S00130/07-76-01), con el tercio
+    izquierdo separado y cruzado en X."""
+    hoja = "-10.0 -25.0 20.0 50.0"
+    c = linea(0, -20, 0, -7.5)
+    c += rectangulo(-5, -7.5, 10, 15)
+    c += linea(-1.7, -7.5, -1.7, 7.5)
+    c += linea(-5, -7.5, -1.7, 7.5)
+    c += linea(-1.7, -7.5, -5, 7.5)
+    c += linea(0, 7.5, 0, 20)
+    return hoja, c, "Bobina de temporizador (retardo a la conexión)", "IEC 60617 07-76-08"
+
+
+def s00144():
+    """Contacto NA temporizado, retardo a la conexión - 07-71-15: la
+    cuchilla abierta de contacto_na() con el calificador de acción
+    retardada extendiendo su extremo hacia la izquierda."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = contacto_na()
+    c += retardo_horizontal((-6, -8))
+    return hoja, c, "Contacto NA temporizado (retardo a la conexión)", "IEC 60617 07-71-15"
+
+
+def s00145():
+    """Contacto NC temporizado, retardo a la conexión - 07-71-17: mismo
+    calificador de retardo, sobre contacto_nc()."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = contacto_nc()
+    c += retardo_horizontal((-6, -8))
+    return hoja, c, "Contacto NC temporizado (retardo a la conexión)", "IEC 60617 07-71-17"
+
+
+SIMBOLOS_COMANDO = {
+    "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
+    "S00136": s00136, "S00137": s00137, "S00139": s00139,
+    "S00140": s00140, "S00141": s00141, "S00142": s00142, "S00143": s00143,
+    "S00144": s00144, "S00145": s00145,
 }
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--raiz", type=Path, default=Path(__file__).resolve().parent.parent)
+    ap.add_argument(
+        "--carpeta",
+        type=str,
+        default="simbolos",
+        help="subcarpeta de libreria-simbolos/ a generar (simbolos = fuerza, comando = mando)",
+    )
     args = ap.parse_args()
-    base = args.raiz / "libreria-simbolos" / "simbolos"
+    base = args.raiz / "libreria-simbolos" / args.carpeta
+    simbolos = SIMBOLOS_COMANDO if args.carpeta == "comando" else SIMBOLOS_FUERZA
 
-    for codigo, fn in SIMBOLOS.items():
+    for codigo, fn in simbolos.items():
         carpeta = next(c for c in base.iterdir() if c.name.startswith(codigo + "_"))
         meta = json.loads((carpeta / "metadata.json").read_text(encoding="utf-8"))
         vb, cuerpo, nombre, norma = fn()
@@ -343,7 +613,7 @@ def main() -> int:
             json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"  {codigo}  {norma:<32}  {nombre}")
 
-    print(f"\n{len(SIMBOLOS)} simbolos generados desde la norma")
+    print(f"\n{len(simbolos)} simbolos generados desde la norma")
     return 0
 
 

@@ -35,8 +35,9 @@
     "seccion_neutro_mm2": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 300,
       "x-obligatorio": false,
-      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_neutro=true, se asume igual a seccion_fase_mm2.",
+      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_neutro=true, se asume igual a seccion_fase_mm2. Techo 300 mm²: tope de la tabla de secciones normadas cargada (E54, ver lib/secciones.ts).",
       "title": "Sección neutro (mm²)"
     },
     "lleva_tierra": {
@@ -48,23 +49,18 @@
     "seccion_tierra_mm2": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 300,
       "x-obligatorio": false,
-      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_tierra=true, se asume igual a seccion_fase_mm2.",
+      "description": "Cargar SOLO si difiere de la de fase; si falta y lleva_tierra=true, se asume igual a seccion_fase_mm2. Techo 300 mm²: tope de la tabla de secciones normadas cargada (E54, ver lib/secciones.ts).",
       "title": "Sección tierra (mm²)"
     },
     "seccion_fase_mm2": {
       "type": "number",
       "exclusiveMinimum": 0,
+      "maximum": 300,
       "x-obligatorio": true,
-      "description": "Sección de cada conductor de fase. Plano: \"25mm²\".",
+      "description": "Sección de cada conductor de fase, de la lista normada (E54): 1,5 a 300 mm² para cobre, 2,5 a 300 mm² para aluminio (Tablas B52-2 a B52-5, ver lib/secciones.ts). Plano: \"25mm²\".",
       "title": "Sección de fase (mm²)"
-    },
-    "longitud_m": {
-      "type": "number",
-      "exclusiveMinimum": 0,
-      "x-obligatorio": true,
-      "description": "Longitud del tramo en metros. Es la base de la caída de tensión (ΔU% ∝ longitud) y de la impedancia del cable para el cálculo de cortocircuito en el extremo. Sin este dato ninguno de los dos se puede calcular.",
-      "title": "Longitud (m)"
     },
     "material": {
       "enum": [
@@ -75,34 +71,52 @@
       "description": "De todo el cable. Plano: \"Cu\".",
       "title": "Material"
     },
-    "metodo_instalacion": {
-      "enum": [
-        "A1",
-        "A2",
-        "B1",
-        "B2",
-        "C",
-        "D",
-        "E",
-        "F",
-        "G"
-      ],
+    "tramos": {
+      "type": "array",
       "x-obligatorio": true,
-      "description": "Código de método de instalación (AEA 90364-5-52 / IEC 60364-5-52 tabla 52-C1). Determina de qué tabla de corriente admisible sale Iz para esta sección y aislación: cada método corresponde a una columna distinta de la tabla, aunque el cable sea idéntico. Se elige por código; el formulario muestra un recordatorio de a qué corresponde cada uno.",
-      "title": "Método de instalación"
-    },
-    "temperatura_ambiente_c": {
-      "type": "number",
-      "x-obligatorio": false,
-      "description": "Temperatura ambiente en °C. Corrige la corriente admisible de tabla (factor de corrección por temperatura): a mayor temperatura, menor Iz. Sin valor se asume la de referencia de la tabla (30°C en instalación enterrada, 40°C al aire, según AEA/IEC).",
-      "title": "Temperatura ambiente (°C)"
-    },
-    "cantidad_circuitos_agrupados": {
-      "type": "integer",
-      "minimum": 1,
-      "x-obligatorio": false,
-      "description": "Cantidad de circuitos o cables multiconductores agrupados en la misma canalización, incluido este. Corrige la corriente admisible por agrupamiento (factor de corrección): a más circuitos juntos, menor Iz por calentamiento mutuo. Sin valor se asume 1 (sin agrupamiento).",
-      "title": "Circuitos agrupados"
+      "description": "El recorrido físico del cable partido en TRAMOS, cada uno con su propio método de instalación, longitud y temperatura ambiente — un mismo circuito real puede ir parte encañado en pared (B1) y parte enterrado (D1), por ejemplo (E59). El Iz del cable ENTERO es el MÍNIMO de los Iz de cada tramo (el tramo más restrictivo manda, AEA 90364-5-52 / IEC 60364-5-52); la longitud total para la caída de tensión es la SUMA de las longitudes de todos los tramos. El caso más común (un solo tramo) es simplemente una lista de un elemento — no agrega complejidad al circuito típico.",
+      "title": "Tramos de instalación",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metodo_instalacion": {
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C",
+              "D1",
+              "D2",
+              "E",
+              "F",
+              "G"
+            ],
+            "x-obligatorio": true,
+            "description": "Código de método de instalación (AEA 90364-5-52 / IEC 60364-5-52, Anexo B, Tabla B52-1). Determina de qué columna de las tablas B52-2 a B52-13 sale Iz para esta sección, material y aislación DE ESTE TRAMO. D1 = dentro de caño o conducto enterrado; D2 = directamente enterrado (Iz distinta para cada uno, ver Tabla B52-16).",
+            "title": "Método de instalación"
+          },
+          "longitud_m": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "x-obligatorio": true,
+            "description": "Longitud de ESTE TRAMO en metros.",
+            "title": "Longitud (m)"
+          },
+          "temperatura_ambiente_c": {
+            "type": "number",
+            "x-obligatorio": false,
+            "description": "Temperatura ambiente en °C de ESTE TRAMO. Corrige la corriente admisible de tabla (factor de corrección por temperatura): a mayor temperatura, menor Iz. Sin valor se asume la de referencia de la tabla (30°C en instalación enterrada, 40°C al aire, según AEA/IEC).",
+            "title": "Temperatura ambiente (°C)"
+          },
+          "canalizacion": {
+            "type": "string",
+            "x-obligatorio": false,
+            "description": "Identificador de la canalización que comparte ESTE TRAMO con otros conductores del proyecto (ej. \"Bandeja 1\", \"Caño 2\") — un cable puede ir por una canalización distinta en cada tramo de su recorrido (E60). No hace falta contar a mano cuántos van juntos: el editor cuenta solo cuántos tramos (de cualquier conductor, cualquier hoja) tienen ESTE MISMO identificador y corrige la corriente admisible de ESTE TRAMO por agrupamiento. Sin valor se asume que va solo (factor 1, sin agrupamiento).",
+            "title": "Canalización"
+          }
+        }
+      }
     },
     "aislacion": {
       "enum": [

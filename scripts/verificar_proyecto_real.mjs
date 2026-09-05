@@ -14,6 +14,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  esVacio,
+  esCampoVisible,
+  mensajesDeCampos,
+  problemasCable,
+} from "../libreria-simbolos/verificacion/reglasFicha.mjs";
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), "..");
 const proyecto = JSON.parse(
@@ -60,27 +66,15 @@ function subtipoDeAparato(tipo) {
 }
 
 /**
- * Espejo de campoVisible() de apps/editor/src/lib/esquemas.ts.
- *
- * `x-visible-si` admite dos formas: "campo" (el campo debe valer true) y
- * "campo:valor1|valor2" (debe valer alguno de esos). Un campo oculto no se
- * exige, porque el formulario tampoco lo muestra.
+ * Resolución del schema para la familia "aparato": subtipo → campos
+ * obligatorios visibles + x-alguno-obligatorio. El criterio de qué mensaje
+ * corresponde una vez resuelta esta lista es compartido (reglasFicha.mjs).
  */
-function campoVisible(def, attrs) {
-  const regla = def && def["x-visible-si"];
-  if (!regla) return true;
-  const sep = regla.indexOf(":");
-  if (sep === -1) return attrs[regla] === true;
-  const campo = regla.slice(0, sep);
-  const valores = regla.slice(sep + 1).split("|");
-  return valores.includes(String(attrs[campo] ?? ""));
-}
-
 function reglasDeFamiliaAparato(attrs) {
   const sub = subtipoDeAparato(attrs.tipo_aparato);
   if (!sub) return null;
   const obligatorios = Object.entries(sub.properties ?? {})
-    .filter(([, d]) => d && d["x-obligatorio"] === true && campoVisible(d, attrs))
+    .filter(([, d]) => d && d["x-obligatorio"] === true && esCampoVisible(d, attrs))
     .map(([n]) => n);
   const alguno = Array.isArray(sub["x-alguno-obligatorio"])
     ? sub["x-alguno-obligatorio"]
@@ -92,29 +86,17 @@ function reglasDeFamiliaAparato(attrs) {
 function reglasDeRaiz(schema, attrs = {}) {
   return {
     obligatorios: Object.entries(schema.properties ?? {})
-      .filter(([, d]) => d && d["x-obligatorio"] === true && campoVisible(d, attrs))
+      .filter(([, d]) => d && d["x-obligatorio"] === true && esCampoVisible(d, attrs))
       .map(([n]) => n),
     alguno: [],
   };
-}
-
-/* ---- espejo de lib/checklist.ts ---- */
-const vacio = (v) =>
-  v === undefined || v === null || v === "" ||
-  (typeof v === "number" && !Number.isFinite(v));
-
-function humanizar(nombre) {
-  let t = nombre.replace(/_/g, " ");
-  t = t.replace(/\bka$/i, "kA").replace(/\bkw$/i, "kW").replace(/\bhp$/i, "HP");
-  t = t.replace(/\bmm2$/i, "mm²").replace(/\bv$/i, "V").replace(/\ba$/i, "A");
-  return t.replace(/^./, (c) => c.toUpperCase());
 }
 
 function problemasFicha(familia, attrs) {
   if (familia === "sin_ficha_tecnica") return [];
   let reglas;
   if (familia === "aparato") {
-    if (vacio(attrs.tipo_aparato)) {
+    if (esVacio(attrs.tipo_aparato)) {
       return ["Elegí el tipo de aparato en el formulario."];
     }
     reglas = reglasDeFamiliaAparato(attrs);
@@ -126,46 +108,7 @@ function problemasFicha(familia, attrs) {
     return []; // conductor: el cable se valida por conexión
   }
   if (!reglas) return ["tipo_aparato desconocido"];
-  const msj = [];
-  for (const campo of reglas.obligatorios) {
-    if (vacio(attrs[campo])) msj.push(`Falta ${humanizar(campo)}.`);
-  }
-  if (reglas.alguno.length > 0 && reglas.alguno.every((k) => vacio(attrs[k]))) {
-    msj.push(`Cargá al menos uno de: ${reglas.alguno.map(humanizar).join(" / ")}.`);
-  }
-  return msj;
-}
-
-function problemasCable(a) {
-  const msj = [];
-  const num = (k) => (typeof a[k] === "number" ? a[k] : undefined);
-  const fases = num("cantidad_conductores") ?? 0;
-  const neutro = a.lleva_neutro === true;
-  const tierra = a.lleva_tierra === true;
-  const sFase = num("seccion_fase_mm2");
-  const sNeutro = num("seccion_neutro_mm2");
-  const sTierra = num("seccion_tierra_mm2");
-
-  if (fases === 0 && !neutro && !tierra) {
-    return ["Cable sin conductores: activá fases, neutro o tierra."];
-  }
-  if (fases > 0 && !sFase) msj.push("Falta la sección de fase.");
-  if (fases === 0) {
-    if (neutro && !sNeutro) msj.push("Falta la sección del neutro.");
-    if (tierra && !sTierra) msj.push("Falta la sección de la tierra.");
-  }
-  if (vacio(a.material)) msj.push("Falta material.");
-  if (vacio(a.aislacion)) msj.push("Falta aislación.");
-  if (vacio(a.norma_iram)) msj.push("Falta norma IRAM.");
-  if (vacio(a.longitud_m)) msj.push("Falta la longitud del tramo.");
-  if (vacio(a.metodo_instalacion)) msj.push("Falta el método de instalación.");
-  if (!neutro && sNeutro) msj.push("Hay sección de neutro cargada pero el neutro está apagado.");
-  if (!tierra && sTierra) msj.push("Hay sección de tierra cargada pero la tierra está apagada.");
-  if (sFase) {
-    if (sNeutro && sNeutro > sFase) msj.push("La sección del neutro es mayor que la de fase.");
-    if (sTierra && sTierra > sFase) msj.push("La sección de la tierra es mayor que la de fase.");
-  }
-  return msj;
+  return mensajesDeCampos(reglas.obligatorios, reglas.alguno, attrs);
 }
 
 /**

@@ -1,9 +1,18 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { useEditor } from "../lib/store";
 import { TAMANIOS_HOJA_MM } from "../lib/tipos";
-import type { FormatoHoja, OrientacionHoja } from "../lib/tipos";
+import type { FormatoHoja, ItemAccesorio, ModoHoja, OrientacionHoja } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
+
+const SECCIONES = [
+  { id: "pagina", label: "Página", icono: "📐" },
+  { id: "encabezado", label: "Encabezado y notas", icono: "📝" },
+  { id: "rotulo", label: "Rótulo IRAM 4508", icono: "🏷️" },
+  { id: "cortocircuito", label: "Fuente de cortocircuito", icono: "⚡" },
+  { id: "materiales", label: "Materiales adicionales", icono: "📦" },
+] as const;
+type SeccionId = (typeof SECCIONES)[number]["id"];
 
 function Campo({
   etiqueta,
@@ -33,12 +42,27 @@ function PanelHoja() {
   const alternar = useEditor((s) => s.alternarPanelHoja);
   const hoja = useEditor((s) => s.hoja);
   const actualizar = useEditor((s) => s.actualizarHoja);
+  const hayNodos = useEditor((s) => s.nodos.length > 0);
+  // La fuente de cortocircuito solo tiene sentido en la hoja del
+  // alimentador principal (raíz, sin hojaPadreId) — una hoja seccional
+  // cuelga de un circuito ya existente y no declara su propia red (E39).
+  const esAlimentadorPrincipal = useEditor((s) => {
+    const activa = s.proyecto.hojas.find((h) => h.id === s.hojaActivaId);
+    return !activa?.hojaPadreId;
+  });
+  const [seccion, setSeccion] = useState<SeccionId>("pagina");
+  // Si la hoja activa cambió y ya no es la del alimentador principal,
+  // no mostrar la pestaña de cortocircuito seleccionada (quedaría
+  // vacía) — se deriva en el render en vez de sincronizar con un efecto.
+  const seccionMostrada: SeccionId =
+    seccion === "cortocircuito" && !esAlimentadorPrincipal ? "pagina" : seccion;
 
   if (!abierto) return null;
   const [mmCorto, mmLargo] = TAMANIOS_HOJA_MM[hoja.formato];
   const mmW = hoja.orientacion === "horizontal" ? mmLargo : mmCorto;
   const mmH = hoja.orientacion === "horizontal" ? mmCorto : mmLargo;
   const rotulo = hoja.rotulo;
+  const fuenteCc = hoja.fuente_cortocircuito ?? {};
 
   const setRotulo = (patch: Partial<typeof rotulo>) =>
     actualizar({ rotulo: patch });
@@ -70,223 +94,434 @@ function PanelHoja() {
     setRotulo({ responsables: lista });
   };
 
+  /* ---- Accesorios: ítems de la lista de materiales sin símbolo propio
+   * (terminales, peines de conexión, bornera de distribución…) ---- */
+  const accesorios = hoja.accesorios ?? [];
+  const agregarAccesorio = () =>
+    actualizar({
+      accesorios: [
+        ...accesorios,
+        { id: crypto.randomUUID(), descripcion: "", cantidad: 1 },
+      ],
+    });
+  const actualizarAccesorio = (id: string, cambios: Partial<ItemAccesorio>) =>
+    actualizar({
+      accesorios: accesorios.map((a) => (a.id === id ? { ...a, ...cambios } : a)),
+    });
+  const eliminarAccesorio = (id: string) =>
+    actualizar({ accesorios: accesorios.filter((a) => a.id !== id) });
+
   return (
     <>
       <div className="modal-fondo" onClick={alternar} />
-      <section className="panel-hoja" role="dialog" aria-label="Configuración de hoja">
+      <section
+        className="panel-hoja panel-hoja--tabulado"
+        role="dialog"
+        aria-label="Configuración de hoja"
+      >
         <h2>Configuración de hoja</h2>
 
-        <div className="panel-hoja-bloque">
-          <label className="panel-hoja-campo">
-            <span>Formato (serie A)</span>
-            <select
-              value={hoja.formato}
-              onChange={(e) =>
-                actualizar({ formato: e.target.value as FormatoHoja })
-              }
-            >
-              {FORMATOS.map((f) => (
-                <option key={f} value={f}>
-                  {f} — {TAMANIOS_HOJA_MM[f][0]}×{TAMANIOS_HOJA_MM[f][1]} mm
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="panel-hoja-campo">
-            <span>Orientación</span>
-            <div className="orientacion-opciones">
-              {(["horizontal", "vertical"] as OrientacionHoja[]).map((o) => (
+        <div className="panel-hoja-layout">
+          <nav className="panel-hoja-tabs" aria-label="Secciones de la hoja">
+            {SECCIONES.map((s) => {
+              const bloqueada = s.id === "cortocircuito" && !esAlimentadorPrincipal;
+              return (
                 <button
-                  key={o}
+                  key={s.id}
                   type="button"
-                  className={hoja.orientacion === o ? "activo" : ""}
-                  onClick={() => actualizar({ orientacion: o })}
+                  className={seccionMostrada === s.id ? "activo" : ""}
+                  aria-current={seccionMostrada === s.id}
+                  disabled={bloqueada}
+                  title={
+                    bloqueada
+                      ? "Esta hoja cuelga de otro tablero — la fuente de cortocircuito se carga en la hoja del alimentador principal (la hoja raíz)."
+                      : undefined
+                  }
+                  onClick={() => setSeccion(s.id)}
                 >
-                  {o === "horizontal" ? "▭ Horizontal" : "▯ Vertical"}
+                  <span className="panel-hoja-tab-icono" aria-hidden="true">
+                    {s.icono}
+                  </span>
+                  {s.label}
                 </button>
-              ))}
-            </div>
-          </div>
+              );
+            })}
+          </nav>
 
-          <p className="panel-hoja-dimension">
-            Hoja: {mmW} × {mmH} mm.
-          </p>
-        </div>
-
-        <h3>Encabezado del tablero</h3>
-
-        <div className="panel-hoja-bloque">
-          <Campo
-            etiqueta="Tablero"
-            valor={hoja.tablero}
-            onChange={(v) => actualizar({ tablero: v })}
-          />
-        </div>
-
-        <h3>Notas del gabinete</h3>
-
-        <div className="panel-hoja-bloque">
-          <Campo
-            etiqueta="Material del gabinete"
-            valor={hoja.notasGabinete.material}
-            onChange={(v) => actualizar({ notasGabinete: { material: v } })}
-          />
-          <Campo
-            etiqueta="Clase de aislación"
-            valor={hoja.notasGabinete.claseAislacion}
-            onChange={(v) => actualizar({ notasGabinete: { claseAislacion: v } })}
-          />
-          <Campo
-            etiqueta="Personal apto para operar"
-            valor={hoja.notasGabinete.personalApto}
-            onChange={(v) => actualizar({ notasGabinete: { personalApto: v } })}
-          />
-          <Campo
-            etiqueta="Grado de protección IP"
-            valor={hoja.notasGabinete.gradoProteccion}
-            onChange={(v) => actualizar({ notasGabinete: { gradoProteccion: v } })}
-          />
-          <Campo
-            etiqueta="Barras o conductores interiores"
-            valor={hoja.notasGabinete.barrasOConductores}
-            onChange={(v) =>
-              actualizar({ notasGabinete: { barrasOConductores: v } })
-            }
-          />
-          <Campo
-            etiqueta="Reserva para el futuro"
-            valor={hoja.notasGabinete.reservaFutura}
-            onChange={(v) => actualizar({ notasGabinete: { reservaFutura: v } })}
-          />
-        </div>
-
-        <h3>Nota de seguridad operativa</h3>
-
-        <label className="panel-hoja-campo">
-          <span>Texto al pie de la hoja</span>
-          <textarea
-            rows={4}
-            value={hoja.notaSeguridad}
-            onChange={(e) => actualizar({ notaSeguridad: e.target.value })}
-            placeholder="NOTA DE SEGURIDAD OPERATIVA — SECCIONADORES FUSIBLES: …"
-          />
-        </label>
-
-        <h3>Rótulo IRAM 4508</h3>
-
-        <div className="panel-hoja-bloque">
-          <Campo
-            etiqueta="Empresa"
-            valor={rotulo.empresa}
-            onChange={(v) => setRotulo({ empresa: v })}
-          />
-          <Campo
-            etiqueta="Texto del logo (si no hay imagen)"
-            valor={rotulo.logoTexto}
-            onChange={(v) => setRotulo({ logoTexto: v })}
-          />
-          <Campo
-            etiqueta="Cliente"
-            valor={rotulo.cliente}
-            onChange={(v) => setRotulo({ cliente: v })}
-          />
-          <Campo
-            etiqueta="Localidad"
-            valor={rotulo.localidad}
-            onChange={(v) => setRotulo({ localidad: v })}
-          />
-          <Campo
-            etiqueta="Denominación de lo representado"
-            valor={rotulo.denominacion}
-            onChange={(v) => setRotulo({ denominacion: v })}
-          />
-          <Campo
-            etiqueta="Clave o número de lo representado"
-            valor={rotulo.claveRepresentado}
-            onChange={(v) => setRotulo({ claveRepresentado: v })}
-          />
-          <Campo
-            etiqueta="Nombre del archivo informático"
-            valor={rotulo.nombreArchivo}
-            onChange={(v) => setRotulo({ nombreArchivo: v })}
-          />
-          <Campo
-            etiqueta="Tolerancias generales"
-            valor={rotulo.toleranciasGenerales}
-            onChange={(v) => setRotulo({ toleranciasGenerales: v })}
-            placeholder="±0,5 ISO 2768-mK"
-          />
-
-          <div className="panel-hoja-dos-col">
-            <Campo
-              etiqueta="Escala (vacío = S/E)"
-              valor={rotulo.escala}
-              onChange={(v) => setRotulo({ escala: v })}
-              placeholder="1:50"
-            />
-            <label className="panel-hoja-campo">
-              <span>Método ISO</span>
-              <select
-                value={rotulo.metodoIso}
-                onChange={(e) =>
-                  setRotulo({
-                    metodoIso: e.target.value as "(E)" | "(A)" | "",
-                  })
-                }
-              >
-                <option value="(E)">(E)</option>
-                <option value="(A)">(A)</option>
-                <option value="">Sin método</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="panel-hoja-campo">
-            <span>Responsables (fecha — nombre)</span>
-            <div className="panel-hoja-resp">
-              {rotulo.responsables.map((r, i) => (
-                <Fragment key={r.rol}>
-                  <em>{r.rol}</em>
-                  <input
-                    inputMode="numeric"
-                    placeholder="dd/mm/aaaa"
-                    value={r.fecha}
-                    className={
-                      r.fecha !== "" && !fechaValida(r.fecha) ? "invalido" : ""
-                    }
+          <div className="panel-hoja-contenido">
+            {seccionMostrada === "pagina" && (
+              <div className="panel-hoja-bloque">
+                <label className="panel-hoja-campo">
+                  <span>Formato (serie A)</span>
+                  <select
+                    value={hoja.formato}
                     onChange={(e) =>
-                      setResponsable(i, "fecha", enmascararFecha(e.target.value))
+                      actualizar({ formato: e.target.value as FormatoHoja })
+                    }
+                  >
+                    {FORMATOS.map((f) => (
+                      <option key={f} value={f}>
+                        {f} — {TAMANIOS_HOJA_MM[f][0]}×{TAMANIOS_HOJA_MM[f][1]} mm
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="panel-hoja-campo">
+                  <span>Orientación</span>
+                  <div className="orientacion-opciones">
+                    {(["horizontal", "vertical"] as OrientacionHoja[]).map((o) => (
+                      <button
+                        key={o}
+                        type="button"
+                        className={hoja.orientacion === o ? "activo" : ""}
+                        onClick={() => actualizar({ orientacion: o })}
+                      >
+                        {o === "horizontal" ? "▭ Horizontal" : "▯ Vertical"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="panel-hoja-dimension">
+                  Hoja: {mmW} × {mmH} mm.
+                </p>
+
+                <div className="panel-hoja-campo">
+                  <span>Tipo de esquema</span>
+                  <div className="orientacion-opciones">
+                    {(["unifilar", "multifilar"] as ModoHoja[]).map((m) => {
+                      const bloqueado = hayNodos && hoja.modo !== m;
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          className={hoja.modo === m ? "activo" : ""}
+                          disabled={bloqueado}
+                          onClick={() => actualizar({ modo: m })}
+                          title={
+                            bloqueado
+                              ? "Esta hoja ya tiene símbolos del otro tipo — cambiar el esquema mezclaría fuerza y comando en la misma hoja. Movelos a otra hoja o borralos primero."
+                              : m === "unifilar"
+                                ? "Símbolos de fuerza (potencia)"
+                                : "Símbolos de comando y control"
+                          }
+                        >
+                          {m === "unifilar" ? "Unifilar" : "Multifilar"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {hayNodos && (
+                    <p className="panel-hoja-ayuda">
+                      No se puede cambiar mientras la hoja tenga símbolos —
+                      mezclar fuerza y comando en la misma hoja no está
+                      permitido.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {seccionMostrada === "encabezado" && (
+              <>
+                <h3>Encabezado del tablero</h3>
+                <div className="panel-hoja-bloque">
+                  <Campo
+                    etiqueta="Tablero"
+                    valor={hoja.tablero}
+                    onChange={(v) => actualizar({ tablero: v })}
+                  />
+                </div>
+
+                <h3>Notas del gabinete</h3>
+                <div className="panel-hoja-bloque">
+                  <Campo
+                    etiqueta="Material del gabinete"
+                    valor={hoja.notasGabinete.material}
+                    onChange={(v) => actualizar({ notasGabinete: { material: v } })}
+                  />
+                  <Campo
+                    etiqueta="Clase de aislación"
+                    valor={hoja.notasGabinete.claseAislacion}
+                    onChange={(v) =>
+                      actualizar({ notasGabinete: { claseAislacion: v } })
                     }
                   />
-                  <input
-                    placeholder="Nombre y apellido"
-                    value={r.nombre}
-                    onChange={(e) => setResponsable(i, "nombre", e.target.value)}
+                  <Campo
+                    etiqueta="Personal apto para operar"
+                    valor={hoja.notasGabinete.personalApto}
+                    onChange={(v) =>
+                      actualizar({ notasGabinete: { personalApto: v } })
+                    }
                   />
-                </Fragment>
-              ))}
-            </div>
-          </div>
+                  <Campo
+                    etiqueta="Grado de protección IP"
+                    valor={hoja.notasGabinete.gradoProteccion}
+                    onChange={(v) =>
+                      actualizar({ notasGabinete: { gradoProteccion: v } })
+                    }
+                  />
+                  <Campo
+                    etiqueta="Barras o conductores interiores"
+                    valor={hoja.notasGabinete.barrasOConductores}
+                    onChange={(v) =>
+                      actualizar({ notasGabinete: { barrasOConductores: v } })
+                    }
+                  />
+                  <Campo
+                    etiqueta="Reserva para el futuro"
+                    valor={hoja.notasGabinete.reservaFutura}
+                    onChange={(v) =>
+                      actualizar({ notasGabinete: { reservaFutura: v } })
+                    }
+                  />
+                </div>
 
-          <div className="panel-hoja-dos-col">
-            <Campo
-              etiqueta="N° de plano"
-              valor={rotulo.numeroPlano}
-              onChange={(v) => setRotulo({ numeroPlano: v })}
-            />
-            <Campo
-              etiqueta="N° de plano del cliente"
-              valor={rotulo.numeroPlanoCliente}
-              onChange={(v) => setRotulo({ numeroPlanoCliente: v })}
-            />
+                <h3>Nota de seguridad operativa</h3>
+                <label className="panel-hoja-campo">
+                  <span>Texto al pie de la hoja</span>
+                  <textarea
+                    rows={4}
+                    value={hoja.notaSeguridad}
+                    onChange={(e) => actualizar({ notaSeguridad: e.target.value })}
+                    placeholder="NOTA DE SEGURIDAD OPERATIVA — SECCIONADORES FUSIBLES: …"
+                  />
+                </label>
+              </>
+            )}
+
+            {seccionMostrada === "rotulo" && (
+              <div className="panel-hoja-bloque">
+                <Campo
+                  etiqueta="Empresa"
+                  valor={rotulo.empresa}
+                  onChange={(v) => setRotulo({ empresa: v })}
+                />
+                <Campo
+                  etiqueta="Texto del logo (si no hay imagen)"
+                  valor={rotulo.logoTexto}
+                  onChange={(v) => setRotulo({ logoTexto: v })}
+                />
+                <Campo
+                  etiqueta="Cliente"
+                  valor={rotulo.cliente}
+                  onChange={(v) => setRotulo({ cliente: v })}
+                />
+                <Campo
+                  etiqueta="Localidad"
+                  valor={rotulo.localidad}
+                  onChange={(v) => setRotulo({ localidad: v })}
+                />
+                <Campo
+                  etiqueta="Denominación de lo representado"
+                  valor={rotulo.denominacion}
+                  onChange={(v) => setRotulo({ denominacion: v })}
+                />
+                <Campo
+                  etiqueta="Clave o número de lo representado"
+                  valor={rotulo.claveRepresentado}
+                  onChange={(v) => setRotulo({ claveRepresentado: v })}
+                />
+                <Campo
+                  etiqueta="Nombre del archivo informático"
+                  valor={rotulo.nombreArchivo}
+                  onChange={(v) => setRotulo({ nombreArchivo: v })}
+                />
+                <Campo
+                  etiqueta="Tolerancias generales"
+                  valor={rotulo.toleranciasGenerales}
+                  onChange={(v) => setRotulo({ toleranciasGenerales: v })}
+                  placeholder="±0,5 ISO 2768-mK"
+                />
+
+                <div className="panel-hoja-dos-col">
+                  <Campo
+                    etiqueta="Escala (vacío = S/E)"
+                    valor={rotulo.escala}
+                    onChange={(v) => setRotulo({ escala: v })}
+                    placeholder="1:50"
+                  />
+                  <label className="panel-hoja-campo">
+                    <span>Método ISO</span>
+                    <select
+                      value={rotulo.metodoIso}
+                      onChange={(e) =>
+                        setRotulo({
+                          metodoIso: e.target.value as "(E)" | "(A)" | "",
+                        })
+                      }
+                    >
+                      <option value="(E)">(E)</option>
+                      <option value="(A)">(A)</option>
+                      <option value="">Sin método</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="panel-hoja-campo">
+                  <span>Responsables (fecha — nombre)</span>
+                  <div className="panel-hoja-resp">
+                    {rotulo.responsables.map((r, i) => (
+                      <Fragment key={r.rol}>
+                        <em>{r.rol}</em>
+                        <input
+                          inputMode="numeric"
+                          placeholder="dd/mm/aaaa"
+                          value={r.fecha}
+                          className={
+                            r.fecha !== "" && !fechaValida(r.fecha) ? "invalido" : ""
+                          }
+                          onChange={(e) =>
+                            setResponsable(i, "fecha", enmascararFecha(e.target.value))
+                          }
+                        />
+                        <input
+                          placeholder="Nombre y apellido"
+                          value={r.nombre}
+                          onChange={(e) => setResponsable(i, "nombre", e.target.value)}
+                        />
+                      </Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="panel-hoja-dos-col">
+                  <Campo
+                    etiqueta="N° de plano"
+                    valor={rotulo.numeroPlano}
+                    onChange={(v) => setRotulo({ numeroPlano: v })}
+                  />
+                  <Campo
+                    etiqueta="N° de plano del cliente"
+                    valor={rotulo.numeroPlanoCliente}
+                    onChange={(v) => setRotulo({ numeroPlanoCliente: v })}
+                  />
+                </div>
+                <Campo
+                  etiqueta="Paginación"
+                  valor={rotulo.paginacion}
+                  onChange={(v) => setRotulo({ paginacion: v })}
+                  placeholder="1/1"
+                />
+              </div>
+            )}
+
+            {seccionMostrada === "cortocircuito" && esAlimentadorPrincipal && (
+              <div className="panel-hoja-bloque">
+                <p className="panel-hoja-ayuda">
+                  Dato de la red que alimenta este tablero, para verificar
+                  Icc aguas abajo. Todavía no lo consume ningún cálculo
+                  (falta el recorrido del tablero); se carga acá para no
+                  perderlo. Las hojas de tableros seccionales no tienen
+                  esta sección — heredan el recorrido del alimentador del
+                  que cuelgan.
+                </p>
+                <div className="panel-hoja-dos-col">
+                  <label className="panel-hoja-campo">
+                    <span>Potencia de cortocircuito Scc (MVA)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fuenteCc.scc_mva ?? ""}
+                      onChange={(e) =>
+                        actualizar({
+                          fuente_cortocircuito: {
+                            scc_mva:
+                              e.target.value === ""
+                                ? undefined
+                                : Number.parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="panel-hoja-campo">
+                    <span>Corriente de cortocircuito Icc (kA)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fuenteCc.icc_ka ?? ""}
+                      onChange={(e) =>
+                        actualizar({
+                          fuente_cortocircuito: {
+                            icc_ka:
+                              e.target.value === ""
+                                ? undefined
+                                : Number.parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {seccionMostrada === "materiales" && (
+              <>
+                <p className="panel-hoja-ayuda">
+                  Ítems sin símbolo propio en el plano — terminales, peines de
+                  conexión, bornera de distribución, lo que haga falta. Se
+                  suman a la lista de materiales del PDF (opcional al
+                  exportar el proyecto completo).
+                </p>
+                <div className="panel-hoja-bloque panel-hoja-accesorios">
+                  {accesorios.map((a) => (
+                    <div key={a.id} className="accesorio-fila">
+                      <input
+                        className="accesorio-descripcion"
+                        placeholder="Descripción (ej.: Terminal punta de lanza 2,5 mm²)"
+                        value={a.descripcion}
+                        onChange={(e) =>
+                          actualizarAccesorio(a.id, { descripcion: e.target.value })
+                        }
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        className="accesorio-cantidad"
+                        value={a.cantidad}
+                        onChange={(e) =>
+                          actualizarAccesorio(a.id, {
+                            cantidad: Math.max(1, Number.parseInt(e.target.value, 10) || 1),
+                          })
+                        }
+                      />
+                      <input
+                        className="accesorio-marca"
+                        placeholder="Marca"
+                        value={a.marca ?? ""}
+                        onChange={(e) =>
+                          actualizarAccesorio(a.id, { marca: e.target.value || undefined })
+                        }
+                      />
+                      <input
+                        className="accesorio-modelo"
+                        placeholder="Modelo"
+                        value={a.modelo ?? ""}
+                        onChange={(e) =>
+                          actualizarAccesorio(a.id, { modelo: e.target.value || undefined })
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="accesorio-quitar"
+                        title="Quitar este accesorio"
+                        onClick={() => eliminarAccesorio(a.id)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" className="accesorio-agregar" onClick={agregarAccesorio}>
+                    + Agregar accesorio
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-          <Campo
-            etiqueta="Paginación"
-            valor={rotulo.paginacion}
-            onChange={(v) => setRotulo({ paginacion: v })}
-            placeholder="1/1"
-          />
         </div>
 
         <footer className="panel-hoja-pie">
