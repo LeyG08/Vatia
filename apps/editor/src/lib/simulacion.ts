@@ -8,13 +8,23 @@
  * circuito de fuerza (unifilar) y el de comando (multifilar) son hojas
  * separadas, vinculadas por `atributos.referencia` (ver lib/referencia.ts).
  *
- * Convención de rieles del comando (decidida con el usuario, E62): la
- * hoja multifilar no tiene símbolos dedicados de riel L/N — reusa la
- * "barra" ya existente. La barra que recibe la conexión de un
- * alimentador de esa hoja es la fase de mando (L, siempre "viva");
- * cualquier OTRA barra de la misma hoja se entiende como el común/
- * neutro (N) de retorno. No es una regla normativa, es una convención
- * de dibujo de ESTE proyecto — documentada acá y en HISTORIAL.md.
+ * Convención de rieles del comando (E62, reemplazada por E64): la hoja
+ * multifilar no tiene símbolos dedicados de riel L/N — reusa la "barra"
+ * ya existente (ver `barra.schema.json`, campo `tipo_barra:
+ * "riel_multifilar"`). Cada riel declara su propio `funcion_riel`:
+ * "fase_viva" (fuente, se pueden colocar tantas como fases haga falta —
+ * L1, L2, L3, L4… sin límite, para soportar más de 3 fases), "neutro"
+ * (retorno de la bobina) o "tierra" (solo documentación, no participa
+ * del cálculo). E62 inicialmente infería la fase viva de "la barra que
+ * recibe un alimentador", pero la hoja multifilar nunca tuvo alimentador
+ * disponible en la Paleta (E17) — E64 lo reemplaza por esta marca
+ * explícita, que además no depende de que exista una fuente externa: un
+ * riel de comando se entiende directamente vivo, como en cualquier
+ * diagrama de escalera real. Una barra SIN `funcion_riel` (barra de
+ * fuerza, o un riel armado antes de E64) conserva la heurística vieja:
+ * fuente si un alimentador de la hoja la alimenta, retorno si no. No es
+ * una regla normativa, es una convención de dibujo de ESTE proyecto —
+ * documentada acá y en HISTORIAL.md.
  *
  * Algoritmo, por iteración de punto fijo (necesario porque un contactor
  * puede autoenclavarse con su propio contacto auxiliar — el caso más
@@ -286,8 +296,19 @@ function construirRed(
 
   const fuenteReps = new Set<string>();
   for (const nodo of hoja.nodos) {
-    if (nodo.tipo !== "alimentador") continue;
-    for (const h of terminales.get(nodo.id) ?? []) fuenteReps.add(uf.find(clave(nodo.id, h)));
+    if (nodo.tipo === "alimentador") {
+      for (const h of terminales.get(nodo.id) ?? []) fuenteReps.add(uf.find(clave(nodo.id, h)));
+      continue;
+    }
+    // E64: un riel multifilar de "fase viva" es fuente por sí mismo, sin
+    // depender de un alimentador — un circuito de comando no se
+    // alimenta desde la red (no hay alimentador disponible en esa
+    // hoja), se entiende que el riel YA está vivo. Se pueden colocar
+    // tantos rieles de fase viva como haga falta (L1, L2, L3, L4…),
+    // cada uno cuenta como fuente independiente.
+    if (nodo.tipo === "barra" && nodo.atributos?.funcion_riel === "fase_viva") {
+      for (const h of terminales.get(nodo.id) ?? []) fuenteReps.add(uf.find(clave(nodo.id, h)));
+    }
   }
 
   const retornoReps = new Set<string>();
@@ -296,7 +317,14 @@ function construirRed(
     const handles = terminales.get(nodo.id);
     if (!handles || handles.size === 0) continue;
     const rep = uf.find(clave(nodo.id, [...handles][0]));
-    if (!fuenteReps.has(rep)) retornoReps.add(rep);
+    if (fuenteReps.has(rep)) continue;
+    const funcionRiel = nodo.atributos?.funcion_riel;
+    // Tierra (PE) no participa del lazo de mando L-N: no es fuente ni
+    // retorno, solo documentación. Una barra sin `funcion_riel` (barra
+    // de FUERZA, o un riel viejo de antes de E64) conserva la
+    // heurística original: todo lo que no sea fuente es retorno.
+    if (funcionRiel === "tierra") continue;
+    retornoReps.add(rep);
   }
 
   return {

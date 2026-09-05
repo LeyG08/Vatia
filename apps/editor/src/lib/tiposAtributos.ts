@@ -589,6 +589,12 @@ export interface AtributosConductor {
 
 /** Fase C8. La barra es el nodo de distribución del tablero: la acometida llega a ella y de ella cuelgan los circuitos. La ficha se anota en el extremo izquierdo, por encima de la barra, con el formato del plano real: dimensiones · material · norma IRAM · corriente admisible. Los campos con x-obligatorio son advertidos por el Checklist: no bloquean el guardado. */
 export interface AtributosBarra {
+  /** Tipo de barra */
+  tipo_barra?: "fuerza" | "riel_multifilar";
+  /** Función del riel */
+  funcion_riel?: "fase_viva" | "neutro" | "tierra";
+  /** Etiqueta (L1, N, PE…) */
+  etiqueta_fase?: string;
   /** Dimensiones del perfil */
   dimensiones?: string;
   /** Es juego de barras */

@@ -981,12 +981,23 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       // La barra de distribución es un nodo propio (C8): estirable,
       // con puntos de conexión a lo largo de toda su extensión
       if (codigoIec === BARRA_CODIGO) {
+        // E64: en una hoja multifilar la barra hace de RIEL de comando
+        // (fase viva / neutro / tierra, ver barra.schema.json), no de
+        // barra de distribución de fuerza — se pretipa acá para que la
+        // ficha abra ya mostrando los campos correctos, sin que el
+        // usuario tenga que elegir "Tipo de barra" a mano cada vez.
+        const esRielMultifilar = get().hoja.modo === "multifilar";
+        const atributos: Record<string, unknown> = {
+          ...simbolo.metadata.atributos_base,
+          tipo_barra: esRielMultifilar ? "riel_multifilar" : "fuerza",
+        };
+        if (esRielMultifilar) atributos.funcion_riel = "fase_viva";
         const data: DatosBarra = {
           tipo: "barra",
           codigo_iec: BARRA_CODIGO,
           rotacion: 0,
           largoPx: LARGO_BARRA_DEFECTO_PX,
-          atributos: { ...simbolo.metadata.atributos_base },
+          atributos,
         };
         const pos = limitarAHoja(x, y, data);
         const nodo: Node<NodoData> = {

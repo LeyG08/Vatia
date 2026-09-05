@@ -7,14 +7,42 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "tipo_barra": {
+      "enum": [
+        "fuerza",
+        "riel_multifilar"
+      ],
+      "description": "Distingue la barra de distribución de fuerza (dimensiones/material/norma IRAM/corriente admisible, de siempre) del riel de un circuito de comando multifilar (E64: fase viva / neutro / tierra, sin ficha de potencia — un riel de comando no lleva corriente de fuerza). Ausente en proyectos guardados antes de esta distinción: se trata como \"fuerza\", el único caso que existía.",
+      "title": "Tipo de barra"
+    },
+    "funcion_riel": {
+      "enum": [
+        "fase_viva",
+        "neutro",
+        "tierra"
+      ],
+      "x-obligatorio": true,
+      "x-visible-si": "tipo_barra:riel_multifilar",
+      "description": "Rol eléctrico de este riel dentro del circuito de comando. \"Fase viva\" es la fuente para el motor de simulación (lib/simulacion.ts): se pueden colocar tantos rieles de fase viva como haga falta (L1, L2, L3… sin límite, para soportar cualquier cantidad de fases) y cada uno cuenta como fuente independiente. \"Neutro\" es el retorno de la bobina. \"Tierra\" es solo documentación: no participa del cálculo de energizado/no energizado.",
+      "title": "Función del riel"
+    },
+    "etiqueta_fase": {
+      "type": "string",
+      "x-obligatorio": false,
+      "x-visible-si": "tipo_barra:riel_multifilar",
+      "description": "Identificación libre del riel para el plano y para razonar sentido de giro (ej: \"L1\", \"L2\", \"L3\", \"L4\", \"N\", \"PE\"). Texto libre, no una lista cerrada, para no limitar la cantidad de fases.",
+      "title": "Etiqueta (L1, N, PE…)"
+    },
     "dimensiones": {
       "type": "string",
       "x-obligatorio": true,
+      "x-visible-si": "tipo_barra:fuerza|",
       "description": "Dimensiones del perfil de la barra: cantidad de barras apiladas por fase (si hay más de una) x ancho x espesor en mm, de la tabla normada DIN 43671 (E60, ver lib/barras.ts) — se eligen por selectores en cascada, no por texto libre. Plano: \"30x10mm\", \"3x50x5mm\".",
       "title": "Dimensiones del perfil"
     },
     "es_conjunto": {
       "type": "boolean",
+      "x-visible-si": "tipo_barra:fuerza|",
       "description": "C11: true si la línea representa el CONJUNTO / juego de barras dibujadas como una sola línea; false o ausente = barra única. En el plano se anota como \"Juego de barras\" (con su composición, C15) delante de las dimensiones.",
       "title": "Es juego de barras"
     },
@@ -44,12 +72,14 @@
         "Al"
       ],
       "x-obligatorio": true,
+      "x-visible-si": "tipo_barra:fuerza|",
       "description": "Plano: \"Cu\" (cobre desnudo).",
       "title": "Material"
     },
     "norma_iram": {
       "type": "string",
       "x-obligatorio": true,
+      "x-visible-si": "tipo_barra:fuerza|",
       "description": "Norma del material de barras. Plano: \"IRAM 2181-1\".",
       "title": "Norma IRAM"
     },
@@ -58,6 +88,7 @@
       "minimum": 16,
       "maximum": 6300,
       "x-obligatorio": true,
+      "x-visible-si": "tipo_barra:fuerza|",
       "description": "Corriente admisible de la barra en amperes. Rango de plausibilidad (16 A a 6300 A, lo habitual en juegos de barra de tablero BT según fabricante/IRAM 2181) para atrapar errores de tipeo, ej. un valor en otra unidad cargado por error — no reemplaza la tabla real del fabricante.",
       "title": "Corriente admisible (A)"
     }

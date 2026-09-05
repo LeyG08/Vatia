@@ -45,7 +45,16 @@ function Paleta({
 }) {
   const agregarAlimentador = useEditor((s) => s.agregarAlimentador);
   const modo = useEditor((s) => s.hoja.modo);
-  const libreria = modo === "multifilar" ? SIMBOLOS_COMANDO : SIMBOLOS;
+  // E64: la barra vive en la librería de fuerza (S00119), pero también
+  // hace de riel de comando en multifilar (ver agregarSimbolo en
+  // store.ts) — se agrega a mano a la lista de comando en vez de
+  // duplicar el símbolo en libreria-simbolos/comando/.
+  const libreria =
+    modo === "multifilar"
+      ? new Map(SIMBOLOS.has("S00119")
+          ? [...SIMBOLOS_COMANDO, ["S00119", SIMBOLOS.get("S00119")!] as const]
+          : SIMBOLOS_COMANDO)
+      : SIMBOLOS;
   const simbolos = [...libreria.values()].sort((a, b) =>
     a.codigo_iec.localeCompare(b.codigo_iec),
   );

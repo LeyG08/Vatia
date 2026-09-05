@@ -6247,3 +6247,102 @@ navegador), nunca dibujándolo en el editor real.
 `tsc -b`, `lint`, `build`, `e2e/conexiones.mjs` (21 checks),
 `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py` en verde.
+
+## E64 — Rieles multifilares configurables: primer circuito real de punta a punta
+
+Disparado por una queja concreta del usuario tras E63: *"si yo estoy en modo
+multifilar porque no tengo todos los símbolos para ello ni siquiera tengo
+los alimentadores... no se puede simular nada"*. Al investigar antes de
+tocar código apareció un hallazgo importante que corrige el registro de
+E62/E63: **ya existían 13 símbolos de comando aprobados** en
+`libreria-simbolos/comando/` (E15-E16, sesión anterior) y el modo
+multifilar de la Paleta ya estaba armado (E17) — la afirmación de E62 de
+que "no existe ningún símbolo de comando" fue un error de investigación:
+solo se había revisado `libreria-simbolos/simbolos/` (fuerza), nunca
+`comando/`.
+
+Lo que SÍ faltaba, y era exactamente lo que el usuario señaló: la Paleta de
+comando no incluye la barra (vive en la librería de fuerza) y el botón
+"+ Alimentador" está oculto a propósito en multifilar (E17: "un circuito de
+comando no se alimenta desde la red") — así que hasta esta etapa no había
+NINGUNA forma de energizar un circuito de comando desde la interfaz.
+
+### Decisión de alcance (regla nueva, guardada en memoria)
+
+El usuario confirmó dos cosas por pregunta directa: (1) para los rieles,
+"no sé si querés hacer con la barra actual o no… que ande bien, hacé
+muchas pruebas y que sea fácil de usar" — deja el cómo a criterio propio;
+(2) el motor SÍ debe mostrar el sentido de giro calculado, no alcanza con
+que el circuito de dos contactores entrelazados simplemente funcione.
+Además quedó registrada como regla de alcance durable: multifilar debe
+tener TODA la simbología disponible ("uno nunca sabe qué se va a usar"),
+fuerza solo protecciones y cargas.
+
+### La barra como riel de comando
+
+Se extendió `barra.schema.json` con un discriminador `tipo_barra`
+("fuerza" | "riel_multifilar", ausente = "fuerza" por compatibilidad —
+ver el truco de visibilidad más abajo) y, cuando es riel, dos campos
+propios: `funcion_riel` ("fase_viva" | "neutro" | "tierra") y
+`etiqueta_fase` (texto libre: "L1", "L2"… sin tope, para no limitar la
+cantidad de fases — pedido explícito: "no vaya a ser que quieran simular
+un motor hexafásico"). Los 5 campos de la ficha de fuerza (dimensiones,
+es_conjunto, material, norma_iram, corriente_admisible_A) ganaron
+`x-visible-si: "tipo_barra:fuerza|"` — el `|` final hace que la condición
+también matchee cuando `tipo_barra` está AUSENTE (proyectos guardados
+antes de esta etapa), evitando que el Checklist empiece a reclamar campos
+"faltantes" en barras de fuerza ya cargadas. `agregarSimbolo()` en
+`store.ts` pretipa la barra según el modo de la hoja activa al momento de
+colocarla (fuerza → `tipo_barra:"fuerza"`; multifilar → `"riel_multifilar"`
++ `funcion_riel:"fase_viva"` por defecto), así la ficha abre ya mostrando
+los campos correctos sin que el usuario tenga que elegir nada a mano.
+
+`Paleta.tsx` agrega la barra (S00119) a la lista de comando en modo
+multifilar sin duplicar el símbolo en `libreria-simbolos/comando/` — sigue
+viviendo en la librería de fuerza, la Paleta arma la unión de mapas al
+vuelo. Se necesitan tantos rieles de fase viva como fases quiera simular
+el usuario (L1, L2, L3, L4… colocando una barra por fase), lo que resuelve
+"cantidad de fases variable" sin agregar ningún campo de conteo: el límite
+es cuántas barras coloque, no un número fijo en un schema.
+
+### Cambio en el motor de simulación
+
+`simulacion.ts` reemplaza la vieja heurística ("la barra que recibe un
+alimentador es la fuente") por la marca explícita `funcion_riel`: cada
+barra con `funcion_riel:"fase_viva"` es fuente por sí misma (no depende de
+que exista un alimentador — la hoja multifilar nunca tuvo uno disponible,
+así que la vieja regla nunca podía cumplirse en la práctica real);
+`"neutro"` es retorno; `"tierra"` no participa del cálculo (solo
+documentación). Una barra sin `funcion_riel` (barra de fuerza, o un riel
+de antes de esta etapa) conserva la heurística vieja intacta —
+retrocompatible. `anotaciones.ts` muestra el rol del riel en el lienzo
+("Fase viva", "Neutro", más la etiqueta si tiene una: "Fase viva · L1").
+
+### Verificado de punta a punta, por primera vez, en la interfaz real
+
+Hasta ahora todo lo relativo a comando se había probado inyectando el
+proyecto directo al store (E62, E63): esta vez se armó el circuito
+clásico de arranque directo con autoenclavamiento (Parada NC + Marcha NA
+en paralelo con el contacto auxiliar NA de K1, alimentando la bobina K1,
+entre un riel L1 y un riel N) usando los CÓDIGOS REALES de la librería
+(S00135/S00136 pulsadores, S00124 contacto auxiliar, S00130 bobina,
+S00119 barra) más una hoja de fuerza real (interruptor termomagnético +
+contactor + motor, vinculados por `referencia: "K1"`), cargado como
+archivo `.json` real por el mismo input que usa un usuario. Cero símbolos
+sin resolver. Con "Simular" activo y clics reales (pointerdown/up) sobre
+el pulsador: reposo todo apagado; Marcha presionada cierra K1aux Y
+energiza el motor (cruzando de hoja); al SOLTAR Marcha sigue enclavado;
+Parada corta todo; al soltar Parada no rearranca solo. Las cinco
+transiciones, correctas.
+
+Queda pendiente, explícitamente fuera de esta etapa: sentido de giro del
+motor (necesita terminales de fase diferenciados en el símbolo del motor
+y lógica nueva en el motor de simulación — no hay symbol book todavía para
+eso), variantes por cantidad de polos en bloques de contacto combinados, y
+ampliar la cobertura de "todos los elementos existentes" más allá de los
+13 símbolos de comando ya aprobados.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py` (fuerza y `--carpeta comando`) y
+`generar_tipos_atributos.py --verificar`, todos en verde.

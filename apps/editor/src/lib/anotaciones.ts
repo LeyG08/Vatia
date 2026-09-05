@@ -210,7 +210,22 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
  *   500 A · IRAM 2181-1         ← corriente admisible con la norma al lado
  * Se dibuja en el extremo izquierdo, por encima de la barra.
  */
+const NOMBRE_FUNCION_RIEL: Record<string, string> = {
+  fase_viva: "Fase viva",
+  neutro: "Neutro",
+  tierra: "Tierra (PE)",
+};
+
 export function anotacionBarra(a: Record<string, unknown>): string[] {
+  // E64: riel de comando multifilar — ficha propia, nada de dimensiones/
+  // material/corriente admisible (eso es de la barra de fuerza).
+  if (a.tipo_barra === "riel_multifilar") {
+    const nombreFuncion =
+      typeof a.funcion_riel === "string" ? NOMBRE_FUNCION_RIEL[a.funcion_riel] : undefined;
+    const etiqueta = typeof a.etiqueta_fase === "string" ? a.etiqueta_fase.trim() : "";
+    if (!nombreFuncion) return etiqueta ? [etiqueta] : ["Riel de comando"];
+    return [etiqueta ? `${nombreFuncion} · ${etiqueta}` : nombreFuncion];
+  }
   const lineas: string[] = [];
   if (a.es_conjunto === true) {
     if (typeof a.cantidad_fases === "number" && a.cantidad_fases > 0) {
