@@ -132,6 +132,12 @@ export interface ResultadoSimulacion {
   aparatos: Map<string, boolean>;
   /** referencias (IEC 61346) de las bobinas energizadas en el resultado final. */
   bobinasEnergizadas: Set<string>;
+  /** clave `${hojaId}:${nodoId}` de un motor_trifasico con `referencia`
+   * cargada → sentido de giro calculado (E64), a partir de cuál de los
+   * dos contactores marcados `rol_reversor` con el mismo
+   * `motor_asociado` está cerrado. Solo aparecen motores con al menos un
+   * contactor reversor asociado — el resto no tiene sentido que calcular. */
+  sentidoGiroPorMotor: Map<string, "adelante" | "atras" | "detenido">;
   iteraciones: number;
   /** false si no se alcanzó un punto fijo en MAX_ITERACIONES (circuito
    * oscilante — no se pretende modelar, se devuelve el último estado). */
@@ -403,5 +409,55 @@ export function simular(
     bobinasEnergizadas = nuevasBobinas;
   }
 
-  return { aparatos, bobinasEnergizadas, iteraciones, estable };
+  const sentidoGiroPorMotor = calcularSentidoGiro(proyecto, aparatos);
+
+  return { aparatos, bobinasEnergizadas, sentidoGiroPorMotor, iteraciones, estable };
+}
+
+/**
+ * Sentido de giro (E64, pedido explícito: "que el motor lo muestre"): no
+ * hace falta modelar terminales de fase en el motor ni rastrear qué fases
+ * cruza cada contactor — alcanza con el mismo mecanismo de `referencia`
+ * que ya vincula bobina↔contactos. Un arranque reversible se arma con DOS
+ * contactores, cada uno marcado `rol_reversor: "adelante"|"atras"` y
+ * `motor_asociado` con la referencia del motor: el que esté cerrado
+ * define el sentido. Si están cerrados los dos a la vez (falla de
+ * enclavamiento) o ninguno, se informa "detenido" — ambiguo a propósito,
+ * nunca se inventa un sentido sin una single respuesta clara.
+ */
+function calcularSentidoGiro(
+  proyecto: Proyecto,
+  aparatos: ReadonlyMap<string, boolean>,
+): Map<string, "adelante" | "atras" | "detenido"> {
+  const reversoresPorMotor = new Map<string, { adelante?: string; atras?: string }>();
+  for (const hoja of proyecto.hojas) {
+    for (const nodo of hoja.nodos) {
+      if (tipoAparatoDe(nodo) !== "contactor") continue;
+      const rol = nodo.atributos?.rol_reversor;
+      if (rol !== "adelante" && rol !== "atras") continue;
+      const motorRef = nodo.atributos?.motor_asociado;
+      if (typeof motorRef !== "string" || motorRef.trim() === "") continue;
+      const entrada = reversoresPorMotor.get(motorRef.trim()) ?? {};
+      entrada[rol] = `${hoja.id}:${nodo.id}`;
+      reversoresPorMotor.set(motorRef.trim(), entrada);
+    }
+  }
+
+  const resultado = new Map<string, "adelante" | "atras" | "detenido">();
+  for (const hoja of proyecto.hojas) {
+    for (const nodo of hoja.nodos) {
+      if (tipoAparatoDe(nodo) !== "motor_trifasico") continue;
+      const ref = referenciaDe(nodo);
+      if (ref === null) continue;
+      const reversores = reversoresPorMotor.get(ref);
+      if (!reversores) continue;
+      const adelante = reversores.adelante !== undefined && aparatos.get(reversores.adelante) === true;
+      const atras = reversores.atras !== undefined && aparatos.get(reversores.atras) === true;
+      resultado.set(
+        `${hoja.id}:${nodo.id}`,
+        adelante && !atras ? "adelante" : atras && !adelante ? "atras" : "detenido",
+      );
+    }
+  }
+  return resultado;
 }

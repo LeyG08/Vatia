@@ -146,6 +146,21 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
     tensionFaseV,
     tensionLineaV,
   );
+  // E64: sentido de giro calculado — pedido explícito ("que el motor lo
+  // muestre"), solo visible en modo simulación y solo si el motor tiene
+  // al menos un contactor reversor asociado (ver simulacion.ts).
+  const sentidoGiro =
+    modoSimulacion && tipoAparato === "motor_trifasico"
+      ? resultadoSimulacion?.sentidoGiroPorMotor.get(claveSimulacion)
+      : undefined;
+  const NOMBRE_SENTIDO: Record<string, string> = {
+    adelante: "adelante",
+    atras: "atrás",
+    detenido: "detenido",
+  };
+  const lineasConSentido = sentidoGiro
+    ? [...lineas, { texto: `⟳ Sentido: ${NOMBRE_SENTIDO[sentidoGiro]}`, secundaria: true }]
+    : lineas;
 
   return (
     <div
@@ -192,11 +207,11 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
           }}
         />
       ))}
-      {lineas.length > 0 && (
+      {lineasConSentido.length > 0 && (
         <div
           className={`anotacion-nodo${esCarga ? " anotacion-carga" : ""}`}
         >
-          {lineas.map((l, i) => (
+          {lineasConSentido.map((l, i) => (
             <div key={i} className={l.secundaria ? "anotacion-sec" : undefined}>
               {l.texto}
             </div>

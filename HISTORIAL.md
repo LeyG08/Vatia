@@ -6346,3 +6346,64 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
 `lint_simbolos.py` (fuerza y `--carpeta comando`) y
 `generar_tipos_atributos.py --verificar`, todos en verde.
+
+## E65 — Sentido de giro del motor + un bug real de selección en modo simulación
+
+Continuación directa de E64 en la misma sesión ("hacé todo lo que sea para
+solucionar todo lo que dije"): el segundo pedido pendiente era que el motor
+mostrara el sentido de giro calculado, no solo que un arranque reversible
+"funcione".
+
+### Diseño: sin terminales de fase, reusando `referencia`
+
+Un arranque reversible cambia el sentido invirtiendo dos fases con DOS
+contactores entrelazados. Modelar eso bien (qué fase física llega a qué
+terminal del motor) exigiría símbolos con terminales U/V/W diferenciados,
+que no existen. Se evitó ese trabajo: el contactor gana `rol_reversor`
+("adelante" | "atrás") y `motor_asociado` (referencia del motor que
+gobierna), reusando el mismo mecanismo de `referencia` que ya vincula
+bobina↔contactos. `simulacion.ts` agrega `calcularSentidoGiro()`: para cada
+motor con `referencia` cargada, busca los contactores que declaren esa
+misma referencia en `motor_asociado` y mira cuál de los dos ("adelante" o
+"atrás") está cerrado — si están cerrados los dos a la vez (falla de
+enclavamiento) o ninguno, informa "detenido", nunca inventa un sentido sin
+una respuesta clara. `NodoSimbolo.tsx` agrega la línea "⟳ Sentido: …" a la
+anotación del motor, solo en modo simulación y solo si tiene algún
+reversor asociado.
+
+### Bug real encontrado en vivo (no un artefacto de la prueba)
+
+Al verificar con un motor + KM1 (adelante) + KM2 (atrás), presionar el
+primer pulsador (Marcha-adelante) funcionaba, pero presionar el SEGUNDO
+(Marcha-atrás) no registraba nada — ni un solo evento nativo de
+`pointerdown` llegaba a su `<div>`. Diagnóstico con
+`document.elementFromPoint()`: el clic caía sobre un `<h3>` de
+`PanelAtributos`, no sobre el pulsador. Causa real: presionar un pulsador
+en modo simulación también lo SELECCIONA (comportamiento normal de React
+Flow, nunca desactivado para este modo), lo que abre el panel de ficha
+técnica — y ese panel, posicionado en pantalla, quedaba tapando al
+pulsador vecino.
+
+Primer intento de arreglo, descartado: `elementsSelectable={false}` en
+`<ReactFlow>` saca la selección, pero React Flow también le pone
+`pointer-events: none` al nodo entero con eso — dejaba de llegar hasta el
+clic del propio pulsador que se quería presionar. Arreglo real:
+`PanelAtributos.tsx` no se renderiza mientras `modoSimulacion` es `true`
+(el nodo se sigue seleccionando internamente, pero no hay panel que tapar
+nada) — no interfiere con nada del modo simulación, y editar una ficha
+mientras se simula tampoco tenía sentido.
+
+### Verificado en vivo
+
+Circuito real (motor M1, KM1 adelante / KM2 atrás, dos pulsadores, dos
+bobinas, mismos rieles L1/N de E64) cargado como `.json` con códigos
+reales de la librería. Con clics de mouse de verdad: reposo → sentido
+"detenido"; Marcha-adelante presionada → KM1 cierra, motor energizado,
+sentido "adelante"; soltar → todo se apaga (sin autoenclavamiento en este
+circuito, a propósito); Marcha-atrás presionada → KM2 cierra, sentido
+"atrás". Los cinco valores, correctos.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py` (fuerza y `comando`) y `generar_tipos_atributos.py
+--verificar`, todos en verde.

@@ -89,6 +89,10 @@ export interface AparatoContactor {
   in_a?: number;
   /** Tensión de bobina (V) */
   tension_bobina_v?: number;
+  /** Rol en arranque reversible */
+  rol_reversor?: "adelante" | "atras";
+  /** Motor asociado (referencia) */
+  motor_asociado?: string;
 }
 
 /** Portafusible y fusible como dos productos distintos, como en las fichas SF-* del plano. */

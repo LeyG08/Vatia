@@ -503,6 +503,22 @@
           "x-obligatorio": false,
           "description": "Plano: \"220 [V] AC\".",
           "title": "Tensión de bobina (V)"
+        },
+        "rol_reversor": {
+          "enum": [
+            "adelante",
+            "atras"
+          ],
+          "x-obligatorio": false,
+          "description": "E64. Marca este contactor como parte de un arranque reversible (dos contactores entrelazados que invierten dos fases del motor para cambiar el sentido de giro): \"adelante\" o \"atrás\" según cuál de los dos sea. Vacío/ausente = contactor normal, sin sentido de giro asociado.",
+          "title": "Rol en arranque reversible"
+        },
+        "motor_asociado": {
+          "type": "string",
+          "x-obligatorio": false,
+          "x-visible-si": "rol_reversor:adelante|atras",
+          "description": "Referencia (IEC 61346) del motor cuyo sentido de giro gobierna este contactor — tiene que coincidir con la Referencia del símbolo del motor. El motor de simulación busca, para cada motor, el contactor \"adelante\" y el \"atrás\" que compartan esta referencia y calcula el sentido según cuál esté cerrado.",
+          "title": "Motor asociado (referencia)"
         }
       }
     },

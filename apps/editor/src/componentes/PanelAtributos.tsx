@@ -56,6 +56,7 @@ export default function PanelAtributos() {
   const proyectoHojas = useEditor((s) => s.proyecto.hojas);
   const hojaActivaId = useEditor((s) => s.hojaActivaId);
   const modo = useEditor((s) => s.hoja.modo);
+  const modoSimulacion = useEditor((s) => s.modoSimulacion);
   // Rol del alimentador (E60): "principal" si esta hoja es la raíz
   // (línea desde la fuente), "seccional" si cuelga de otra hoja (va a
   // un tablero seccional) — decide el mínimo AEA de su sección.
@@ -250,6 +251,16 @@ export default function PanelAtributos() {
     }
   }, [idActual]);
 
+  // E64, bug real encontrado en vivo: presionar un pulsador en modo
+  // simulación también lo SELECCIONA (comportamiento normal de React
+  // Flow), y este panel abierto puede quedar tapando otro aparato
+  // cercano, comiéndose el siguiente clic. Se probó deshabilitar la
+  // selección con `elementsSelectable={false}` en App.tsx, pero React
+  // Flow también bloquea con eso el pointer-events de TODO el nodo — ya
+  // no llegaba ni el clic del pulsador. Ocultar el panel es la solución
+  // que no interfiere con el modo simulación en sí: editar una ficha
+  // mientras se simula tampoco tiene sentido.
+  if (modoSimulacion) return null;
   if (!nodo && !edge) return null;
 
   let baseX: number;
