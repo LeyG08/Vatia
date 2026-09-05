@@ -491,7 +491,7 @@ export interface AparatoTemporizador {
   /** Modelo */
   modelo?: string;
   /** Tipo de retardo */
-  tipo_retardo?: "a_la_conexion";
+  tipo_retardo?: "a_la_conexion" | "a_la_desconexion";
   /** Tiempo de retardo (s) */
   tiempo_retardo_s?: number;
   /** Tensión de bobina (V) */

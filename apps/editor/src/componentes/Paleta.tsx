@@ -45,16 +45,16 @@ function Paleta({
 }) {
   const agregarAlimentador = useEditor((s) => s.agregarAlimentador);
   const modo = useEditor((s) => s.hoja.modo);
-  // E64: la barra vive en la librería de fuerza (S00119), pero también
-  // hace de riel de comando en multifilar (ver agregarSimbolo en
-  // store.ts) — se agrega a mano a la lista de comando en vez de
-  // duplicar el símbolo en libreria-simbolos/comando/.
+  // E66, pedido explícito del usuario ("en el multifilar deben estar
+  // TODOS los elementos existentes porque uno nunca sabe qué se va a
+  // usar"): multifilar muestra la UNIÓN de las dos librerías (fuerza +
+  // comando), no solo la de comando — un circuito de mando puede
+  // necesitar cualquier cosa (un fusible de mando, un transformador
+  // chico, un instrumento…), no solo los símbolos pensados para él.
+  // Fuerza sigue mostrando solo su propia librería a propósito (regla
+  // de alcance acordada: "fuerza solo protecciones y cargas").
   const libreria =
-    modo === "multifilar"
-      ? new Map(SIMBOLOS.has("S00119")
-          ? [...SIMBOLOS_COMANDO, ["S00119", SIMBOLOS.get("S00119")!] as const]
-          : SIMBOLOS_COMANDO)
-      : SIMBOLOS;
+    modo === "multifilar" ? new Map([...SIMBOLOS, ...SIMBOLOS_COMANDO]) : SIMBOLOS;
   const simbolos = [...libreria.values()].sort((a, b) =>
     a.codigo_iec.localeCompare(b.codigo_iec),
   );

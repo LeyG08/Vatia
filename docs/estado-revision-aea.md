@@ -58,12 +58,14 @@ para una etapa posterior.
 
 > **S00124 se mudó a `libreria-simbolos/comando/`** (E15) — dejó de ser
 > parte de esta tabla, que documenta solo la librería de fuerza
-> (`simbolos/`). La librería de comando/control (13 símbolos, S00124 +
-> S00130 + S00134–S00145, todos verificados) tiene su propia galería
+> (`simbolos/`). La librería de comando/control (16 símbolos, S00124 +
+> S00130 + S00134–S00148, 13 verificados + 3 pendientes de revisión:
+> S00146/147/148, retardo a la desconexión, E66) tiene su propia galería
 > (`libreria-simbolos/comando/index.html`) y su historial de revisión en
-> `HISTORIAL.md` E15–E15.6 (lote piloto) y E16–E16.1 (segundo lote). No
-> se duplica la tabla acá para no repetir el desfasaje que ya sufrió esta
-> misma tabla dos veces por mantenerse a mano.
+> `HISTORIAL.md` E15–E15.6 (lote piloto), E16–E16.1 (segundo lote) y E66
+> (retardo a la desconexión). No se duplica la tabla acá para no repetir
+> el desfasaje que ya sufrió esta misma tabla dos veces por mantenerse a
+> mano.
 
 ## Fuera de alcance — pendiente-multifilar/
 

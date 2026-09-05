@@ -497,6 +497,27 @@ def retardo_horizontal(punto, largo=4.5, sep=1.0, r=2.6):
     return c
 
 
+def retardo_horizontal_invertido(punto, largo=4.5, sep=1.0, r=2.6):
+    """E66. Mismo calificador de "acción retardada" que retardo_horizontal(),
+    pero ESPEJADO sobre el eje de la doble línea: la norma (lámina 07-71,
+    página 51) distingue "retarda al activar" (07-71-15/17 — panza del
+    arco lejos de la cuchilla, hacia la izquierda) de "retarda al
+    desactivar" (07-71-16/18 — panza del arco hacia la cuchilla, a la
+    derecha). Se logra invirtiendo el signo del coseno: las puntas del
+    arco quedan ancladas en el mismo eje (x1, y0±r), solo cambia hacia
+    qué lado bombea la curva."""
+    x0, y0 = punto
+    x1 = x0 - largo
+    c = linea(x0, y0 - sep / 2, x1, y0 - sep / 2)
+    c += linea(x0, y0 + sep / 2, x1, y0 + sep / 2)
+    pts = [
+        (x1 - r * math.cos(math.pi / 2 + i * math.pi / 8), y0 + r * math.sin(math.pi / 2 + i * math.pi / 8))
+        for i in range(9)
+    ]
+    c += polilinea(pts)
+    return c
+
+
 def s00140():
     """Interruptor de posición, contacto de cierre - 07-72-07: contacto NA
     con el calificador de posición (07-70-06) al costado, para que no se
@@ -572,11 +593,54 @@ def s00145():
     return hoja, c, "Contacto NC temporizado (retardo a la conexión)", "IEC 60617 07-71-17"
 
 
+# ---------------------------------------------------------------------------
+# E66 (pedido del usuario: "todos los elementos existentes"): variante de
+# retardo a la DESCONEXIÓN de la familia temporizador, deliberadamente
+# dejada afuera en el Paso 2 (C43) por falta de un caso de uso concreto.
+# Verificado contra la lámina 07-76 (bobina, página 64) y 07-71 (contactos,
+# página 51) del PDF de la norma.
+# ---------------------------------------------------------------------------
+
+def s00146():
+    """Bobina de temporizador, retardo a la desconexión - 07-76-07: mismo
+    rectángulo que la bobina general (S00130/07-76-01) y que el retardo a
+    la conexión (S00143/07-76-08), pero el tercio izquierdo va RELLENO
+    NEGRO en vez de cruzado en X — así distingue la norma "retarda al
+    activar" (X) de "retarda al desactivar" (relleno)."""
+    hoja = "-10.0 -25.0 20.0 50.0"
+    c = linea(0, -20, 0, -7.5)
+    c += rectangulo(-5, -7.5, 10, 15)
+    c += linea(-1.7, -7.5, -1.7, 7.5)
+    c += poligono([(-5, -7.5), (-1.7, -7.5), (-1.7, 7.5), (-5, 7.5)], ' fill="#000000"')
+    c += linea(0, 7.5, 0, 20)
+    return hoja, c, "Bobina de temporizador (retardo a la desconexión)", "IEC 60617 07-76-07"
+
+
+def s00147():
+    """Contacto NA temporizado, retardo a la desconexión - 07-71-16: la
+    cuchilla abierta de contacto_na() con el calificador de retardo
+    ESPEJADO (retardo_horizontal_invertido) respecto del de S00144."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = contacto_na()
+    c += retardo_horizontal_invertido((-6, -8))
+    return hoja, c, "Contacto NA temporizado (retardo a la desconexión)", "IEC 60617 07-71-16"
+
+
+def s00148():
+    """Contacto NC temporizado, retardo a la desconexión - 07-71-18: mismo
+    calificador espejado, sobre contacto_nc()."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = contacto_nc()
+    c += retardo_horizontal_invertido((-6, -8))
+    return hoja, c, "Contacto NC temporizado (retardo a la desconexión)", "IEC 60617 07-71-18"
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
     "S00140": s00140, "S00141": s00141, "S00142": s00142, "S00143": s00143,
-    "S00144": s00144, "S00145": s00145,
+    "S00144": s00144, "S00145": s00145, "S00146": s00146, "S00147": s00147,
+    "S00148": s00148,
 }
 
 

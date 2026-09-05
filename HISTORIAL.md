@@ -6407,3 +6407,72 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
 `lint_simbolos.py` (fuerza y `comando`) y `generar_tipos_atributos.py
 --verificar`, todos en verde.
+
+## E66 — Multifilar muestra toda la librería + retardo a la desconexión
+
+Cierre del pedido "hacé todo lo que sea para solucionar todo lo que dije":
+lo último pendiente eran "todos los elementos existentes" y "las variantes
+con las diferentes cantidades de polos".
+
+### "Todos los elementos": la Paleta multifilar ahora es la unión completa
+
+Hasta E65, la hoja multifilar mostraba SOLO los 13 símbolos de
+`libreria-simbolos/comando/`. `Paleta.tsx` ahora arma la unión de esa
+librería con la de fuerza completa (`new Map([...SIMBOLOS,
+...SIMBOLOS_COMANDO])`) cuando `modo === "multifilar"` — un circuito de
+mando puede necesitar cualquier cosa (un fusible de mando, un
+transformador chico, un instrumento de medición…), no solo lo pensado
+específicamente para él. Fuerza sigue mostrando solo su propia librería,
+sin cambios (regla de alcance ya acordada: "fuerza solo protecciones y
+cargas"). Verificado en vivo: la Paleta multifilar pasó de 13 a 35
+símbolos disponibles.
+
+### "Variantes de polos": ya estaban resueltas, con un caso real completado
+
+Auditoría de los 24 subtipos de `aparato.schema.json`: **todo dispositivo
+de FUERZA donde "polos" significa conductores que switchea/protege ya
+tiene `cantidad_polos`** como campo de ficha (interruptor termomagnético,
+contactor, fusible, MCCB, guardamotores, relé térmico, portafusible,
+diferencial) — es informativo, no cambia el dibujo, porque el unifilar es
+justamente UNA línea para todas las fases por definición. Los dispositivos
+de COMANDO (contacto auxiliar, pulsador, bobina…) resuelven "más de un
+polo/contacto" colocando VARIAS instancias del símbolo que comparten la
+misma `referencia` — ya probado y funcionando en E62/64/65 (un contactor
+con dos contactos auxiliares, dos contactores para un arranque
+reversible). No hacía falta ninguna arquitectura nueva.
+
+Lo que SÍ estaba genuinamente incompleto: la familia `temporizador` solo
+tenía el retardo **a la conexión** (07-76-08 bobina, 07-71-15/17
+contactos) — el retardo **a la desconexión** (07-76-07, 07-71-16/18)
+había quedado deliberadamente afuera en E16 "por falta de un caso de uso
+concreto". El pedido actual ("todos los elementos existentes") es
+justamente ese caso de uso. Se agregan:
+
+- **S00146** Bobina de temporizador, retardo a la desconexión (07-76-07):
+  mismo rectángulo que S00143, tercio izquierdo **relleno negro** en vez
+  de cruzado en X (así distingue la norma las dos variantes — verificado
+  contra la lámina, página 64 del PDF).
+- **S00147/S00148** Contacto NA/NC temporizado, retardo a la desconexión
+  (07-71-16/18): mismo calificador de "acción retardada" que S00144/145,
+  pero **espejado** — la norma (página 51) invierte hacia qué lado bombea
+  el arco entre "retarda al activar" y "retarda al desactivar". Nueva
+  función `retardo_horizontal_invertido()` en `generar_simbolos_iec.py`
+  (invierte el signo del coseno del arco, mismas puntas ancladas).
+
+`aparato.schema.json`: `temporizador.tipo_retardo` pasa de `const`
+(`"a_la_conexion"` fijo) a `enum` con las dos variantes, `x-obligatorio`.
+Sin migración: todo temporizador existente ya traía el valor poblado
+desde `atributos_base` de su símbolo.
+
+Los 3 símbolos quedan `estado_revision: "pendiente_revision"` — mismo
+paso que falta para cualquier símbolo nuevo de esta librería: mostrárselos
+al usuario. Publicados en un Artifact de revisión
+(`revision-retardo-desconexion.html`) comparando cada uno con su par ya
+aprobado, para que el espejo se pueda chequear de un vistazo.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (16/16) y `generar_tipos_atributos.py
+--verificar`, todos en verde. Cada símbolo nuevo renderizado a PNG (vía
+la galería `libreria-simbolos/comando/index.html`) y revisado
+individualmente antes de publicarlo.

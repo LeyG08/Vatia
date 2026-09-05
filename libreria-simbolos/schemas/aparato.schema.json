@@ -1584,8 +1584,12 @@
           "title": "Tipo de aparato"
         },
         "tipo_retardo": {
-          "const": "a_la_conexion",
-          "description": "Por ahora la librería solo tiene el retardo a la conexión (07-76-08) — al energizarse, retarda el cambio de estado. El retardo a la desconexión (07-76-07) queda para una ampliación futura.",
+          "enum": [
+            "a_la_conexion",
+            "a_la_desconexion"
+          ],
+          "x-obligatorio": true,
+          "description": "E66: \"a la conexión\" (07-76-08) retarda el cambio de estado al energizarse; \"a la desconexión\" (07-76-07) lo retarda al desenergizarse. Lo fija el símbolo elegido (bobina cruzada en X vs. bobina rellena), este campo lo declara explícito en la ficha.",
           "title": "Tipo de retardo"
         },
         "tiempo_retardo_s": {
