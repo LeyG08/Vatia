@@ -99,8 +99,10 @@ const TIPOS_PASO_DIRECTO = new Set(["transformador", "transformador_corriente"])
 
 /** Contactos manuales: el usuario los acciona en modo simulación
  * (`manual`, ver `simular()`). "selector" queda afuera a propósito: el
- * schema no declara qué contacto cierra en qué posición. */
-const TIPOS_CONTACTO_MANUAL = new Set([
+ * schema no declara qué contacto cierra en qué posición. Exportado para
+ * que la UI (NodoSimbolo.tsx) sepa qué tipos de aparato son clicables
+ * en modo simulación, sin duplicar la lista. */
+export const TIPOS_CONTACTO_MANUAL = new Set([
   "pulsador",
   "interruptor_posicion",
   "pulsador_emergencia",

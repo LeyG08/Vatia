@@ -13,6 +13,7 @@ import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
 import { GRILLA_PX } from "./ruta";
 import { proximaReferencia } from "./referencia";
+import { simular, type ResultadoSimulacion } from "./simulacion";
 import {
   ALIMENTADOR_POR_DEFECTO,
   DATOS_PROYECTO_POR_DEFECTO,
@@ -503,6 +504,32 @@ interface EstadoEditor {
   panelHojaAbierto: boolean;
   panelProyectoAbierto: boolean;
   modoAdmin: boolean;
+  /**
+   * Modo simulación (E62/E63): recorre el proyecto entero con
+   * `lib/simulacion.ts` y permite accionar pulsadores/interruptores de
+   * posición con el mouse. Mientras está activo se bloquea el arrastre
+   * de nodos, las conexiones nuevas y la paleta — es un modo de USO, no
+   * de edición.
+   */
+  modoSimulacion: boolean;
+  /** Claves `${hojaId}:${nodoId}` de los contactos manuales accionados
+   * ahora mismo (pulsador presionado, fin de carrera activado…). */
+  simulacionManual: Set<string>;
+  /**
+   * Memoria de bobinas energizadas ENTRE llamadas a `simular()` — no es
+   * para la UI, es el `estadoInicial` que hace posible el autoenclavamiento
+   * (ver el comentario grande al principio de `simulacion.ts`). Sin esto,
+   * cada clic reiniciaría la iteración desde "todo apagado" y ningún
+   * contacto quedaría enclavado al soltar el pulsador de marcha.
+   */
+  simulacionEstado: Set<string>;
+  /** Último resultado calculado — lo leen NodoSimbolo.tsx (resaltado) y
+   * eventualmente ConexionEdge.tsx. `null` fuera de modo simulación. */
+  simulacionResultado: ResultadoSimulacion | null;
+  alternarSimulacion: () => void;
+  /** Presiona/suelta (o togglea, para `pulsador_emergencia`) un contacto
+   * manual de la hoja ACTIVA y recalcula todo el proyecto. */
+  accionarSimulacion: (nodoId: string, accionado: boolean) => void;
   /** true justo después de recuperar un autoguardado al abrir la app */
   avisoRecuperado: boolean;
   descartarAvisoRecuperado: () => void;
@@ -825,6 +852,10 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     panelHojaAbierto: false,
     panelProyectoAbierto: false,
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
+    modoSimulacion: false,
+    simulacionManual: new Set(),
+    simulacionEstado: new Set(),
+    simulacionResultado: null,
     avisoRecuperado: false,
     exportacionPdf: null,
     hoja: clonarCfg(inicial.proyecto.hojas[0]),
@@ -885,6 +916,41 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         const siguiente = !s.modoAdmin;
         localStorage.setItem("vatia-admin", String(siguiente));
         return { modoAdmin: siguiente };
+      });
+    },
+
+    alternarSimulacion() {
+      const activando = !get().modoSimulacion;
+      if (!activando) {
+        set({
+          modoSimulacion: false,
+          simulacionManual: new Set(),
+          simulacionEstado: new Set(),
+          simulacionResultado: null,
+        });
+        return;
+      }
+      const resultado = simular(proyectoVolcado(get()));
+      set({
+        modoSimulacion: true,
+        simulacionManual: new Set(),
+        simulacionEstado: resultado.bobinasEnergizadas,
+        simulacionResultado: resultado,
+      });
+    },
+
+    accionarSimulacion(nodoId, accionado) {
+      const { simulacionManual, simulacionEstado, hojaActivaId } = get();
+      const clave = `${hojaActivaId}:${nodoId}`;
+      if (simulacionManual.has(clave) === accionado) return; // sin cambio
+      const manual = new Set(simulacionManual);
+      if (accionado) manual.add(clave);
+      else manual.delete(clave);
+      const resultado = simular(proyectoVolcado(get()), manual, simulacionEstado);
+      set({
+        simulacionManual: manual,
+        simulacionEstado: resultado.bobinasEnergizadas,
+        simulacionResultado: resultado,
       });
     },
 

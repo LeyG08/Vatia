@@ -16,6 +16,8 @@ function BarraSuperior() {
   const alternarHoja = useEditor((s) => s.alternarPanelHoja);
   const alternarProyecto = useEditor((s) => s.alternarPanelProyecto);
   const modoAdmin = useEditor((s) => s.modoAdmin);
+  const modoSimulacion = useEditor((s) => s.modoSimulacion);
+  const alternarSimulacion = useEditor((s) => s.alternarSimulacion);
   const version = useEditor((s) => s.version);
   const puedeDeshacer = version >= 0 && historial.puedeDeshacer;
   const puedeRehacer = version >= 0 && historial.puedeRehacer;
@@ -165,6 +167,11 @@ function BarraSuperior() {
           ADMIN
         </span>
       )}
+      {modoSimulacion && (
+        <span className="badge-simulacion" title="Modo simulación activo">
+          ▶ SIMULACIÓN
+        </span>
+      )}
       <button
         type="button"
         className={paletaVisible ? "activo" : ""}
@@ -200,6 +207,14 @@ function BarraSuperior() {
         title="Guardar proyecto JSON"
       >
         💾 Guardar
+      </button>
+      <button
+        type="button"
+        className={modoSimulacion ? "activo" : ""}
+        onClick={alternarSimulacion}
+        title="Modo simulación: probar el circuito accionando pulsadores e interruptores"
+      >
+        {modoSimulacion ? "⏹ Detener simulación" : "▶ Simular"}
       </button>
       <button
         type="button"

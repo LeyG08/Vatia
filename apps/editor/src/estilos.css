@@ -514,6 +514,29 @@ body,
   pointer-events: none;
 }
 
+/* ---- Modo simulación (E63) ---- */
+
+/* Aparato conduce/está energizado según lib/simulacion.ts: halo verde,
+ * el mismo color que --ok en el resto del editor. */
+.nodo-simbolo-energizado .simbolo-svg {
+  filter: drop-shadow(0 0 3px var(--ok)) drop-shadow(0 0 3px var(--ok));
+  color: var(--ok);
+}
+
+/* Contacto manual (pulsador/interruptor de posición/paro de emergencia)
+ * clicable en modo simulación: cursor de mano, sin mover el nodo. */
+.nodo-simbolo-accionable {
+  cursor: pointer;
+}
+
+/* Feedback inmediato de "lo tengo presionado", independiente de si el
+ * circuito aguas abajo terminó energizado o no. */
+.nodo-simbolo-presionado .simbolo-svg {
+  color: var(--acento);
+  transform-origin: center;
+  scale: 0.94;
+}
+
 /* La librería trae su propio gris claro por defecto (--xy-edge-stroke-
  * default: #b1b1b7, ver @xyflow/react/dist/style.css) — en un plano
  * eléctrico el conductor tiene que leerse como trazo firme, no como una
@@ -2715,6 +2738,20 @@ body.arrastrando .paleta-item {
   padding: 1px 6px;
   border-radius: 4px;
   background: var(--error);
+  color: #fff;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+/* ---- Badge de modo simulación (E63) ---- */
+.badge-simulacion {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--ok);
   color: #fff;
   line-height: 1.4;
   vertical-align: middle;

@@ -6164,3 +6164,86 @@ pulsadores con el mouse y resaltar en el lienzo qué conduce y qué no.
 `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py` en verde (ninguno tocaba el módulo nuevo, pero se
 corrieron igual para no dejar pasar una regresión).
+
+## E63 — Modo simulación en la interfaz: accionar y ver el circuito
+
+Segunda etapa del motor de simulación (E62 dejó el cálculo puro, sin
+UI, "a propósito, es un punto de control natural"). Esta la retoma:
+un botón "▶ Simular" en la barra superior activa un modo de USO (no
+de edición) donde los aparatos calculados como conductores/energizados
+por `simulacion.ts` se resaltan en el lienzo, y los contactos manuales
+(pulsador, interruptor de posición, paro de emergencia) se accionan
+con el mouse directamente sobre su símbolo.
+
+**Wiring, en `lib/store.ts`**: dos acciones nuevas.
+`alternarSimulacion()` prende/apaga el modo; al prender, corre
+`simular(proyectoVolcado(get()))` una vez con todo vacío (foto de
+reposo) y guarda el resultado. `accionarSimulacion(nodoId, accionado)`
+arma la clave `${hojaActivaId}:${nodoId}`, actualiza el set de
+`simulacionManual` y vuelve a correr `simular()` — pasándole
+`simulacionEstado` (el `bobinasEnergizadas` de la llamada anterior)
+como `estadoInicial`, exactamente el patrón que E62 identificó como
+imprescindible para que un autoenclavamiento no se abra solo al mover
+el mouse. `proyectoVolcado()` es la misma función que ya usan Guardar
+y la exportación a PDF: no hubo que inventar un camino nuevo para leer
+"el proyecto completo, con la hoja activa al día".
+
+**Interacción por tipo de contacto** (`NodoSimbolo.tsx`): pulsador e
+interruptor de posición son MOMENTÁNEOS — conducen mientras se los
+mantiene presionados (`onPointerDown`/`onPointerUp`/`onPointerLeave`,
+para soltar también si el mouse se arrastra fuera sin soltar el botón).
+`pulsador_emergencia` se togglea con un clic, porque un paro de
+emergencia real enclava mecánicamente hasta que alguien lo destraba a
+mano. `selector` queda afuera (ya lo estaba en el motor: el schema no
+define qué contacto cierra en qué posición).
+
+**Resaltado**: un aparato con `aparatos.get("hoja:nodo") === true`
+(interruptor cerrado, bobina energizada, o sumidero con tensión) recibe
+la clase `nodo-simbolo-energizado` (halo verde, mismo `--ok` que el
+resto del editor); mientras se mantiene presionado, `nodo-simbolo-
+presionado` lo encoge un toque como feedback táctil inmediato,
+independiente de si el circuito aguas abajo terminó conduciendo o no.
+Se decidió NO resaltar también los cables (conexiones): hacerlo bien
+requeriría que `simulacion.ts` exponga qué tramo del Union-Find de cada
+hoja llega a una fuente Y a un retorno (no solo qué NODOS conducen),
+que es más cálculo del que esta etapa necesitaba para ser útil —
+queda anotado como el siguiente paso natural si hace falta.
+
+**Bloqueo de edición mientras se simula**: `nodesDraggable`,
+`nodesConnectable` y `edgesReconnectable` del `<ReactFlow>` pasan a
+`false`, y la Paleta se oculta — es un modo de uso, no de dibujo.
+Excepción encontrada en vivo y NO resuelta en esta etapa: la barra
+(`BarraNode.tsx`) tiene su propio arrastre de cuerpo independiente del
+`nodesDraggable` global (los tiradores de estiramiento SÍ son ajenos a
+esto, pero mover la barra entera aparentemente no pasa por el mismo
+camino) — quedó de comportamiento inconsistente entre corridas de
+prueba, sin alcanzar a aislar la causa exacta; anotado para revisar,
+severidad baja (no corrompe nada, solo correría la barra unos px).
+
+**Verificado en vivo** (Playwright + dev server, contra
+`proyecto-real-pps.json`, que ya tiene MCCB y contactores reales):
+activar el modo muestra el badge "▶ SIMULACIÓN" y oculta la Paleta;
+los dos MCCB (`interruptor_siempre_cerrado` en el motor) quedan con la
+clase `nodo-simbolo-energizado`; los contactores (sin `referencia`
+cargada en este proyecto) NO la reciben — correcto, sin bobina
+asociada no hay forma de que el motor sepa cuándo cierran; al
+desactivar, el badge y la Paleta vuelven a su estado normal. También
+se probó `alternarSimulacion()`/`accionarSimulacion()` a través del
+store real (no de un import directo de `simulacion.ts` como en E62)
+con un circuito de autoenclavamiento armado a mano en memoria —
+confirmó que `proyectoVolcado()` preserva la identidad de cada hoja
+correctamente.
+
+**Lo que sigue sin poderse probar de punta a punta por la interfaz
+real** (gap heredado de E62, no de esta etapa): la librería todavía no
+tiene símbolos dibujados para `pulsador`, `interruptor_posicion`,
+`pulsador_emergencia`, `contacto_auxiliar`, `rele_auxiliar` ni
+`selector` — son tipos que el motor de cálculo entiende perfectamente,
+pero que hoy no se pueden COLOCAR en una hoja desde la Paleta. Hasta
+que existan esos símbolos, un circuito de comando con autoenclavamiento
+solo puede probarse construyendo el proyecto a mano (JSON o consola del
+navegador), nunca dibujándolo en el editor real.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs` (21 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.

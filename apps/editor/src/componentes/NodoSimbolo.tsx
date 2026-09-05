@@ -2,6 +2,7 @@ import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ESCALA, useEditor, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
 import { anotacionNodo } from "../lib/anotaciones";
+import { TIPOS_CONTACTO_MANUAL } from "../lib/simulacion";
 import type { SimboloDef } from "../lib/tipos";
 
 const DIRECCIONES = [
@@ -67,10 +68,20 @@ function rotarPunto(
   };
 }
 
-function NodoSimbolo({ data, selected }: NodeProps<Node<DatosSimbolo>>) {
+function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const simbolo = obtenerSimbolo(data.codigo_iec);
   const tensionFaseV = useEditor((s) => s.proyecto.datosProyecto.tension_fase_v);
   const tensionLineaV = useEditor((s) => s.proyecto.datosProyecto.tension_linea_v);
+  // Modo simulación (E63): resalta el estado calculado por
+  // lib/simulacion.ts y permite accionar pulsadores/interruptores de
+  // posición con el mouse. `resultado`/`manual` cambian de referencia en
+  // cada recálculo, así que comparar por referencia (default de zustand)
+  // ya evita renders de más.
+  const modoSimulacion = useEditor((s) => s.modoSimulacion);
+  const resultadoSimulacion = useEditor((s) => s.simulacionResultado);
+  const manualSimulacion = useEditor((s) => s.simulacionManual);
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+  const accionarSimulacion = useEditor((s) => s.accionarSimulacion);
   // Resalta en el lienzo los símbolos que comparten la MISMA referencia
   // (IEC 61346) que el seleccionado — pedido explícito: "en los
   // multifilares... a la hora de hacerlo quedan vinculados para la
@@ -87,6 +98,30 @@ function NodoSimbolo({ data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const miReferencia =
     typeof data.atributos?.referencia === "string" ? data.atributos.referencia.trim() : "";
   const vinculado = referenciaSeleccionada !== null && miReferencia === referenciaSeleccionada;
+
+  const tipoAparato =
+    typeof data.atributos?.tipo_aparato === "string" ? data.atributos.tipo_aparato : null;
+  const claveSimulacion = `${hojaActivaId}:${id}`;
+  const energizado =
+    modoSimulacion && resultadoSimulacion?.aparatos.get(claveSimulacion) === true;
+  const accionado = modoSimulacion && manualSimulacion.has(claveSimulacion);
+  const accionable = modoSimulacion && tipoAparato !== null && TIPOS_CONTACTO_MANUAL.has(tipoAparato);
+  // pulsador_emergencia enclava mecánicamente (se togglea con un clic);
+  // pulsador/interruptor_posicion son momentáneos: conducen solo
+  // mientras se los mantiene apretados (press/release real, no un clic).
+  const esEnclavable = tipoAparato === "pulsador_emergencia";
+  const onAccionarInicio = accionable
+    ? (e: React.PointerEvent) => {
+        e.stopPropagation();
+        accionarSimulacion(id, esEnclavable ? !accionado : true);
+      }
+    : undefined;
+  const onAccionarFin = accionable && !esEnclavable
+    ? (e: React.PointerEvent) => {
+        e.stopPropagation();
+        accionarSimulacion(id, false);
+      }
+    : undefined;
 
   if (!simbolo) {
     return <div className="nodo-faltante">? {data.codigo_iec}</div>;
@@ -114,9 +149,16 @@ function NodoSimbolo({ data, selected }: NodeProps<Node<DatosSimbolo>>) {
 
   return (
     <div
-      className={`nodo-simbolo${vinculado ? " nodo-simbolo-vinculado" : ""}`}
+      className={`nodo-simbolo${vinculado ? " nodo-simbolo-vinculado" : ""}${
+        energizado ? " nodo-simbolo-energizado" : ""
+      }${accionable ? " nodo-simbolo-accionable" : ""}${
+        accionado ? " nodo-simbolo-presionado" : ""
+      }`}
       style={{ width: anchoPx, height: altoPx }}
       title={simbolo.metadata.nombre}
+      onPointerDown={onAccionarInicio}
+      onPointerUp={onAccionarFin}
+      onPointerLeave={onAccionarFin}
     >
       <div
         className="simbolo-svg"

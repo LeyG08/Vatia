@@ -79,6 +79,7 @@ function Editor() {
   const hoja = useEditor((s) => s.hoja);
   const paletaVisible = useEditor((s) => s.paletaVisible);
   const modoAdmin = useEditor((s) => s.modoAdmin);
+  const modoSimulacion = useEditor((s) => s.modoSimulacion);
   const onNodesChange = useEditor((s) => s.onNodesChange);
   const onEdgesChange = useEditor((s) => s.onEdgesChange);
   const onConnect = useEditor((s) => s.onConnect);
@@ -573,7 +574,9 @@ function Editor() {
   return (
     <div className="cuerpo">
       {modoAdmin && <EditorSimbolos />}
-      {paletaVisible && !modoAdmin && <Paleta onIniciarArrastre={iniciarArrastre} />}
+      {paletaVisible && !modoAdmin && !modoSimulacion && (
+        <Paleta onIniciarArrastre={iniciarArrastre} />
+      )}
       <div className="lienzo">
         {idsFuera.size > 0 && (
           <div className="aviso-fuera-hoja" role="alert">
@@ -623,7 +626,6 @@ function Editor() {
           onConnectEnd={() => desmarcarConexion()}
           onReconnectStart={(_, __, t) => marcarConexion(t)}
           onReconnectEnd={() => desmarcarConexion()}
-          edgesReconnectable={true}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
           onNodeDragStart={(_, nodo) => {
             registrarArrastre([nodo.id]);
@@ -705,6 +707,9 @@ function Editor() {
           snapToGrid
           snapGrid={[10, 10]}
           deleteKeyCode={[]}
+          nodesDraggable={!modoSimulacion}
+          nodesConnectable={!modoSimulacion}
+          edgesReconnectable={!modoSimulacion}
           panOnDrag={false}
           selectionOnDrag
           multiSelectionKeyCode="Control"
