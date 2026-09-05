@@ -635,12 +635,54 @@ def s00148():
     return hoja, c, "Contacto NC temporizado (retardo a la desconexión)", "IEC 60617 07-71-18"
 
 
+# ---------------------------------------------------------------------------
+# E67 (pedido del usuario: "con lo demás símbolos"): sensores de proximidad,
+# Sección 074 "Dispositivos de Proximidad y Sensibles al Toque" (página 60
+# del PDF de la norma) — dispositivos casi universales en un tablero de
+# automatismo real (inductivos, capacitivos, fotoeléctricos) que hoy no
+# tenían ningún símbolo en la librería.
+# ---------------------------------------------------------------------------
+
+def sensor_proximidad(cx, cy, ancho=5.0, alto=4.0):
+    """07-74-01: rombo con línea divisoria vertical (dos triángulos) —
+    acostado de lado para hacer de actuador de un contacto, mismo patrón
+    de composición que actuador_pulsador()/actuador_rotativo()."""
+    a, h = ancho / 2.0, alto / 2.0
+    c = poligono([(cx - a, cy), (cx, cy - h), (cx + a, cy), (cx, cy + h)])
+    c += linea(cx, cy - h, cx, cy + h)
+    return c
+
+
+def s00149():
+    """Contacto NA sensible a proximidad - 07-74-06: mismo patrón de
+    actuador a la izquierda + enlace horizontal punteado a la mitad de la
+    cuchilla que ya usan pulsador (S00135) y selector (S00137), con el
+    rombo de sensor de proximidad (07-74-01) en vez de corchete o botón
+    giratorio."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = sensor_proximidad(-15, 0)
+    c += linea(-15, 0, -3, 0, PUNTEADO)
+    c += contacto_na()
+    return hoja, c, "Contacto NA sensible a proximidad", "IEC 60617 07-74-06"
+
+
+def s00150():
+    """Contacto NC sensible a proximidad - por analogía composicional
+    (la norma solo lamina la variante NA, 07-74-06): mismo patrón de
+    S00149 sobre contacto_nc()."""
+    hoja = "-20.0 -25.0 30.0 50.0"
+    c = sensor_proximidad(-15, 0)
+    c += linea(-15, 0, -3, 0, PUNTEADO)
+    c += contacto_nc()
+    return hoja, c, "Contacto NC sensible a proximidad", "IEC 60617 07-74-06 (análogo sobre contacto NC)"
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
     "S00140": s00140, "S00141": s00141, "S00142": s00142, "S00143": s00143,
     "S00144": s00144, "S00145": s00145, "S00146": s00146, "S00147": s00147,
-    "S00148": s00148,
+    "S00148": s00148, "S00149": s00149, "S00150": s00150,
 }
 
 

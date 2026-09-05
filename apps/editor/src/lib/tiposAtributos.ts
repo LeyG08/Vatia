@@ -29,6 +29,7 @@ export type TipoAparato =
   | "rele_proteccion_tension"
   | "rele_termico"
   | "selector"
+  | "sensor_proximidad"
   | "sirena_alarma"
   | "temporizador"
   | "transformador"
@@ -463,6 +464,26 @@ export interface AparatoSelector {
   ith_a?: number;
 }
 
+/** Sensor de proximidad / detector, símbolo de contacto (IEC 60617 07-74-06): cierra o abre sin contacto físico, por proximidad de un objeto. La variante NC se construye por analogía composicional (la norma solo lamina la NA). */
+export interface AparatoSensorProximidad {
+  /** Tipo de aparato */
+  tipo_aparato: "sensor_proximidad";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Tecnología */
+  tecnologia?: "inductivo" | "capacitivo" | "fotoelectrico" | "otra";
+  /** Distancia de detección (mm) */
+  distancia_deteccion_mm?: number;
+  /** Tensión de alimentación (V) */
+  tension_v?: number;
+}
+
 export interface AparatoSirenaAlarma {
   /** Tipo de aparato */
   tipo_aparato: "sirena_alarma";
@@ -560,6 +581,7 @@ export type AtributosAparato =
   | AparatoReleProteccionTension
   | AparatoReleTermico
   | AparatoSelector
+  | AparatoSensorProximidad
   | AparatoSirenaAlarma
   | AparatoTemporizador
   | AparatoTransformador

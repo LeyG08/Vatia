@@ -6483,3 +6483,40 @@ El usuario aprobó los 3 símbolos sin correcciones ("aprobado"). Los
 `metadata.json` de S00146, S00147 y S00148 pasan `estado_revision` de
 `pendiente_revision` a `verificado`. Galería regenerada — la librería de
 comando queda en 16/16 símbolos verificados.
+
+## E67 — Sensores de proximidad
+
+Continuación de "con lo demás símbolos" (E66). Se buscó en el índice
+general del PDF de la norma (página 1, nunca revisado hasta ahora) qué
+faltaba cubrir dentro de la Sección 7, y apareció **074 "Dispositivos de
+Proximidad y Sensibles al Toque"** (página 60) — sensores inductivos,
+capacitivos y fotoeléctricos, casi universales en cualquier tablero de
+automatismo real y hasta ahora sin ningún símbolo en la librería.
+
+Se agregan **S00149/S00150** (contacto NA/NC sensible a proximidad,
+07-74-06): mismo patrón compositivo que pulsador (S00135) y selector
+(S00137) ya aprobados — actuador a la izquierda, enlace horizontal
+punteado a la mitad de la cuchilla — con el rombo de sensor de
+proximidad (07-74-01: dos triángulos separados por una línea vertical)
+en lugar de corchete o botón giratorio. La norma solo lamina la variante
+NA; la NC se construye por analogía composicional, documentado así en
+`fuente_norma`.
+
+Nuevo subtipo `sensor_proximidad` en `aparato.schema.json`: `tipo_contacto`
+(NA/NC, como interruptor_posicion), más `tecnologia` (inductivo /
+capacitivo / fotoeléctrico / otra), `distancia_deteccion_mm` y
+`tension_v` — a diferencia de un interruptor de posición mecánico, un
+sensor de proximidad es electrónico y necesita alimentación propia.
+
+`simulacion.ts`: `sensor_proximidad` entra a `TIPOS_CONTACTO_MANUAL`, con
+el mismo criterio que `interruptor_posicion` — el clic del usuario en
+modo simulación representa "el objeto está ahí", no una orden de mando.
+
+Los 2 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks — hubo que relevantar `npm run preview` en segundo plano, se
+había caído entre mensajes), `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs`, `lint_simbolos.py --carpeta comando` (18/18)
+y `generar_tipos_atributos.py --verificar` (28 interfaces), todos en
+verde.

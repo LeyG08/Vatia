@@ -111,11 +111,18 @@ const TIPOS_PASO_DIRECTO = new Set(["transformador", "transformador_corriente"])
  * (`manual`, ver `simular()`). "selector" queda afuera a propósito: el
  * schema no declara qué contacto cierra en qué posición. Exportado para
  * que la UI (NodoSimbolo.tsx) sepa qué tipos de aparato son clicables
- * en modo simulación, sin duplicar la lista. */
+ * en modo simulación, sin duplicar la lista.
+ *
+ * `sensor_proximidad` (E67) entra acá igual que `interruptor_posicion`:
+ * los dos son contactos accionados por algo EXTERNO al circuito (una
+ * leva que llega, un objeto que se acerca), no por mando eléctrico —
+ * en el modo interactivo, el clic del usuario representa "el objeto
+ * está ahí", no una orden de mando. */
 export const TIPOS_CONTACTO_MANUAL = new Set([
   "pulsador",
   "interruptor_posicion",
   "pulsador_emergencia",
+  "sensor_proximidad",
 ]);
 
 /** Cargas (bobinas): nunca unen sus dos terminales, se resuelven por

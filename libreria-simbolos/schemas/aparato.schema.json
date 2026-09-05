@@ -358,6 +358,21 @@
       "if": {
         "properties": {
           "tipo_aparato": {
+            "const": "sensor_proximidad"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/sensor_proximidad"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
             "const": "temporizador"
           }
         },
@@ -1569,6 +1584,55 @@
         }
       },
       "description": "Interruptor de posición / fin de carrera (IEC 60617 07-72-07/08): contacto accionado mecánicamente (leva, rodillo, vástago), no por mando eléctrico ni manual."
+    },
+    "sensor_proximidad": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "sensor_proximidad",
+          "title": "Tipo de aparato"
+        },
+        "tipo_contacto": {
+          "enum": [
+            "NA",
+            "NC"
+          ],
+          "x-obligatorio": true,
+          "description": "Lo fija el símbolo elegido (Sensor de proximidad NA / NC): no cambia el dibujo, es para que la ficha lo declare explícito.",
+          "title": "Tipo de contacto"
+        },
+        "tecnologia": {
+          "enum": [
+            "inductivo",
+            "capacitivo",
+            "fotoelectrico",
+            "otra"
+          ],
+          "x-obligatorio": false,
+          "description": "Principio de detección. La norma (07-74-03/07/08) da ejemplos por tecnología (capacitivo, magnético, inductivo) pero el símbolo de contacto (07-74-06) es genérico: acá se declara la tecnología real sin dibujar un símbolo distinto por cada una.",
+          "title": "Tecnología"
+        },
+        "distancia_deteccion_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Distancia de detección (mm)"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "A diferencia de un interruptor de posición mecánico, un sensor de proximidad es electrónico y necesita alimentación propia.",
+          "title": "Tensión de alimentación (V)"
+        }
+      },
+      "description": "Sensor de proximidad / detector, símbolo de contacto (IEC 60617 07-74-06): cierra o abre sin contacto físico, por proximidad de un objeto. La variante NC se construye por analogía composicional (la norma solo lamina la NA)."
     },
     "temporizador": {
       "type": "object",
