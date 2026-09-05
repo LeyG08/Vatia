@@ -6476,3 +6476,10 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 --verificar`, todos en verde. Cada símbolo nuevo renderizado a PNG (vía
 la galería `libreria-simbolos/comando/index.html`) y revisado
 individualmente antes de publicarlo.
+
+### E66.1 — Retardo a la desconexión, aprobado
+
+El usuario aprobó los 3 símbolos sin correcciones ("aprobado"). Los
+`metadata.json` de S00146, S00147 y S00148 pasan `estado_revision` de
+`pendiente_revision` a `verificado`. Galería regenerada — la librería de
+comando queda en 16/16 símbolos verificados.

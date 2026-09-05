@@ -2,7 +2,7 @@
   "codigo_iec": "S00146",
   "nombre": "Bobina de temporizador (retardo a la desconexión)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "in",
