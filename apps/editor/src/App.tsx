@@ -11,7 +11,9 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import BarraSuperior from "./componentes/BarraSuperior";
-import Paleta from "./componentes/Paleta";
+import ColumnaIzquierda from "./componentes/ColumnaIzquierda";
+import TablaAparatos from "./componentes/TablaAparatos";
+import PaletaComandos from "./componentes/PaletaComandos";
 import PanelProblemas from "./componentes/PanelProblemas";
 import AvisoAutoguardado from "./componentes/AvisoAutoguardado";
 import ChecklistAea from "./componentes/ChecklistAea";
@@ -79,6 +81,8 @@ function Editor() {
   }, []);
   const hoja = useEditor((s) => s.hoja);
   const paletaVisible = useEditor((s) => s.paletaVisible);
+  const tablaAbierta = useEditor((s) => s.tablaAbierta);
+  const modoTrabajo = useEditor((s) => s.modoTrabajo);
   const modoAdmin = useEditor((s) => s.modoAdmin);
   const modoSimulacion = useEditor((s) => s.modoSimulacion);
   const onNodesChange = useEditor((s) => s.onNodesChange);
@@ -575,9 +579,10 @@ function Editor() {
   return (
     <div className="cuerpo">
       {modoAdmin && <EditorSimbolos />}
-      {paletaVisible && !modoAdmin && !modoSimulacion && (
-        <Paleta onIniciarArrastre={iniciarArrastre} />
-      )}
+      {/* PROTOTIPO E81: la columna izquierda (legajo + símbolos) sigue
+        * disponible en simulación — el legajo sirve para navegar mientras
+        * se prueba el circuito, cosa que la paleta sola no hacía. */}
+      {paletaVisible && !modoAdmin && <ColumnaIzquierda onIniciarArrastre={iniciarArrastre} />}
       <div className="lienzo">
         {idsFuera.size > 0 && (
           <div className="aviso-fuera-hoja" role="alert">
@@ -751,9 +756,18 @@ function Editor() {
         {ayudaAtajosAbierta && (
           <AyudaAtajos onCerrar={() => setAyudaAtajosAbierta(false)} />
         )}
+        {/* PROTOTIPO E81: el checklist y los problemas de cálculo son el
+          * modo "Verificar", no un panel permanente. Antes crecían sobre
+          * la lámina justo mientras se dibujaba; ahora aparecen cuando se
+          * los va a mirar. El aviso de autoguardado sí es permanente:
+          * avisa de algo que pasó, no de algo que hay que revisar. */}
         <div className="paneles-flotantes">
-          <ChecklistAea />
-          <PanelProblemas />
+          {modoTrabajo === "verificar" && (
+            <>
+              <ChecklistAea />
+              <PanelProblemas />
+            </>
+          )}
           <AvisoAutoguardado />
         </div>
         <PanelHoja />
@@ -761,6 +775,10 @@ function Editor() {
         <DialogoFuenteCortocircuito />
         <DialogoConfirmacion />
       </div>
+      {/* PROTOTIPO E81: planilla de carga al costado del plano. Va FUERA
+        * de `.lienzo` a propósito: es un panel acoplado, no algo que
+        * flote encima del dibujo. */}
+      {tablaAbierta && !modoAdmin && <TablaAparatos />}
       {arrastre && simboloFantasma && (
         <div
           className="fantasma-arrastre"
@@ -780,13 +798,15 @@ function Editor() {
 }
 
 export default function App() {
+  const modoTrabajoApp = useEditor((s) => s.modoTrabajo);
   return (
     <ReactFlowProvider>
-      <div className="app">
+      <div className={`app modo-${modoTrabajoApp}`}>
         <BarraSuperior />
         <PestanasHoja />
         <Editor />
         <ExportacionProyecto />
+        <PaletaComandos />
       </div>
     </ReactFlowProvider>
   );

@@ -7224,3 +7224,81 @@ Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
 `npm run e2e` (21 checks), `npm run e2e:simulacion` (11 checks),
 `verificar_alineacion.mjs`, `verificar_proyecto_real.mjs` y
 `lint_simbolos.py` (fuerza 19/19, comando 56/56).
+
+## E81 — PROTOTIPO de disposición: cinta + modos, legajo, planilla y buscador
+
+**Rama aparte, no mergeada.** `proyecto/ui-prototipo-20260906` sale de
+`c1d2baa` para poder probar una disposición distinta sin tocar `main`.
+
+El usuario dijo que no lo terminaba de convencer la interfaz —"los menús,
+cómo se configura, su disposición"— y pidió entre cinco y diez ejemplos
+de revisión para elegir o combinar. Se le presentaron nueve direcciones
+en un artefacto con wireframes a escala; eligió seis: **cinta por tareas
+(1), árbol de proyecto (4), modos de trabajo (5), plano y tabla (6),
+comandos por teclado (7) y ficha contextual (8)**. Este prototipo las
+implementa funcionando sobre el editor real.
+
+**1 + 5 se funden en una sola pieza.** Las solapas de la cinta SON los
+modos de trabajo: *Dibujar · Documentar · Verificar · Simular · Emitir*.
+Elegir "Simular" no abre otra barra, cambia el estado de la aplicación
+(`setModoTrabajo` enciende y apaga `modoSimulacion`, que antes era un
+botón suelto entre otros diez). Cada modo trae su costado ya armado:
+Dibujar abre la librería, Documentar abre la planilla, Verificar saca la
+planilla y muestra el checklist. Debajo de las solapas, los comandos del
+modo activo agrupados y rotulados: un comando vive en exactamente un
+grupo de exactamente un modo, que es justo lo que le faltaba a la fila de
+once botones parejos.
+
+Consecuencia directa y visible: **en modo Dibujar la lámina queda
+limpia**. El checklist de 24 pendientes y el panel de problemas dejaron
+de ser paneles permanentes y pasaron a ser el modo Verificar, donde
+además pueden ocupar más alto porque no hay nada que dibujar mientras se
+los lee.
+
+**4 · Legajo (`ArbolProyecto.tsx`).** La columna izquierda gana dos
+solapas —Legajo y Símbolos— y el legajo es el índice del proyecto:
+proyecto ▸ hojas ▸ categorías ▸ aparatos, con la referencia IEC 61346 de
+cada uno y cuántos datos de ficha le faltan. Un clic salta a su hoja y lo
+selecciona en el plano. La hoja activa se lee del espejo en vivo
+(`nodos`), no de `proyecto.hojas`, porque ahí el trabajo más reciente
+todavía no está volcado.
+
+**6 · Planilla de carga (`TablaAparatos.tsx`).** Es la pieza que ataca el
+cuello de botella real: completar fichas. Una fila por aparato, una
+columna por campo obligatorio, y las columnas NO están escritas a mano —
+salen del schema del `tipo_aparato` elegido vía `camposDeFamilia()`, así
+que la planilla se mantiene sola cuando cambia la ficha técnica. Chips
+por tipo, filtro "solo los incompletos", celdas vacías obligatorias
+marcadas en ámbar y la primera columna fija al hacer scroll horizontal.
+Editar una celda escribe con `actualizarAtributosNodo`, o sea que va al
+historial de deshacer como cualquier otra edición.
+
+**7 · Buscador (`PaletaComandos.tsx`).** Ctrl+K resuelve tres cosas con
+una tecla: coloca un símbolo de la librería, salta a un aparato ya
+dibujado por su referencia (KM1, Q3…) o corre un comando (cambiar de
+modo, abrir un panel). Coincidencia laxa por palabras y sin acentos:
+"term trip" encuentra "Interruptor termomagnético tripolar". No reemplaza
+a la paleta visible — es el atajo del que ya sabe cómo se llama lo que
+busca.
+
+**8 · Ficha contextual.** Es lo que `PanelAtributos` ya hacía (aparece
+junto al aparato seleccionado); en este prototipo queda como está y lo
+que cambia es que deja de ser el ÚNICO lugar donde se cargan datos,
+porque ahora está la planilla al lado.
+
+Verificado en vivo con Playwright sobre el proyecto real del PPS, sin un
+solo error de consola: los cinco modos cambian la disposición, la
+planilla arma sus columnas desde el schema (Referencia · Cantidad de
+polos · Tensión de operación · Corriente nominal para el contactor), el
+legajo lista los 7 elementos de la hoja agrupados por categoría, y Ctrl+K
+con "contactor" devuelve los dos contactores dibujados más el símbolo
+S00112 para colocar.
+
+Suite completa en verde sobre la rama: `tsc -b`, `npm run build`,
+`npm run lint`, `npm run e2e` (21 checks), `npm run e2e:simulacion` (11
+checks) y `npm run e2e:simbolos` (19 símbolos).
+
+Falta, si la dirección se aprueba: la planilla cubre solo aparatos con
+`tipo_aparato` (no cargas ni conductores), el legajo no permite renombrar
+ni arrastrar entre hojas, y los modos no recuerdan el último usado al
+reabrir el proyecto.

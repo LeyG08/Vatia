@@ -248,6 +248,19 @@ export interface DatosBarra extends Record<string, unknown> {
 }
 
 /** Código IEC reservado para las barras de distribución */
+/** PROTOTIPO E81 — etapas del trabajo, en el orden real en que se hace
+ * un plano: se dibuja, se documenta cada aparato, se verifica contra la
+ * norma, se prueba el circuito y recién ahí se emite el PDF. */
+export type ModoTrabajo = "dibujar" | "documentar" | "verificar" | "simular" | "emitir";
+
+export const MODOS_TRABAJO: { id: ModoTrabajo; nombre: string; ayuda: string }[] = [
+  { id: "dibujar", nombre: "Dibujar", ayuda: "Colocar símbolos, rieles y conexiones" },
+  { id: "documentar", nombre: "Documentar", ayuda: "Cargar la ficha técnica de cada aparato" },
+  { id: "verificar", nombre: "Verificar", ayuda: "Checklist AEA y problemas de cálculo" },
+  { id: "simular", nombre: "Simular", ayuda: "Accionar el circuito y ver qué se energiza" },
+  { id: "emitir", nombre: "Emitir", ayuda: "Planos PDF, lista de materiales y archivo" },
+];
+
 export const BARRA_CODIGO = "S00119";
 
 /** Largo por defecto = geometría del símbolo original (compatibilidad) */
@@ -510,6 +523,29 @@ interface EstadoEditor {
   nombreProyecto: string;
   problemasProyecto: string[];
   paletaVisible: boolean;
+  /**
+   * PROTOTIPO E81 — modo de trabajo activo. Las solapas de la cinta SON
+   * los modos: en vez de once botones parejos, la app declara en qué
+   * etapa del trabajo está y muestra solo las herramientas de esa etapa.
+   * "simular" además enciende/apaga `modoSimulacion`, que antes era un
+   * botón suelto entre otros diez.
+   */
+  modoTrabajo: ModoTrabajo;
+  setModoTrabajo: (modo: ModoTrabajo) => void;
+  /** PROTOTIPO E81 — solapa activa de la columna izquierda: el legajo del
+   * proyecto (árbol) o la librería de símbolos. */
+  columnaIzquierda: "proyecto" | "simbolos";
+  setColumnaIzquierda: (cual: "proyecto" | "simbolos") => void;
+  /** PROTOTIPO E81 — planilla de carga masiva de fichas técnicas, al
+   * costado del plano. `tablaTipo` es el `tipo_aparato` que se está
+   * editando (las columnas salen del schema de ESE tipo). */
+  tablaAbierta: boolean;
+  tablaTipo: string | null;
+  setTablaAbierta: (abierta: boolean) => void;
+  setTablaTipo: (tipo: string | null) => void;
+  /** PROTOTIPO E81 — buscador de comandos y símbolos (Ctrl+K). */
+  comandosAbiertos: boolean;
+  setComandosAbiertos: (abiertos: boolean) => void;
   panelHojaAbierto: boolean;
   panelProyectoAbierto: boolean;
   modoAdmin: boolean;
@@ -874,6 +910,11 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     nombreProyecto: inicial.proyecto.meta.nombre,
     problemasProyecto: [],
     paletaVisible: true,
+    modoTrabajo: "dibujar",
+    columnaIzquierda: "simbolos",
+    tablaAbierta: false,
+    tablaTipo: null,
+    comandosAbiertos: false,
     panelHojaAbierto: false,
     panelProyectoAbierto: false,
     modoAdmin: localStorage.getItem("vatia-admin") === "true",
@@ -914,6 +955,40 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
     finalizarExportacionPdf() {
       set({ exportacionPdf: null });
+    },
+
+    setModoTrabajo(modo) {
+      const actual = get().modoTrabajo;
+      if (actual === modo) return;
+      // El modo "simular" ES el modo simulación: entrar y salir de la
+      // solapa enciende y apaga el motor, en vez de dejar dos
+      // interruptores distintos para el mismo estado.
+      if (modo === "simular" && !get().modoSimulacion) get().alternarSimulacion();
+      if (modo !== "simular" && get().modoSimulacion) get().alternarSimulacion();
+      set({
+        modoTrabajo: modo,
+        // Cada modo llega con su costado ya armado: dibujar necesita la
+        // librería a mano, documentar la planilla, y verificar ninguna
+        // de las dos porque el checklist ocupa el pie.
+        columnaIzquierda: modo === "dibujar" ? "simbolos" : "proyecto",
+        tablaAbierta: modo === "documentar",
+      });
+    },
+
+    setColumnaIzquierda(cual) {
+      set({ columnaIzquierda: cual });
+    },
+
+    setTablaAbierta(abierta) {
+      set({ tablaAbierta: abierta });
+    },
+
+    setTablaTipo(tipo) {
+      set({ tablaTipo: tipo });
+    },
+
+    setComandosAbiertos(abiertos) {
+      set({ comandosAbiertos: abiertos });
     },
 
     alternarPaleta() {

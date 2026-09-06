@@ -363,6 +363,817 @@ body,
   color: var(--text-primary);
 }
 
+/* =====================================================================
+ * PROTOTIPO E81 — cinta por tareas + modos de trabajo
+ *
+ * Las solapas de la cinta SON los modos de trabajo: elegir "Simular" no
+ * abre otra barra, cambia el estado de la aplicacion. Dos bandas: la de
+ * arriba es identidad + documento + solapas, la de abajo son los
+ * comandos del modo activo, agrupados y rotulados. Un comando vive en
+ * exactamente un grupo de exactamente un modo, que es lo que le faltaba
+ * a la fila de once botones parejos.
+ * ===================================================================== */
+.cinta {
+  background: var(--fondo-panel);
+  border-bottom: 1px solid var(--borde);
+  flex: 0 0 auto;
+}
+
+.cinta-banda {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.cinta-solapas {
+  display: flex;
+  align-self: flex-end;
+  gap: 2px;
+  margin-left: 10px;
+}
+
+/* Las solapas se apoyan en el filete inferior de la banda y la activa lo
+ * corta: es la misma gramatica de las pestanas de hoja, un nivel mas
+ * arriba. */
+.cinta-solapa {
+  position: relative;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radio) var(--radio) 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-stretch: 96%;
+  font-weight: 500;
+  padding: 7px 14px 8px;
+  margin-bottom: -1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cinta-solapa:hover {
+  color: var(--text-primary);
+}
+
+.cinta-solapa.activa {
+  background: var(--bg-surface);
+  border-color: var(--borde);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.cinta-solapa.activa::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--bg-surface);
+}
+
+/* El modo simulacion se enciende con el mismo ambar del circuito vivo. */
+.cinta-solapa.viva {
+  color: var(--vivo);
+}
+
+.cinta-solapa.activa.viva {
+  border-color: var(--vivo);
+  color: var(--vivo);
+}
+
+.cinta-margen {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.cinta-margen button {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--campo);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.cinta-margen button:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.cinta-margen button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.btn-buscar kbd {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 10px;
+  border: 1px solid var(--borde);
+  border-bottom-width: 2px;
+  border-radius: var(--radio-chico);
+  padding: 1px 4px;
+  color: var(--text-muted);
+}
+
+/* ---- Banda de comandos del modo activo ---- */
+.cinta-comandos {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 54px;
+  padding: 0 12px;
+  background: var(--bg-surface);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.cinta-grupo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 14px 5px;
+  border-right: 1px solid var(--borde);
+  flex: 0 0 auto;
+}
+
+.cinta-grupo:first-child {
+  padding-left: 0;
+}
+
+.cinta-grupo-botones {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* El rotulo del grupo va ABAJO y en chico: nombra el conjunto sin
+ * competir con los comandos, que son lo que se clickea. */
+.cinta-grupo-titulo {
+  font-size: 10px;
+  font-stretch: 88%;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.cinta-comandos button {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--campo);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-stretch: 96%;
+  line-height: 1;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cinta-comandos button:hover:not(:disabled) {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.cinta-comandos button.activo {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+  color: var(--acento);
+}
+
+.cinta-comandos button.primario {
+  border-color: var(--acento);
+  background: var(--acento);
+  color: var(--acento-texto);
+  font-weight: 600;
+}
+
+.cinta-comandos button.primario:hover {
+  background: var(--acento-fuerte);
+  border-color: var(--acento-fuerte);
+  color: var(--acento-texto);
+}
+
+.cinta-comandos button.vivo {
+  border-color: var(--vivo);
+  background: var(--vivo);
+  color: var(--papel);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .cinta-comandos button.vivo {
+  color: #17120a;
+}
+
+/* Que hace este modo, en una linea, al final de la banda. */
+.cinta-ayuda {
+  align-self: center;
+  margin-left: auto;
+  padding-left: 16px;
+  font-size: 11.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* =====================================================================
+ * PROTOTIPO E81 — columna izquierda con solapas (legajo / simbolos)
+ * ===================================================================== */
+.columna-izq {
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  flex: 0 0 auto;
+  min-height: 0;
+  border-right: 1px solid var(--borde);
+  background: var(--fondo-panel);
+}
+
+.columna-izq-solapas {
+  display: flex;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--borde);
+}
+
+.columna-izq-solapas button {
+  flex: 1 1 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 9px 8px;
+  cursor: pointer;
+}
+
+.columna-izq-solapas button:hover {
+  color: var(--text-primary);
+}
+
+.columna-izq-solapas button.activa {
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom-color: var(--acento);
+}
+
+.columna-izq-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+/* Dentro de la columna, la paleta ya no pone su propio borde ni ancho:
+ * los pone el contenedor. */
+.columna-izq-cuerpo .paleta {
+  width: 100%;
+  border-right: none;
+}
+
+/* =====================================================================
+ * PROTOTIPO E81 — legajo del proyecto (arbol)
+ * ===================================================================== */
+.arbol {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 16px;
+  scrollbar-width: thin;
+}
+
+.arbol-raiz {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 12px 9px;
+  border-bottom: 1px solid var(--borde);
+  position: sticky;
+  top: 0;
+  background: var(--fondo-panel);
+  z-index: 2;
+}
+
+.arbol-raiz-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.arbol-raiz-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.arbol-fila {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: left;
+  padding: 4px 10px 4px 8px;
+  cursor: pointer;
+}
+
+.arbol-fila:hover {
+  background: var(--bg-hover);
+}
+
+.arbol-fila-hoja {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 6px;
+}
+
+.arbol-fila-hoja.activa {
+  border-left-color: var(--acento);
+  background: var(--acento-suave);
+}
+
+.arbol-fila-grupo {
+  padding-left: 20px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.arbol-fila-aparato {
+  padding-left: 34px;
+}
+
+.arbol-flecha {
+  flex: 0 0 auto;
+  width: 10px;
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+.arbol-nombre {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* La referencia IEC 61346 es un identificador: cifras tabulares para que
+ * KM1 y KM10 caigan en la misma columna. */
+.arbol-ref {
+  flex: 0 0 auto;
+  min-width: 34px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.arbol-conteo {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+/* Cuantos datos de ficha faltan. Mismo ambar que el checklist: es el
+ * color de "esto todavia no esta". */
+.arbol-pendiente {
+  flex: 0 0 auto;
+  min-width: 16px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--vivo);
+  background: var(--vivo-suave);
+  border-radius: 8px;
+  padding: 1px 5px;
+}
+
+/* =====================================================================
+ * PROTOTIPO E81 — planilla de carga de fichas tecnicas
+ * ===================================================================== */
+.planilla {
+  display: flex;
+  flex-direction: column;
+  width: 46%;
+  min-width: 380px;
+  max-width: 720px;
+  flex: 0 0 auto;
+  min-height: 0;
+  border-left: 1px solid var(--borde);
+  background: var(--fondo-panel);
+}
+
+.planilla-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.planilla-cabecera h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.planilla-ayuda {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  max-width: 46ch;
+}
+
+.planilla-cerrar {
+  margin-left: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--campo);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.planilla-cerrar:hover {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.planilla-vacia {
+  margin: 0;
+  padding: 18px 14px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  max-width: 44ch;
+}
+
+/* Un chip por tipo de aparato presente en la hoja: la planilla muestra
+ * de a un tipo porque las columnas son las de ESE tipo. */
+.planilla-tipos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.planilla-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--campo);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-stretch: 94%;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+
+.planilla-chip:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.planilla-chip.activo {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+  color: var(--acento);
+  font-weight: 600;
+}
+
+.planilla-chip-conteo {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+.planilla-chip.activo .planilla-chip-conteo {
+  color: var(--acento);
+}
+
+.planilla-filtro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--borde);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.planilla-filtro label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.planilla-estado {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.planilla-grilla {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.planilla-grilla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.planilla-grilla th,
+.planilla-grilla td {
+  border-bottom: 1px solid var(--borde);
+  border-right: 1px solid var(--borde);
+  padding: 0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.planilla-grilla thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-surface-alt);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  font-stretch: 88%;
+  letter-spacing: 0.03em;
+  padding: 7px 8px;
+  white-space: nowrap;
+}
+
+.planilla-grilla .obligatorio {
+  color: var(--error);
+  margin-left: 2px;
+}
+
+/* La primera columna identifica la fila y no se edita: queda pegada al
+ * borde izquierdo mientras se scrollea a lo ancho. */
+.planilla-grilla .col-aparato {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-surface);
+  padding: 5px 8px;
+  min-width: 148px;
+  font-weight: 400;
+}
+
+.planilla-grilla thead .col-aparato {
+  z-index: 3;
+  background: var(--bg-surface-alt);
+}
+
+.planilla-ir {
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+  cursor: pointer;
+}
+
+.planilla-ir:hover {
+  color: var(--acento);
+  text-decoration: underline;
+}
+
+.planilla-nombre {
+  display: block;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 190px;
+}
+
+/* La celda ES el control: sin bordes propios, para que la planilla se lea
+ * como una grilla y no como un formulario apilado. */
+.planilla-grilla .celda input[type="text"],
+.planilla-grilla .celda input[type="number"],
+.planilla-grilla .celda select {
+  width: 100%;
+  min-width: 92px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  padding: 6px 8px;
+}
+
+.planilla-grilla .celda input:focus,
+.planilla-grilla .celda select:focus {
+  outline: none;
+  background: var(--acento-suave);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+.planilla-grilla .celda input[type="checkbox"] {
+  margin: 6px 8px;
+}
+
+/* Un dato obligatorio vacio se marca en la propia celda: es la misma
+ * informacion que da el Checklist AEA, pero en el lugar donde se carga. */
+.planilla-grilla .celda.falta {
+  background: var(--vivo-suave);
+}
+
+.planilla-grilla tbody tr:hover .col-aparato {
+  background: var(--bg-hover);
+}
+
+/* =====================================================================
+ * PROTOTIPO E81 — buscador de comandos y simbolos (Ctrl+K)
+ * ===================================================================== */
+.comandos-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  background: rgba(10, 14, 17, 0.42);
+}
+
+.comandos {
+  width: min(620px, 92vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-panel);
+  overflow: hidden;
+}
+
+.comandos-campo {
+  border: none;
+  border-bottom: 1px solid var(--borde);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 14px 16px;
+}
+
+.comandos-campo:focus {
+  outline: none;
+}
+
+.comandos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 46vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.comandos-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-radius: var(--radio-chico);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: left;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.comandos-item.activo {
+  background: var(--acento-suave);
+}
+
+.comandos-thumb {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  color: var(--text-primary);
+}
+
+.comandos-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Marca de clase para lo que no es un simbolo: un punto del color que ya
+ * significa esa cosa en el resto del editor. */
+.comandos-marca {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin: 0 9px;
+  border-radius: 50%;
+}
+
+.comandos-marca.marca-aparato {
+  background: var(--vinculo);
+}
+
+.comandos-marca.marca-comando {
+  background: var(--acento);
+}
+
+.comandos-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.comandos-titulo {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comandos-detalle {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comandos-accion {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  padding: 2px 6px;
+}
+
+.comandos-vacio {
+  padding: 16px 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.comandos-pie {
+  border-top: 1px solid var(--borde);
+  padding: 7px 14px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.comandos-pie kbd {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 10px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  padding: 1px 4px;
+  margin-right: 2px;
+}
+
 /* ---- Cuerpo ---- */
 .cuerpo {
   display: flex;
@@ -885,6 +1696,14 @@ body,
   max-height: 44%;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+
+/* PROTOTIPO E81: en modo "Verificar" el checklist ES la tarea, así que
+ * puede ocupar más alto sin estorbar — no hay nada que dibujar mientras
+ * se lo lee. */
+.modo-verificar .paneles-flotantes {
+  max-height: 74%;
+  max-width: 440px;
 }
 
 /* ---- Panel de problemas ---- */

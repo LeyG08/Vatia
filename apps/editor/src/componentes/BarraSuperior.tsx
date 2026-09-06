@@ -1,7 +1,24 @@
-import { useRef, useCallback, useEffect, useState } from "react";
-import { useEditor, historial, construirEstadoHoja } from "../lib/store";
+import { useRef, useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  useEditor,
+  historial,
+  construirEstadoHoja,
+  MODOS_TRABAJO,
+} from "../lib/store";
 import { serializarProyecto, type Hoja } from "../lib/tipos";
 import { armarChecklist } from "../lib/checklist";
+
+/** Un grupo de comandos de la cinta: los botones arriba, el rótulo del
+ * grupo abajo. Va fuera del componente a propósito — declarado adentro,
+ * React lo trata como un tipo nuevo en cada render y remonta sus hijos. */
+function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <div className="cinta-grupo">
+      <div className="cinta-grupo-botones">{children}</div>
+      <span className="cinta-grupo-titulo">{titulo}</span>
+    </div>
+  );
+}
 
 function BarraSuperior() {
   const nombre = useEditor((s) => s.nombreProyecto);
@@ -11,13 +28,18 @@ function BarraSuperior() {
   const nuevoProyectoFn = useEditor((s) => s.nuevoProyecto);
   const deshacerFn = useEditor((s) => s.deshacer);
   const rehacerFn = useEditor((s) => s.rehacer);
-  const alternarPaleta = useEditor((s) => s.alternarPaleta);
-  const paletaVisible = useEditor((s) => s.paletaVisible);
   const alternarHoja = useEditor((s) => s.alternarPanelHoja);
   const alternarProyecto = useEditor((s) => s.alternarPanelProyecto);
   const modoAdmin = useEditor((s) => s.modoAdmin);
   const modoSimulacion = useEditor((s) => s.modoSimulacion);
   const alternarSimulacion = useEditor((s) => s.alternarSimulacion);
+  const modoTrabajo = useEditor((s) => s.modoTrabajo);
+  const setModoTrabajo = useEditor((s) => s.setModoTrabajo);
+  const columnaIzquierda = useEditor((s) => s.columnaIzquierda);
+  const setColumnaIzquierda = useEditor((s) => s.setColumnaIzquierda);
+  const tablaAbierta = useEditor((s) => s.tablaAbierta);
+  const setTablaAbierta = useEditor((s) => s.setTablaAbierta);
+  const setComandosAbiertos = useEditor((s) => s.setComandosAbiertos);
   const version = useEditor((s) => s.version);
   const puedeDeshacer = version >= 0 && historial.puedeDeshacer;
   const puedeRehacer = version >= 0 && historial.puedeRehacer;
@@ -158,46 +180,204 @@ function BarraSuperior() {
     e.target.value = "";
   }
 
+  /* PROTOTIPO E81 - la cinta. Dos bandas: arriba la identidad, el nombre
+   * del documento y las SOLAPAS DE MODO; abajo los comandos del modo
+   * activo, agrupados y con su rotulo de grupo. Las solapas y los modos
+   * son la misma cosa a proposito (direcciones 1 + 5 del set de
+   * disposiciones): elegir "Simular" no abre una barra distinta, cambia
+   * el estado de la aplicacion. */
   return (
     <>
-      <header className="barra-superior">
-        <strong className="marca">Vatia</strong>
-        {modoAdmin && (
-          <span className="badge-admin" title="Modo administrador activo (Ctrl+Shift+A)">
-            Admin
-          </span>
-        )}
-
-        {/* Documento: qué archivo estoy editando y qué hago con él. */}
-        <div className="barra-grupo barra-grupo-documento">
+      <header className="cinta">
+        <div className="cinta-banda">
+          <strong className="marca">Vatia</strong>
+          {modoAdmin && (
+            <span className="badge-admin" title="Modo administrador activo (Ctrl+Shift+A)">
+              Admin
+            </span>
+          )}
           <input
             className="nombre-proyecto"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             aria-label="Nombre del proyecto"
           />
-          <button
-            type="button"
-            className="primario"
-            onClick={guardar}
-            title="Guardar proyecto JSON (Ctrl+S)"
-          >
-            Guardar
-          </button>
-          <button
-            type="button"
-            onClick={() => inputArchivo.current?.click()}
-            title="Abrir un proyecto guardado"
-          >
-            Abrir…
-          </button>
-          <button
-            type="button"
-            onClick={nuevoProyecto}
-            title="Empezar un proyecto en blanco (se pierde el actual)"
-          >
-            Nuevo
-          </button>
+
+          <nav className="cinta-solapas" aria-label="Modo de trabajo">
+            {MODOS_TRABAJO.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`cinta-solapa${modoTrabajo === m.id ? " activa" : ""}${
+                  m.id === "simular" && modoSimulacion ? " viva" : ""
+                }`}
+                onClick={() => setModoTrabajo(m.id)}
+                aria-pressed={modoTrabajo === m.id}
+                title={m.ayuda}
+              >
+                {m.nombre}
+              </button>
+            ))}
+          </nav>
+
+          <div className="cinta-margen">
+            <button
+              type="button"
+              className="btn-icono btn-buscar"
+              onClick={() => setComandosAbiertos(true)}
+              title="Buscar un simbolo o un comando (Ctrl+K)"
+            >
+              Buscar <kbd>Ctrl K</kbd>
+            </button>
+            <button
+              type="button"
+              className="btn-icono"
+              onClick={deshacerFn}
+              disabled={!puedeDeshacer}
+              title="Deshacer (Ctrl+Z)"
+              aria-label="Deshacer"
+            >
+              &#8630;
+            </button>
+            <button
+              type="button"
+              className="btn-icono"
+              onClick={rehacerFn}
+              disabled={!puedeRehacer}
+              title="Rehacer (Ctrl+Shift+Z)"
+              aria-label="Rehacer"
+            >
+              &#8631;
+            </button>
+            <button
+              type="button"
+              className="btn-icono btn-tema"
+              onClick={toggleTema}
+              title={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+              aria-label={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+            >
+              {oscuro ? "\u2600" : "\u263e"}
+            </button>
+          </div>
+        </div>
+
+        <div className="cinta-comandos">
+          {modoTrabajo === "dibujar" && (
+            <>
+              <Grupo titulo="Columna izquierda">
+                <button
+                  type="button"
+                  className={columnaIzquierda === "simbolos" ? "activo" : ""}
+                  onClick={() => setColumnaIzquierda("simbolos")}
+                  title="Mostrar la libreria de simbolos"
+                >
+                  Simbolos
+                </button>
+                <button
+                  type="button"
+                  className={columnaIzquierda === "proyecto" ? "activo" : ""}
+                  onClick={() => setColumnaIzquierda("proyecto")}
+                  title="Mostrar el legajo del proyecto"
+                >
+                  Legajo
+                </button>
+              </Grupo>
+              <Grupo titulo="Hoja">
+                <button type="button" onClick={() => alternarHoja()}>
+                  Formato y rotulo...
+                </button>
+                <button type="button" onClick={() => alternarProyecto()}>
+                  Datos del proyecto...
+                </button>
+              </Grupo>
+            </>
+          )}
+
+          {modoTrabajo === "documentar" && (
+            <>
+              <Grupo titulo="Fichas tecnicas">
+                <button
+                  type="button"
+                  className={tablaAbierta ? "activo" : ""}
+                  onClick={() => setTablaAbierta(!tablaAbierta)}
+                  title="Planilla de carga: una fila por aparato, una columna por campo"
+                >
+                  Planilla de carga
+                </button>
+                <button type="button" onClick={() => alternarProyecto()}>
+                  Datos del proyecto...
+                </button>
+              </Grupo>
+              <Grupo titulo="Columna izquierda">
+                <button
+                  type="button"
+                  className={columnaIzquierda === "proyecto" ? "activo" : ""}
+                  onClick={() => setColumnaIzquierda("proyecto")}
+                >
+                  Legajo
+                </button>
+                <button
+                  type="button"
+                  className={columnaIzquierda === "simbolos" ? "activo" : ""}
+                  onClick={() => setColumnaIzquierda("simbolos")}
+                >
+                  Simbolos
+                </button>
+              </Grupo>
+            </>
+          )}
+
+          {modoTrabajo === "verificar" && (
+            <Grupo titulo="Control">
+              <button type="button" onClick={() => alternarProyecto()}>
+                Normativa y tensiones...
+              </button>
+              <button type="button" onClick={() => alternarHoja()}>
+                Rotulo y notas...
+              </button>
+            </Grupo>
+          )}
+
+          {modoTrabajo === "simular" && (
+            <Grupo titulo="Circuito">
+              <button
+                type="button"
+                className={modoSimulacion ? "vivo" : ""}
+                onClick={alternarSimulacion}
+                title="Reinicia el estado: todas las bobinas caen y los pulsadores vuelven a reposo"
+              >
+                {modoSimulacion ? "Reiniciar estado" : "Encender el circuito"}
+              </button>
+            </Grupo>
+          )}
+
+          {modoTrabajo === "emitir" && (
+            <>
+              <Grupo titulo="Planos">
+                <button type="button" onClick={descargarPlanoActivo}>
+                  Hoja activa
+                </button>
+                <button type="button" onClick={descargarTodosLosPlanos}>
+                  Todas las hojas
+                </button>
+                <button type="button" onClick={descargarListaDeMateriales}>
+                  Lista de materiales
+                </button>
+              </Grupo>
+              <Grupo titulo="Archivo">
+                <button type="button" className="primario" onClick={guardar}>
+                  Guardar
+                </button>
+                <button type="button" onClick={() => inputArchivo.current?.click()}>
+                  Abrir...
+                </button>
+                <button type="button" onClick={nuevoProyecto}>
+                  Nuevo
+                </button>
+              </Grupo>
+            </>
+          )}
+
           <input
             ref={inputArchivo}
             type="file"
@@ -205,106 +385,9 @@ function BarraSuperior() {
             onChange={abrir}
             hidden
           />
-        </div>
 
-        {/* Dibujo: lo que uso mientras trabajo sobre la lámina. */}
-        <div className="barra-grupo">
-          <button
-            type="button"
-            className={paletaVisible ? "activo" : ""}
-            onClick={alternarPaleta}
-            aria-pressed={paletaVisible}
-            title="Mostrar / ocultar la barra de símbolos"
-          >
-            Símbolos
-          </button>
-          <button
-            type="button"
-            onClick={() => alternarHoja()}
-            title="Configuración de hoja (formato, orientación, rótulo)"
-          >
-            Hoja…
-          </button>
-          <button
-            type="button"
-            onClick={() => alternarProyecto()}
-            title="Datos del proyecto (normativa, tensión, esquema PAT, cortocircuito)"
-          >
-            Proyecto…
-          </button>
-        </div>
-
-        {/* Simulación: el único momento en que el circuito está VIVO. */}
-        <div className="barra-grupo">
-          <button
-            type="button"
-            className={`btn-simular${modoSimulacion ? " vivo" : ""}`}
-            onClick={alternarSimulacion}
-            aria-pressed={modoSimulacion}
-            title="Modo simulación: probar el circuito accionando pulsadores, llaves y selectores"
-          >
-            {modoSimulacion ? "Detener simulación" : "Simular"}
-          </button>
-        </div>
-
-        {/* Salidas: lo que se lleva el cliente. */}
-        <div className="barra-grupo">
-          <button
-            type="button"
-            onClick={descargarPlanoActivo}
-            title="Descargar la hoja activa como PDF"
-          >
-            Plano PDF
-          </button>
-          <button
-            type="button"
-            onClick={descargarTodosLosPlanos}
-            title="Descargar TODAS las hojas del proyecto en un solo PDF"
-          >
-            Todos los planos
-          </button>
-          <button
-            type="button"
-            onClick={descargarListaDeMateriales}
-            title="Descargar la lista de materiales de todo el proyecto como PDF, aparte de los planos"
-          >
-            Lista de materiales
-          </button>
-        </div>
-
-        {/* Instrumental: acciones sin contenido propio, al margen. */}
-        <div className="barra-grupo barra-grupo-margen">
-          <button
-            type="button"
-            className="btn-icono"
-            onClick={deshacerFn}
-            disabled={!puedeDeshacer}
-            title="Deshacer (Ctrl+Z)"
-            aria-label="Deshacer"
-          >
-            ↶
-          </button>
-          <button
-            type="button"
-            className="btn-icono"
-            onClick={rehacerFn}
-            disabled={!puedeRehacer}
-            title="Rehacer (Ctrl+Shift+Z)"
-            aria-label="Rehacer"
-          >
-            ↷
-          </button>
-          <button
-            type="button"
-            className="btn-icono btn-tema"
-            onClick={toggleTema}
-            title={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-            aria-label={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-          >
-            {oscuro ? "☀" : "☾"}
-          </button>
-          <span className="ayuda">
-            Atajos: <kbd>?</kbd>
+          <span className="cinta-ayuda">
+            {MODOS_TRABAJO.find((m) => m.id === modoTrabajo)?.ayuda}
           </span>
         </div>
       </header>
