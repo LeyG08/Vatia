@@ -786,6 +786,55 @@ def s00156():
     return (*interruptor_multipolar(4), "Interruptor termomagnético tetrapolar (multifilar)", "IEC 60617 07-72-21")
 
 
+# ---------------------------------------------------------------------------
+# E70 (continúa el escalado de E69, ya aprobado): contactor multipolar.
+# Mismo criterio de composición, pero el trazo de UN polo es el "contacto
+# principal de contactor" (07-70-01, semicírculo) que ya usa S00112 —
+# SIN la bobina: la bobina vive aparte, como símbolo de comando (S00130),
+# vinculada por `referencia` (mismo mecanismo que ya usan E62/64/65).
+# ---------------------------------------------------------------------------
+
+def contactor_polo(cx=0.0, y_arriba=-20.0, y_abajo=20.0):
+    """07-70-01: semicírculo (calificador de contactor) + cuchilla —
+    UN polo del contacto principal, mismo trazo que S00112 (unifilar)
+    sin el rectángulo de bobina."""
+    c = linea(cx, y_arriba, cx, y_arriba + 10.0)
+    c += polilinea([(cx - 5.0, y_arriba + 10.0), (cx, y_arriba + 30.0), (cx, y_abajo)])
+    c += f'  <path d="M {n(cx)},{n(y_arriba + 5.5)} A 2.5,2.5 0 0 0 {n(cx)},{n(y_arriba + 10.5)}"/>\n'
+    return c
+
+
+def contactor_multipolar(n_polos):
+    """N polos de contactor_polo(), unidos por el mismo enlace mecánico
+    punteado que interruptor_multipolar() — a la altura del semicírculo
+    calificador."""
+    xs = xs_polos(n_polos)
+    c = ""
+    for cx in xs:
+        c += contactor_polo(cx)
+    if n_polos > 1:
+        c += linea(xs[0], -12.0, xs[-1], -12.0, PUNTEADO)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} -25.0 {ancho_vb} 50.0"
+    return hoja, c
+
+
+def s00157():
+    return (*contactor_multipolar(1), "Contactor unipolar (multifilar)", "IEC 60617 07-70-01")
+
+
+def s00158():
+    return (*contactor_multipolar(2), "Contactor bipolar (multifilar)", "IEC 60617 07-70-01")
+
+
+def s00159():
+    return (*contactor_multipolar(3), "Contactor tripolar (multifilar)", "IEC 60617 07-70-01")
+
+
+def s00160():
+    return (*contactor_multipolar(4), "Contactor tetrapolar (multifilar)", "IEC 60617 07-70-01")
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
@@ -793,7 +842,8 @@ SIMBOLOS_COMANDO = {
     "S00144": s00144, "S00145": s00145, "S00146": s00146, "S00147": s00147,
     "S00148": s00148, "S00149": s00149, "S00150": s00150, "S00151": s00151,
     "S00152": s00152, "S00153": s00153, "S00154": s00154, "S00155": s00155,
-    "S00156": s00156,
+    "S00156": s00156, "S00157": s00157, "S00158": s00158, "S00159": s00159,
+    "S00160": s00160,
 }
 
 

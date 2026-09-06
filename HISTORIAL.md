@@ -6644,3 +6644,26 @@ de comando queda en 24/24 símbolos verificados. Sigue el escalado del
 mismo criterio (E69) al resto de los aparatos multipolares de fuerza:
 contactor, guardamotores, MCCB, diferencial, fusible, portafusible y
 relé térmico.
+
+## E70 — Contactor multipolar
+
+Continúa el escalado de E69 (ya aprobado) al segundo aparato: **contactor**.
+Mismo criterio de composición — un polo repetido N veces con enlace
+mecánico punteado — pero el trazo de un polo es el "contacto principal
+de contactor" (07-70-01, semicírculo calificador) que ya usa S00112 en
+la librería de fuerza, **sin la bobina**: la bobina vive aparte, como
+símbolo de comando (S00130), vinculada por `referencia` — el mismo
+mecanismo cruzado-de-hoja que ya prueban E62/64/65.
+
+Nacen **S00157/158/159/160** (contactor uni/bi/tri/tetrapolar), mismo
+`tipo_aparato: "contactor"` que S00112. Ningún cambio de motor de
+simulación: `agruparPolos()` (el fix de E69) ya es genérico para
+cualquier aparato con terminales `inN`/`outN`, así que el contactor
+multipolar conduce correctamente sin tocar `simulacion.ts`.
+
+Los 4 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (28/28) y `generar_tipos_atributos.py
+--verificar` (29 interfaces, sin cambio de schema), todos en verde.
