@@ -58,15 +58,17 @@ para una etapa posterior.
 
 > **S00124 se mudó a `libreria-simbolos/comando/`** (E15) — dejó de ser
 > parte de esta tabla, que documenta solo la librería de fuerza
-> (`simbolos/`). La librería de comando/control (36 símbolos, S00124 +
-> S00130 + S00134–S00168, 28 verificados + 8 pendientes de revisión:
+> (`simbolos/`). La librería de comando/control (40 símbolos, S00124 +
+> S00130 + S00134–S00172, 32 verificados + 8 pendientes de revisión:
 > S00161–168, guardamotores multipolares, E71) tiene su propia galería
 > (`libreria-simbolos/comando/index.html`) y su historial de revisión en
 > `HISTORIAL.md` E15–E15.6 (lote piloto), E16–E16.1 (segundo lote),
 > E66–E66.1 (retardo a la desconexión), E67–E67.1 (sensores de
 > proximidad), E68–E68.1 (termostato), E69–E69.1 (interruptor
 > multipolar), E70–E70.2 (contactor multipolar, verificado de punta a
-> punta) y E71 (guardamotores multipolares). No
+> punta), E71 (guardamotores multipolares), E72 (paleta: variantes de
+> polos agrupadas en flyout) y E73–E73.1 (MCCB multipolar, envolvente
+> compartido por todos los polos, verificado). No
 > se duplica la tabla acá para no repetir
 > el desfasaje que ya sufrió esta misma tabla dos veces por mantenerse a
 > mano.

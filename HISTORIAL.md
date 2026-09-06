@@ -6761,3 +6761,35 @@ arrastrar "Tripolar" desde el flyout coloca efectivamente S00155
 Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs` y `verificar_alineacion.mjs`,
 todos en verde.
+
+## E73 — MCCB multipolar: envolvente moldeado compartido por todos los polos
+
+Continúa el escalado E69/E70/E71 con el siguiente dispositivo de fuerza en
+multifilar: el interruptor automático en caja moldeada (MCCB, S00121
+unifilar). A diferencia de interruptor termomagnético/contactor/guardamotor,
+acá el envolvente NO se repite por polo — un MCCB real tiene UNA sola caja
+física que aloja todos los polos, así que `mccb_multipolar()` dibuja el
+rectángulo una única vez, con el ancho de los N polos, y repite adentro el
+mismo aspa+cuchilla de `interruptor_automatico_polo()` (ya extraído de
+S00121 en E69, sin cambios). No hace falta tocar `simulacion.ts`: los
+terminales son `inN`/`outN` igual que el resto de la familia multipolar, así
+que `agruparPolos()` (E69) los agrupa sin ningún caso nuevo.
+
+Nacen **S00169–172** (MCCB uni/bi/tri/tetrapolar), mismo `tipo_aparato:
+"mccb_caja_moldeada"` que S00121 unifilar. El 1P (S00169) queda idéntico al
+unifilar existente (mismo trazo exacto); el rectángulo compartido crece de a
+10 unidades de viewBox por polo agregado, con 2 unidades de margen a cada
+lado del envolvente.
+
+Revisión: artefacto con grilla real embebida (patrón SVG de 5 unidades =
+1 celda de editor) comparando los 4 nuevos contra el interruptor
+termomagnético 4P ya aprobado (mismo aspa, sin caja compartida) — aprobado
+sin cambios.
+
+### E73.1 — Aprobado y verificado
+
+Los 4 símbolos pasan a `estado_revision: "verificado"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py --carpeta comando` (40/40), todos en verde.

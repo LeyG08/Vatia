@@ -925,6 +925,50 @@ def s00168():
     return (*repetir_polos(guardamotor_magnetico_polo, 4, -26.0, -35.0, 60.0), "Guardamotor magnético tetrapolar (multifilar)", "IEC 60617 07-72-21 + 03-30-38")
 
 
+# ---------------------------------------------------------------------------
+# E73 (continúa el escalado de E69/E70/E71): MCCB multipolar. Usa el mismo
+# aspa+cuchilla por polo que interruptor_automatico_polo() (extraído de
+# S00121), pero NO se puede usar repetir_polos(): a diferencia de
+# interruptor/contactor/guardamotor, el envolvente moldeado del MCCB es UNA
+# sola caja física compartida por todos los polos, no una por polo — por
+# eso el rectángulo se dibuja una vez, con el ancho de los N polos, en vez
+# de repetirse dentro de dibujar_polo().
+# ---------------------------------------------------------------------------
+
+def mccb_multipolar(n_polos):
+    """N polos de interruptor_automatico_polo() encerrados en UN
+    envolvente moldeado compartido (mismo trazo de caja que S00121,
+    extendido al ancho de los N polos). Enlace mecánico punteado a la
+    altura del aspa, igual que interruptor_multipolar()."""
+    xs = xs_polos(n_polos)
+    ancho_caja = (xs[-1] - xs[0]) + 16.0
+    x_caja = xs[0] - 8.0
+    c = rectangulo(x_caja, -24, ancho_caja, 38)
+    for cx in xs:
+        c += interruptor_automatico_polo(cx)
+    if n_polos > 1:
+        c += linea(xs[0], -19, xs[-1], -19, PUNTEADO)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} -35.0 {ancho_vb} 60.0"
+    return hoja, c
+
+
+def s00169():
+    return (*mccb_multipolar(1), "Interruptor automático en caja moldeada unipolar (multifilar)", "IEC 60617 07-72-21 en envolvente")
+
+
+def s00170():
+    return (*mccb_multipolar(2), "Interruptor automático en caja moldeada bipolar (multifilar)", "IEC 60617 07-72-21 en envolvente")
+
+
+def s00171():
+    return (*mccb_multipolar(3), "Interruptor automático en caja moldeada tripolar (multifilar)", "IEC 60617 07-72-21 en envolvente")
+
+
+def s00172():
+    return (*mccb_multipolar(4), "Interruptor automático en caja moldeada tetrapolar (multifilar)", "IEC 60617 07-72-21 en envolvente")
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
@@ -935,7 +979,8 @@ SIMBOLOS_COMANDO = {
     "S00156": s00156, "S00157": s00157, "S00158": s00158, "S00159": s00159,
     "S00160": s00160, "S00161": s00161, "S00162": s00162, "S00163": s00163,
     "S00164": s00164, "S00165": s00165, "S00166": s00166, "S00167": s00167,
-    "S00168": s00168,
+    "S00168": s00168, "S00169": s00169, "S00170": s00170, "S00171": s00171,
+    "S00172": s00172,
 }
 
 
