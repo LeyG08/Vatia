@@ -2,7 +2,7 @@
   "codigo_iec": "S00155",
   "nombre": "Interruptor termomagnético tripolar (multifilar)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "in1",

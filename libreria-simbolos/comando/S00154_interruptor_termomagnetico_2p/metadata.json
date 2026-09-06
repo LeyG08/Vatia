@@ -2,7 +2,7 @@
   "codigo_iec": "S00154",
   "nombre": "Interruptor termomagnético bipolar (multifilar)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "in1",

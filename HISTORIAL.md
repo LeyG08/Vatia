@@ -6630,3 +6630,17 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 `lint_simbolos.py --carpeta comando` (24/24) y `generar_tipos_atributos.py
 --verificar` (29 interfaces, sin cambio de schema — reusa
 `interruptor_termomagnetico` existente), todos en verde.
+
+### E69.1 — Interruptor multipolar, piloto aprobado
+
+El usuario resolvió la duda de espaciado entre polos comparando contra
+la grilla real del editor (5 unidades = 1 celda) y confirmó que el
+espaciado ya publicado (2 celdas) era el correcto — el problema era que
+la primera galería de revisión usaba una grilla decorativa a escala
+arbitraria, no la grilla real. Sin cambios de código: los 4
+`metadata.json` de S00153–156 pasan `estado_revision` de
+`pendiente_revision` a `verificado`. Galería regenerada — la librería
+de comando queda en 24/24 símbolos verificados. Sigue el escalado del
+mismo criterio (E69) al resto de los aparatos multipolares de fuerza:
+contactor, guardamotores, MCCB, diferencial, fusible, portafusible y
+relé térmico.
