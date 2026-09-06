@@ -21,6 +21,7 @@ export const PREFIJO_REFERENCIA_IEC61346: Readonly<Record<string, string>> = {
   contactor: "KM",
   fusible: "F",
   motor_trifasico: "M",
+  motor_monofasico: "M",
   transformador: "T",
   mccb_caja_moldeada: "Q",
   guardamotor_termomagnetico: "Q",

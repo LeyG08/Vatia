@@ -16,10 +16,15 @@ export default function DialogoFuenteCortocircuito() {
   const actualizarHoja = useEditor((s) => s.actualizarHoja);
   const [sccMva, setSccMva] = useState("");
   const [iccKa, setIccKa] = useState("");
+  // E82: el nombre del tablero se pregunta en el mismo momento. Es el
+  // otro dato que define la hoja del tablero principal y hasta ahora
+  // habia que ir a buscarlo a Configuracion de hoja.
+  const [tablero, setTablero] = useState("");
 
   if (hojaId === null) return null;
 
   function guardar() {
+    if (tablero.trim() !== "") actualizarHoja({ tablero: tablero.trim().toUpperCase() });
     actualizarHoja({
       fuente_cortocircuito: {
         scc_mva: sccMva === "" ? undefined : Number.parseFloat(sccMva),
@@ -43,6 +48,14 @@ export default function DialogoFuenteCortocircuito() {
           aguas abajo. Se puede completar ahora o más tarde desde
           Hoja… → Fuente de cortocircuito.
         </p>
+        <label className="panel-hoja-campo">
+          <span>Nombre del tablero</span>
+          <input
+            value={tablero}
+            placeholder="TGBT, TABLERO DE BOMBAS…"
+            onChange={(e) => setTablero(e.target.value)}
+          />
+        </label>
         <div className="panel-hoja-dos-col">
           <label className="panel-hoja-campo">
             <span>Potencia de cortocircuito Scc (MVA)</span>

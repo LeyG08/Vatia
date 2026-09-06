@@ -696,6 +696,77 @@
         }
       }
     },
+    "motor_monofasico": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "x-alguno-obligatorio": [
+        "potencia_kw",
+        "potencia_hp"
+      ],
+      "x-par-automatico": {
+        "campos": [
+          "potencia_kw",
+          "potencia_hp"
+        ],
+        "factor_hp_a_kw": 0.7457
+      },
+      "properties": {
+        "tipo_aparato": {
+          "const": "motor_monofasico",
+          "title": "Tipo de aparato"
+        },
+        "potencia_kw": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Potencia (kW)"
+        },
+        "potencia_hp": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Potencia (HP)"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": true,
+          "title": "Tensión (V)"
+        },
+        "in_a": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Corriente nominal (A)"
+        },
+        "eficiencia_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "x-obligatorio": false,
+          "title": "Eficiencia (%)"
+        },
+        "factor_potencia": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "x-obligatorio": false,
+          "title": "Factor de potencia (cos φ)"
+        },
+        "rpm": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "title": "Velocidad (RPM)"
+        }
+      },
+      "description": "E82. Motor monofásico: misma ficha que el trifásico (potencia, tensión, In, rendimiento, cos φ, rpm) porque lo que se documenta de un motor no cambia con la cantidad de fases. Se separa como tipo propio porque sí cambia el cálculo: la corriente de un monofásico sale de P/(U·cos φ·η) sin el √3 del trifásico."
+    },
     "transformador": {
       "type": "object",
       "additionalProperties": false,

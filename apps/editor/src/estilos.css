@@ -67,6 +67,13 @@
   --fase: #6b4a2f;
   --neutro: #10708c;
   --tierra: #4f7a0e;
+  /* E82 — las tres fases tienen SU color, no uno solo: marron, negro y
+   * rojo, en ese orden, es el codigo de la AEA. El negro de L2 se aclara
+   * apenas para no confundirse con la tinta del dibujo, y el rojo de L3
+   * se oscurece para no chocar con el rojo de error. */
+  --fase-l1: #6b4a2f;
+  --fase-l2: #2b2f33;
+  --fase-l3: #a33325;
 
   /* Ámbar de circuito vivo: solo en modo simulación. */
   --vivo: #a86a0d;
@@ -101,10 +108,12 @@
   --chip-bg: #f7f8f9;
   --chip-border: #bfc7cd;
 
-  /* Casi a escuadra: la tarjeta redondeada de 6-8 px es lo que hace que
-   * una herramienta técnica parezca un sitio web. */
-  --radio: 3px;
-  --radio-chico: 2px;
+  /* E82 — bordes redondeados, por pedido explícito. El prototipo había
+   * ido al extremo contrario (3 y 2 px, casi a escuadra) buscando que no
+   * pareciera un sitio web; con la cinta y los paneles ya diferenciando
+   * jerarquía por sí solos, el radio puede volver a ser amable. */
+  --radio: 8px;
+  --radio-chico: 5px;
   --sombra-panel: 0 6px 18px rgba(16, 22, 25, 0.18), 0 1px 2px rgba(16, 22, 25, 0.16);
   /* La única sombra que representa algo real: papel sobre la mesa. */
   --sombra-hoja: 0 1px 2px rgba(0, 0, 0, 0.3), 0 18px 44px rgba(0, 0, 0, 0.3);
@@ -123,6 +132,9 @@
   --fase: #c79a6e;
   --neutro: #64c2dd;
   --tierra: #a3ce62;
+  --fase-l1: #c79a6e;
+  --fase-l2: #b9c2c9;
+  --fase-l3: #e8877a;
 
   --vivo: #e7a93f;
   --vivo-fuerte: #f5c470;
@@ -763,6 +775,64 @@ body,
   border-radius: var(--radio-chico);
 }
 
+.arbol-diagrama {
+  margin-top: 8px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--campo);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.arbol-diagrama:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+/* Etiqueta de rol del tablero. "principal" toma el acento porque es
+ * unico en el proyecto; "seccional" queda en gris: describe, no destaca. */
+.arbol-etiqueta {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  font-weight: 600;
+  font-stretch: 88%;
+  letter-spacing: 0.03em;
+  color: var(--acento);
+  background: var(--acento-suave);
+  border-radius: var(--radio-chico);
+  padding: 1px 5px;
+}
+
+.arbol-etiqueta.suave {
+  color: var(--text-muted);
+  background: var(--bg-surface-alt);
+}
+
+/* E82 — la jerarquia se nota mas: sangria mayor, filete de continuidad
+ * mas visible y un codo que baja del tablero padre a cada seccional. */
+.arbol-hoja-hija {
+  padding-left: calc(var(--nivel) * 16px);
+}
+
+.arbol-hoja-hija::before {
+  left: calc(var(--nivel) * 16px - 8px);
+  background: var(--acento-suave);
+  width: 2px;
+}
+
+.arbol-hoja-hija::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--nivel) * 16px - 8px);
+  top: 17px;
+  width: 8px;
+  height: 2px;
+  background: var(--acento-suave);
+}
+
 .arbol-fila {
   display: flex;
   align-items: center;
@@ -846,8 +916,132 @@ body,
   font-variant-numeric: tabular-nums;
   color: var(--vivo);
   background: var(--vivo-suave);
-  border-radius: 8px;
-  padding: 1px 5px;
+  border-radius: var(--radio);  padding: 1px 5px;
+}
+
+/* =====================================================================
+ * E82 — diagrama de bloques del legajo
+ * ===================================================================== */
+.diagrama {
+  position: fixed;
+  z-index: 70;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(920px, 92vw);
+  max-height: 84vh;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-panel);
+  overflow: hidden;
+}
+
+.diagrama-cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.diagrama-cabecera h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-stretch: 92%;
+}
+
+.diagrama-cabecera p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.diagrama-cabecera button {
+  margin-left: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--campo);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+
+.diagrama-lienzo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px;
+  background: var(--bg-surface-alt);
+  scrollbar-width: thin;
+}
+
+.diagrama-vinculo {
+  stroke: var(--borde);
+  stroke-width: 1.5;
+}
+
+.diagrama-bloque {
+  cursor: pointer;
+}
+
+.diagrama-bloque rect {
+  fill: var(--bg-surface);
+  stroke: var(--borde);
+  stroke-width: 1;
+}
+
+.diagrama-bloque:hover rect {
+  stroke: var(--acento);
+}
+
+.diagrama-bloque.activo rect {
+  fill: var(--acento-suave);
+  stroke: var(--acento);
+  stroke-width: 2;
+}
+
+/* El tablero principal lleva el trazo grueso: es el que alimenta a todo
+ * el resto, y en el diagrama tiene que verse antes que ninguno. */
+.diagrama-bloque.principal rect {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.diagrama-nombre {
+  font-size: 12.5px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.diagrama-meta {
+  font-size: 10.5px;
+  fill: var(--text-muted);
+}
+
+.diagrama-pendiente {
+  font-size: 10px;
+  fill: var(--vivo);
+}
+
+.diagrama-principal {
+  font-size: 9.5px;
+  font-weight: 600;
+  fill: var(--text-secondary);
+  text-anchor: end;
+}
+
+.diagrama-pie {
+  border-top: 1px solid var(--borde);
+  padding: 9px 16px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
 /* =====================================================================
@@ -1482,8 +1676,7 @@ body,
   display: inline-block;
   margin-left: 4px;
   padding: 0 4px;
-  border-radius: 3px;
-  font-size: 9px;
+  border-radius: var(--radio-chico);  font-size: 9px;
   font-weight: 700;
   line-height: 1.5;
   background: var(--acento);
@@ -1494,8 +1687,7 @@ body,
 .pestana-nombre-input {
   width: 110px;
   border: 1px solid var(--acento);
-  border-radius: 3px;
-  font-size: 12px;
+  border-radius: var(--radio-chico);  font-size: 12px;
   padding: 1px 5px;
 }
 
@@ -1506,8 +1698,7 @@ body,
   font-size: 11px;
   line-height: 1;
   padding: 2px 3px;
-  border-radius: 3px;
-  opacity: 0;
+  border-radius: var(--radio-chico);  opacity: 0;
   cursor: pointer;
 }
 
@@ -1823,8 +2014,7 @@ body,
   position: absolute;
   inset: -5px;
   border: 2px solid var(--acento);
-  border-radius: 4px;
-  box-shadow:
+  border-radius: var(--radio-chico);  box-shadow:
     0 0 0 4px rgba(var(--acento-rgb), 0.15),
     0 0 10px rgba(var(--acento-rgb), 0.35);
   pointer-events: none;
@@ -1840,8 +2030,7 @@ body,
   position: absolute;
   inset: -5px;
   border: 2px dashed var(--vinculo);
-  border-radius: 4px;
-  pointer-events: none;
+  border-radius: var(--radio-chico);  pointer-events: none;
 }
 
 /* ---- Modo simulación (E63) ---- */
@@ -1865,10 +2054,12 @@ body,
 
 /* Feedback inmediato de "lo tengo presionado", independiente de si el
  * circuito aguas abajo terminó energizado o no. */
+/* E81.3 — el simbolo NO se mueve al accionarlo. Antes se achicaba un 6%
+ * para simular el "hundido" de un pulsador, pero en un plano tecnico
+ * cualquier movimiento se lee como que el dibujo se corrio: la posicion
+ * de un simbolo es informacion. El feedback queda solo en el color. */
 .nodo-simbolo-presionado .simbolo-svg {
   color: var(--acento);
-  transform-origin: center;
-  scale: 0.94;
 }
 
 /* La librería trae su propio gris claro por defecto (--xy-edge-stroke-
@@ -1891,8 +2082,7 @@ body,
 .nodo-faltante {
   border: 2px dashed var(--error);
   color: var(--error);
-  border-radius: 6px;
-  padding: 8px 12px;
+  border-radius: var(--radio);  padding: 8px 12px;
   background: var(--bg-surface);
   font-size: 12px;
 }
@@ -1932,8 +2122,7 @@ body,
   overflow-y: auto;
   background: var(--bg-surface);
   border: 1px solid var(--borde);
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radio);  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   font-size: 12px;
 }
 
@@ -1980,8 +2169,7 @@ body,
   max-width: 440px;
   background: var(--acento-suave);
   border: 1px solid var(--acento);
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radio);  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   font-size: 12px;
   color: var(--acento);
   padding: 6px 8px 6px 10px;
@@ -2119,6 +2307,18 @@ body.arrastrando .paleta-item {
 .marca-fase {
   stroke: var(--fase);
 }
+
+/* E82 — el cable toma el color del riel del que sale. Un multifilar con
+ * tres fases es ilegible si las tres lineas son del mismo negro: lo que
+ * distingue una fase de otra en el tablero real es el color del cable, y
+ * el plano tiene que decir lo mismo. Un cable que no toca ningun riel
+ * sigue siendo tinta: no se inventa una fase que el dibujo no declara. */
+/* La seleccion sigue mandando sobre el color de fase: hay que poder ver
+ * que cable se esta por mover. */
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke: var(--acento);
+}
 .marca-neutro {
   stroke: var(--neutro);
 }
@@ -2138,6 +2338,18 @@ body.arrastrando .paleta-item {
  * fuerza no se colorea: es un juego de barras, lleva todo junto. */
 .nodo-barra.riel-fase_viva .barra-eje {
   background: var(--fase);
+}
+/* E82 — cada fase con su color normalizado. La clase la pone BarraNode a
+ * partir de la etiqueta del riel (L1, L2, L3): es el mismo dato que ya
+ * se escribe en la ficha, no un campo nuevo. */
+.nodo-barra.fase-L1 .barra-eje {
+  background: var(--fase-l1);
+}
+.nodo-barra.fase-L2 .barra-eje {
+  background: var(--fase-l2);
+}
+.nodo-barra.fase-L3 .barra-eje {
+  background: var(--fase-l3);
 }
 .nodo-barra.riel-neutro .barra-eje {
   background: var(--neutro);
@@ -2225,14 +2437,12 @@ body.arrastrando .paleta-item {
   font-size: 12px;
   font-weight: 600;
   padding: 8px 14px;
-  border-radius: 8px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  border-radius: var(--radio);  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
 .toast-mover button {
   border: 1px solid var(--ok);
-  border-radius: 5px;
-  background: var(--campo);
+  border-radius: var(--radio);  background: var(--campo);
   color: var(--ok);
   font-size: 12px;
   font-weight: 700;
@@ -2274,8 +2484,7 @@ body.arrastrando .paleta-item {
   max-height: 88vh;
   overflow-y: auto;
   background: var(--bg-surface);
-  border-radius: 10px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radio);  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
   padding: 16px 20px;
 }
 
@@ -2324,8 +2533,7 @@ body.arrastrando .paleta-item {
   gap: 8px;
   text-align: left;
   border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
+  border-radius: var(--radio);  background: transparent;
   padding: 8px 10px;
   font-size: 12.5px;
   color: var(--text-secondary);
@@ -2408,8 +2616,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-campo select,
 .panel-hoja-campo textarea {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  padding: 5px 8px;
+  border-radius: var(--radio-chico);  padding: 5px 8px;
   font-size: 13px;
   background: var(--campo);
   font-family: inherit;
@@ -2425,8 +2632,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-item input {
   flex: 1;
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  padding: 5px 8px;
+  border-radius: var(--radio-chico);  padding: 5px 8px;
   font-size: 13px;
   background: var(--campo);
   min-width: 0;
@@ -2435,8 +2641,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-item button,
 .panel-hoja-agregar {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  background: var(--campo);
+  border-radius: var(--radio-chico);  background: var(--campo);
   cursor: pointer;
 }
 
@@ -2463,8 +2668,7 @@ body.arrastrando .paleta-item {
 
 .orientacion-opciones button {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  background: var(--campo);
+  border-radius: var(--radio-chico);  background: var(--campo);
   padding: 5px 12px;
   cursor: pointer;
 }
@@ -2516,8 +2720,7 @@ body.arrastrando .paleta-item {
 
 .panel-hoja-pie button {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  background: var(--campo);
+  border-radius: var(--radio-chico);  background: var(--campo);
   padding: 6px 18px;
   cursor: pointer;
 }
@@ -2744,8 +2947,7 @@ body.arrastrando .paleta-item {
 
 .panel-hoja-resp input {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  padding: 4px 6px;
+  border-radius: var(--radio-chico);  padding: 4px 6px;
   font-size: 12px;
   min-width: 0;
 }
@@ -2790,8 +2992,7 @@ body.arrastrando .paleta-item {
 
 .accesorio-fila input {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  padding: 4px 6px;
+  border-radius: var(--radio-chico);  padding: 4px 6px;
   font-size: 11px;
   min-width: 0;
 }
@@ -2802,8 +3003,7 @@ body.arrastrando .paleta-item {
 
 .accesorio-quitar {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  background: var(--campo);
+  border-radius: var(--radio-chico);  background: var(--campo);
   color: var(--error);
   cursor: pointer;
   padding: 3px 7px;
@@ -2817,8 +3017,7 @@ body.arrastrando .paleta-item {
   align-self: start;
   margin-top: 4px;
   border: 1px dashed var(--borde);
-  border-radius: 4px;
-  background: var(--campo);
+  border-radius: var(--radio-chico);  background: var(--campo);
   padding: 5px 10px;
   font-size: 11px;
   cursor: pointer;
@@ -2835,8 +3034,7 @@ body.arrastrando .paleta-item {
   box-sizing: border-box;
   background: transparent;
   border: 1px dashed transparent;
-  border-radius: 4px;
-  padding: 2px;
+  border-radius: var(--radio-chico);  padding: 2px;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -2967,8 +3165,7 @@ body.arrastrando .paleta-item {
 
 .chip {
   border: 1px solid #cbd5e1;
-  border-radius: 14px;
-  background: var(--campo);
+  border-radius: var(--radio);  background: var(--campo);
   color: var(--text-secondary);
   font-size: 11px;
   line-height: 1;
@@ -3004,8 +3201,7 @@ body.arrastrando .paleta-item {
   color: var(--vivo);
   background: var(--vivo-suave);
   border: 1px solid #fcd34d;
-  border-radius: 6px;
-  padding: 5px 7px;
+  border-radius: var(--radio);  padding: 5px 7px;
 }
 
 /* "Vinculado con…" (E53): informativo, no una advertencia — mismo
@@ -3017,8 +3213,7 @@ body.arrastrando .paleta-item {
   color: var(--text-muted);
   background: var(--bg-hover);
   border: 1px solid var(--borde);
-  border-radius: 6px;
-  padding: 5px 7px;
+  border-radius: var(--radio);  padding: 5px 7px;
 }
 
 .selector-referencia {
@@ -3098,8 +3293,7 @@ body.arrastrando .paleta-item {
   overflow-y: auto;
   background: var(--bg-surface);
   border: 1px solid var(--borde);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radio);  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   padding: 10px;
 }
 
@@ -3169,15 +3363,13 @@ body.arrastrando .paleta-item {
 .alim-nota > div {
   background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
   padding: 0 3px;
-  border-radius: 3px;
-  box-decoration-break: clone;
+  border-radius: var(--radio-chico);  box-decoration-break: clone;
 }
 
 .anotacion-edge {
   background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
   padding: 1px 4px;
-  border-radius: 3px;
-}
+  border-radius: var(--radio-chico);}
 
 /* C29: tirador del quiebre arrastrable del cable (visible con el
  * cable seleccionado; clic derecho = quitar el quiebre). */
@@ -3264,6 +3456,15 @@ body.arrastrando .paleta-item {
 .nodo-barra.sel.riel-fase_viva .barra-eje {
   background: var(--fase);
 }
+.nodo-barra.sel.fase-L1 .barra-eje {
+  background: var(--fase-l1);
+}
+.nodo-barra.sel.fase-L2 .barra-eje {
+  background: var(--fase-l2);
+}
+.nodo-barra.sel.fase-L3 .barra-eje {
+  background: var(--fase-l3);
+}
 .nodo-barra.sel.riel-neutro .barra-eje {
   background: var(--neutro);
 }
@@ -3276,8 +3477,7 @@ body.arrastrando .paleta-item {
   top: 50%;
   height: 5px;
   transform: translateY(-50%);
-  border-radius: 2px;
-  background: var(--text-primary);
+  border-radius: var(--radio-chico);  background: var(--text-primary);
   /* C22: recibe el puntero para poder arrastrar la barra por su
    * línea; el ::after agranda la ZONA DE AGARRE (±6 px alrededor)
    * sin cambiar lo dibujado. */
@@ -3348,8 +3548,7 @@ body.arrastrando .paleta-item {
   width: 7px;
   height: 18px;
   transform: translate(-50%, -50%);
-  border-radius: 3px;
-  background: rgba(var(--acento-rgb), 0.35);
+  border-radius: var(--radio-chico);  background: rgba(var(--acento-rgb), 0.35);
   cursor: ew-resize;
   /* C22: con la caja en pointer-events:none, los tiradores vuelven a
    * capturar explícitamente (estirar sigue funcionando). */
@@ -3384,8 +3583,7 @@ body.arrastrando .paleta-item {
   border: 1px solid var(--acento);
   background: var(--acento-suave);
   color: var(--acento);
-  border-radius: 6px;
-  padding: 6px 8px;
+  border-radius: var(--radio);  padding: 6px 8px;
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
@@ -3420,8 +3618,7 @@ body.arrastrando .paleta-item {
 
 .estimacion-in button {
   border: none;
-  border-radius: 6px;
-  padding: 2px 10px;
+  border-radius: var(--radio);  padding: 2px 10px;
   background: var(--acento-suave);
   color: var(--acento-fuerte);
   font-size: 11px;
@@ -3440,8 +3637,7 @@ body.arrastrando .paleta-item {
   font-size: 9px;
   background: color-mix(in srgb, var(--bg-surface) 75%, transparent);
   padding: 0 3px;
-  border-radius: 2px;
-  color: var(--text-muted);
+  border-radius: var(--radio-chico);  color: var(--text-muted);
   pointer-events: none;
   max-width: 130px;
   white-space: normal;
@@ -3462,8 +3658,7 @@ body.arrastrando .paleta-item {
   width: 22px;
   height: 22px;
   border: 1px solid var(--borde);
-  border-radius: 5px;
-  background: var(--fondo-panel);
+  border-radius: var(--radio);  background: var(--fondo-panel);
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
@@ -3493,8 +3688,7 @@ body.arrastrando .paleta-item {
   font-size: 10.5px;
   padding: 3px 4px;
   border: 1px solid var(--borde);
-  border-radius: 5px;
-  background: var(--fondo-panel);
+  border-radius: var(--radio);  background: var(--fondo-panel);
   cursor: pointer;
 }
 
@@ -3555,8 +3749,7 @@ body.arrastrando .paleta-item {
 .fc-preview {
   margin-top: 6px;
   border: 1px dashed var(--borde);
-  border-radius: 5px;
-  padding: 4px 7px;
+  border-radius: var(--radio);  padding: 4px 7px;
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 9.5px;
   color: var(--text-primary);
@@ -3582,8 +3775,7 @@ body.arrastrando .paleta-item {
   gap: 4px;
   padding: 6px 8px;
   border: 1px solid var(--borde);
-  border-radius: 5px;
-  background: var(--fondo-panel);
+  border-radius: var(--radio);  background: var(--fondo-panel);
 }
 .fc-tramo-encabezado {
   display: flex;
@@ -3625,8 +3817,7 @@ body.arrastrando .paleta-item {
   margin: 5px 0 0;
   padding: 6px 8px;
   border: 1px dashed var(--borde);
-  border-radius: 5px;
-  background: var(--fondo-panel);
+  border-radius: var(--radio);  background: var(--fondo-panel);
 }
 .fc-metodos-recordatorio dt {
   float: left;
@@ -3642,8 +3833,7 @@ body.arrastrando .paleta-item {
 .fc-calculo {
   margin-top: 8px;
   border: 1px solid var(--acento-fuerte);
-  border-radius: 5px;
-  padding: 6px 8px;
+  border-radius: var(--radio);  padding: 6px 8px;
   background: var(--acento-suave);
 }
 .fc-calculo-titulo {
@@ -4141,8 +4331,7 @@ body.arrastrando .paleta-item {
 /* Botón de toggle dark mode */
 .btn-tema {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  background: var(--bg-surface);
+  border-radius: var(--radio-chico);  background: var(--bg-surface);
   padding: 4px 8px;
   cursor: pointer;
   font-size: 14px;
@@ -4162,8 +4351,7 @@ body.arrastrando .paleta-item {
   font-weight: 700;
   letter-spacing: 0.5px;
   padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--error);
+  border-radius: var(--radio-chico);  background: var(--error);
   color: #fff;
   line-height: 1.4;
   vertical-align: middle;
@@ -4204,8 +4392,7 @@ body.arrastrando .paleta-item {
 .editor-simbolos-buscar input {
   flex: 1;
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  padding: 5px 8px;
+  border-radius: var(--radio-chico);  padding: 5px 8px;
   font-size: 13px;
   background: var(--bg-surface);
   color: var(--text-primary);
@@ -4264,8 +4451,7 @@ body.arrastrando .paleta-item {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--borde);
-  border-radius: 3px;
-  background: var(--bg-surface);
+  border-radius: var(--radio-chico);  background: var(--bg-surface);
   overflow: hidden;
 }
 
@@ -4403,8 +4589,7 @@ body.arrastrando .paleta-item {
   padding: 8px 10px;
   background: var(--bg-surface);
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--radio-chico);  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.5;
   display: flex;
@@ -4432,8 +4617,7 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-toolbar button {
   border: 1px solid var(--borde);
-  border-radius: 4px;
-  background: var(--campo);
+  border-radius: var(--radio-chico);  background: var(--campo);
   padding: 4px 10px;
   cursor: pointer;
   font-size: 13px;
@@ -4468,8 +4652,7 @@ body.arrastrando .paleta-item {
   padding: 0 6px;
   cursor: pointer;
   user-select: none;
-  border-radius: 3px;
-  line-height: 24px;
+  border-radius: var(--radio-chico);  line-height: 24px;
 }
 
 .editor-simbolos-zoom:hover {
@@ -4492,8 +4675,7 @@ body.arrastrando .paleta-item {
 
 .editor-simbolos-estado-select {
   border: 1px solid var(--borde);
-  border-radius: 3px;
-  padding: 3px 6px;
+  border-radius: var(--radio-chico);  padding: 3px 6px;
   font-size: 12px;
   background: var(--bg-surface);
   color: var(--text-primary);

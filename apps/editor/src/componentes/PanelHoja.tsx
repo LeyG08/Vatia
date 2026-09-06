@@ -43,6 +43,11 @@ function PanelHoja() {
   const hoja = useEditor((s) => s.hoja);
   const actualizar = useEditor((s) => s.actualizarHoja);
   const hayNodos = useEditor((s) => s.nodos.length > 0);
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+  const renombrarHoja = useEditor((s) => s.renombrarHoja);
+  const nombreHoja = useEditor(
+    (s) => s.proyecto.hojas.find((h) => h.id === s.hojaActivaId)?.nombre ?? "",
+  );
   /* La fuente de cortocircuito solo tiene sentido en la hoja del tablero
    * PRINCIPAL: una hoja seccional cuelga de un circuito ya existente y no
    * declara su propia red (E39).
@@ -97,6 +102,15 @@ function PanelHoja() {
     return dd <= dias;
   }
 
+  /* E82 — mientras la hoja siga con su nombre generico ("Hoja 3"),
+   * ponerle nombre al tablero tambien la renombra: es el mismo tablero, y
+   * nadie quiere escribir dos veces lo mismo. Si el usuario ya la
+   * renombro a mano, no se le toca. */
+  const cambiarNombreTablero = (v: string) => {
+    actualizar({ tablero: v });
+    if (/^Hoja \d+$/.test(nombreHoja) && v.trim() !== "") renombrarHoja(hojaActivaId, v);
+  };
+
   const setResponsable = (i: number, campo: "fecha" | "nombre", v: string) => {
     const lista = rotulo.responsables.map((r, j) =>
       j === i ? { ...r, [campo]: v } : r,
@@ -145,6 +159,25 @@ function PanelHoja() {
           <div className="panel-hoja-contenido">
             {seccionMostrada === "pagina" && (
               <div className="panel-hoja-bloque">
+                {/* E82 — el nombre del tablero se pregunta ACA, primero.
+                  * Es el dato que define la hoja (se dibuja arriba del
+                  * recuadro) y no pertenece al rotulo: el rotulo lleva
+                  * datos del PROYECTO —empresa, cliente, responsables— y
+                  * se hereda una sola vez. Antes estaba en "Encabezado y
+                  * notas", tres secciones mas abajo, asi que una hoja
+                  * recien creada salia con el encabezado vacio. */}
+                <label className="panel-hoja-campo">
+                  <span>Nombre del tablero</span>
+                  <input
+                    value={hoja.tablero}
+                    placeholder="TGBT, TABLERO DE BOMBAS…"
+                    onChange={(e) => cambiarNombreTablero(e.target.value)}
+                  />
+                </label>
+                <p className="panel-hoja-ayuda">
+                  Se dibuja arriba del recuadro y encabeza esta hoja.
+                </p>
+
                 <label className="panel-hoja-campo">
                   <span>Formato (serie A)</span>
                   <select
@@ -219,15 +252,9 @@ function PanelHoja() {
 
             {seccionMostrada === "encabezado" && (
               <>
-                <h3>Encabezado del tablero</h3>
-                <div className="panel-hoja-bloque">
-                  <Campo
-                    etiqueta="Tablero"
-                    valor={hoja.tablero}
-                    onChange={(v) => actualizar({ tablero: v })}
-                  />
-                </div>
-
+                {/* E82 — el nombre del tablero se movio a la seccion
+                  * "Pagina": es lo primero que se pregunta al crear la
+                  * hoja, no un dato mas del encabezado. */}
                 <h3>Notas del gabinete</h3>
                 <div className="panel-hoja-bloque">
                   <Campo

@@ -108,6 +108,35 @@ function ubicarEnTrayectoria(
   };
 }
 
+/**
+ * E82 — color del cable segun el riel del que sale.
+ *
+ * Un multifilar con tres fases es ilegible si las tres lineas son del
+ * mismo negro: lo que distingue una fase de otra en el tablero real es
+ * el color del conductor, y el plano tiene que decir lo mismo. El color
+ * NO se guarda en el cable: se lee del riel que tiene en la punta, asi
+ * que cambiar la etiqueta del riel de L2 a L3 repinta sus cables solo.
+ *
+ * Devuelve `null` cuando ningun extremo es un riel con funcion
+ * declarada — un cable que no toca ningun riel se queda en tinta, no se
+ * le inventa una fase que el dibujo no declara.
+ */
+function colorDeRiel(atributos: Record<string, unknown> | undefined): string | null {
+  if (!atributos || atributos.tipo_barra !== "riel_multifilar") return null;
+  const funcion = atributos.funcion_riel;
+  if (funcion === "neutro") return "var(--neutro)";
+  if (funcion === "tierra") return "var(--tierra)";
+  if (funcion !== "fase_viva") return null;
+  const etiqueta =
+    typeof atributos.etiqueta_fase === "string"
+      ? atributos.etiqueta_fase.trim().toUpperCase()
+      : "";
+  if (etiqueta === "L1") return "var(--fase-l1)";
+  if (etiqueta === "L2") return "var(--fase-l2)";
+  if (etiqueta === "L3") return "var(--fase-l3)";
+  return "var(--fase)";
+}
+
 export default function ConexionEdge({
   id,
   source,
@@ -185,6 +214,15 @@ export default function ConexionEdge({
     propiaVuela,
     propiaVuela ? null : paso,
   );
+  /* El color se resuelve mirando los DOS extremos: da igual si el riel
+   * quedo como origen o como destino del cable. */
+  const colorFase = useStore((st) => {
+    const nodoDe = (idNodo: string) =>
+      (st.nodeLookup.get(idNodo)?.data as { atributos?: Record<string, unknown> } | undefined)
+        ?.atributos;
+    return colorDeRiel(nodoDe(source)) ?? colorDeRiel(nodoDe(target));
+  });
+
   const m = (data?.atributosConductor as Record<string, unknown> | undefined) ?? {};
     const lineas = lineasCable(m);
   const fases =
@@ -280,7 +318,14 @@ export default function ConexionEdge({
 
   return (
     <>
-      <BaseEdge path={d} style={style} />
+      <BaseEdge
+        path={d}
+        style={
+          // La seleccion manda sobre el color de fase: hay que poder ver
+          // cual es el cable que se esta por mover.
+          colorFase && !selected ? { ...style, stroke: colorFase } : style
+        }
+      />
       {geo && totalMarcas > 0 && (
         /* E80 — color por función del conductor (pedido explícito: "en la
          * parte de unifilar, para hacer más sencilla el plano visual,

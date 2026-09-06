@@ -1,0 +1,31 @@
+{
+  "codigo_iec": "S00189",
+  "nombre": "Motor trifásico (multifilar)",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": {
+    "tipo_aparato": "motor_trifasico"
+  },
+  "puntos_conexion": [
+    {
+      "id": "U",
+      "rol": "entrada",
+      "x": -10.0,
+      "y": -30.0
+    },
+    {
+      "id": "V",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -30.0
+    },
+    {
+      "id": "W",
+      "rol": "entrada",
+      "x": 10.0,
+      "y": -30.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_norma": "IEC 60617 06-16-01"
+}

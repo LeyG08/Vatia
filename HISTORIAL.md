@@ -7404,3 +7404,120 @@ reposo", y en tema oscuro la opción activa de Orientación ya se distingue
 Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
 `npm run e2e` (21), `npm run e2e:simulacion` (11), `npm run e2e:simbolos`
 (19), `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`.
+
+## E82 — Segunda ronda sobre el prototipo: bugs, colores de fase y jerarquía
+
+Sigue en `proyecto/ui-prototipo-20260906`. Todo lo de esta entrada salió
+de probar E81.2.
+
+### Bugs
+
+**El botón de simular estaba roto.** "Volver a reposo" llamaba a
+`alternarSimulacion()`, que apaga la simulación entera: quedabas en la
+solapa Simular con el motor apagado, y nada respondía. Se agregó
+`reiniciarSimulacion()`, que vuelve el circuito a reposo SIN salir del
+modo —bobinas caídas, pulsadores sueltos, selectores en su primera
+posición—, que es lo que el botón decía hacer.
+
+**El sentido de giro del motor "no andaba".** El motor de cálculo estaba
+bien: se verificó armando el circuito reversible en memoria (posición 1 →
+adelante, posición 2 → atrás). Lo que fallaba era el botón de arriba, que
+al apagar la simulación apagaba todo, incluido el cartel de sentido.
+Verificado de punta a punta en la interfaz con un arranque reversible
+real: el motor muestra "⟳ Sentido: adelante" y pasa a "atrás" al girar la
+llave selectora.
+
+**El símbolo se movía al accionarlo.** Un pulsador presionado se achicaba
+un 6% para simular el hundido. En un plano técnico cualquier movimiento
+se lee como que el dibujo se corrió —la posición de un símbolo es
+información—, así que el feedback quedó solo en el color.
+
+### Símbolos
+
+**Motor trifásico multifilar (S00189) y motor monofásico (S00190).** El
+S00115 del unifilar tiene un solo terminal a propósito: ahí una línea
+representa todas las fases. En multifilar eso no sirve, y sin tres bornes
+no se puede dibujar un arranque reversible, que es justamente lo que
+necesita el cálculo de sentido de giro. Los bornes se nombran como en la
+chapa del motor: U/V/W y L/N. Las líneas entran al círculo en abanico
+sobre su mitad superior, así ninguna queda tangente ni lo atraviesa.
+`motor_monofasico` se agregó como tipo propio en el schema: la ficha es
+la misma que la del trifásico —lo que se documenta de un motor no cambia
+con la cantidad de fases— pero el cálculo sí, porque la corriente de un
+monofásico sale de P/(U·cos φ·η), sin el √3.
+
+### Las tres fases con su color
+
+Antes había un solo color de "fase". Ahora son los tres normalizados por
+la AEA —marrón L1, negro L2, rojo L3— con dos ajustes de legibilidad: el
+negro se aclara apenas para no confundirse con la tinta del dibujo y el
+rojo se oscurece para no chocar con el rojo de error.
+
+El color no se guarda en ningún lado nuevo: **se lee de la etiqueta del
+riel**, que ya se escribía en la ficha. Un riel L2 se dibuja negro, y
+**cada cable toma el color del riel que tiene en la punta** —da igual si
+quedó como origen o como destino—, así que cambiar la etiqueta de un riel
+de L2 a L3 repinta sus cables solo. Un cable que no toca ningún riel se
+queda en tinta: no se le inventa una fase que el dibujo no declara.
+
+### Nombres y jerarquía
+
+**La hoja de un tablero seccional se llama como el tablero.** Antes, si
+la descripción de la carga venía vacía, la hoja nacía como "Hoja hija",
+que no le dice nada a nadie. Ahora el nombre sale de la descripción de la
+carga seccional, esa descripción **se guarda en mayúscula** (es el nombre
+de un tablero, y en un plano los tableros se rotulan así), y el mismo
+texto va al encabezado de la hoja nueva. Si después se renombra la carga,
+la hoja sigue el cambio: son el mismo tablero.
+
+**El nombre del tablero se desprendió del rótulo.** El rótulo IRAM 4508
+lleva datos del PROYECTO —empresa, cliente, responsables, tolerancias— y
+se hereda una sola vez; el nombre del tablero es de la hoja, y ahora se
+pregunta primero, arriba de la sección "Página", y también en el diálogo
+de fuente de cortocircuito, que es el otro momento en que se está
+definiendo el tablero principal. Mientras la hoja conserve su nombre
+genérico ("Hoja 3"), ponerle nombre al tablero también la renombra.
+
+**La jerarquía se nota más**: sangría mayor, filete de continuidad en el
+color de acento y un codo que baja del tablero padre a cada seccional,
+más etiquetas de rol ("principal" en acento, "seccional" en gris).
+
+**Diagrama de bloques** (`DiagramaBloques.tsx`, botón en el legajo). El
+árbol dice de qué tablero cuelga cada hoja renglón por renglón; el
+diagrama lo muestra como lo que es: cajas conectadas, el principal con
+trazo grueso arriba de todo, cada bloque con su modo, su cantidad de
+aparatos y sus pendientes. El ancho de cada rama se calcula desde las
+hojas del árbol hacia arriba, así ningún bloque pisa al de al lado. Clic
+en un bloque y abre esa hoja. No es un plano: no tiene escala y no se
+imprime — es el índice del legajo dibujado.
+
+### Bordes redondeados
+
+Por pedido explícito, `--radio` pasó de 3 a 8 px y `--radio-chico` de 2 a
+5 px, y se normalizaron 48 radios sueltos que estaban escritos en píxeles
+para que el redondeo sea uno solo en toda la app. E79 había ido al
+extremo contrario buscando que no pareciera un sitio web; con la cinta y
+los paneles ya marcando jerarquía por sí solos, el radio puede ser
+amable.
+
+### Sobre el preset de rieles
+
+Ya estaba (E80) y sigue funcionando: verificado en vivo, coloca
+`L1 · L2 · L3 · N · PE` con cada riel en su color, y permite cualquier
+combinación —solo fases, una fase y un neutro, con o sin tierra— desde 1
+hasta 12 fases.
+
+Verificado en vivo con Playwright, sin errores de consola: los tres
+colores de fase salen `rgb(107,74,47)`, `rgb(43,47,51)` y
+`rgb(163,51,37)`; "Volver a reposo" mantiene la simulación encendida; el
+motor reversible muestra el sentido y lo cambia con la llave; y el
+diagrama de bloques arma sus bloques.
+
+Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
+`npm run e2e` (21), `npm run e2e:simulacion` (11), `npm run e2e:simbolos`
+(19), `verificar_alineacion.mjs`, `verificar_proyecto_real.mjs` y
+`lint_simbolos.py` (fuerza 19/19, comando 58/58).
+
+Queda pendiente: los campos del arranque reversible (`rol_reversor`,
+`motor_asociado`) siguen escondidos en la ficha del contactor, así que el
+sentido de giro funciona pero no se descubre solo.

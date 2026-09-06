@@ -1,0 +1,25 @@
+{
+  "codigo_iec": "S00190",
+  "nombre": "Motor monofásico (multifilar)",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "atributos_base": {
+    "tipo_aparato": "motor_monofasico"
+  },
+  "puntos_conexion": [
+    {
+      "id": "L",
+      "rol": "entrada",
+      "x": -5.0,
+      "y": -30.0
+    },
+    {
+      "id": "N",
+      "rol": "entrada",
+      "x": 5.0,
+      "y": -30.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_norma": "IEC 60617 06-16-01"
+}

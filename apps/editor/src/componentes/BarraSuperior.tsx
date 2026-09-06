@@ -32,7 +32,7 @@ function BarraSuperior() {
   const alternarProyecto = useEditor((s) => s.alternarPanelProyecto);
   const modoAdmin = useEditor((s) => s.modoAdmin);
   const modoSimulacion = useEditor((s) => s.modoSimulacion);
-  const alternarSimulacion = useEditor((s) => s.alternarSimulacion);
+  const reiniciarSimulacion = useEditor((s) => s.reiniciarSimulacion);
   const modoTrabajo = useEditor((s) => s.modoTrabajo);
   const setModoTrabajo = useEditor((s) => s.setModoTrabajo);
   const hojaModo = useEditor((s) => s.hoja.modo);
@@ -338,7 +338,7 @@ function BarraSuperior() {
                 * reposo. */}
               <button
                 type="button"
-                onClick={alternarSimulacion}
+                onClick={reiniciarSimulacion}
                 title="Vuelve el circuito a reposo: todas las bobinas caen, los pulsadores se sueltan y los selectores vuelven a la posicion 1"
               >
                 Volver a reposo

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15.0 -35.0 30.0 60.0" width="300" height="600">
+  <g fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="-5.0,-30.0 -5.0,-18.0 -2.588,-9.659"/>
+  <polyline points="5.0,-30.0 5.0,-18.0 2.588,-9.659"/>
+  <circle cx="0.0" cy="0.0" r="10.0"/>
+  <text x="0.0" y="-1.5" font-family="Liberation Sans, sans-serif" font-size="9.0" text-anchor="middle" dominant-baseline="central" fill="#000000" stroke="none">M</text>
+  <text x="0.0" y="5.0" font-family="Liberation Sans, sans-serif" font-size="6.0" text-anchor="middle" dominant-baseline="central" fill="#000000" stroke="none">1~</text>
+  <circle class="punto-conexion" cx="-5.0" cy="-30.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="5.0" cy="-30.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  </g>
+</svg>

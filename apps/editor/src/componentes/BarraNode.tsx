@@ -153,11 +153,23 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
       ? data.atributos.funcion_riel
       : null;
 
+  /* E82: la etiqueta del riel (L1, L2, L3) elige cual de los tres colores
+   * normalizados de fase le toca. Solo aplica a fases: neutro y tierra
+   * tienen un color unico cada uno. */
+  const etiquetaFase =
+    funcionRiel === "fase_viva" && typeof data.atributos?.etiqueta_fase === "string"
+      ? data.atributos.etiqueta_fase.trim().toUpperCase()
+      : null;
+  const claseFase =
+    etiquetaFase === "L1" || etiquetaFase === "L2" || etiquetaFase === "L3"
+      ? ` fase-${etiquetaFase}`
+      : "";
+
   return (
     <div
       className={`nodo-barra${selected ? " sel" : ""}${
         funcionRiel ? ` riel-${funcionRiel}` : ""
-      }`}
+      }${claseFase}`}
       style={{ width: cajaAncho, height: cajaAlto }}
       title={funcionRiel ? `Riel de comando (${funcionRiel.replace("_", " ")})` : "Barra de distribución"}
     >

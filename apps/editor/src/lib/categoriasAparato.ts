@@ -54,6 +54,7 @@ const CATEGORIA_POR_TIPO_APARATO: Readonly<Record<string, CategoriaAparato>> = {
   rele_proteccion_tension: "proteccion",
   contactor: "maniobra",
   motor_trifasico: "motores_transformadores",
+  motor_monofasico: "motores_transformadores",
   transformador: "motores_transformadores",
   transformador_corriente: "medicion",
   instrumento_medicion: "medicion",

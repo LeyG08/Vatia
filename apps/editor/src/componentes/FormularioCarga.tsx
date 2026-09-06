@@ -68,6 +68,17 @@ export default function FormularioCarga({ atributos, onChange }: Props) {
 
     // Al elegir tipo de carga, si todavía no cargó un Ku a mano,
     // precargá el sugerido (queda editable).
+    /* E82 — la descripcion de una carga SECCIONAL es el nombre de un
+     * tablero, y en un plano los tableros se rotulan en mayuscula. Se
+     * normaliza al guardar y no al escribir, para no pelearse con el
+     * cursor mientras se tipea. */
+    if (
+      nombre === "descripcion" &&
+      typeof valor === "string" &&
+      nuevos.tipo_carga === "seccional"
+    ) {
+      nuevos.descripcion = valor.toUpperCase();
+    }
     if (nombre === "tipo_carga" && nuevos.ku === undefined) {
       const sugerido = kuSugeridoPara(valor);
       if (sugerido !== undefined) nuevos.ku = sugerido;

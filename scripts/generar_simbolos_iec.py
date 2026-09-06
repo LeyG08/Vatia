@@ -1166,6 +1166,61 @@ def s00172():
     return (*mccb_multipolar(4), "Interruptor automático en caja moldeada tetrapolar (multifilar)", "IEC 60617 07-72-21 en envolvente")
 
 
+# ---------------------------------------------------------------------------
+# E82: motores para la hoja multifilar. Pedido del usuario: "el motor en el
+# multifilar debe tener las 3 fases y tambien debe haber un motor
+# monofasico".
+#
+# El S00115 del unifilar tiene UN solo terminal a proposito: en un
+# unifilar una linea representa todas las fases. En multifilar eso no
+# sirve — cada fase es su propia linea, y sin tres bornes no se puede
+# dibujar un arranque reversible (que es justamente lo que necesita el
+# calculo de sentido de giro de E64). Los bornes se nombran como en la
+# chapa del motor: U/V/W para el trifasico, L/N para el monofasico.
+# ---------------------------------------------------------------------------
+
+def _motor(bornes, etiqueta_fases):
+    """Circulo M con sus bornes entrando desde arriba. Cada borne baja
+    recto y despues se abre en diagonal hasta el borde del circulo,
+    repartidos en abanico sobre la mitad superior: asi ninguna linea
+    entra al circulo ni queda tangente a el."""
+    r = 10.0
+    n = len(bornes)
+    apertura = 45.0 if n >= 3 else 30.0
+    c = ""
+    for i, cx in enumerate(bornes):
+        # 90 grados es el polo norte del circulo; los bornes de los
+        # costados se reparten a izquierda y derecha de ese eje.
+        ang = math.radians(90.0 + apertura * ((n - 1) / 2.0 - i))
+        c += polilinea([
+            (cx, -30.0),
+            (cx, -18.0),
+            (r * math.cos(ang), -r * math.sin(ang)),
+        ])
+    c += circulo(0.0, 0.0, r)
+    c += texto(0.0, -1.5, "M", 9)
+    c += texto(0.0, 5.0, etiqueta_fases, 6)
+    ancho_vb = (bornes[-1] - bornes[0]) + 20.0 if len(bornes) > 1 else 24.0
+    hoja = f"{bornes[0] - 10.0} -35.0 {ancho_vb} 60.0"
+    return hoja, c
+
+
+def s00189():
+    return (
+        *_motor([-10.0, 0.0, 10.0], "3~"),
+        "Motor trifásico (multifilar)",
+        "IEC 60617 06-16-01",
+    )
+
+
+def s00190():
+    return (
+        *_motor([-5.0, 5.0], "1~"),
+        "Motor monofásico (multifilar)",
+        "IEC 60617 06-16-01",
+    )
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
@@ -1182,6 +1237,7 @@ SIMBOLOS_COMANDO = {
     "S00180": s00180, "S00181": s00181, "S00182": s00182, "S00183": s00183,
     "S00184": s00184, "S00185": s00185, "S00186": s00186, "S00187": s00187,
     "S00188": s00188,
+    "S00189": s00189, "S00190": s00190,
 }
 
 

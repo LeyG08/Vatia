@@ -577,6 +577,11 @@ interface EstadoEditor {
    * eventualmente ConexionEdge.tsx. `null` fuera de modo simulación. */
   simulacionResultado: ResultadoSimulacion | null;
   alternarSimulacion: () => void;
+  /** E81.3 — vuelve el circuito a reposo SIN salir del modo simulación:
+   * bobinas caídas, pulsadores sueltos y selectores en su primera
+   * posición. `alternarSimulacion` no servía para esto — apagaba la
+   * simulación entera, que es justamente lo que rompía el botón. */
+  reiniciarSimulacion: () => void;
   /** Presiona/suelta (o togglea, para `pulsador_emergencia`) un contacto
    * manual de la hoja ACTIVA y recalcula todo el proyecto. */
   accionarSimulacion: (nodoId: string, accionado: boolean) => void;
@@ -1051,6 +1056,17 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       });
     },
 
+    reiniciarSimulacion() {
+      if (!get().modoSimulacion) return;
+      const resultado = simular(proyectoVolcado(get()));
+      set({
+        simulacionManual: new Set(),
+        simulacionPosiciones: new Map(),
+        simulacionEstado: resultado.bobinasEnergizadas,
+        simulacionResultado: resultado,
+      });
+    },
+
     accionarSimulacion(nodoId, accionado) {
       const { simulacionManual, simulacionEstado, simulacionPosiciones, hojaActivaId } = get();
       const clave = `${hojaActivaId}:${nodoId}`;
@@ -1497,6 +1513,31 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const esSeccional = atributos.tipo_carga === "seccional";
       if (!eraSeccional && esSeccional && get().hoja.autoSeccionales !== false) {
         get().crearOIrAHojaHija(id, false);
+      }
+
+      /* E82 — si la carga seccional YA tenia su hoja y se le cambia el
+       * nombre, la hoja lo sigue. Son el mismo tablero: dejar que se
+       * separen es como tener dos nombres para el mismo gabinete. */
+      if (esSeccional) {
+        const nuevoNombre =
+          typeof atributos.descripcion === "string" ? atributos.descripcion.trim() : "";
+        const anterior = typeof antes.descripcion === "string" ? antes.descripcion.trim() : "";
+        if (nuevoNombre && nuevoNombre !== anterior) {
+          const hija = get().proyecto.hojas.find(
+            (h) => h.hojaPadreId === get().hojaActivaId && h.nodoOrigenId === id,
+          );
+          if (hija) {
+            get().renombrarHoja(hija.id, nuevoNombre);
+            set((st) => ({
+              proyecto: {
+                ...st.proyecto,
+                hojas: st.proyecto.hojas.map((h) =>
+                  h.id === hija.id ? { ...h, tablero: nuevoNombre } : h,
+                ),
+              },
+            }));
+          }
+        }
       }
     },
 
@@ -1955,11 +1996,20 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       const nodo = nodos.find((n) => n.id === nodoId);
       const atributos = (nodo?.data as { atributos?: Record<string, unknown> } | undefined)
         ?.atributos;
+      /* E82 — el nombre de la hoja es el que se cargo en la carga
+       * seccional, tal cual. Antes, si la descripcion venia vacia, la
+       * hoja nacia como "Hoja hija", que no le dice nada a nadie en el
+       * legajo ni en el rotulo del plano. Ahora se prefiere siempre la
+       * descripcion (que es el nombre del tablero), despues el codigo de
+       * circuito, y recien al final un nombre generico. */
+      const descripcion =
+        typeof atributos?.descripcion === "string" ? atributos.descripcion.trim() : "";
+      const codigo =
+        typeof atributos?.codigo_circuito === "string"
+          ? atributos.codigo_circuito.trim()
+          : "";
       const sugerido =
-        (typeof atributos?.descripcion === "string" && atributos.descripcion.trim()) ||
-        (typeof atributos?.codigo_circuito === "string" &&
-          `Tablero ${atributos.codigo_circuito}`) ||
-        "Hoja hija";
+        descripcion || (codigo ? `TABLERO ${codigo.toUpperCase()}` : "TABLERO SECCIONAL");
       const nombres = new Set(proyecto.hojas.map((h) => h.nombre));
       let nombre = sugerido;
       let sufijo = 2;
@@ -1973,6 +2023,11 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           { ...HOJA_POR_DEFECTO(), rotulo: { ...get().rotuloHeredado(), denominacion: nombre } },
           nombre,
         ),
+        // E82: el encabezado del tablero (lo que se dibuja arriba del
+        // recuadro) es ese mismo nombre. Es el dato que define la hoja:
+        // no tiene sentido que el legajo diga "TABLERO DE BOMBAS" y el
+        // plano salga con el encabezado en blanco.
+        tablero: nombre,
         // La hoja de un tablero seccional hereda formato y orientacion del
         // tablero del que cuelga: un legajo se imprime todo del mismo
         // tamaño.

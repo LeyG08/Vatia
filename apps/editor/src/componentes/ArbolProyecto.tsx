@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import DiagramaBloques from "./DiagramaBloques";
 import { useEditor, construirEstadoHoja, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo } from "../lib/libreria";
 import { armarChecklist } from "../lib/checklist";
@@ -61,6 +62,7 @@ function ArbolProyecto() {
   const marcarTableroPrincipal = useEditor((s) => s.marcarTableroPrincipal);
   const setAutoSeccionales = useEditor((s) => s.setAutoSeccionales);
   const [plegadas, setPlegadas] = useState<Set<string>>(new Set());
+  const [diagramaAbierto, setDiagramaAbierto] = useState(false);
 
   /* La hoja ACTIVA se lee del espejo en vivo (`nodos`), no de
    * `proyecto.hojas`: ahí el trabajo más reciente todavía no está
@@ -182,7 +184,20 @@ function ArbolProyecto() {
           {proyecto.hojas.length} hoja{proyecto.hojas.length === 1 ? "" : "s"}
           {totalPendientes > 0 ? ` · ${totalPendientes} sin documentar` : " · completo"}
         </span>
+        {/* E82 — el árbol dice de qué tablero cuelga cada hoja renglón por
+          * renglón; el diagrama lo muestra como lo que es, cajas
+          * conectadas. Con seis tableros, una cosa se lee y la otra se
+          * entiende. */}
+        <button
+          type="button"
+          className="arbol-diagrama"
+          onClick={() => setDiagramaAbierto(true)}
+        >
+          Ver diagrama de bloques
+        </button>
       </div>
+
+      {diagramaAbierto && <DiagramaBloques onCerrar={() => setDiagramaAbierto(false)} />}
 
       {!hayPrincipal && porHoja.length > 0 && (
         <p className="arbol-aviso">
@@ -222,6 +237,10 @@ function ArbolProyecto() {
                   {plegadaHoja ? "▸" : "▾"}
                 </span>
                 <span className="arbol-nombre">{hoja.nombre}</span>
+                {hoja.esTableroPrincipal && (
+                  <span className="arbol-etiqueta">principal</span>
+                )}
+                {nivel > 0 && <span className="arbol-etiqueta suave">seccional</span>}
                 <span className="arbol-conteo">{total}</span>
                 {pendientes > 0 && <span className="arbol-pendiente">{pendientes}</span>}
               </button>
