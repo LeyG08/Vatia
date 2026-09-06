@@ -6721,6 +6721,12 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 `lint_simbolos.py --carpeta comando` (36/36) y `generar_tipos_atributos.py
 --verificar` (29 interfaces, sin cambio de schema), todos en verde.
 
+### E71.1 — Aprobado y verificado
+
+Quedaron pendientes durante los lotes E72–E74 (la revisión llegó recién
+después de MCCB, diferencial y fusible/portafusible). Los 8 símbolos
+(S00161–168) pasan a `estado_revision: "verificado"`.
+
 ## E72 — Paleta: variantes de polos agrupadas detrás de un flyout al pasar el mouse
 
 Pedido explícito del usuario, viendo crecer la librería con guardamotores
@@ -6825,3 +6831,42 @@ Los 4 símbolos pasan a `estado_revision: "verificado"`.
 Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py --carpeta comando` (44/44), todos en verde.
+
+## E75 — Fusible y seccionador fusible multipolares: sin enlace mecánico entre polos
+
+Último dispositivo de la cola planteada junto con MCCB/diferencial (E73/E74).
+Composición deliberadamente distinta de TODO lo anterior: acá no hay ningún
+trazo compartido entre polos. Un fusible funde según la corriente de SU
+propio conductor — no existe un mecanismo que abra o cierre los N polos en
+conjunto (a diferencia del interruptor/contactor/guardamotor, donde el
+enlace punteado representa justamente ese mecanismo común). Por eso
+`fusible_multipolar()` y `portafusible_multipolar()` son simplemente "repetir
+el polo N veces", sin agregar ningún elemento extra ni enlace.
+
+`fusible_polo()` reproduce el cartucho simple de S00113 (rectángulo +
+línea). `portafusible_polo()` reproduce el seccionador fusible de S00127
+(barra 07-70-03 + cuchilla + cartucho montado sobre la cuchilla, vía
+`rect_sobre_recta()`, ya reutilizado sin cambios desde E4). La comparación
+byte a byte con S00113 dio limpia; con S00127 no, porque ese archivo quedó
+guardado con formato de grupos/`transform` de un paso anterior por el editor
+visual — resueltas las matrices a mano, las coordenadas finales coinciden
+exactamente. No se tocó el unifilar: es una discrepancia de codificación
+preexistente, ajena a este lote.
+
+Nacen **S00177–180** (fusible uni/bi/tri/tetrapolar, `tipo_aparato:
+"fusible"`) y **S00181–184** (seccionador fusible uni/bi/tri/tetrapolar,
+`tipo_aparato: "portafusible"`). Ambos ya están en `TIPOS_SIEMPRE_CERRADO`
+del motor de simulación (no se modela el fusible fundiendo), así que
+`agruparPolos()` los agrupa igual que al resto de la familia sin ningún
+caso nuevo — el resultado es el mismo (todos los polos cerrados) tanto si
+se los trata como independientes como si se aplica el criterio uniforme de
+`agruparPolos()`, porque nunca hay un estado que diverja entre polos.
+
+### E75.1 — Aprobado y verificado
+
+Los 8 símbolos pasan a `estado_revision: "verificado"`. Con este lote, la
+librería de comando/control queda **completa: sus 52 símbolos, verificados**.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py --carpeta comando` (52/52), todos en verde.

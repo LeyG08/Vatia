@@ -1,6 +1,6 @@
 {
-  "codigo_iec": "S00162",
-  "nombre": "Guardamotor termomagnético bipolar (multifilar)",
+  "codigo_iec": "S00182",
+  "nombre": "Seccionador fusible bipolar (multifilar)",
   "familia_atributos": "aparato",
   "estado_revision": "verificado",
   "puntos_conexion": [
@@ -8,7 +8,7 @@
       "id": "in1",
       "rol": "entrada",
       "x": -5.0,
-      "y": -30.0
+      "y": -20.0
     },
     {
       "id": "out1",
@@ -20,7 +20,7 @@
       "id": "in2",
       "rol": "entrada",
       "x": 5.0,
-      "y": -30.0
+      "y": -20.0
     },
     {
       "id": "out2",
@@ -30,9 +30,9 @@
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_norma": "IEC 60617 07-72-21 + 03-30-37 + 03-30-38",
+  "fuente_norma": "IEC 60617 07-75-08",
   "atributos_base": {
-    "tipo_aparato": "guardamotor_termomagnetico",
+    "tipo_aparato": "portafusible",
     "cantidad_polos": 2
   }
 }

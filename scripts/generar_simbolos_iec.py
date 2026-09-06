@@ -1003,6 +1003,95 @@ def s00173():
     return (*diferencial_multipolar(1), "Interruptor diferencial unipolar (multifilar)", "IEC 60617 07-72-17")
 
 
+# ---------------------------------------------------------------------------
+# E75 (continúa el escalado de E69/E70/E71/E73/E74): fusible y portafusible
+# (seccionador fusible) multipolares. Deliberadamente SIN enlace mecánico
+# entre polos, a diferencia de TODO lo anterior: un fusible funde por su
+# cuenta según la corriente de SU propio conductor — no hay ningún mecanismo
+# que abra/cierre los polos juntos (a diferencia del interruptor/contactor/
+# guardamotor, donde el enlace punteado representa justamente eso). Repetir
+# el polo N veces sin agregar ningún trazo compartido es la representación
+# correcta.
+# ---------------------------------------------------------------------------
+
+def fusible_polo(cx=0.0):
+    """Cartucho de fusible simple (sin seccionador) — mismo trazo que
+    S00113, un polo."""
+    c = rectangulo(cx - 3, -10, 6, 20)
+    c += linea(cx, -20, cx, 20)
+    return c
+
+
+def fusible_multipolar(n_polos):
+    """N polos de fusible_polo(), SIN enlace mecánico (ver nota de E75)."""
+    xs = xs_polos(n_polos)
+    c = ""
+    for cx in xs:
+        c += fusible_polo(cx)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} -25.0 {ancho_vb} 50.0"
+    return hoja, c
+
+
+def s00177():
+    return (*fusible_multipolar(1), "Fusible unipolar (multifilar)", "IEC 60617 (fusible simple)")
+
+
+def s00178():
+    return (*fusible_multipolar(2), "Fusible bipolar (multifilar)", "IEC 60617 (fusible simple)")
+
+
+def s00179():
+    return (*fusible_multipolar(3), "Fusible tripolar (multifilar)", "IEC 60617 (fusible simple)")
+
+
+def s00180():
+    return (*fusible_multipolar(4), "Fusible tetrapolar (multifilar)", "IEC 60617 (fusible simple)")
+
+
+def portafusible_polo(cx=0.0):
+    """Seccionador fusible: barra de seccionador (07-70-03) + cuchilla +
+    cartucho del fusible montado sobre la cuchilla — mismo trazo que
+    S00127, un polo."""
+    p0, p1 = (cx, 8.0), (cx - 4.0, -11.0)
+    c = linea(cx, -20, cx, -12)
+    c += linea(cx - 3, -12, cx + 3, -12)
+    c += linea(p0[0], p0[1], p1[0], p1[1])
+    c += rect_sobre_recta(p0, p1, 0.5, 9.0, 3.5)
+    c += linea(cx, 8, cx, 20)
+    return c
+
+
+def portafusible_multipolar(n_polos):
+    """N polos de portafusible_polo(), SIN enlace mecánico — mismo
+    criterio que fusible_multipolar() (ver nota de E75): el seccionador
+    fusible tampoco se opera en conjunto entre polos a los fines de esta
+    librería (el fusible que protege sigue fundiendo por su cuenta)."""
+    xs = xs_polos(n_polos)
+    c = ""
+    for cx in xs:
+        c += portafusible_polo(cx)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} -25.0 {ancho_vb} 50.0"
+    return hoja, c
+
+
+def s00181():
+    return (*portafusible_multipolar(1), "Seccionador fusible unipolar (multifilar)", "IEC 60617 07-75-08")
+
+
+def s00182():
+    return (*portafusible_multipolar(2), "Seccionador fusible bipolar (multifilar)", "IEC 60617 07-75-08")
+
+
+def s00183():
+    return (*portafusible_multipolar(3), "Seccionador fusible tripolar (multifilar)", "IEC 60617 07-75-08")
+
+
+def s00184():
+    return (*portafusible_multipolar(4), "Seccionador fusible tetrapolar (multifilar)", "IEC 60617 07-75-08")
+
+
 def s00174():
     return (*diferencial_multipolar(2), "Interruptor diferencial bipolar (multifilar)", "IEC 60617 07-72-17")
 
@@ -1039,7 +1128,9 @@ SIMBOLOS_COMANDO = {
     "S00164": s00164, "S00165": s00165, "S00166": s00166, "S00167": s00167,
     "S00168": s00168, "S00169": s00169, "S00170": s00170, "S00171": s00171,
     "S00172": s00172, "S00173": s00173, "S00174": s00174, "S00175": s00175,
-    "S00176": s00176,
+    "S00176": s00176, "S00177": s00177, "S00178": s00178, "S00179": s00179,
+    "S00180": s00180, "S00181": s00181, "S00182": s00182, "S00183": s00183,
+    "S00184": s00184,
 }
 
 

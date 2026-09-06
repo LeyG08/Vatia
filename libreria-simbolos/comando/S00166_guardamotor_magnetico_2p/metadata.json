@@ -2,7 +2,7 @@
   "codigo_iec": "S00166",
   "nombre": "Guardamotor magnético bipolar (multifilar)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "in1",
