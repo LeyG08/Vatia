@@ -373,6 +373,21 @@
       "if": {
         "properties": {
           "tipo_aparato": {
+            "const": "termostato"
+          }
+        },
+        "required": [
+          "tipo_aparato"
+        ]
+      },
+      "then": {
+        "$ref": "#/$defs/termostato"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tipo_aparato": {
             "const": "temporizador"
           }
         },
@@ -1633,6 +1648,50 @@
         }
       },
       "description": "Sensor de proximidad / detector, símbolo de contacto (IEC 60617 07-74-06): cierra o abre sin contacto físico, por proximidad de un objeto. La variante NC se construye por analogía composicional (la norma solo lamina la NA)."
+    },
+    "termostato": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "$ref": "#/$defs/base_comun"
+        }
+      ],
+      "properties": {
+        "tipo_aparato": {
+          "const": "termostato",
+          "title": "Tipo de aparato"
+        },
+        "tipo_contacto": {
+          "enum": [
+            "NA",
+            "NC"
+          ],
+          "x-obligatorio": true,
+          "description": "Lo fija el símbolo elegido (Termostato NA / NC): no cambia el dibujo, es para que la ficha lo declare explícito.",
+          "title": "Tipo de contacto"
+        },
+        "temperatura_consigna_c": {
+          "type": "number",
+          "x-obligatorio": false,
+          "title": "Temperatura de consigna (°C)"
+        },
+        "diferencial_c": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Histéresis: cuántos grados tiene que bajar (o subir) la temperatura respecto de la consigna para que el contacto vuelva a su posición de reposo.",
+          "title": "Diferencial (°C)"
+        },
+        "tension_v": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "x-obligatorio": false,
+          "description": "Un termostato bimetálico simple no necesita alimentación propia; uno electrónico sí. Campo opcional para no obligarlo en el caso mecánico.",
+          "title": "Tensión de alimentación (V)"
+        }
+      },
+      "description": "Contacto sensible a la temperatura / termostato (IEC 60617 07-72-11/12): abre o cierra por la temperatura del ambiente o de un elemento, sin mando eléctrico ni manual — mismo criterio de simulación que interruptor_posicion y sensor_proximidad."
     },
     "temporizador": {
       "type": "object",

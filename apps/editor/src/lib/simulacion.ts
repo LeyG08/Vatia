@@ -113,16 +113,18 @@ const TIPOS_PASO_DIRECTO = new Set(["transformador", "transformador_corriente"])
  * que la UI (NodoSimbolo.tsx) sepa qué tipos de aparato son clicables
  * en modo simulación, sin duplicar la lista.
  *
- * `sensor_proximidad` (E67) entra acá igual que `interruptor_posicion`:
- * los dos son contactos accionados por algo EXTERNO al circuito (una
- * leva que llega, un objeto que se acerca), no por mando eléctrico —
- * en el modo interactivo, el clic del usuario representa "el objeto
- * está ahí", no una orden de mando. */
+ * `sensor_proximidad` (E67) y `termostato` (E68) entran acá igual que
+ * `interruptor_posicion`: los tres son contactos accionados por algo
+ * EXTERNO al circuito (una leva que llega, un objeto que se acerca, una
+ * temperatura que se alcanza), no por mando eléctrico — en el modo
+ * interactivo, el clic del usuario representa "la condición externa se
+ * cumplió", no una orden de mando. */
 export const TIPOS_CONTACTO_MANUAL = new Set([
   "pulsador",
   "interruptor_posicion",
   "pulsador_emergencia",
   "sensor_proximidad",
+  "termostato",
 ]);
 
 /** Cargas (bobinas): nunca unen sus dos terminales, se resuelven por

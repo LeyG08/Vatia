@@ -32,6 +32,7 @@ export type TipoAparato =
   | "sensor_proximidad"
   | "sirena_alarma"
   | "temporizador"
+  | "termostato"
   | "transformador"
   | "transformador_corriente";
 
@@ -519,6 +520,26 @@ export interface AparatoTemporizador {
   tension_bobina_v?: number;
 }
 
+/** Contacto sensible a la temperatura / termostato (IEC 60617 07-72-11/12): abre o cierra por la temperatura del ambiente o de un elemento, sin mando eléctrico ni manual — mismo criterio de simulación que interruptor_posicion y sensor_proximidad. */
+export interface AparatoTermostato {
+  /** Tipo de aparato */
+  tipo_aparato: "termostato";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Temperatura de consigna (°C) */
+  temperatura_consigna_c?: number;
+  /** Diferencial (°C) */
+  diferencial_c?: number;
+  /** Tensión de alimentación (V) */
+  tension_v?: number;
+}
+
 export interface AparatoTransformador {
   /** Tipo de aparato */
   tipo_aparato: "transformador";
@@ -584,6 +605,7 @@ export type AtributosAparato =
   | AparatoSensorProximidad
   | AparatoSirenaAlarma
   | AparatoTemporizador
+  | AparatoTermostato
   | AparatoTransformador
   | AparatoTransformadorCorriente;
 

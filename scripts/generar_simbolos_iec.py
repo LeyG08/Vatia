@@ -677,12 +677,51 @@ def s00150():
     return hoja, c, "Contacto NC sensible a proximidad", "IEC 60617 07-74-06 (análogo sobre contacto NC)"
 
 
+# ---------------------------------------------------------------------------
+# E68 (continuación de "con lo demás símbolos"): termostato, Sección 072
+# "Seccionadores sensibles a la temperatura" (página 54 del PDF) — sensor
+# de temperatura sobre un contacto común, mismo criterio de simulación que
+# interruptor de posición y sensor de proximidad.
+# ---------------------------------------------------------------------------
+
+def qualif_temperatura(cx, cy, rx=2.6, ry=3.4):
+    """07-72-11/12: "θ" dentro de un óvalo — calificador de temperatura
+    de operación, distingue un contacto sensible a la temperatura
+    (termostato) de un contacto auxiliar común. Mismo patrón que
+    qualif_posicion(): un glifo chico al costado del contacto, sin
+    enlace ni línea de conexión (a diferencia de pulsador/selector/
+    sensor de proximidad, que SÍ llevan un actuador con enlace)."""
+    c = elipse(cx, cy, rx, ry)
+    c += texto(cx, cy, "&#952;", 5)
+    return c
+
+
+def s00151():
+    """Termostato, contacto de cierre - 07-72-11: contacto NA con el
+    calificador de temperatura al costado, mismo patrón que interruptor
+    de posición (S00140)."""
+    hoja = "-15.0 -25.0 30.0 50.0"
+    c = contacto_na()
+    c += qualif_temperatura(6, 0)
+    return hoja, c, "Termostato NA", "IEC 60617 07-72-11"
+
+
+def s00152():
+    """Termostato, contacto de apertura - 07-72-12: mismo calificador,
+    sobre contacto_nc()."""
+    hoja = "-15.0 -25.0 30.0 50.0"
+    c = contacto_nc()
+    c += qualif_temperatura(6, 0)
+    return hoja, c, "Termostato NC", "IEC 60617 07-72-12"
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
     "S00140": s00140, "S00141": s00141, "S00142": s00142, "S00143": s00143,
     "S00144": s00144, "S00145": s00145, "S00146": s00146, "S00147": s00147,
-    "S00148": s00148, "S00149": s00149, "S00150": s00150,
+    "S00148": s00148, "S00149": s00149, "S00150": s00150, "S00151": s00151,
+    "S00152": s00152,
 }
 
 

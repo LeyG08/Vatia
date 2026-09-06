@@ -6527,3 +6527,33 @@ El usuario aprobó los 2 símbolos ("aprove and continue"). Los
 `metadata.json` de S00149 y S00150 pasan `estado_revision` de
 `pendiente_revision` a `verificado`. Galería regenerada — la librería de
 comando queda en 18/18 símbolos verificados.
+
+## E68 — Termostato
+
+Continuación de "con lo demás símbolos". Revisando la página 54 del PDF
+de la norma (Sección 072, "Seccionadores sensibles a la temperatura")
+apareció otro sensor de uso muy común y hasta ahora sin ningún símbolo:
+el **termostato** (07-72-11/12) — contacto que abre o cierra por la
+temperatura del ambiente o de un elemento, sin mando eléctrico ni manual.
+
+Se agregan **S00151/S00152** (termostato NA/NC): mismo contacto NA/NC de
+siempre, con un calificador nuevo al costado — "θ" dentro de un óvalo,
+sin enlace ni línea de conexión (a diferencia de pulsador/sensor de
+proximidad, que sí llevan un actuador con enlace punteado). Mismo patrón
+de posicionamiento que el triángulo de interruptor de posición (S00140):
+un glifo chico a la derecha del contacto, en (6,0).
+
+Nuevo subtipo `termostato` en `aparato.schema.json`: `tipo_contacto`
+(NA/NC), `temperatura_consigna_c`, `diferencial_c` (histéresis) y
+`tension_v` opcional (un termostato bimetálico simple no necesita
+alimentación propia; uno electrónico sí). `simulacion.ts` lo agrega a
+`TIPOS_CONTACTO_MANUAL` con el mismo criterio que interruptor de posición
+y sensor de proximidad: el clic del usuario representa que la condición
+externa (temperatura alcanzada) se cumplió, no una orden de mando.
+
+Los 2 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (20/20) y `generar_tipos_atributos.py
+--verificar` (29 interfaces), todos en verde.
