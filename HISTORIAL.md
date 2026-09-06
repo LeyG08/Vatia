@@ -6793,3 +6793,35 @@ Los 4 símbolos pasan a `estado_revision: "verificado"`.
 Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py --carpeta comando` (40/40), todos en verde.
+
+## E74 — Interruptor diferencial multipolar: toroide sumador compartido
+
+Siguiente dispositivo de la cola (después de MCCB, E73). Composición
+distinta de todo lo anterior: acá lo compartido entre polos NO es el
+envolvente sino el **toroide sumador** — un diferencial real mide la suma
+vectorial de la corriente de TODOS los conductores (fase + neutro) con un
+único núcleo, por eso `diferencial_multipolar()` dibuja el mismo aspa+cuchilla
+de `diferencial_polo()` (extraído de S00128, sin el toroide) N veces, y agrega
+el toroide una sola vez con el radio ajustado al ancho de los N polos
+(`rx = mitad_del_ancho + 7`, mismo margen que el unifilar).
+
+El enlace punteado de disparo generaliza la polilínea de 3 puntos que ya
+usa S00128 (borde izquierdo del toroide → arriba → hacia el mecanismo del
+polo): para n_polos=1 la fórmula colapsa exactamente al trazo original
+(confirmado con `diff`, S00173 es **idéntico byte a byte** a S00128). Para
+n>1 el tramo final del enlace cruza por debajo de los polos intermedios sin
+tocar sus cuchillas — mismo criterio de cruce limpio que ya usa el enlace
+mecánico de `contactor_multipolar()` (E70).
+
+Nacen **S00173–176** (uni/bi/tri/tetrapolar), mismo `tipo_aparato:
+"interruptor_diferencial"` que S00128 unifilar. Terminales `inN`/`outN`
+iguales al resto de la familia multipolar: no hace falta tocar
+`simulacion.ts`, `agruparPolos()` (E69) ya los agrupa.
+
+### E74.1 — Aprobado y verificado
+
+Los 4 símbolos pasan a `estado_revision: "verificado"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py --carpeta comando` (44/44), todos en verde.

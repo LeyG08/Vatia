@@ -957,6 +957,64 @@ def s00169():
     return (*mccb_multipolar(1), "Interruptor automático en caja moldeada unipolar (multifilar)", "IEC 60617 07-72-21 en envolvente")
 
 
+# ---------------------------------------------------------------------------
+# E74 (continúa el escalado de E69/E70/E71/E73): interruptor diferencial
+# (ID/RCD) multipolar. Composición distinta de todo lo anterior: el toroide
+# sumador NO se repite por polo — un diferencial real tiene UN solo núcleo
+# atravesado por TODOS los conductores (fase + neutro), porque mide la suma
+# vectorial de sus corrientes. Por eso, a diferencia de mccb_multipolar()
+# (una caja compartida) y repetir_polos() (un enlace mecánico entre polos
+# iguales), acá se dibuja un polo "sin toroide" N veces y el toroide se
+# agrega una sola vez, con el radio ajustado al ancho de los N polos.
+# ---------------------------------------------------------------------------
+
+def diferencial_polo(cx=0.0):
+    """07-72-17: aspa + cuchilla de UN polo del interruptor diferencial,
+    sin el toroide — mismo trazo que ya usa S00128 (unifilar), listo
+    para repetir en variantes multipolares."""
+    c = linea(cx, -20, cx, -12)
+    c += linea(cx - 2, -17, cx + 2, -13)
+    c += linea(cx + 2, -17, cx - 2, -13)
+    c += linea(cx, -2, cx - 5, -12)
+    c += linea(cx, -2, cx, 20)
+    return c
+
+
+def diferencial_multipolar(n_polos):
+    """N polos de diferencial_polo() atravesados por UN solo toroide
+    sumador, centrado y agrandado al ancho de los N polos. El enlace
+    punteado del toroide hasta el mecanismo de disparo es la misma
+    polilínea de 3 puntos que ya usa S00128 (borde izquierdo del
+    toroide → arriba → hacia el polo más a la derecha) generalizada al
+    radio nuevo — para n_polos=1 da el mismo trazo exacto que S00128."""
+    xs = xs_polos(n_polos)
+    c = ""
+    for cx in xs:
+        c += diferencial_polo(cx)
+    rx = (xs[-1] - xs[0]) / 2.0 + 7.0
+    c += elipse(0, 5, rx, 2.5)
+    c += polilinea([(-rx, 5), (-rx, -7), (xs[-1] - 3.5, -7)], PUNTEADO)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} -25.0 {ancho_vb} 50.0"
+    return hoja, c
+
+
+def s00173():
+    return (*diferencial_multipolar(1), "Interruptor diferencial unipolar (multifilar)", "IEC 60617 07-72-17")
+
+
+def s00174():
+    return (*diferencial_multipolar(2), "Interruptor diferencial bipolar (multifilar)", "IEC 60617 07-72-17")
+
+
+def s00175():
+    return (*diferencial_multipolar(3), "Interruptor diferencial tripolar (multifilar)", "IEC 60617 07-72-17")
+
+
+def s00176():
+    return (*diferencial_multipolar(4), "Interruptor diferencial tetrapolar (multifilar)", "IEC 60617 07-72-17")
+
+
 def s00170():
     return (*mccb_multipolar(2), "Interruptor automático en caja moldeada bipolar (multifilar)", "IEC 60617 07-72-21 en envolvente")
 
@@ -980,7 +1038,8 @@ SIMBOLOS_COMANDO = {
     "S00160": s00160, "S00161": s00161, "S00162": s00162, "S00163": s00163,
     "S00164": s00164, "S00165": s00165, "S00166": s00166, "S00167": s00167,
     "S00168": s00168, "S00169": s00169, "S00170": s00170, "S00171": s00171,
-    "S00172": s00172,
+    "S00172": s00172, "S00173": s00173, "S00174": s00174, "S00175": s00175,
+    "S00176": s00176,
 }
 
 
