@@ -30,11 +30,16 @@ function grupoDe(s: SimboloDef): string {
   return categoria ? etiquetaCategoriaAparato(categoria) : "Otros aparatos";
 }
 
+/* E80, pedido explícito: "esto de la barra habría que dejarlo arriba del
+ * todo porque es lo más importante a la hora de hacer un diagrama porque
+ * si no este no tiene sentido". La barra/riel es de donde cuelga todo lo
+ * demás, así que encabeza la paleta en vez de quedar sepultada entre las
+ * categorías de aparatos. */
 const ORDEN_GRUPOS = [
+  ETIQUETAS_FAMILIA.barra,
   ...ORDEN_CATEGORIAS_APARATO.map(etiquetaCategoriaAparato),
   "Otros aparatos",
   ETIQUETAS_FAMILIA.conductor,
-  ETIQUETAS_FAMILIA.barra,
   ETIQUETAS_FAMILIA.carga,
   ETIQUETAS_FAMILIA.sin_ficha_tecnica,
 ];
@@ -142,6 +147,12 @@ function Paleta({
     item: ItemPaleta;
     rect: DOMRect;
   } | null>(null);
+  // E80: preset del juego de rieles de alimentación (solo multifilar).
+  const agregarRieles = useEditor((s) => s.agregarRielesAlimentacion);
+  const [presetAbierto, setPresetAbierto] = useState(false);
+  const [presetFases, setPresetFases] = useState(3);
+  const [presetNeutro, setPresetNeutro] = useState(true);
+  const [presetTierra, setPresetTierra] = useState(false);
   const cierreRef = useRef<number | null>(null);
 
   function abrirGrupo(item: ItemPaleta, rect: DOMRect) {
@@ -161,6 +172,79 @@ function Paleta({
         <h2>Símbolos</h2>
         <p className="paleta-ayuda">Mantené presionado y arrastrá al plano</p>
       </div>
+
+      {modo === "multifilar" && (
+        <div className="paleta-grupo">
+          <h3>Alimentación</h3>
+          {/* E80: el juego de rieles se coloca completo y ya tipado. Cada
+            * riel colocado a mano nacía como "fase viva" (E64), así que
+            * un neutro sin corregir dejaba a la simulación sin retorno y
+            * no se energizaba nada. */}
+          <button
+            type="button"
+            className="paleta-item paleta-preset"
+            onClick={() => setPresetAbierto((v) => !v)}
+            aria-expanded={presetAbierto}
+            title="Colocar el juego de rieles (fases + neutro + tierra) arriba de la hoja"
+          >
+            <span className="paleta-nombre">Rieles de alimentación…</span>
+            <span className="paleta-item-grupo-flecha">{presetAbierto ? "▾" : "▸"}</span>
+          </button>
+          {presetAbierto && (
+            <div className="paleta-preset-panel">
+              <label className="paleta-preset-campo">
+                <span>Fases</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={presetFases}
+                  onChange={(e) =>
+                    setPresetFases(Math.min(12, Math.max(1, Number(e.target.value) || 1)))
+                  }
+                />
+              </label>
+              <label className="paleta-preset-check">
+                <input
+                  type="checkbox"
+                  checked={presetNeutro}
+                  onChange={(e) => setPresetNeutro(e.target.checked)}
+                />
+                <span>Neutro (N)</span>
+              </label>
+              <label className="paleta-preset-check">
+                <input
+                  type="checkbox"
+                  checked={presetTierra}
+                  onChange={(e) => setPresetTierra(e.target.checked)}
+                />
+                <span>Tierra (PE)</span>
+              </label>
+              <p className="paleta-preset-resumen">
+                {[
+                  ...Array.from({ length: presetFases }, (_, i) => `L${i + 1}`),
+                  ...(presetNeutro ? ["N"] : []),
+                  ...(presetTierra ? ["PE"] : []),
+                ].join(" · ")}
+              </p>
+              <button
+                type="button"
+                className="paleta-preset-colocar"
+                onClick={() => {
+                  agregarRieles({
+                    fases: presetFases,
+                    neutro: presetNeutro,
+                    tierra: presetTierra,
+                  });
+                  setPresetAbierto(false);
+                }}
+              >
+                Colocar rieles
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {modo === "unifilar" && (
         <div className="paleta-grupo">

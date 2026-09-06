@@ -282,20 +282,37 @@ export default function ConexionEdge({
     <>
       <BaseEdge path={d} style={style} />
       {geo && totalMarcas > 0 && (
-        <g stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" fill="none">
+        /* E80 — color por función del conductor (pedido explícito: "en la
+         * parte de unifilar, para hacer más sencilla el plano visual,
+         * agregá colores por fase, neutro y tierra y en sus conexiones").
+         *
+         * En un unifilar la LÍNEA es una sola para todo el cable, así que
+         * no hay un color único que la describa: lo que sí describe la
+         * composición son estas marcas, que ya dicen cuántas fases lleva
+         * y si lleva neutro y tierra. Cada marca toma ahora el color de
+         * su función según el código AEA — marrón la fase, celeste el
+         * neutro, verde el PE — y así la composición se lee de un
+         * vistazo, sin leer la anotación. El trazo del cable en sí sigue
+         * siendo tinta: es el circuito, no una fase. */
+        <g strokeWidth={1.3} strokeLinecap="round" fill="none">
           {Array.from({ length: totalMarcas }, (_, i) => {
             const t = (i - (totalMarcas - 1) / 2) * geo.sep;
             const cx = geo.x + t * geo.ux;
             const cy = geo.y + t * geo.uy;
             const bx = cx + wx * h;
             const by = cy + wy * h;
+            const esNeutro = neutro && i === fases;
+            const esTierra = tierra && i === fases + (neutro ? 1 : 0);
+            const clase = esTierra
+              ? "marca-tierra"
+              : esNeutro
+                ? "marca-neutro"
+                : "marca-fase";
             return (
-              <g key={i}>
+              <g key={i} className={clase}>
                 <line x1={cx - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
-                {neutro && i === fases && (
-                  <circle cx={bx} cy={by} r={2.8} fill="#fdfdfd" />
-                )}
-                {tierra && i === fases + (neutro ? 1 : 0) && (
+                {esNeutro && <circle cx={bx} cy={by} r={2.8} className="marca-neutro-punto" />}
+                {esTierra && (
                   <line
                     x1={bx - wy * 3}
                     y1={by + wx * 3}

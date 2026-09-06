@@ -7145,3 +7145,82 @@ Verificado: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e` (21
 checks), `npm run e2e:simulacion` (11 checks), `verificar_alineacion.mjs`
 y `verificar_proyecto_real.mjs`. Revisado con capturas en claro y oscuro,
 con proyecto vacío y con el proyecto real del PPS, y en modo simulación.
+
+## E80 — Rieles de alimentación por preset, la barra primero y código de colores de conductores
+
+Los tres pendientes que quedaban de la ronda de feedback de E76/E77.
+
+**(4) Preset del juego de rieles.** Pedido: *"la barra donde colocamos
+las fases y neutro debería ser un preseteo de una disposición de las
+distintas combinaciones"*. Antes había que colocar cada riel a mano, uno
+por uno, y después abrirle la ficha a cada uno para decirle si era fase,
+neutro o tierra. Peor: `agregarSimbolo` tipa todo riel nuevo como
+`fase_viva` por defecto (E64), así que un riel de neutro que quedara sin
+corregir dejaba a la simulación sin retorno y no se energizaba nada —
+una trampa silenciosa. Ahora la paleta de una hoja multifilar abre con
+"Rieles de alimentación…": se elige cantidad de fases (1 a 12, sin
+límite normativo — el usuario llegó a mencionar simular un motor
+hexafásico), y si lleva neutro y/o tierra; el resumen muestra la
+composición como se anota en el plano (`L1 · L2 · L3 · N · PE`) y
+"Colocar rieles" pone el juego entero, cada riel ya con su
+`funcion_riel` y su `etiqueta_fase`, apilado arriba del rectángulo útil
+de la hoja con 60 px de separación (`SEPARACION_RIELES_PX`), que deja
+lugar para meter un aparato entre dos rieles sin que se pisen las
+anotaciones.
+
+**(5) La barra, arriba de todo.** Pedido: *"esto de la barra habría que
+dejarlo arriba del todo porque es lo más importante a la hora de hacer un
+diagrama porque si no este no tiene sentido"*. El grupo "Barras"
+encabeza `ORDEN_GRUPOS` en vez de quedar sepultado detrás de las ocho
+categorías de aparatos, y el preset de rieles va todavía más arriba, en
+"Alimentación". Es de donde cuelga todo lo demás, así que es lo primero
+que ofrece la paleta — y los rieles del preset se colocan arriba de la
+hoja por el mismo motivo.
+
+**(6) Código de colores de conductores.** Pedido: *"en la parte de
+unifilar, para hacer más sencilla el plano visual, agregá colores por
+fase, neutro y tierra y en sus conexiones"*. Se sumaron tres tokens
+—`--fase` marrón, `--neutro` celeste, `--tierra` verde— según el código
+AEA 90364-5-51 / IEC 60446, oscurecidos respecto del color literal del
+aislante para llegar a contraste legible sobre papel blanco (el celeste
+normativo puro sobre blanco es ilegible). Son los únicos colores de la
+app que no son decisión de diseño: los fija la norma, y es exactamente
+por eso que E79 dejó el resto del cromo acromático.
+
+Dónde se aplican, y por qué distinto en cada caso:
+
+- **Conexiones del unifilar**: la LÍNEA es una sola para todo el cable,
+  así que no hay un color único que la describa. Lo que sí describe la
+  composición son las marcas que ya se dibujaban sobre el cable (una
+  raya por fase, la raya con círculo del neutro, la raya con cruz de la
+  tierra): cada una toma ahora el color de su función. La composición se
+  lee de un vistazo sin leer la anotación, y el trazo del cable sigue
+  siendo tinta, porque es el circuito, no una fase.
+- **Alimentador "Desde …"**: mismas marcas, misma regla.
+- **Rieles de comando (multifilar)**: acá el trazo ENTERO sí es una sola
+  función, así que se colorea la línea completa. Un riel seleccionado
+  conserva su color en vez de pintarse del acento: ahora ese color es
+  información, y perderlo justo al ir a editarlo era el peor momento
+  posible. La selección se marca con el halo, que ya alcanza.
+- **La barra de fuerza NO se colorea**: es un juego de barras, lleva todo
+  junto — mismo criterio que el cable del unifilar.
+
+El PDF sigue saliendo en negro: el código de colores es una ayuda en
+pantalla y el plano impreso es un documento normativo que se fotocopia.
+De paso se corrigió un bug latente que apareció al revisar esto: la
+regla `.captura-pdf-negro * { background: transparent }` volvía
+transparente el trazo de la barra (que es un `background`, no un
+`stroke`), así que las barras podían salir invisibles del PDF; ahora se
+las fuerza a negro explícito.
+
+Verificado en vivo con Playwright: el preset coloca los cinco rieles
+(3F+N+PE) apilados arriba con los colores correctos
+(`rgb(107,74,47)` / `rgb(16,112,140)` / `rgb(79,122,14)`), el resumen se
+actualiza al tildar tierra, "Barras" es el primer grupo de símbolos de la
+paleta, y sobre el proyecto real del PPS las marcas de fase salen marrón
+y las de neutro celeste sobre el cable.
+
+Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
+`npm run e2e` (21 checks), `npm run e2e:simulacion` (11 checks),
+`verificar_alineacion.mjs`, `verificar_proyecto_real.mjs` y
+`lint_simbolos.py` (fuerza 19/19, comando 56/56).

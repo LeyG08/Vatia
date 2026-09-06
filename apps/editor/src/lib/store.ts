@@ -253,6 +253,11 @@ export const BARRA_CODIGO = "S00119";
 /** Largo por defecto = geometría del símbolo original (compatibilidad) */
 export const LARGO_BARRA_DEFECTO_PX = 100;
 
+/** E80: separación vertical entre rieles del juego de alimentación. 60 px
+ * = 6 celdas de grilla: deja lugar para que entre un aparato de comando
+ * entre dos rieles sin que las anotaciones se pisen. */
+export const SEPARACION_RIELES_PX = 60;
+
 /** Geometría local del nodo barra (px, sin rotar) */
 export const BARRA_GEO = {
   /** Margen antes del primer extremo (donde van los handles "in"/"out") */
@@ -591,6 +596,14 @@ interface EstadoEditor {
   actualizarDatosProyecto: (patch: Partial<DatosProyecto>) => void;
   agregarSimbolo: (codigoIec: string, x: number, y: number) => void;
   agregarAlimentador: (x?: number, y?: number) => void;
+  /** E80: coloca de una sola vez el JUEGO de rieles de alimentación de
+   * una hoja multifilar (N fases + neutro + tierra opcionales), apilado
+   * arriba de todo y ya tipado — ver `agregarRielesAlimentacion`. */
+  agregarRielesAlimentacion: (opciones: {
+    fases: number;
+    neutro: boolean;
+    tierra: boolean;
+  }) => void;
   actualizarDatosAlimentador: (
     id: string,
     patch: Partial<Omit<DatosAlimentador, "tipo">>,
@@ -1106,6 +1119,75 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         descripcion: `agregar ${codigoIec}`,
         do: () => set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), nodo] })),
         undo: () => set((s) => ({ nodos: s.nodos.filter((n) => n.id !== nodo.id) })),
+      });
+    },
+
+    /**
+     * E80 — juego de rieles de alimentación de una hoja multifilar.
+     *
+     * Pedido explícito del usuario: "la barra donde colocamos las fases y
+     * neutro debería ser un preseteo de una disposición de las distintas
+     * combinaciones" y "esto de la barra habría que dejarlo arriba del
+     * todo porque es lo más importante a la hora de hacer un diagrama
+     * porque si no este no tiene sentido".
+     *
+     * Antes había que colocar cada riel a mano, uno por uno, y después
+     * abrirle la ficha a cada uno para decirle si era fase, neutro o
+     * tierra — y como `agregarSimbolo` los tipa a todos como "fase_viva"
+     * por defecto (E64), un riel de neutro sin corregir hacía que la
+     * simulación no encontrara retorno y NADA se energizara. Acá se
+     * coloca el juego entero de una vez, cada riel ya con su
+     * `funcion_riel` y su `etiqueta_fase` (L1, L2, L3…, N, PE), apilado
+     * arriba del rectángulo útil de la hoja: es lo primero que se dibuja
+     * y todo lo demás cuelga de ahí.
+     *
+     * La cantidad de fases no está limitada a 3 a propósito (el usuario
+     * llegó a mencionar simular un motor hexafásico): el preset es una
+     * comodidad, no un molde.
+     */
+    agregarRielesAlimentacion({ fases, neutro, tierra }) {
+      const r = rectanguloUtil(get().hoja);
+      const largo = Math.max(LARGO_BARRA_DEFECTO_PX, Math.round((r.x1 - r.x0) * 0.75));
+      const x = Math.round((r.x0 + 20) / GRILLA_PX) * GRILLA_PX;
+
+      const rieles: { funcion: string; etiqueta: string }[] = [];
+      for (let i = 1; i <= Math.max(1, fases); i++) {
+        rieles.push({ funcion: "fase_viva", etiqueta: `L${i}` });
+      }
+      if (neutro) rieles.push({ funcion: "neutro", etiqueta: "N" });
+      if (tierra) rieles.push({ funcion: "tierra", etiqueta: "PE" });
+
+      const base = get().nodos;
+      const nuevos: Node<NodoData>[] = [];
+      for (const [i, riel] of rieles.entries()) {
+        const data: DatosBarra = {
+          tipo: "barra",
+          codigo_iec: BARRA_CODIGO,
+          rotacion: 0,
+          largoPx: largo,
+          atributos: {
+            tipo_barra: "riel_multifilar",
+            funcion_riel: riel.funcion,
+            etiqueta_fase: riel.etiqueta,
+          },
+        };
+        const y = r.y0 + 40 + i * SEPARACION_RIELES_PX;
+        nuevos.push({
+          id: nuevoId([...base, ...nuevos], "n"),
+          type: "barra",
+          position: limitarAHoja(x, y, data),
+          data,
+          selected: false,
+        });
+      }
+      if (nuevos.length === 0) return;
+      nuevos[nuevos.length - 1].selected = true;
+      const ids = new Set(nuevos.map((n) => n.id));
+      ejecutar({
+        descripcion: `agregar ${nuevos.length} riel(es) de alimentación`,
+        do: () =>
+          set((s) => ({ nodos: [...s.nodos.map((n) => ({ ...n, selected: false })), ...nuevos] })),
+        undo: () => set((s) => ({ nodos: s.nodos.filter((n) => !ids.has(n.id)) })),
       });
     },
 

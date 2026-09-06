@@ -141,11 +141,25 @@ function BarraNode({ id, data, selected }: NodeProps<Node<DatosBarra>>) {
   const ficha = anotacionBarra(data.atributos ?? {});
   if (potenciaVa > 0) ficha.push(`Σ cargas: ${potenciaVa} VA`);
 
+  /* E80: un riel de comando con función declarada (E64) se dibuja con el
+   * color de esa función — marrón la fase, celeste el neutro, verde el
+   * PE. Acá el trazo ENTERO es una sola función, a diferencia del cable
+   * del unifilar, donde la línea representa todo el cable junto y el
+   * color va en las marcas de composición. La barra de fuerza no se
+   * colorea: es un juego de barras, lleva todo junto. */
+  const funcionRiel =
+    data.atributos?.tipo_barra === "riel_multifilar" &&
+    typeof data.atributos?.funcion_riel === "string"
+      ? data.atributos.funcion_riel
+      : null;
+
   return (
     <div
-      className={`nodo-barra${selected ? " sel" : ""}`}
+      className={`nodo-barra${selected ? " sel" : ""}${
+        funcionRiel ? ` riel-${funcionRiel}` : ""
+      }`}
       style={{ width: cajaAncho, height: cajaAlto }}
-      title="Barra de distribución"
+      title={funcionRiel ? `Riel de comando (${funcionRiel.replace("_", " ")})` : "Barra de distribución"}
     >
       {/* Eje de la barra (C21: gira con el nodo) */}
       <div
