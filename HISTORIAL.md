@@ -6667,3 +6667,18 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
 `lint_simbolos.py --carpeta comando` (28/28) y `generar_tipos_atributos.py
 --verificar` (29 interfaces, sin cambio de schema), todos en verde.
+
+### E70.1 — Verificación real de punta a punta (pedida por el usuario)
+
+El usuario pidió pruebas concretas antes de dar por buena la corrección
+del Artifact, no solo la revisión visual. Se armó el circuito real
+completo: hoja de comando (pulsador NA + bobina K1 entre rieles Lc/N) +
+hoja de fuerza (3 rieles L1/L2/L3 + contactor tripolar S00159 referencia
+K1 + motor), cargado como `.json` real, con clics de mouse de verdad en
+modo Simular. Reposo: todo apagado. Marcha presionada: la bobina K1 se
+energiza → el contactor cierra sus 3 polos → el motor queda energizado
+(los 3 polos conducen L1/L2/L3 hacia el motor, no solo el primero).
+Marcha soltada: sin autoenclavamiento en este circuito, todo se apaga.
+Confirma que el contactor multipolar funciona con su lógica real de
+bobina (no solo "siempre cerrado" como el interruptor termomagnético
+verificado en E69), a través de las 3 fases simultáneamente.
