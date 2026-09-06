@@ -162,134 +162,151 @@ function BarraSuperior() {
     <>
       <header className="barra-superior">
         <strong className="marca">Vatia</strong>
-      {modoAdmin && (
-        <span className="badge-admin" title="Modo administrador activo (Ctrl+Shift+A)">
-          ADMIN
-        </span>
-      )}
-      {modoSimulacion && (
-        <span className="badge-simulacion" title="Modo simulación activo">
-          ▶ SIMULACIÓN
-        </span>
-      )}
-      <button
-        type="button"
-        className={paletaVisible ? "activo" : ""}
-        onClick={alternarPaleta}
-        title="Mostrar / ocultar barra de símbolos"
-      >
-        ☰ Símbolos
-      </button>
-      <button
-        type="button"
-        onClick={() => alternarHoja()}
-        title="Configuración de hoja (formato, orientación, rótulo)"
-      >
-        📐 Hoja…
-      </button>
-      <button
-        type="button"
-        onClick={() => alternarProyecto()}
-        title="Datos del proyecto (normativa, tensión, esquema PAT, cortocircuito)"
-      >
-        ⚡ Proyecto…
-      </button>
-      <input
-        className="nombre-proyecto"
-        value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
-        aria-label="Nombre del proyecto"
-      />
-      <button
-        type="button"
-        className="primario"
-        onClick={guardar}
-        title="Guardar proyecto JSON"
-      >
-        💾 Guardar
-      </button>
-      <button
-        type="button"
-        className={modoSimulacion ? "activo" : ""}
-        onClick={alternarSimulacion}
-        title="Modo simulación: probar el circuito accionando pulsadores e interruptores"
-      >
-        {modoSimulacion ? "⏹ Detener simulación" : "▶ Simular"}
-      </button>
-      <button
-        type="button"
-        onClick={descargarPlanoActivo}
-        title="Descargar la hoja activa como PDF"
-      >
-        ⬇️ Plano PDF
-      </button>
-      <button
-        type="button"
-        onClick={descargarTodosLosPlanos}
-        title="Descargar TODAS las hojas del proyecto en un solo PDF"
-      >
-        ⬇️ Todos los planos
-      </button>
-      <button
-        type="button"
-        onClick={descargarListaDeMateriales}
-        title="Descargar la lista de materiales de todo el proyecto como PDF, aparte de los planos"
-      >
-        ⬇️ Lista de materiales
-      </button>
-      <button
-        type="button"
-        onClick={nuevoProyecto}
-        title="Empezar un proyecto en blanco (se pierde el actual)"
-      >
-        📄 Nuevo
-      </button>
-      <button
-        type="button"
-        onClick={() => inputArchivo.current?.click()}
-        title="Cargar proyecto JSON"
-      >
-        📂 Cargar…
-      </button>
-      <input
-        ref={inputArchivo}
-        type="file"
-        accept="application/json,.json"
-        onChange={abrir}
-        hidden
-      />
-      <span className="separador" />
-      <button
-        type="button"
-        onClick={deshacerFn}
-        disabled={!puedeDeshacer}
-        title="Deshacer (Ctrl+Z)"
-        aria-label="Deshacer"
-      >
-        ↶
-      </button>
-      <button
-        type="button"
-        onClick={rehacerFn}
-        disabled={!puedeRehacer}
-        title="Rehacer (Ctrl+Shift+Z)"
-        aria-label="Rehacer"
-      >
-        ↷
-      </button>
-      <button
-        type="button"
-        className="btn-tema"
-        onClick={toggleTema}
-        title={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-        aria-label={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
-      >
-        {oscuro ? "☀" : "🌙"}
-      </button>
-      <span className="ayuda">
-        Atajos de teclado: presioná{" "}
-        <kbd>?</kbd>
-      </span>
+        {modoAdmin && (
+          <span className="badge-admin" title="Modo administrador activo (Ctrl+Shift+A)">
+            Admin
+          </span>
+        )}
+
+        {/* Documento: qué archivo estoy editando y qué hago con él. */}
+        <div className="barra-grupo barra-grupo-documento">
+          <input
+            className="nombre-proyecto"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            aria-label="Nombre del proyecto"
+          />
+          <button
+            type="button"
+            className="primario"
+            onClick={guardar}
+            title="Guardar proyecto JSON (Ctrl+S)"
+          >
+            Guardar
+          </button>
+          <button
+            type="button"
+            onClick={() => inputArchivo.current?.click()}
+            title="Abrir un proyecto guardado"
+          >
+            Abrir…
+          </button>
+          <button
+            type="button"
+            onClick={nuevoProyecto}
+            title="Empezar un proyecto en blanco (se pierde el actual)"
+          >
+            Nuevo
+          </button>
+          <input
+            ref={inputArchivo}
+            type="file"
+            accept="application/json,.json"
+            onChange={abrir}
+            hidden
+          />
+        </div>
+
+        {/* Dibujo: lo que uso mientras trabajo sobre la lámina. */}
+        <div className="barra-grupo">
+          <button
+            type="button"
+            className={paletaVisible ? "activo" : ""}
+            onClick={alternarPaleta}
+            aria-pressed={paletaVisible}
+            title="Mostrar / ocultar la barra de símbolos"
+          >
+            Símbolos
+          </button>
+          <button
+            type="button"
+            onClick={() => alternarHoja()}
+            title="Configuración de hoja (formato, orientación, rótulo)"
+          >
+            Hoja…
+          </button>
+          <button
+            type="button"
+            onClick={() => alternarProyecto()}
+            title="Datos del proyecto (normativa, tensión, esquema PAT, cortocircuito)"
+          >
+            Proyecto…
+          </button>
+        </div>
+
+        {/* Simulación: el único momento en que el circuito está VIVO. */}
+        <div className="barra-grupo">
+          <button
+            type="button"
+            className={`btn-simular${modoSimulacion ? " vivo" : ""}`}
+            onClick={alternarSimulacion}
+            aria-pressed={modoSimulacion}
+            title="Modo simulación: probar el circuito accionando pulsadores, llaves y selectores"
+          >
+            {modoSimulacion ? "Detener simulación" : "Simular"}
+          </button>
+        </div>
+
+        {/* Salidas: lo que se lleva el cliente. */}
+        <div className="barra-grupo">
+          <button
+            type="button"
+            onClick={descargarPlanoActivo}
+            title="Descargar la hoja activa como PDF"
+          >
+            Plano PDF
+          </button>
+          <button
+            type="button"
+            onClick={descargarTodosLosPlanos}
+            title="Descargar TODAS las hojas del proyecto en un solo PDF"
+          >
+            Todos los planos
+          </button>
+          <button
+            type="button"
+            onClick={descargarListaDeMateriales}
+            title="Descargar la lista de materiales de todo el proyecto como PDF, aparte de los planos"
+          >
+            Lista de materiales
+          </button>
+        </div>
+
+        {/* Instrumental: acciones sin contenido propio, al margen. */}
+        <div className="barra-grupo barra-grupo-margen">
+          <button
+            type="button"
+            className="btn-icono"
+            onClick={deshacerFn}
+            disabled={!puedeDeshacer}
+            title="Deshacer (Ctrl+Z)"
+            aria-label="Deshacer"
+          >
+            ↶
+          </button>
+          <button
+            type="button"
+            className="btn-icono"
+            onClick={rehacerFn}
+            disabled={!puedeRehacer}
+            title="Rehacer (Ctrl+Shift+Z)"
+            aria-label="Rehacer"
+          >
+            ↷
+          </button>
+          <button
+            type="button"
+            className="btn-icono btn-tema"
+            onClick={toggleTema}
+            title={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+            aria-label={oscuro ? "Cambiar a tema claro" : "Cambiar a tema oscuro"}
+          >
+            {oscuro ? "☀" : "☾"}
+          </button>
+          <span className="ayuda">
+            Atajos: <kbd>?</kbd>
+          </span>
+        </div>
       </header>
     </>
   );

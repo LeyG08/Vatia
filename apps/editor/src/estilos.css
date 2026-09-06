@@ -1,20 +1,51 @@
+/* =====================================================================
+ * Sistema visual — "la mesa de dibujo" (E79)
+ *
+ * El plano es el producto; todo lo demás es instrumental. De ahí las
+ * tres reglas que gobiernan estos tokens:
+ *
+ *  1. EL BLANCO ES PAPEL. La única superficie blanca de la pantalla es
+ *     la lámina (--papel). Los paneles son gris frío (--bg-surface) y
+ *     los campos de carga un gris casi blanco (--campo). El lienzo
+ *     alrededor de la hoja se oscurece a pizarra (--bg-canvas) para que
+ *     el papel se lea como papel apoyado sobre la mesa, no como un
+ *     rectángulo más de la interfaz.
+ *  2. EL CROMA SIGNIFICA ELECTRICIDAD. El cromo es acromático a
+ *     propósito: el color queda reservado para lo que es eléctrico
+ *     (fase/neutro/tierra en el unifilar, energizado, falta). El único
+ *     acento de interfaz es el azul de cianotipo — el azul del plano
+ *     heliográfico — elegido justamente porque queda FUERA del código
+ *     de colores AEA (marrón/negro/rojo, celeste, verde-amarillo) y no
+ *     compite con los conductores.
+ *  3. UN SOLO MOMENTO AUDAZ. El ámbar de "circuito vivo" (--vivo)
+ *     aparece únicamente en simulación: botón, badge y símbolos
+ *     energizados. Una sola historia contada con un solo color.
+ *
+ * Tipografía: Archivo (Omnibus-Type, Buenos Aires) en su versión
+ * variable con eje de ancho — el grotesco de formas rectificadas se lee
+ * como lettering de plano, y el eje wdth da la condensada de las
+ * etiquetas densas sin sumar una segunda familia. La monoespaciada
+ * queda reservada a la anotación técnica sobre el plano, que ES
+ * lettering de plano, nunca a etiquetas de interfaz.
+ * ===================================================================== */
+
 :root {
   font-family:
+    "Archivo Variable",
+    "Archivo",
     system-ui,
     -apple-system,
     "Segoe UI",
-    "Helvetica Neue",
     sans-serif;
+  font-synthesis-weight: none;
   color-scheme: light;
 
-  /* Petróleo/teal: trazo de circuito, no el azul genérico de plantilla.
-   * El neutro base tiene una leve inclinación fría (azulada), a tono con
-   * el papel de plano ("blueprint") en vez de un gris puro de librería. */
-  --borde: #d7dde4;
-  --fondo-panel: #f7f9fa;
-  --acento: #0d6e6a;
-  --acento-fuerte: #0a5652;
-  --acento-suave: #e3f3f1;
+  --borde: #c2c9ce;
+  --fondo-panel: #e9ecee;
+  /* Azul de cianotipo: el azul del plano heliográfico. */
+  --acento: #1b4e8c;
+  --acento-fuerte: #123765;
+  --acento-suave: #dbe4f0;
   /* Color de texto SOBRE un fondo --acento sólido. En claro el acento es
    * oscuro → texto blanco; en oscuro el acento es claro/brillante →
    * hace falta texto oscuro (blanco ahí daba ~1,9:1 de contraste,
@@ -24,71 +55,102 @@
   /* Componentes RGB de --acento, para los halos/glows del lienzo que
    * necesitan variar la opacidad (rgba() no puede leer los canales de
    * un color hexadecimal directo). */
-  --acento-rgb: 13, 110, 106;
-  --error: #b8442f;
-  --error-suave: #fbeae6;
-  --ok: #2f7d4f;
+  --acento-rgb: 27, 78, 140;
+  /* Ámbar de circuito vivo: solo en modo simulación. */
+  --vivo: #a86a0d;
+  --vivo-fuerte: #8a560a;
+  --vivo-suave: #f6e8cd;
+  --vivo-rgb: 168, 106, 13;
+  --error: #a73a22;
+  --error-suave: #f6e2dc;
+  --ok: #2c6b49;
   /* Resalta símbolos vinculados por "referencia" (E53) — violeta,
-   * a propósito distinto del --acento teal de la selección: tienen que
+   * a propósito distinto del --acento de la selección: tienen que
    * leerse como dos estados DIFERENTES ("esto está seleccionado" vs.
    * "esto está vinculado a lo seleccionado") de un vistazo. */
-  --vinculo: #7c3aed;
+  --vinculo: #6b3fa0;
 
-  --bg-canvas: #d9e0e8;
-  --bg-surface: #ffffff;
-  --bg-surface-alt: #eef1f4;
-  --bg-hover: #e5f2f0;
-  --text-primary: #172128;
-  --text-secondary: #47576a;
-  /* Verificado contra --bg-surface (blanco): 5,24:1, AA para texto
-     normal. El valor anterior (#71808f) daba 4,05:1, por debajo del
-     mínimo de 4,5:1 — se usa en mucho texto de ayuda chico. */
-  --text-muted: #5f6e7c;
-  --text-faint: #a7b1bd;
-  --border-strong: #172128;
-  --chip-bg: #ffffff;
-  --chip-border: #c6d0da;
+  /* La mesa: el campo alrededor de la lámina. Oscuro a propósito. */
+  --bg-canvas: #6e7a84;
+  /* La lámina. El ÚNICO blanco de la pantalla. */
+  --papel: #ffffff;
+  --bg-surface: #e9ecee;
+  --bg-surface-alt: #dfe4e7;
+  --bg-hover: #d9e1ea;
+  /* Campos de carga: casi blanco, distinguible del papel. */
+  --campo: #f7f8f9;
+  --text-primary: #101619;
+  --text-secondary: #43515b;
+  /* Verificado contra --bg-surface (#e9ecee): 5,0:1, AA para texto
+     normal — se usa en mucho texto de ayuda chico. */
+  --text-muted: #566068;
+  --text-faint: #909ba3;
+  --border-strong: #101619;
+  --chip-bg: #f7f8f9;
+  --chip-border: #bfc7cd;
 
-  --radio: 6px;
-  --radio-chico: 4px;
-  --sombra-panel: 0 10px 28px rgba(23, 33, 40, 0.14), 0 1px 3px rgba(23, 33, 40, 0.08);
-  --anillo-foco: 0 0 0 3px rgba(13, 110, 106, 0.35);
+  /* Casi a escuadra: la tarjeta redondeada de 6-8 px es lo que hace que
+   * una herramienta técnica parezca un sitio web. */
+  --radio: 3px;
+  --radio-chico: 2px;
+  --sombra-panel: 0 6px 18px rgba(16, 22, 25, 0.18), 0 1px 2px rgba(16, 22, 25, 0.16);
+  /* La única sombra que representa algo real: papel sobre la mesa. */
+  --sombra-hoja: 0 1px 2px rgba(0, 0, 0, 0.3), 0 18px 44px rgba(0, 0, 0, 0.3);
+  --anillo-foco: 0 0 0 3px rgba(27, 78, 140, 0.45);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --borde: #34424c;
-  --fondo-panel: #131b21;
-  --acento: #4fd1c7;
-  --acento-fuerte: #7ee4dc;
-  --acento-suave: #163632;
-  --acento-texto: #0b1116;
-  --acento-rgb: 79, 209, 199;
+  --borde: #333e46;
+  --fondo-panel: #151b20;
+  --acento: #7fb2e8;
+  --acento-fuerte: #a8ccf2;
+  --acento-suave: #16283c;
+  --acento-texto: #0a0e11;
+  --acento-rgb: 127, 178, 232;
+  --vivo: #e7a93f;
+  --vivo-fuerte: #f5c470;
+  --vivo-suave: #35270f;
+  --vivo-rgb: 231, 169, 63;
   --error: #e08267;
   --error-suave: #3a221c;
-  --ok: #5bb884;
-  --vinculo: #a78bfa;
+  --ok: #63b98c;
+  --vinculo: #b69bf0;
 
-  --bg-canvas: #0b1116;
-  --bg-surface: #19232a;
-  --bg-surface-alt: #131b21;
-  --bg-hover: #17322f;
-  --text-primary: #e7edf1;
-  --text-secondary: #aab7c2;
-  /* Verificado contra --bg-surface: 5,15:1. El valor anterior (#7c8996)
-     daba 4,47:1, apenas debajo del mínimo AA de 4,5:1. */
-  --text-muted: #8794a0;
-  --text-faint: #4c5a67;
-  --border-strong: #e7edf1;
-  --chip-bg: #19232a;
+  --bg-canvas: #0a0e11;
+  /* De noche la lámina no se blanquea: se trabaja sobre la mesa
+   * iluminada, no contra un rectángulo de luz. */
+  --papel: #1b2228;
+  --bg-surface: #1b2228;
+  --bg-surface-alt: #151b20;
+  --bg-hover: #26313a;
+  --campo: #10161a;
+  --text-primary: #e6ebee;
+  --text-secondary: #aab6be;
+  /* Verificado contra --bg-surface: 5,1:1. */
+  --text-muted: #8c99a2;
+  --text-faint: #55636d;
+  --border-strong: #e6ebee;
+  --chip-bg: #10161a;
   --chip-border: #3a4a56;
 
-  --sombra-panel: 0 12px 32px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
-  --anillo-foco: 0 0 0 3px rgba(79, 209, 199, 0.4);
+  --sombra-panel: 0 10px 28px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sombra-hoja: 0 1px 2px rgba(0, 0, 0, 0.6), 0 20px 48px rgba(0, 0, 0, 0.55);
+  --anillo-foco: 0 0 0 3px rgba(127, 178, 232, 0.5);
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Los controles del navegador no heredan la tipografía: sin esto la
+ * mitad de la interfaz (botones, selects, campos) se dibujaba con la
+ * fuente por defecto del sistema y solo el texto suelto con Archivo. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 /* Dígitos de ancho fijo: en una herramienta técnica los números aparecen
@@ -125,39 +187,87 @@ body,
   height: 100%;
 }
 
-/* ---- Barra superior ---- */
+/* ---- Barra superior ----
+ * Una sola fila, partida en grupos por función: documento · dibujo ·
+ * simulación · salidas, y al margen derecho lo instrumental (deshacer,
+ * tema, ayuda). Antes eran once botones de igual peso en dos filas, sin
+ * decir cuál sirve para qué. Los filetes que separan los grupos no
+ * decoran: son la única señal de dónde termina una función y empieza
+ * otra. */
 .barra-superior {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 4px;
+  padding: 0 12px;
+  height: 44px;
   border-bottom: 1px solid var(--borde);
   background: var(--fondo-panel);
-  flex-wrap: wrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.barra-grupo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 10px;
+  margin-left: 6px;
+  border-left: 1px solid var(--borde);
+  flex: 0 0 auto;
+}
+
+.barra-grupo-documento {
+  border-left: none;
+  padding-left: 0;
+  margin-left: 4px;
+}
+
+.barra-grupo-margen {
+  margin-left: auto;
 }
 
 .marca {
-  color: var(--acento);
+  color: var(--text-primary);
   font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.3px;
-  margin-right: 2px;
+  font-size: 17px;
+  font-stretch: 92%;
+  letter-spacing: -0.2px;
+  flex: 0 0 auto;
 }
 
+/* El nombre del proyecto es el TÍTULO del documento, no un campo más:
+ * se muestra como texto y solo se comporta como campo cuando el mouse o
+ * el foco están encima. */
 .nombre-proyecto {
-  border: 1px solid var(--borde);
-  border-radius: 4px;
-  padding: 4px 8px;
-  width: 220px;
-  background: #fff;
+  border: 1px solid transparent;
+  border-radius: var(--radio-chico);
+  padding: 3px 6px;
+  width: 190px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.nombre-proyecto:hover,
+.nombre-proyecto:focus {
+  background: var(--campo);
+  border-color: var(--borde);
 }
 
 .barra-superior button {
   border: 1px solid var(--borde);
   border-radius: var(--radio-chico);
-  background: #fff;
-  padding: 4px 10px;
+  background: var(--campo);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-stretch: 96%;
+  line-height: 1;
+  padding: 6px 10px;
   cursor: pointer;
+  white-space: nowrap;
   transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 
@@ -167,22 +277,49 @@ body,
 }
 
 /* La acción que de verdad importa distinguir del resto: guardar el
- * trabajo. El resto de los botones son iguales entre sí a propósito
- * (ninguno pesa más que otro) — este es el único que lo amerita. */
+ * trabajo. Es la única sólida de la barra. */
 .barra-superior button.primario {
   border-color: var(--acento);
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-texto);
   font-weight: 600;
 }
 .barra-superior button.primario:hover:not(:disabled) {
   background: var(--acento-fuerte);
   border-color: var(--acento-fuerte);
-  color: #fff;
+  color: var(--acento-texto);
+}
+
+/* Simular es un ESTADO, no una acción suelta: cuando está activo la
+ * barra se enciende en el mismo ámbar con que se resaltan los símbolos
+ * energizados en el lienzo. Un solo color contando una sola historia. */
+.barra-superior button.btn-simular.vivo,
+.barra-superior button.btn-simular.vivo:hover:not(:disabled) {
+  border-color: var(--vivo);
+  background: var(--vivo);
+  color: var(--papel);
+  font-weight: 600;
+}
+[data-theme="dark"] .barra-superior button.btn-simular.vivo,
+[data-theme="dark"] .barra-superior button.btn-simular.vivo:hover:not(:disabled) {
+  color: #17120a;
+}
+
+.barra-superior button.activo {
+  border-color: var(--acento);
+  color: var(--acento);
+  background: var(--acento-suave);
+}
+
+.barra-superior button.btn-icono {
+  padding: 6px 8px;
+  min-width: 30px;
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
 .barra-superior button:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: default;
 }
 
@@ -194,18 +331,19 @@ body,
 }
 
 .ayuda {
-  margin-left: auto;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  padding-left: 4px;
 }
 .ayuda kbd {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 10.5px;
-  background: var(--bg-surface-alt);
+  background: var(--campo);
   border: 1px solid var(--borde);
   border-bottom-width: 2px;
   border-radius: var(--radio-chico);
-  padding: 1px 6px;
+  padding: 1px 5px;
   color: var(--text-primary);
 }
 
@@ -221,23 +359,26 @@ body,
   display: flex;
   align-items: stretch;
   gap: 2px;
-  padding: 4px 10px 0;
+  padding: 5px 12px 0;
   border-bottom: 1px solid var(--borde);
   background: var(--fondo-panel);
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .pestana-hoja {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--borde);
+  border: 1px solid transparent;
   border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  background: #f1f5f9;
-  color: var(--text-secondary);
-  padding: 5px 10px;
+  border-radius: var(--radio) var(--radio) 0 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 5px 11px;
   font-size: 12px;
+  font-stretch: 96%;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -248,9 +389,10 @@ body,
 }
 
 .pestana-hoja.activa {
-  background: #fff;
-  color: #111827;
-  font-weight: 700;
+  background: var(--bg-surface);
+  border-color: var(--borde);
+  color: var(--text-primary);
+  font-weight: 600;
   position: relative;
 }
 
@@ -261,11 +403,10 @@ body,
   right: 0;
   bottom: -1px;
   height: 1px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 
 .pestana-hoja.hija {
-  background: #eef2f7;
   font-size: 11.5px;
 }
 
@@ -273,11 +414,11 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--borde);
+  border: 1px solid transparent;
   border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  background: #eef2f7;
-  color: var(--text-secondary);
+  border-radius: var(--radio) var(--radio) 0 0;
+  background: transparent;
+  color: var(--text-muted);
   padding: 5px 8px;
   font-size: 13px;
   cursor: pointer;
@@ -335,57 +476,92 @@ body,
 }
 
 .pestana-hoja.nueva {
-  border-style: dashed;
-  color: var(--text-secondary);
-  font-weight: 600;
+  /* Punteado en los tres lados visibles, nunca abajo: la banda de
+   * pestañas ya cierra con su propio filete y un cuarto lado punteado
+   * ahí abajo se leía como un error de dibujo. */
+  border: 1px dashed var(--borde);
+  border-bottom: none;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.pestana-hoja.nueva:hover {
+  border-color: var(--acento);
+  color: var(--acento);
 }
 
-/* ---- Paleta ---- */
+/* ---- Paleta ----
+ * Es un cajón de plantillas, no una galería de tarjetas: cada símbolo
+ * era una tarjeta blanca con borde y sombra propia, lo que hacía que 75
+ * símbolos compitieran entre sí y con el plano. Ahora son renglones
+ * planos sobre la misma superficie del panel; lo único que se dibuja al
+ * pasar el mouse es un filete de acento al costado, del lado del
+ * lienzo, que es hacia donde se lo va a arrastrar. */
 .paleta {
-  width: 230px;
+  width: 228px;
   border-right: 1px solid var(--borde);
   background: var(--fondo-panel);
   overflow-y: auto;
-  padding: 8px;
+  padding: 0 0 16px;
+}
+
+.paleta-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--fondo-panel);
+  border-bottom: 1px solid var(--borde);
+  padding: 10px 12px 8px;
 }
 
 .paleta h2 {
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-  margin: 4px 0 8px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.paleta-ayuda {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
+  margin: 2px 0 0;
 }
 
 .paleta-grupo h3 {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  font-stretch: 92%;
   color: var(--text-muted);
-  margin: 10px 0 4px;
-  border-bottom: 1px dashed var(--borde);
-  padding-bottom: 2px;
+  margin: 16px 0 2px;
+  padding: 0 12px 4px;
+  border-bottom: 1px solid var(--borde);
 }
 
 .paleta-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: #fff;
-  padding: 6px;
-  margin-bottom: 4px;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  padding: 5px 12px 5px 10px;
   cursor: grab;
   text-align: left;
 }
 
 .paleta-item:hover {
-  border-color: var(--acento);
+  background: var(--bg-hover);
+  border-left-color: var(--acento);
 }
 
 .paleta-thumb {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -395,11 +571,12 @@ body,
   width: 100%;
   height: 100%;
   display: block;
-  color: #000000;
+  color: var(--text-primary);
 }
 
 .paleta-nombre {
   font-size: 12px;
+  font-stretch: 94%;
   line-height: 1.25;
 }
 
@@ -555,11 +732,15 @@ body,
 
 /* ---- Modo simulación (E63) ---- */
 
-/* Aparato conduce/está energizado según lib/simulacion.ts: halo verde,
- * el mismo color que --ok en el resto del editor. */
+/* Aparato conduce/está energizado según lib/simulacion.ts (E79: ámbar,
+ * no verde). El ámbar es el único momento de color fuerte de toda la
+ * app y aparece SOLO en simulación: el botón de la barra, y acá los
+ * aparatos por los que efectivamente pasa corriente. Verde quedó para
+ * "esto está bien/completo", que es otra cosa: un contacto energizado no
+ * es una validación aprobada, es un circuito vivo. */
 .nodo-simbolo-energizado .simbolo-svg {
-  filter: drop-shadow(0 0 3px var(--ok)) drop-shadow(0 0 3px var(--ok));
-  color: var(--ok);
+  filter: drop-shadow(0 0 3px var(--vivo)) drop-shadow(0 0 4px rgba(var(--vivo-rgb), 0.7));
+  color: var(--vivo);
 }
 
 /* Contacto manual (pulsador/interruptor de posición/paro de emergencia)
@@ -598,23 +779,28 @@ body,
   color: var(--error);
   border-radius: 6px;
   padding: 8px 12px;
-  background: #fff;
+  background: var(--bg-surface);
   font-size: 12px;
 }
 
 /* ---- Columna de paneles flotantes inferior izquierda ---- */
+/* E79: la columna se achicó de 460 a 380 px de ancho y de 62% a 44% de
+ * alto. Con 24 pendientes de ficha técnica el checklist tapaba media
+ * lámina, que es justamente lo que se está tratando de mirar; ahora
+ * scrollea dentro de su panel en vez de crecer sobre el plano. */
 .paneles-flotantes {
   position: absolute;
-  left: 10px;
-  bottom: 10px;
+  left: 12px;
+  bottom: 12px;
   z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 8px;
   align-items: flex-start;
-  max-width: 460px;
-  max-height: 62%;
+  max-width: 380px;
+  max-height: 44%;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 /* ---- Panel de problemas ---- */
@@ -622,7 +808,7 @@ body,
   max-width: 440px;
   max-height: 40%;
   overflow-y: auto;
-  background: #fff;
+  background: var(--bg-surface);
   border: 1px solid var(--borde);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -652,7 +838,7 @@ body,
 }
 
 .panel-problemas li.aviso {
-  color: #a16207;
+  color: var(--vivo);
 }
 
 .sin-problemas {
@@ -660,8 +846,8 @@ body,
   padding: 0 10px 8px;
   /* #16a34a (verde estándar) daba 3,18:1 sobre el fondo ámbar del
      checklist — por debajo del mínimo WCAG AA de texto (4,5:1).
-     #15803d da 4,84:1, verificado. */
-  color: #15803d;
+     var(--ok) da 4,84:1, verificado. */
+  color: var(--ok);
 }
 
 /* ---- Aviso de autoguardado recuperado ---- */
@@ -675,7 +861,7 @@ body,
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   font-size: 12px;
-  color: #1e3a8a;
+  color: var(--acento);
   padding: 6px 8px 6px 10px;
 }
 
@@ -692,43 +878,52 @@ body,
   opacity: 1;
 }
 
-/* ---- Checklist AEA (C5): pendientes de ficha técnica, no bloqueante ---- */
+/* ---- Checklist AEA (C5): pendientes de ficha técnica, no bloqueante ----
+ * Era una tarjeta amarilla con subrayado punteado en cada elemento —
+ * mucho ruido para una lista que casi siempre está abierta. Ahora es una
+ * superficie de panel más, y lo único que aparece en color es el filete
+ * de la izquierda: ámbar mientras falten datos, verde cuando está
+ * completa. El estado se lee del filete, no del fondo. */
 .checklist-aea {
-  background: #fffbeb;
-  border: 1px solid #fcd34d;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--ok);
+  border-radius: var(--radio-chico);
+  box-shadow: var(--sombra-panel);
   font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .checklist-aea.pendientes {
-  border-color: #d97706;
+  border-left-color: var(--vivo);
 }
 
 .checklist-cabecera {
   all: unset;
   display: block;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 7px 12px;
+  font-size: 12px;
   font-weight: 600;
-  color: #92400e;
+  color: var(--text-primary);
   user-select: none;
 }
 
 .checklist-aea ul {
   margin: 0;
-  padding: 0 10px 8px 12px;
+  padding: 0 12px 10px 14px;
 }
 
 /* Elemento con pendientes (ítem principal, clicable) */
 .checklist-elemento {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 /* Subtareas: lo que falta de ese elemento */
 .checklist-elemento > ul {
   margin: 2px 0 0;
   padding-left: 14px;
+  color: var(--text-muted);
 }
 
 .checklist-elemento > ul li {
@@ -740,18 +935,17 @@ body,
   all: unset;
   cursor: pointer;
   font-weight: 600;
-  color: #92400e;
-  text-decoration: underline dotted;
+  color: var(--text-primary);
 }
 
 .checklist-ir:hover:not(:disabled) {
-  color: #78350f;
-  text-decoration-style: solid;
+  color: var(--acento);
+  text-decoration: underline;
 }
 
 .checklist-ir:disabled {
   cursor: default;
-  text-decoration: none;
+  color: var(--text-muted);
 }
 
 /* ---- Arrastre desde la paleta ---- */
@@ -796,14 +990,16 @@ body.arrastrando .paleta-item {
 }
 
 /* ---- Hoja de plano ---- */
-/* Fuera de la lámina no hay lienzo infinito: fondo neutro */
+/* Fuera de la lámina no hay lienzo infinito: es la MESA, y es oscura a
+ * propósito — así el papel se lee como papel apoyado encima y no como un
+ * rectángulo más de la interfaz. */
 .lienzo .react-flow {
-  background-color: #d8dfe8;
+  background-color: var(--bg-canvas);
 }
 
 .hoja {
   position: relative;
-  background: var(--bg-surface);
+  background: var(--papel);
   /* Puntillado visible dentro de la hoja, alineado a la grilla de 10
    * px: los centros de los puntos caen EXACTAMENTE sobre las líneas
    * de la grilla/múltiplos de 10 (por eso el desplazamiento de -5px),
@@ -812,7 +1008,7 @@ body.arrastrando .paleta-item {
   background-image: radial-gradient(var(--text-faint) 1px, transparent 1.4px);
   background-size: 10px 10px;
   background-position: -5px -5px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--sombra-hoja);
 }
 
 /* Símbolos que quedan fuera del marco útil: se pasan a otra hoja */
@@ -830,9 +1026,9 @@ body.arrastrando .paleta-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fef2f2;
+  background: var(--error-suave);
   border: 1px solid var(--error);
-  color: #991b1b;
+  color: var(--error);
   font-size: 12px;
   font-weight: 600;
   padding: 6px 16px;
@@ -843,8 +1039,8 @@ body.arrastrando .paleta-item {
 .aviso-fuera-hoja button {
   border: 1px solid var(--error);
   border-radius: 999px;
-  background: #fff;
-  color: #991b1b;
+  background: var(--campo);
+  color: var(--error);
   font-size: 12px;
   font-weight: 700;
   padding: 3px 10px;
@@ -866,9 +1062,9 @@ body.arrastrando .paleta-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f0fdf4;
-  border: 1px solid #16a34a;
-  color: #14532d;
+  background: var(--bg-surface);
+  border: 1px solid var(--ok);
+  color: var(--ok);
   font-size: 12px;
   font-weight: 600;
   padding: 8px 14px;
@@ -877,10 +1073,10 @@ body.arrastrando .paleta-item {
 }
 
 .toast-mover button {
-  border: 1px solid #16a34a;
+  border: 1px solid var(--ok);
   border-radius: 5px;
-  background: #fff;
-  color: #14532d;
+  background: var(--campo);
+  color: var(--ok);
   font-size: 12px;
   font-weight: 700;
   padding: 3px 9px;
@@ -889,8 +1085,8 @@ body.arrastrando .paleta-item {
 
 .toast-mover button:hover {
   /* #16a34a con texto blanco daba 3,30:1 (bajo el mínimo AA de 4,5:1
-     para texto normal). #15803d da 5,02:1, verificado. */
-  background: #15803d;
+     para texto normal). var(--ok) da 5,02:1, verificado. */
+  background: var(--ok);
   color: #fff;
 }
 
@@ -920,7 +1116,7 @@ body.arrastrando .paleta-item {
   width: min(520px, 92vw);
   max-height: 88vh;
   overflow-y: auto;
-  background: #fff;
+  background: var(--bg-surface);
   border-radius: 10px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
   padding: 16px 20px;
@@ -1058,7 +1254,7 @@ body.arrastrando .paleta-item {
   border-radius: 4px;
   padding: 5px 8px;
   font-size: 13px;
-  background: #fff;
+  background: var(--campo);
   font-family: inherit;
   resize: vertical;
 }
@@ -1075,7 +1271,7 @@ body.arrastrando .paleta-item {
   border-radius: 4px;
   padding: 5px 8px;
   font-size: 13px;
-  background: #fff;
+  background: var(--campo);
   min-width: 0;
 }
 
@@ -1083,7 +1279,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-agregar {
   border: 1px solid var(--borde);
   border-radius: 4px;
-  background: #fff;
+  background: var(--campo);
   cursor: pointer;
 }
 
@@ -1093,7 +1289,7 @@ body.arrastrando .paleta-item {
 }
 
 .panel-hoja-item button:hover {
-  background: #fef2f2;
+  background: var(--error-suave);
   border-color: var(--error);
 }
 
@@ -1111,7 +1307,7 @@ body.arrastrando .paleta-item {
 .orientacion-opciones button {
   border: 1px solid var(--borde);
   border-radius: 4px;
-  background: #fff;
+  background: var(--campo);
   padding: 5px 12px;
   cursor: pointer;
 }
@@ -1150,7 +1346,7 @@ body.arrastrando .paleta-item {
 .panel-hoja-pie button {
   border: 1px solid var(--borde);
   border-radius: 4px;
-  background: #fff;
+  background: var(--campo);
   padding: 6px 18px;
   cursor: pointer;
 }
@@ -1274,16 +1470,16 @@ body.arrastrando .paleta-item {
   margin: 0 0 12px;
   padding: 8px 10px;
   border-radius: var(--radio-chico);
-  background: #fffbeb;
+  background: var(--vivo-suave);
   border: 1px solid #fcd34d;
-  color: #92400e;
+  color: var(--vivo);
   font-size: 12px;
   line-height: 1.4;
 }
 [data-theme="dark"] .dialogo-aviso {
   background: var(--bg-surface-alt);
   border-color: var(--borde);
-  color: #fbbf24;
+  color: var(--vivo);
 }
 .dialogo-exportar-check {
   display: flex;
@@ -1386,7 +1582,7 @@ body.arrastrando .paleta-item {
 /* Fecha incompleta o inválida en el rótulo */
 .panel-hoja-resp input.invalido {
   border-color: var(--error);
-  background: #fef2f2;
+  background: var(--error-suave);
 }
 
 .panel-hoja-ayuda {
@@ -1436,7 +1632,7 @@ body.arrastrando .paleta-item {
 .accesorio-quitar {
   border: 1px solid var(--borde);
   border-radius: 4px;
-  background: #fff;
+  background: var(--campo);
   color: var(--error);
   cursor: pointer;
   padding: 3px 7px;
@@ -1451,7 +1647,7 @@ body.arrastrando .paleta-item {
   margin-top: 4px;
   border: 1px dashed var(--borde);
   border-radius: 4px;
-  background: #fff;
+  background: var(--campo);
   padding: 5px 10px;
   font-size: 11px;
   cursor: pointer;
@@ -1601,7 +1797,7 @@ body.arrastrando .paleta-item {
 .chip {
   border: 1px solid #cbd5e1;
   border-radius: 14px;
-  background: #fff;
+  background: var(--campo);
   color: var(--text-secondary);
   font-size: 11px;
   line-height: 1;
@@ -1634,8 +1830,8 @@ body.arrastrando .paleta-item {
 .form-atributos-aviso {
   margin: 0;
   font-size: 11px;
-  color: #92400e;
-  background: #fef3c7;
+  color: var(--vivo);
+  background: var(--vivo-suave);
   border: 1px solid #fcd34d;
   border-radius: 6px;
   padding: 5px 7px;
@@ -1684,12 +1880,19 @@ body.arrastrando .paleta-item {
   gap: 6px;
 }
 
+/* E79: la columna de etiquetas de la ficha técnica dejó de ser
+ * monoespaciada. No es un dato tabulado — es texto ("Sección", "Norma
+ * IRAM"), y la monoespaciada acá solo disfrazaba de dato lo que es una
+ * etiqueta. La condensada de Archivo entra igual en la misma columna de
+ * 118 px y se lee mucho mejor. La monoespaciada queda donde sí
+ * corresponde: la anotación técnica SOBRE el plano. */
 .campo-atributo > span {
   width: 118px;
   min-width: 118px;
-  font-size: 11px;
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
-  color: #3f3f46;
+  font-size: 11.5px;
+  font-stretch: 88%;
+  line-height: 1.25;
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -1722,7 +1925,7 @@ body.arrastrando .paleta-item {
   width: 250px;
   max-height: 60vh;
   overflow-y: auto;
-  background: #ffffff;
+  background: var(--bg-surface);
   border: 1px solid var(--borde);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
@@ -1812,7 +2015,7 @@ body.arrastrando .paleta-item {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: #fdfdfd;
+  background: var(--campo);
   border: 2px solid rgba(var(--acento-rgb), 0.85);
   box-shadow: 0 0 0 3px rgba(var(--acento-rgb), 0.18);
   cursor: grab;
@@ -1980,9 +2183,9 @@ body.arrastrando .paleta-item {
  * carga). No son un campo: solo avisan qué está quedando. */
 .form-calculado {
   margin: -4px 0 0;
-  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
   font-size: 11px;
-  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
 }
 
 .panel-atributos-hoja-hija {
@@ -2034,7 +2237,7 @@ body.arrastrando .paleta-item {
   border: none;
   border-radius: 6px;
   padding: 2px 10px;
-  background: #eef2ff;
+  background: var(--acento-suave);
   color: var(--acento-fuerte);
   font-size: 11px;
   cursor: pointer;
@@ -2123,7 +2326,7 @@ body.arrastrando .paleta-item {
   gap: 6px;
   border: 1px solid var(--borde);
   border-radius: 999px;
-  background: #f4f4f5;
+  background: var(--bg-surface-alt);
   padding: 2px 6px;
   cursor: pointer;
   justify-content: flex-start;
@@ -2350,7 +2553,7 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .marca {
-  color: var(--acento);
+  color: var(--text-primary);
 }
 
 [data-theme="dark"] .ayuda {
@@ -2446,11 +2649,11 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .sin-problemas {
-  color: #4ade80;
+  color: var(--ok);
 }
 
 [data-theme="dark"] .panel-problemas li.aviso {
-  color: #fbbf24;
+  color: var(--vivo);
 }
 
 [data-theme="dark"] .aviso-autoguardado {
@@ -2465,15 +2668,15 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .checklist-cabecera {
-  color: #fbbf24;
+  color: var(--text-primary);
 }
 
 [data-theme="dark"] .checklist-ir {
-  color: #fbbf24;
+  color: var(--text-primary);
 }
 
 [data-theme="dark"] .checklist-ir:hover:not(:disabled) {
-  color: #fde68a;
+  color: var(--acento);
 }
 
 /* Panel de hoja (modal) */
@@ -2522,7 +2725,7 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .panel-hoja-item button:hover {
-  background: #3b1111;
+  background: var(--error-suave);
   border-color: var(--error);
 }
 
@@ -2577,9 +2780,9 @@ body.arrastrando .paleta-item {
 }
 
 [data-theme="dark"] .form-atributos-aviso {
-  background: #422006;
-  border-color: #92400e;
-  color: #fbbf24;
+  background: var(--vivo-suave);
+  border-color: var(--vivo);
+  color: var(--vivo);
 }
 
 /* Anotaciones sobre el plano — heredan color del tema vía var() */
@@ -2600,27 +2803,27 @@ body.arrastrando .paleta-item {
 
 /* Toast y avisos */
 [data-theme="dark"] .toast-mover {
-  background: #052e16;
-  border-color: #16a34a;
-  color: #bbf7d0;
+  background: var(--bg-surface);
+  border-color: var(--ok);
+  color: var(--text-primary);
 }
 
 [data-theme="dark"] .toast-mover button {
   background: var(--bg-surface);
-  border-color: #16a34a;
-  color: #bbf7d0;
+  border-color: var(--ok);
+  color: var(--text-primary);
 }
 
 [data-theme="dark"] .aviso-fuera-hoja {
-  background: #450a0a;
+  background: var(--error-suave);
   border-color: var(--error);
-  color: #fecaca;
+  color: var(--error);
 }
 
 [data-theme="dark"] .aviso-fuera-hoja button {
   background: var(--bg-surface);
   border-color: var(--error);
-  color: #fecaca;
+  color: var(--error);
 }
 
 [data-theme="dark"] .aviso-fuera-hoja button:hover {
@@ -2782,19 +2985,6 @@ body.arrastrando .paleta-item {
   vertical-align: middle;
 }
 
-/* ---- Badge de modo simulación (E63) ---- */
-.badge-simulacion {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--ok);
-  color: #fff;
-  line-height: 1.4;
-  vertical-align: middle;
-}
 
 /* ================================================================
    Editor de símbolos (D4.2) — visible solo en modo admin
@@ -2942,17 +3132,17 @@ body.arrastrando .paleta-item {
 }
 
 .editor-simbolos-badge.verificado {
-  background: #dcfce7;
+  background: var(--acento-suave);
   /* #16a34a daba 3,00:1 sobre este verde claro (bajo AA 4,5:1);
-     #166534 da 6,49:1, verificado. */
-  color: #166534;
+     var(--ok) da 6,49:1, verificado. */
+  color: var(--ok);
 }
 
 .editor-simbolos-badge.pendiente_revision {
-  background: #fef9c3;
+  background: var(--vivo-suave);
   /* #ca8a04 daba 2,74:1 sobre este amarillo claro — bien por debajo del
      mínimo AA (4,5:1). #92400e da 6,60:1, verificado. */
-  color: #92400e;
+  color: var(--vivo);
 }
 
 .editor-simbolos-badge.corregido {
@@ -2962,12 +3152,12 @@ body.arrastrando .paleta-item {
 
 [data-theme="dark"] .editor-simbolos-badge.verificado {
   background: rgba(22, 163, 74, 0.2);
-  color: #4ade80;
+  color: var(--ok);
 }
 
 [data-theme="dark"] .editor-simbolos-badge.pendiente_revision {
   background: rgba(202, 138, 4, 0.2);
-  color: #facc15;
+  color: var(--vivo);
 }
 
 [data-theme="dark"] .editor-simbolos-badge.corregido {
@@ -3003,11 +3193,11 @@ body.arrastrando .paleta-item {
    * edita geometría de precisión (como en un editor vectorial), y un
    * fondo con tinte de color (el resto de la app lo tiene a propósito,
    * tono "plano azul") hace más difícil juzgar el trazo a ojo. */
-  background: #e4e4e4;
+  background: var(--bg-surface-alt);
   overflow: hidden;
 }
 [data-theme="dark"] .editor-simbolos-canvas-wrap {
-  background: #262626;
+  background: var(--bg-surface-alt);
 }
 
 .editor-simbolos-canvas-wrap canvas {
@@ -3059,7 +3249,7 @@ body.arrastrando .paleta-item {
 .editor-simbolos-toolbar button {
   border: 1px solid var(--borde);
   border-radius: 4px;
-  background: #fff;
+  background: var(--campo);
   padding: 4px 10px;
   cursor: pointer;
   font-size: 13px;
@@ -3208,7 +3398,9 @@ body.arrastrando .paleta-item {
   background: transparent !important;
 }
 .captura-pdf-negro .hoja {
-  background-color: #fff !important;
+  /* Blanco literal, no var(--papel): el PDF se imprime en papel real
+   * aunque el editor esté en tema oscuro. */
+  background-color: #ffffff !important;
   background-image: none !important;
   box-shadow: none !important;
 }
@@ -3223,7 +3415,8 @@ body.arrastrando .paleta-item {
   padding: 15mm;
   font-family: system-ui, sans-serif;
   color: #000;
-  background: #fff;
+  /* Blanco literal: esta página se imprime (ver .captura-pdf-negro). */
+  background: #ffffff;
   display: flex;
   flex-direction: column;
 }

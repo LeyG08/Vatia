@@ -157,8 +157,10 @@ function Paleta({
 
   return (
     <aside className="paleta">
-      <h2>Símbolos</h2>
-      <p className="paleta-ayuda">Mantené presionado y arrastrá al plano</p>
+      <div className="paleta-cabecera">
+        <h2>Símbolos</h2>
+        <p className="paleta-ayuda">Mantené presionado y arrastrá al plano</p>
+      </div>
 
       {modo === "unifilar" && (
         <div className="paleta-grupo">

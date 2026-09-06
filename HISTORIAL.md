@@ -7063,3 +7063,85 @@ protecciones se asumen siempre sanas (no hay estado de disparo), el
 contacto auxiliar "NA+NC" no tiene símbolo de 4 terminales en la
 librería, y los nodos de familia "carga" del unifilar todavía no entran
 en el resultado.
+
+## E79 — Rediseño visual: "la mesa de dibujo"
+
+Pase de diseño sobre la interfaz entera, pedido con la skill
+`frontend-design`. El diagnóstico: la herramienta se comportaba como un
+sitio web —tarjetas redondeadas con sombra, emoji en la barra, tintes de
+color de librería por todos lados— cuando lo que es, es un instrumento
+alrededor de un plano. De ahí la idea rectora y sus tres reglas.
+
+**1. El blanco es papel.** La única superficie blanca de la pantalla pasa
+a ser la lámina (`--papel`). Los paneles son gris frío (`--bg-surface`) y
+los campos de carga un gris casi blanco (`--campo`). El lienzo alrededor
+de la hoja se oscurece a pizarra (`--bg-canvas`, antes `#d8dfe8`) para
+que el papel se lea como papel apoyado sobre la mesa. La sombra de la
+hoja (`--sombra-hoja`) es la única sombra de la app que representa algo
+real; las tarjetas perdieron las suyas.
+
+**2. El croma significa electricidad.** El cromo es acromático a
+propósito: el color queda reservado para lo que es eléctrico. El único
+acento de interfaz es el azul de cianotipo (`#1b4e8c`), elegido
+justamente porque queda FUERA del código de colores AEA
+(marrón/negro/rojo, celeste, verde-amarillo) y no va a competir con los
+conductores cuando se pinten las fases (pendiente 6). Se normalizaron
+~35 colores hardcodeados de librería (los verdes/ámbares/rojos tipo
+Tailwind desperdigados en avisos, toasts y badges) contra los tokens
+`--ok`, `--vivo` y `--error`.
+
+**3. Un solo momento audaz: el ámbar de circuito vivo.** El resaltado de
+aparato energizado pasó de verde a ámbar (`--vivo`), y el botón
+"Detener simulación" se enciende del mismo color. Verde quedó para "esto
+está bien/completo", que es otra cosa: un contacto energizado no es una
+validación aprobada, es un circuito vivo. Como el botón ya dice el
+estado en ámbar, se eliminó el badge "▶ SIMULACIÓN" que lo repetía.
+
+**Tipografía.** Archivo (Omnibus-Type, Buenos Aires) como única familia,
+en su versión variable con eje de ancho: el grotesco de formas
+rectificadas se lee como lettering de plano y el eje `wdth` da la
+condensada de las etiquetas densas sin sumar una segunda familia.
+Autohospedada (`@fontsource-variable/archivo`) para que el editor se vea
+igual sin conexión. Se agregó `font-family: inherit` a botones, inputs y
+selects: sin eso, media interfaz seguía con la fuente del sistema.
+
+La columna de etiquetas de la ficha técnica dejó de ser monoespaciada —
+no es un dato tabulado, es texto ("Sección", "Norma IRAM"), y la
+monoespaciada solo disfrazaba de dato lo que es una etiqueta. La
+monoespaciada queda donde sí corresponde: la anotación técnica SOBRE el
+plano (`.anotacion-nodo`, `.anotacion-edge`, `.alim-nota`), que es
+lettering de plano de verdad.
+
+**Barra superior.** Eran once botones de igual peso repartidos en dos
+filas, con emoji (💾📐⚡📂) y sin decir cuál sirve para qué. Ahora es una
+sola fila partida en grupos por función —documento · dibujo · simulación
+· salidas— separados por filetes, con lo instrumental (deshacer, rehacer,
+tema, ayuda) al margen derecho. El nombre del proyecto se muestra como
+título del documento y solo se comporta como campo cuando el mouse o el
+foco están encima. Sin emoji.
+
+**Paleta.** Cada símbolo era una tarjeta blanca con borde propio: 75
+tarjetas compitiendo entre sí y con el plano. Ahora son renglones planos
+sobre la superficie del panel, con la cabecera fija arriba; lo único que
+se dibuja al pasar el mouse es un filete de acento del lado del lienzo,
+que es hacia donde se lo va a arrastrar.
+
+**Checklist AEA.** Dejó de ser una tarjeta amarilla con subrayado
+punteado en cada elemento. Es una superficie de panel más y lo único en
+color es el filete izquierdo: ámbar mientras falten datos, verde cuando
+está completa. La columna de paneles flotantes se achicó de 460 a 380 px
+de ancho y de 62% a 44% de alto: con 24 pendientes tapaba media lámina,
+que es justamente lo que se está tratando de mirar.
+
+**Radios y filetes.** `--radio` bajó de 6 a 3 px y `--radio-chico` de 4 a
+2 px: la tarjeta redondeada de 6-8 px es lo que hace que una herramienta
+técnica parezca un sitio web.
+
+El PDF no cambia: `.captura-pdf-negro .hoja` y `.pagina-bom` fuerzan
+blanco literal (no `var(--papel)`), así el plano se imprime en papel real
+aunque el editor esté en tema oscuro.
+
+Verificado: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e` (21
+checks), `npm run e2e:simulacion` (11 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs`. Revisado con capturas en claro y oscuro,
+con proyecto vacío y con el proyecto real del PPS, y en modo simulación.
