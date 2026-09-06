@@ -6682,3 +6682,10 @@ Marcha soltada: sin autoenclavamiento en este circuito, todo se apaga.
 Confirma que el contactor multipolar funciona con su lógica real de
 bobina (no solo "siempre cerrado" como el interruptor termomagnético
 verificado en E69), a través de las 3 fases simultáneamente.
+
+### E70.2 — Contactor multipolar, aprobado
+
+El usuario aprobó los 4 símbolos ("Bien, si segui con el siguiente
+dispositivo"). Los `metadata.json` de S00157–160 pasan `estado_revision`
+de `pendiente_revision` a `verificado`. Galería regenerada — la librería
+de comando queda en 28/28 símbolos verificados.
