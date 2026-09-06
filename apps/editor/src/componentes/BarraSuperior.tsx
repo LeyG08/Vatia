@@ -35,8 +35,9 @@ function BarraSuperior() {
   const alternarSimulacion = useEditor((s) => s.alternarSimulacion);
   const modoTrabajo = useEditor((s) => s.modoTrabajo);
   const setModoTrabajo = useEditor((s) => s.setModoTrabajo);
-  const columnaIzquierda = useEditor((s) => s.columnaIzquierda);
-  const setColumnaIzquierda = useEditor((s) => s.setColumnaIzquierda);
+  const hojaModo = useEditor((s) => s.hoja.modo);
+  const actualizarHoja = useEditor((s) => s.actualizarHoja);
+  const hayNodos = useEditor((s) => s.nodos.length > 0);
   const tablaAbierta = useEditor((s) => s.tablaAbierta);
   const setTablaAbierta = useEditor((s) => s.setTablaAbierta);
   const setComandosAbiertos = useEditor((s) => s.setComandosAbiertos);
@@ -264,23 +265,29 @@ function BarraSuperior() {
         <div className="cinta-comandos">
           {modoTrabajo === "dibujar" && (
             <>
-              <Grupo titulo="Columna izquierda">
-                <button
-                  type="button"
-                  className={columnaIzquierda === "simbolos" ? "activo" : ""}
-                  onClick={() => setColumnaIzquierda("simbolos")}
-                  title="Mostrar la libreria de simbolos"
-                >
-                  Simbolos
-                </button>
-                <button
-                  type="button"
-                  className={columnaIzquierda === "proyecto" ? "activo" : ""}
-                  onClick={() => setColumnaIzquierda("proyecto")}
-                  title="Mostrar el legajo del proyecto"
-                >
-                  Legajo
-                </button>
+              {/* E81.1 — el tipo de esquema sube a la cinta. Era lo unico
+                * de "Configuracion de hoja" que se toca mientras se
+                * dibuja (define que librería ofrece la paleta), y estaba
+                * enterrado a dos clics dentro de un panel modal. */}
+              <Grupo titulo="Tipo de esquema">
+                {(["unifilar", "multifilar"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={hojaModo === m ? "activo" : ""}
+                    disabled={hayNodos && hojaModo !== m}
+                    onClick={() => actualizarHoja({ modo: m })}
+                    title={
+                      hayNodos && hojaModo !== m
+                        ? "Esta hoja ya tiene simbolos del otro tipo - mezclar fuerza y comando en la misma hoja no esta permitido."
+                        : m === "unifilar"
+                          ? "Fuerza: una linea representa todas las fases"
+                          : "Comando: cada polo en su propia linea"
+                    }
+                  >
+                    {m === "unifilar" ? "Unifilar" : "Multifilar"}
+                  </button>
+                ))}
               </Grupo>
               <Grupo titulo="Hoja">
                 <button type="button" onClick={() => alternarHoja()}>
@@ -308,22 +315,7 @@ function BarraSuperior() {
                   Datos del proyecto...
                 </button>
               </Grupo>
-              <Grupo titulo="Columna izquierda">
-                <button
-                  type="button"
-                  className={columnaIzquierda === "proyecto" ? "activo" : ""}
-                  onClick={() => setColumnaIzquierda("proyecto")}
-                >
-                  Legajo
-                </button>
-                <button
-                  type="button"
-                  className={columnaIzquierda === "simbolos" ? "activo" : ""}
-                  onClick={() => setColumnaIzquierda("simbolos")}
-                >
-                  Simbolos
-                </button>
-              </Grupo>
+
             </>
           )}
 
@@ -340,13 +332,16 @@ function BarraSuperior() {
 
           {modoTrabajo === "simular" && (
             <Grupo titulo="Circuito">
+              {/* E81.1 - el boton dice lo que hace, no en que estado esta:
+                * entrar a la solapa "Simular" ya energizo el circuito, asi
+                * que lo unico que queda por hacer aca es volver todo a
+                * reposo. */}
               <button
                 type="button"
-                className={modoSimulacion ? "vivo" : ""}
                 onClick={alternarSimulacion}
-                title="Reinicia el estado: todas las bobinas caen y los pulsadores vuelven a reposo"
+                title="Vuelve el circuito a reposo: todas las bobinas caen, los pulsadores se sueltan y los selectores vuelven a la posicion 1"
               >
-                {modoSimulacion ? "Reiniciar estado" : "Encender el circuito"}
+                Volver a reposo
               </button>
             </Grupo>
           )}

@@ -1,6 +1,7 @@
 import { useEditor } from "../lib/store";
 import Paleta from "./Paleta";
 import ArbolProyecto from "./ArbolProyecto";
+import PanelEmitir from "./PanelEmitir";
 
 /**
  * PROTOTIPO E81 — la columna izquierda pasa a tener dos solapas en vez de
@@ -11,6 +12,11 @@ import ArbolProyecto from "./ArbolProyecto";
  * formas de "traer algo al plano" —uno lo busca en el catálogo, el otro
  * lo busca en lo que ya dibujó— y tenerlas como paneles separados
  * competiría por el mismo espacio sin ganar nada.
+ *
+ * E81.1: estas solapas son el ÚNICO lugar donde se cambia de una a la
+ * otra. La cinta las repetía arriba, además con el orden invertido, y
+ * dos controles para lo mismo a dos centímetros de distancia se leen
+ * como dos cosas distintas.
  */
 function ColumnaIzquierda({
   onIniciarArrastre,
@@ -19,6 +25,7 @@ function ColumnaIzquierda({
 }) {
   const cual = useEditor((s) => s.columnaIzquierda);
   const setCual = useEditor((s) => s.setColumnaIzquierda);
+  const modoTrabajo = useEditor((s) => s.modoTrabajo);
 
   return (
     <div className="columna-izq">
@@ -41,9 +48,26 @@ function ColumnaIzquierda({
         >
           Símbolos
         </button>
+        {/* E81.2 — la tercera solapa aparece solo en el modo Emitir: lo
+          * que se va a imprimir y los materiales adicionales, que antes
+          * estaban enterrados en "Configuración de hoja", que es donde
+          * nadie va cuando está por exportar. */}
+        {modoTrabajo === "emitir" && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={cual === "emitir"}
+            className={cual === "emitir" ? "activa" : ""}
+            onClick={() => setCual("emitir")}
+          >
+            Emitir
+          </button>
+        )}
       </div>
       <div className="columna-izq-cuerpo">
-        {cual === "proyecto" ? (
+        {cual === "emitir" && modoTrabajo === "emitir" ? (
+          <PanelEmitir />
+        ) : cual === "proyecto" ? (
           <ArbolProyecto />
         ) : (
           <Paleta onIniciarArrastre={onIniciarArrastre} />

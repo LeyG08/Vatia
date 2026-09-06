@@ -20,6 +20,19 @@ import { categoriaDeTipoAparato, etiquetaCategoriaAparato } from "../lib/categor
  * muestra su referencia IEC 61346 y, si le faltan datos de ficha, cuántos
  * — así el legajo también dice qué queda por documentar, sin abrir el
  * checklist.
+ *
+ * E81.2 — la jerarquía de tableros. Las hojas dejan de ser una lista
+ * plana: cuelgan unas de otras según de qué circuito seccional nacieron
+ * (`hojaPadreId`), que es como se organiza una instalación real —
+ * tablero general, seccionales, sub-seccionales. Dos controles viven
+ * acá porque acá es donde se ve la estructura:
+ *
+ *  - el tablero PRINCIPAL se elige a mano (el orden de las hojas no
+ *    alcanza para saberlo: un proyecto puede empezar por un seccional),
+ *    y es de donde cuelga todo lo demás;
+ *  - cada tablero puede prender o apagar la creación automática de la
+ *    hoja de sus seccionales, para los casos en que ese tablero lo
+ *    documenta otro o todavía no se sabe.
  */
 
 interface ItemAparato {
@@ -45,6 +58,8 @@ function ArbolProyecto() {
   const cambiarHojaActiva = useEditor((s) => s.cambiarHojaActiva);
   const seleccionarNodos = useEditor((s) => s.seleccionarNodos);
   const nombreProyecto = useEditor((s) => s.nombreProyecto);
+  const marcarTableroPrincipal = useEditor((s) => s.marcarTableroPrincipal);
+  const setAutoSeccionales = useEditor((s) => s.setAutoSeccionales);
   const [plegadas, setPlegadas] = useState<Set<string>>(new Set());
 
   /* La hoja ACTIVA se lee del espejo en vivo (`nodos`), no de
@@ -131,6 +146,34 @@ function ArbolProyecto() {
 
   const totalPendientes = porHoja.reduce((t, h) => t + h.pendientes, 0);
 
+  /* Orden jerárquico: primero el tablero principal (o, si nadie lo marcó
+   * todavía, las hojas sin padre), y debajo de cada uno sus seccionales,
+   * en profundidad. Una hoja cuyo padre se borró vuelve a la raíz en vez
+   * de desaparecer del legajo. */
+  const porId = new Map(porHoja.map((h) => [h.hoja.id, h]));
+  const hijosDe = new Map<string, typeof porHoja>();
+  const raices: typeof porHoja = [];
+  for (const item of porHoja) {
+    const padre = item.hoja.hojaPadreId;
+    if (padre && porId.has(padre)) {
+      if (!hijosDe.has(padre)) hijosDe.set(padre, []);
+      hijosDe.get(padre)!.push(item);
+    } else {
+      raices.push(item);
+    }
+  }
+  raices.sort((a, b) => Number(!!b.hoja.esTableroPrincipal) - Number(!!a.hoja.esTableroPrincipal));
+
+  const ordenadas: { item: (typeof porHoja)[number]; nivel: number }[] = [];
+  const visitar = (item: (typeof porHoja)[number], nivel: number) => {
+    ordenadas.push({ item, nivel });
+    if (plegadas.has(item.hoja.id)) return;
+    for (const hijo of hijosDe.get(item.hoja.id) ?? []) visitar(hijo, nivel + 1);
+  };
+  for (const r of raices) visitar(r, 0);
+
+  const hayPrincipal = porHoja.some((h) => h.hoja.esTableroPrincipal);
+
   return (
     <div className="arbol">
       <div className="arbol-raiz">
@@ -141,32 +184,78 @@ function ArbolProyecto() {
         </span>
       </div>
 
-      {porHoja.map(({ hoja, grupos, total, pendientes }) => {
+      {!hayPrincipal && porHoja.length > 0 && (
+        <p className="arbol-aviso">
+          Ningún tablero está marcado como principal. Marcalo con el ícono ⌂
+          para que el resto cuelgue de él.
+        </p>
+      )}
+
+      {ordenadas.map(({ item: { hoja, grupos, total, pendientes }, nivel }) => {
         const plegadaHoja = plegadas.has(hoja.id);
+        const autoOn = hoja.autoSeccionales !== false;
         return (
-          <div key={hoja.id} className="arbol-hoja">
-            <button
-              type="button"
-              className={`arbol-fila arbol-fila-hoja${hoja.id === hojaActivaId ? " activa" : ""}`}
-              onClick={() => {
-                if (hoja.id !== hojaActivaId) cambiarHojaActiva(hoja.id);
-                else plegar(hoja.id);
-              }}
-              title={`${hoja.nombre} — ${hoja.modo}`}
-            >
-              <span
-                className="arbol-flecha"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  plegar(hoja.id);
+          <div
+            key={hoja.id}
+            className={`arbol-hoja${nivel > 0 ? " arbol-hoja-hija" : ""}`}
+            style={{ ["--nivel" as string]: nivel }}
+          >
+            <div className={`arbol-fila-tablero${hoja.id === hojaActivaId ? " activa" : ""}`}>
+              <button
+                type="button"
+                className="arbol-fila arbol-fila-hoja"
+                onClick={() => {
+                  if (hoja.id !== hojaActivaId) cambiarHojaActiva(hoja.id);
+                  else plegar(hoja.id);
                 }}
+                title={`${hoja.nombre} — ${hoja.modo}${
+                  nivel > 0 ? " — tablero seccional" : ""
+                }`}
               >
-                {plegadaHoja ? "▸" : "▾"}
-              </span>
-              <span className="arbol-nombre">{hoja.nombre}</span>
-              <span className="arbol-conteo">{total}</span>
-              {pendientes > 0 && <span className="arbol-pendiente">{pendientes}</span>}
-            </button>
+                <span
+                  className="arbol-flecha"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    plegar(hoja.id);
+                  }}
+                >
+                  {plegadaHoja ? "▸" : "▾"}
+                </span>
+                <span className="arbol-nombre">{hoja.nombre}</span>
+                <span className="arbol-conteo">{total}</span>
+                {pendientes > 0 && <span className="arbol-pendiente">{pendientes}</span>}
+              </button>
+
+              {/* Los dos controles de la jerarquía, en el renglón del
+                * tablero: cuál es el principal, y si sus seccionales se
+                * abren solos. */}
+              <button
+                type="button"
+                className={`arbol-marca${hoja.esTableroPrincipal ? " puesta" : ""}`}
+                onClick={() => marcarTableroPrincipal(hoja.id)}
+                aria-pressed={!!hoja.esTableroPrincipal}
+                title={
+                  hoja.esTableroPrincipal
+                    ? "Este es el tablero principal del proyecto"
+                    : "Marcar como tablero principal"
+                }
+              >
+                ⌂
+              </button>
+              <button
+                type="button"
+                className={`arbol-marca${autoOn ? " puesta" : ""}`}
+                onClick={() => setAutoSeccionales(hoja.id, !autoOn)}
+                aria-pressed={autoOn}
+                title={
+                  autoOn
+                    ? "Al cargar un circuito seccional en esta hoja se crea sola la hoja de su tablero. Clic para desactivarlo."
+                    : "La hoja de los tableros seccionales de esta hoja se crea a mano. Clic para que se cree sola."
+                }
+              >
+                ⑂
+              </button>
+            </div>
 
             {!plegadaHoja &&
               grupos.map(([categoria, items]) => {

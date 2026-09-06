@@ -10,6 +10,8 @@ export default function PestanasHoja() {
   const hojas = useEditor((s) => s.proyecto.hojas);
   const activa = useEditor((s) => s.hojaActivaId);
   const agregarHoja = useEditor((s) => s.agregarHoja);
+  const alternarPanelHoja = useEditor((s) => s.alternarPanelHoja);
+  const panelHojaAbierto = useEditor((s) => s.panelHojaAbierto);
   const duplicarHoja = useEditor((s) => s.duplicarHoja);
   const eliminarHojaFn = useEditor((s) => s.eliminarHoja);
   const renombrarHojaFn = useEditor((s) => s.renombrarHoja);
@@ -129,7 +131,17 @@ export default function PestanasHoja() {
         type="button"
         className="pestana-hoja nueva"
         title="Nueva hoja"
-        onClick={() => agregarHoja()}
+        onClick={() => {
+          /* E81.2 — crear una hoja te lleva a ella y te abre su
+           * configuración. El formato, la orientación y el tipo de
+           * esquema son decisiones que se toman ANTES de dibujar (el
+           * tipo, de hecho, no se puede cambiar despues si la hoja ya
+           * tiene simbolos), y antes había que acordarse de ir a
+           * buscarlas a un panel. */
+          const id = agregarHoja();
+          cambiarHojaActiva(id);
+          if (!panelHojaAbierto) alternarPanelHoja();
+        }}
       >
         ＋ Nueva
       </button>

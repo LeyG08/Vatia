@@ -534,8 +534,8 @@ interface EstadoEditor {
   setModoTrabajo: (modo: ModoTrabajo) => void;
   /** PROTOTIPO E81 — solapa activa de la columna izquierda: el legajo del
    * proyecto (árbol) o la librería de símbolos. */
-  columnaIzquierda: "proyecto" | "simbolos";
-  setColumnaIzquierda: (cual: "proyecto" | "simbolos") => void;
+  columnaIzquierda: "proyecto" | "simbolos" | "emitir";
+  setColumnaIzquierda: (cual: "proyecto" | "simbolos" | "emitir") => void;
   /** PROTOTIPO E81 — planilla de carga masiva de fichas técnicas, al
    * costado del plano. `tablaTipo` es el `tipo_aparato` que se está
    * editando (las columnas salen del schema de ESE tipo). */
@@ -713,7 +713,15 @@ interface EstadoEditor {
   ) => { movidos: number; cortadas: number } | null;
   /** Jerarquía de hojas: crea (o, si ya existe, navega a) la hoja hija
    * que cuelga de una carga seccional de la hoja activa. */
-  crearOIrAHojaHija: (nodoId: string) => string;
+  crearOIrAHojaHija: (nodoId: string, navegar?: boolean) => string;
+  /** E81.2 — marca una hoja como el tablero principal del proyecto. Es
+   * exclusivo: marcar una desmarca la anterior. */
+  /** E81.2 — rotulo del tablero principal para heredar en una hoja nueva. */
+  rotuloHeredado: () => RotuloConfig;
+  marcarTableroPrincipal: (hojaId: string) => void;
+  /** E81.2 — activa o desactiva, para UNA hoja, la creacion automatica de
+   * la hoja del tablero seccional al cargar un circuito seccional. */
+  setAutoSeccionales: (hojaId: string, activo: boolean) => void;
   /** Hoja padre de la activa según hojaPadreId, si tiene */
   hojaPadreDeActiva: () => Hoja | null;
   irAHojaPadre: () => void;
@@ -970,7 +978,8 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         // Cada modo llega con su costado ya armado: dibujar necesita la
         // librería a mano, documentar la planilla, y verificar ninguna
         // de las dos porque el checklist ocupa el pie.
-        columnaIzquierda: modo === "dibujar" ? "simbolos" : "proyecto",
+        columnaIzquierda:
+          modo === "dibujar" ? "simbolos" : modo === "emitir" ? "emitir" : "proyecto",
         tablaAbierta: modo === "documentar",
       });
     },
@@ -1475,6 +1484,20 @@ export const useEditor = create<EstadoEditor>((set, get) => {
             ),
           })),
       });
+
+      /* E81.2 — al declarar que un circuito alimenta OTRO tablero, su
+       * hoja se crea sola. Antes había que acordarse de pedirla a mano,
+       * y una hoja seccional sin crear no aparece en ningún lado: ni en
+       * el legajo, ni en el PDF del proyecto completo. Se dispara solo
+       * en el cambio (no estaba seccional y ahora sí), así que reabrir
+       * la ficha no duplica nada, y no navega: el usuario sigue donde
+       * estaba y la hoja lo espera en el legajo. Se puede apagar por
+       * tablero desde el propio legajo (`autoSeccionales`). */
+      const eraSeccional = antes.tipo_carga === "seccional";
+      const esSeccional = atributos.tipo_carga === "seccional";
+      if (!eraSeccional && esSeccional && get().hoja.autoSeccionales !== false) {
+        get().crearOIrAHojaHija(id, false);
+      }
     },
 
     actualizarAtributosConexion(id, atributos) {
@@ -1901,7 +1924,14 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       let n = proyecto.hojas.length + 1;
       const nombres = new Set(proyecto.hojas.map((h) => h.nombre));
       while (nombres.has(`Hoja ${n}`)) n += 1;
-      const nueva = hojaNuevaDesde(clonarCfg(get().hoja), `Hoja ${n}`);
+      const base = clonarCfg(get().hoja);
+      // E81.2: el rotulo se carga UNA vez y se hereda; la denominacion
+      // arranca con el nombre de la hoja, que es lo que va a mostrar el
+      // plano mientras nadie lo cambie.
+      const nueva = hojaNuevaDesde(
+        { ...base, rotulo: { ...get().rotuloHeredado(), denominacion: `Hoja ${n}` } },
+        `Hoja ${n}`,
+      );
       set((s) => ({
         proyecto: { ...s.proyecto, hojas: [...s.proyecto.hojas, nueva] },
         version: s.version + 1,
@@ -1911,7 +1941,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       return nueva.id;
     },
 
-    crearOIrAHojaHija(nodoId) {
+    crearOIrAHojaHija(nodoId, navegar = true) {
       const { proyecto, hojaActivaId, nodos } = get();
       // Ya existe una hoja hija de este nodo puntual: navegar, no duplicar.
       const existente = proyecto.hojas.find(
@@ -1939,7 +1969,15 @@ export const useEditor = create<EstadoEditor>((set, get) => {
       }
 
       const nueva: Hoja = {
-        ...hojaNuevaDesde(HOJA_POR_DEFECTO(), nombre),
+        ...hojaNuevaDesde(
+          { ...HOJA_POR_DEFECTO(), rotulo: { ...get().rotuloHeredado(), denominacion: nombre } },
+          nombre,
+        ),
+        // La hoja de un tablero seccional hereda formato y orientacion del
+        // tablero del que cuelga: un legajo se imprime todo del mismo
+        // tamaño.
+        formato: get().hoja.formato,
+        orientacion: get().hoja.orientacion,
         modo: get().hoja.modo,
         hojaPadreId: hojaActivaId,
         nodoOrigenId: nodoId,
@@ -1951,8 +1989,61 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         proyecto: { ...s.proyecto, hojas },
         version: s.version + 1,
       }));
-      get().cambiarHojaActiva(nueva.id);
+      // E81.2: la creacion AUTOMATICA no navega. Que la app te saque de
+      // la hoja en la que estas dibujando, sola, por haber elegido un
+      // tipo de carga, seria peor que no crear nada.
+      if (navegar) get().cambiarHojaActiva(nueva.id);
       return nueva.id;
+    },
+
+    /* E81.2 — al crear una hoja nueva NO se arranca de cero: hereda el
+     * rotulo del tablero principal (o de la hoja activa si nadie lo
+     * marco). El rotulo IRAM 4508 es empresa, cliente, responsables,
+     * tolerancias: datos del PROYECTO, no del plano, y volver a
+     * escribirlos en cada hoja es la clase de trabajo repetido que
+     * termina en hojas con datos distintos entre si. Lo unico que no se
+     * hereda es la denominacion, que es propia de cada plano. */
+    rotuloHeredado() {
+      const { proyecto, hojaActivaId, hoja } = get();
+      const principal = proyecto.hojas.find((h) => h.esTableroPrincipal);
+      const fuente =
+        (principal && principal.id !== hojaActivaId ? principal.rotulo : null) ??
+        hoja.rotulo;
+      return { ...fuente, denominacion: "", numeroPlano: fuente.numeroPlano };
+    },
+
+    marcarTableroPrincipal(hojaId) {
+      set((s) => ({
+        proyecto: {
+          ...s.proyecto,
+          hojas: s.proyecto.hojas.map((h) => ({
+            ...h,
+            esTableroPrincipal: h.id === hojaId,
+          })),
+        },
+        version: s.version + 1,
+      }));
+      // El espejo de la hoja activa tambien tiene que enterarse.
+      if (get().hojaActivaId === hojaId) {
+        set((s) => ({ hoja: { ...s.hoja, esTableroPrincipal: true } }));
+      } else {
+        set((s) => ({ hoja: { ...s.hoja, esTableroPrincipal: false } }));
+      }
+    },
+
+    setAutoSeccionales(hojaId, activo) {
+      set((s) => ({
+        proyecto: {
+          ...s.proyecto,
+          hojas: s.proyecto.hojas.map((h) =>
+            h.id === hojaId ? { ...h, autoSeccionales: activo } : h,
+          ),
+        },
+        version: s.version + 1,
+      }));
+      if (get().hojaActivaId === hojaId) {
+        set((s) => ({ hoja: { ...s.hoja, autoSeccionales: activo } }));
+      }
     },
 
     hojaPadreDeActiva() {
@@ -2076,15 +2167,36 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     },
 
     renombrarHoja(id, nombre) {
+      /* E81.2 — la denominacion del rotulo (campo 6 IRAM 4508) sigue al
+       * nombre de la hoja salvo que la hoja lo tenga desactivado. Es lo
+       * mismo escrito dos veces: la pestaña dice "Tablero de bombas" y
+       * el rotulo del plano tiene que decir eso. */
       set((s) => ({
         proyecto: {
           ...s.proyecto,
           hojas: s.proyecto.hojas.map((h) =>
-            h.id === id ? { ...h, nombre } : h,
+            h.id === id
+              ? {
+                  ...h,
+                  nombre,
+                  rotulo:
+                    h.tituloSigueALaHoja === false
+                      ? h.rotulo
+                      : { ...h.rotulo, denominacion: nombre },
+                }
+              : h,
           ),
         },
         version: s.version + 1,
       }));
+      if (get().hojaActivaId === id) {
+        set((s) => ({
+          hoja:
+            s.hoja.tituloSigueALaHoja === false
+              ? s.hoja
+              : { ...s.hoja, rotulo: { ...s.hoja.rotulo, denominacion: nombre } },
+        }));
+      }
     },
 
     reordenarHojas(desde, hacia) {

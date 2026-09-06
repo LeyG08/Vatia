@@ -7302,3 +7302,105 @@ Falta, si la dirección se aprueba: la planilla cubre solo aparatos con
 `tipo_aparato` (no cargas ni conductores), el legajo no permite renombrar
 ni arrastrar entre hojas, y los modos no recuerdan el último usado al
 reabrir el proyecto.
+
+## E81.1 / E81.2 — Ajustes al prototipo tras la primera prueba
+
+Ronda de correcciones sobre E81, todas pedidas al probarlo. Siguen en la
+rama `proyecto/ui-prototipo-20260906`.
+
+### E81.1 — lo que estaba mal a la vista
+
+**Símbolos/Legajo estaban dos veces.** La cinta repetía arriba las mismas
+dos solapas que ya tiene la columna izquierda, y encima con el orden
+invertido (Símbolos·Legajo arriba, Legajo·Símbolos abajo). Dos controles
+para lo mismo a dos centímetros de distancia se leen como dos cosas
+distintas. Se eliminó el grupo de la cinta: las solapas de la columna son
+el único lugar donde se cambia.
+
+**El tipo de esquema sube a la cinta.** Unifilar/Multifilar era lo único
+de "Configuración de hoja" que se toca mientras se dibuja —define qué
+librería ofrece la paleta— y estaba a dos clics dentro de un panel modal.
+Ahora es un grupo propio de la solapa Dibujar, con la misma restricción
+de siempre (no se puede cambiar si la hoja ya tiene símbolos del otro
+tipo).
+
+**En tema oscuro no se veía qué opción estaba marcada.** Reportado sobre
+"Orientación" y "Tipo de esquema" de Configuración de hoja. La causa: un
+override de tema oscuro escrito más abajo en el archivo
+(`[data-theme="dark"] .orientacion-opciones button`) pisaba el fondo del
+estado activo. Se eliminó ese selector del override —las reglas base ya
+usan tokens que se adaptan solos— y el estado activo pasó a escribirse
+con doble clase para que ninguna regla posterior vuelva a pisarlo.
+
+**El botón de simulación decía el estado, no la acción.** Entrar a la
+solapa "Simular" ya energiza el circuito, así que "Encender el circuito"
+sobraba y "Reiniciar estado" no decía qué hace. Ahora dice **"Volver a
+reposo"**: bobinas caídas, pulsadores sueltos y selectores en la
+posición 1.
+
+### E81.2 — jerarquía de tableros y flujo de emisión
+
+**La jerarquía de tableros se ve y se maneja desde el legajo.** Las hojas
+dejaron de ser una lista plana: cuelgan unas de otras según de qué
+circuito seccional nacieron (`hojaPadreId`), con sangría y filete de
+continuidad por nivel. Dos controles nuevos viven en el renglón de cada
+tablero, que es donde se ve la estructura:
+
+- **⌂ tablero principal**, exclusivo en todo el proyecto. Se elige a mano
+  porque el orden de las hojas no alcanza para saberlo: un proyecto puede
+  empezar dibujando un seccional. Si ninguno está marcado, el legajo lo
+  avisa.
+- **⑂ seccionales automáticos**, por tablero. Con esto activado (que es
+  el default), declarar `tipo_carga: "seccional"` en un circuito **crea
+  sola la hoja de ese tablero**. Antes había que acordarse de pedirla a
+  mano, y una hoja seccional sin crear no aparece en ningún lado: ni en
+  el legajo, ni en el PDF del proyecto completo. La creación automática
+  **no navega** — que la app te saque de la hoja donde estás dibujando,
+  sola, por haber elegido un tipo de carga, sería peor que no crear nada.
+
+**Crear una hoja te lleva a ella y te abre su configuración.** Formato,
+orientación y tipo de esquema son decisiones que se toman ANTES de
+dibujar; el tipo, de hecho, no se puede cambiar después si la hoja ya
+tiene símbolos.
+
+**El rótulo se carga una vez.** Una hoja nueva hereda el rótulo del
+tablero principal (empresa, cliente, responsables, tolerancias: datos del
+PROYECTO, no del plano) y solo estrena la denominación. Y la denominación
+sigue al nombre de la hoja al renombrarla: la pestaña dice "Tablero de
+bombas" y el rótulo tiene que decir eso. Se apaga por hoja con una casilla
+en la sección Rótulo, para los planos cuya denominación normalizada no
+coincide con el nombre de trabajo. Las hojas seccionales además heredan
+formato y orientación: un legajo se imprime todo del mismo tamaño.
+
+**La fuente de cortocircuito se detecta sola y pide lo que hace falta.**
+Ya no hay que decidir si un alimentador es principal o seccional: si hay
+un tablero marcado como principal, la sección es suya; si nadie lo marcó,
+vale la regla vieja (cualquier hoja raíz). Y el modelo
+(`FuenteCortocircuito`) se amplió con lo que el cálculo necesita de
+verdad: origen (red pública o transformador propio), Sn y ucc% del
+transformador, distancia desde el trafo o el punto de entrega, y sección
+y material de la acometida — sin distancia y sección no hay Icc mínima
+que calcular. El motor de cálculo de Icc máxima/mínima todavía no está
+escrito; esto define su dato de entrada, y el panel lo dice.
+
+**Materiales adicionales se mudaron al modo Emitir.** Estaban enterrados
+como una solapa de "Configuración de hoja", que es donde nadie va cuando
+está por imprimir. Ahora el modo Emitir abre una columna propia con dos
+bloques: **lo que se va a emitir** (una fila por hoja, con su formato y
+sus pendientes de ficha, y clic para previsualizarla en la lámina de la
+derecha, que es tal cual sale al PDF) y **materiales adicionales** de la
+hoja activa. Con dos avisos: si el proyecto tiene datos de ficha sin
+cargar, y si la hoja no tiene ningún material adicional — una lista de
+materiales incompleta se descubre en la obra, cuando falta el terminal.
+
+Verificado en vivo con Playwright sobre el proyecto real del PPS, sin
+errores de consola: la cinta de Dibujar queda con los grupos "Tipo de
+esquema" y "Hoja" (sin el duplicado), el legajo muestra los dos
+controles de jerarquía por tablero y marca el principal, la solapa Emitir
+aparece con sus dos avisos, el botón de simulación dice "Volver a
+reposo", y en tema oscuro la opción activa de Orientación ya se distingue
+(fondo `rgb(22,40,60)`, texto `rgb(127,178,232)`).
+
+Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
+`npm run e2e` (21), `npm run e2e:simulacion` (11), `npm run e2e:simbolos`
+(19), `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`.

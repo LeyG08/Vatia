@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import { useEditor } from "../lib/store";
 import { TAMANIOS_HOJA_MM } from "../lib/tipos";
-import type { FormatoHoja, ItemAccesorio, ModoHoja, OrientacionHoja } from "../lib/tipos";
+import type { FormatoHoja, ModoHoja, OrientacionHoja } from "../lib/tipos";
 
 const FORMATOS = Object.keys(TAMANIOS_HOJA_MM) as FormatoHoja[];
 
@@ -10,7 +10,7 @@ const SECCIONES = [
   { id: "encabezado", label: "Encabezado y notas", icono: "📝" },
   { id: "rotulo", label: "Rótulo IRAM 4508", icono: "🏷️" },
   { id: "cortocircuito", label: "Fuente de cortocircuito", icono: "⚡" },
-  { id: "materiales", label: "Materiales adicionales", icono: "📦" },
+
 ] as const;
 type SeccionId = (typeof SECCIONES)[number]["id"];
 
@@ -43,12 +43,22 @@ function PanelHoja() {
   const hoja = useEditor((s) => s.hoja);
   const actualizar = useEditor((s) => s.actualizarHoja);
   const hayNodos = useEditor((s) => s.nodos.length > 0);
-  // La fuente de cortocircuito solo tiene sentido en la hoja del
-  // alimentador principal (raíz, sin hojaPadreId) — una hoja seccional
-  // cuelga de un circuito ya existente y no declara su propia red (E39).
+  /* La fuente de cortocircuito solo tiene sentido en la hoja del tablero
+   * PRINCIPAL: una hoja seccional cuelga de un circuito ya existente y no
+   * declara su propia red (E39).
+   *
+   * E81.2 — el usuario nunca elige "este alimentador es principal o
+   * seccional": se deduce de la estructura. Si hay un tablero marcado
+   * como principal en el legajo, es ese; si nadie lo marco todavia, vale
+   * la regla vieja (cualquier hoja raiz, sin `hojaPadreId`), porque en un
+   * proyecto de una sola hoja marcar el principal seria ceremonia
+   * inutil. */
   const esAlimentadorPrincipal = useEditor((s) => {
     const activa = s.proyecto.hojas.find((h) => h.id === s.hojaActivaId);
-    return !activa?.hojaPadreId;
+    if (!activa) return false;
+    const marcado = s.proyecto.hojas.find((h) => h.esTableroPrincipal);
+    if (marcado) return marcado.id === activa.id;
+    return !activa.hojaPadreId;
   });
   const [seccion, setSeccion] = useState<SeccionId>("pagina");
   // Si la hoja activa cambió y ya no es la del alimentador principal,
@@ -94,22 +104,6 @@ function PanelHoja() {
     setRotulo({ responsables: lista });
   };
 
-  /* ---- Accesorios: ítems de la lista de materiales sin símbolo propio
-   * (terminales, peines de conexión, bornera de distribución…) ---- */
-  const accesorios = hoja.accesorios ?? [];
-  const agregarAccesorio = () =>
-    actualizar({
-      accesorios: [
-        ...accesorios,
-        { id: crypto.randomUUID(), descripcion: "", cantidad: 1 },
-      ],
-    });
-  const actualizarAccesorio = (id: string, cambios: Partial<ItemAccesorio>) =>
-    actualizar({
-      accesorios: accesorios.map((a) => (a.id === id ? { ...a, ...cambios } : a)),
-    });
-  const eliminarAccesorio = (id: string) =>
-    actualizar({ accesorios: accesorios.filter((a) => a.id !== id) });
 
   return (
     <>
@@ -318,6 +312,22 @@ function PanelHoja() {
                   valor={rotulo.denominacion}
                   onChange={(v) => setRotulo({ denominacion: v })}
                 />
+                {/* E81.2 — la denominación y el nombre de la hoja son lo
+                  * mismo escrito dos veces: la pestaña dice "Tablero de
+                  * bombas" y el rótulo del plano tiene que decir eso. Se
+                  * sincroniza sola al renombrar la hoja; se apaga para
+                  * los planos cuya denominación normalizada no coincide
+                  * con el nombre de trabajo. */}
+                <label className="panel-hoja-check">
+                  <input
+                    type="checkbox"
+                    checked={hoja.tituloSigueALaHoja !== false}
+                    onChange={(e) => actualizar({ tituloSigueALaHoja: e.target.checked })}
+                  />
+                  <span>
+                    Seguir el nombre de la hoja al renombrarla
+                  </span>
+                </label>
                 <Campo
                   etiqueta="Clave o número de lo representado"
                   valor={rotulo.claveRepresentado}
@@ -410,13 +420,32 @@ function PanelHoja() {
             {seccionMostrada === "cortocircuito" && esAlimentadorPrincipal && (
               <div className="panel-hoja-bloque">
                 <p className="panel-hoja-ayuda">
-                  Dato de la red que alimenta este tablero, para verificar
-                  Icc aguas abajo. Todavía no lo consume ningún cálculo
-                  (falta el recorrido del tablero); se carga acá para no
-                  perderlo. Las hojas de tableros seccionales no tienen
-                  esta sección — heredan el recorrido del alimentador del
-                  que cuelgan.
+                  Datos de la acometida al tablero principal. De acá salen
+                  las dos corrientes que hay que verificar: la <b>Icc
+                  máxima</b> en bornes, que fija el poder de corte mínimo
+                  de las protecciones, y la <b>Icc mínima</b> en el punto
+                  más lejano, que dice si la protección llega a despejar
+                  una falla al final de la línea. Esta hoja es el tablero
+                  principal del proyecto: las hojas de tableros
+                  seccionales no tienen esta sección, heredan el recorrido
+                  del alimentador del que cuelgan.
                 </p>
+
+                <div className="panel-hoja-campo">
+                  <span>Origen de la alimentación</span>
+                  <div className="orientacion-opciones">
+                    {(["red", "transformador"] as const).map((o) => (
+                      <button
+                        key={o}
+                        type="button"
+                        className={(fuenteCc.origen ?? "red") === o ? "activo" : ""}
+                        onClick={() => actualizar({ fuente_cortocircuito: { origen: o } })}
+                      >
+                        {o === "red" ? "Red pública" : "Transformador propio"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="panel-hoja-dos-col">
                   <label className="panel-hoja-campo">
                     <span>Potencia de cortocircuito Scc (MVA)</span>
@@ -455,72 +484,129 @@ function PanelHoja() {
                     />
                   </label>
                 </div>
-              </div>
-            )}
 
-            {seccionMostrada === "materiales" && (
-              <>
-                <p className="panel-hoja-ayuda">
-                  Ítems sin símbolo propio en el plano — terminales, peines de
-                  conexión, bornera de distribución, lo que haga falta. Se
-                  suman a la lista de materiales del PDF (opcional al
-                  exportar el proyecto completo).
-                </p>
-                <div className="panel-hoja-bloque panel-hoja-accesorios">
-                  {accesorios.map((a) => (
-                    <div key={a.id} className="accesorio-fila">
-                      <input
-                        className="accesorio-descripcion"
-                        placeholder="Descripción (ej.: Terminal punta de lanza 2,5 mm²)"
-                        value={a.descripcion}
-                        onChange={(e) =>
-                          actualizarAccesorio(a.id, { descripcion: e.target.value })
-                        }
-                      />
+                {(fuenteCc.origen ?? "red") === "transformador" && (
+                  <div className="panel-hoja-dos-col">
+                    <label className="panel-hoja-campo">
+                      <span>Potencia del transformador Sn (kVA)</span>
                       <input
                         type="number"
-                        min={1}
-                        step={1}
-                        className="accesorio-cantidad"
-                        value={a.cantidad}
+                        min={0}
+                        value={fuenteCc.trafo_sn_kva ?? ""}
                         onChange={(e) =>
-                          actualizarAccesorio(a.id, {
-                            cantidad: Math.max(1, Number.parseInt(e.target.value, 10) || 1),
+                          actualizar({
+                            fuente_cortocircuito: {
+                              trafo_sn_kva:
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number.parseFloat(e.target.value),
+                            },
                           })
                         }
                       />
+                    </label>
+                    <label className="panel-hoja-campo">
+                      <span>Tensión de cortocircuito ucc (%)</span>
                       <input
-                        className="accesorio-marca"
-                        placeholder="Marca"
-                        value={a.marca ?? ""}
+                        type="number"
+                        min={0}
+                        step="0.1"
+                        value={fuenteCc.trafo_ucc_pct ?? ""}
                         onChange={(e) =>
-                          actualizarAccesorio(a.id, { marca: e.target.value || undefined })
+                          actualizar({
+                            fuente_cortocircuito: {
+                              trafo_ucc_pct:
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number.parseFloat(e.target.value),
+                            },
+                          })
                         }
                       />
-                      <input
-                        className="accesorio-modelo"
-                        placeholder="Modelo"
-                        value={a.modelo ?? ""}
-                        onChange={(e) =>
-                          actualizarAccesorio(a.id, { modelo: e.target.value || undefined })
-                        }
-                      />
-                      <button
-                        type="button"
-                        className="accesorio-quitar"
-                        title="Quitar este accesorio"
-                        onClick={() => eliminarAccesorio(a.id)}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" className="accesorio-agregar" onClick={agregarAccesorio}>
-                    + Agregar accesorio
-                  </button>
+                    </label>
+                  </div>
+                )}
+
+                <h3>Acometida hasta el tablero</h3>
+                <p className="panel-hoja-ayuda">
+                  La impedancia de este tramo es lo que hace caer la Icc
+                  entre el origen y el tablero: sin distancia y sección no
+                  hay Icc mínima que calcular.
+                </p>
+                <div className="panel-hoja-dos-col">
+                  <label className="panel-hoja-campo">
+                    <span>
+                      Distancia desde{" "}
+                      {(fuenteCc.origen ?? "red") === "transformador"
+                        ? "el transformador"
+                        : "el punto de entrega"}{" "}
+                      (m)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fuenteCc.distancia_m ?? ""}
+                      onChange={(e) =>
+                        actualizar({
+                          fuente_cortocircuito: {
+                            distancia_m:
+                              e.target.value === ""
+                                ? undefined
+                                : Number.parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="panel-hoja-campo">
+                    <span>Sección de la acometida (mm²)</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={fuenteCc.seccion_acometida_mm2 ?? ""}
+                      onChange={(e) =>
+                        actualizar({
+                          fuente_cortocircuito: {
+                            seccion_acometida_mm2:
+                              e.target.value === ""
+                                ? undefined
+                                : Number.parseFloat(e.target.value),
+                          },
+                        })
+                      }
+                    />
+                  </label>
                 </div>
-              </>
+                <div className="panel-hoja-campo">
+                  <span>Material de la acometida</span>
+                  <div className="orientacion-opciones">
+                    {(["Cu", "Al"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className={(fuenteCc.material_acometida ?? "Cu") === m ? "activo" : ""}
+                        onClick={() =>
+                          actualizar({ fuente_cortocircuito: { material_acometida: m } })
+                        }
+                      >
+                        {m === "Cu" ? "Cobre" : "Aluminio"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="panel-hoja-ayuda">
+                  El cálculo de Icc máxima y mínima todavía no está
+                  escrito: esto define el dato de entrada que va a
+                  consumir.
+                </p>
+              </div>
             )}
+
+            {/* E81.2 — los materiales adicionales se mudaron al modo
+              * Emitir (ver PanelEmitir.tsx): es lo último que se toca
+              * antes de exportar, y acá adentro nadie los encontraba
+              * cuando estaba por imprimir. */}
           </div>
         </div>
 

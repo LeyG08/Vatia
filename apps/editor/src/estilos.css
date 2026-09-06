@@ -679,6 +679,90 @@ body,
   font-variant-numeric: tabular-nums;
 }
 
+/* E81.2 — jerarquia de tableros: cada nivel se corre a la derecha y
+ * arrastra su filete de continuidad, para que se lea de que tablero
+ * cuelga cada seccional. */
+.arbol-hoja {
+  --nivel: 0;
+}
+
+.arbol-hoja-hija {
+  position: relative;
+  padding-left: calc(var(--nivel) * 12px);
+}
+
+.arbol-hoja-hija::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--nivel) * 12px - 4px);
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--borde);
+}
+
+.arbol-fila-tablero {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.arbol-fila-tablero.activa {
+  background: var(--acento-suave);
+  box-shadow: inset 2px 0 0 var(--acento);
+}
+
+.arbol-fila-tablero .arbol-fila-hoja {
+  margin-top: 0;
+  min-width: 0;
+}
+
+.arbol-fila-tablero.activa:hover .arbol-fila-hoja,
+.arbol-fila-tablero .arbol-fila-hoja:hover {
+  background: transparent;
+}
+
+/* Los dos interruptores de la jerarquia. Apagados son grises y casi no
+ * se ven; encendidos toman el acento. Nunca desaparecen: si estuvieran
+ * solo al pasar el mouse, no habria forma de saber de un vistazo cual es
+ * el principal. */
+.arbol-marca {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radio-chico);
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.arbol-marca:hover {
+  border-color: var(--borde);
+  color: var(--text-primary);
+}
+
+.arbol-marca.puesta {
+  color: var(--acento);
+  border-color: var(--acento-suave);
+  background: var(--acento-suave);
+}
+
+.arbol-aviso {
+  margin: 8px 12px 0;
+  padding: 7px 9px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  background: var(--vivo-suave);
+  border-left: 2px solid var(--vivo);
+  border-radius: var(--radio-chico);
+}
+
 .arbol-fila {
   display: flex;
   align-items: center;
@@ -764,6 +848,141 @@ body,
   background: var(--vivo-suave);
   border-radius: 8px;
   padding: 1px 5px;
+}
+
+/* =====================================================================
+ * E81.2 — columna izquierda del modo Emitir
+ * ===================================================================== */
+.emitir {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 0 0 20px;
+}
+
+.emitir-bloque {
+  padding: 12px 12px 14px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.emitir-bloque h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.emitir-ayuda {
+  margin: 0 0 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.emitir-hojas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emitir-hoja {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radio-chico);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.emitir-hoja:hover {
+  background: var(--bg-hover);
+}
+
+.emitir-hoja.activa {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.emitir-hoja-nombre {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emitir-hoja-formato {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+}
+
+/* Dos niveles de aviso: "alerta" es algo que falta y hay que decidir si
+ * importa; "aviso" es un dato de contexto. Ninguno bloquea la
+ * exportacion — el legajo se emite igual, pero no en silencio. */
+.emitir-alerta,
+.emitir-aviso {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-radius: var(--radio-chico);
+}
+
+.emitir-alerta {
+  color: var(--text-primary);
+  background: var(--vivo-suave);
+  border-left: 3px solid var(--vivo);
+}
+
+.emitir-aviso {
+  color: var(--text-secondary);
+  background: var(--bg-surface-alt);
+  border-left: 3px solid var(--borde);
+}
+
+.emitir-accesorios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.emitir-accesorios .accesorio-fila {
+  display: flex;
+  gap: 5px;
+}
+
+.emitir-accesorios .accesorio-descripcion {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.emitir-accesorios .accesorio-cantidad {
+  width: 54px;
+  flex: 0 0 auto;
+}
+
+.emitir-accesorios input {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-chico);
+  background: var(--campo);
+  color: var(--text-primary);
+  font-size: 11.5px;
+  padding: 5px 7px;
 }
 
 /* =====================================================================
@@ -2250,15 +2469,29 @@ body.arrastrando .paleta-item {
   cursor: pointer;
 }
 
-.orientacion-opciones button.activo {
+/* E81.1: el estado activo se escribe con doble clase a proposito. Un
+ * override de tema oscuro escrito mas abajo en el archivo pisaba el
+ * fondo de estas opciones y en modo oscuro NO se veia cual estaba
+ * elegida (reportado sobre "Orientacion" y "Tipo de esquema"). */
+.orientacion-opciones button.activo.activo {
   border-color: var(--acento);
   color: var(--acento);
   background: var(--acento-suave);
+  font-weight: 600;
 }
 
 .orientacion-opciones button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.panel-hoja-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .panel-hoja-dimension {
@@ -3655,7 +3888,6 @@ body.arrastrando .paleta-item {
 [data-theme="dark"] .panel-hoja-item input,
 [data-theme="dark"] .panel-hoja-item button,
 [data-theme="dark"] .panel-hoja-agregar,
-[data-theme="dark"] .orientacion-opciones button,
 [data-theme="dark"] .panel-hoja-pie button,
 [data-theme="dark"] .panel-hoja-resp input,
 [data-theme="dark"] .accesorio-fila input,

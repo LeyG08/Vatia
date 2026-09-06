@@ -295,6 +295,30 @@ export interface HojaConfig {
    * `accesorios`: ausente = sin cargar.
    */
   fuente_cortocircuito?: FuenteCortocircuito;
+  /**
+   * E81.2 — jerarquia de tableros.
+   *
+   * `esTableroPrincipal` marca cual de las hojas es el tablero general;
+   * es exclusivo en todo el proyecto y de el cuelga el resto. Se elige a
+   * mano en el legajo porque el orden de las hojas no alcanza para
+   * saberlo: un proyecto puede empezar dibujando un seccional.
+   *
+   * `autoSeccionales` decide si al cargar un circuito seccional en ESTA
+   * hoja se crea sola la hoja de su tablero. Por defecto si (ausente =
+   * activado): es lo que uno espera al declarar que un circuito alimenta
+   * otro tablero. Se apaga por tablero desde el propio legajo, para los
+   * casos en que el seccional lo documenta otro (o todavia no se sabe).
+   */
+  esTableroPrincipal?: boolean;
+  autoSeccionales?: boolean;
+  /**
+   * E81.2 — la denominacion del plano (campo 6 del rotulo IRAM 4508)
+   * sigue al nombre de la hoja. Es lo mismo escrito dos veces: la
+   * pestaña dice "Tablero de bombas" y el rotulo tiene que decir eso.
+   * Ausente = activado; se apaga por hoja para los planos cuya
+   * denominacion normalizada no coincide con el nombre de trabajo.
+   */
+  tituloSigueALaHoja?: boolean;
 }
 
 export function HOJA_POR_DEFECTO(): HojaConfig {
@@ -369,9 +393,40 @@ export type EsquemaPAT = "TT" | "TN-S" | "TN-C" | "IT";
  * tiene una fuente propia — hereda el recorrido del alimentador del que
  * cuelga.
  */
+/**
+ * Fuente de cortocircuito de la red que alimenta el tablero PRINCIPAL.
+ *
+ * E81.2 amplia lo que habia (Scc y Icc de la red) con lo que hace falta
+ * para calcular las dos corrientes que pide la verificacion:
+ *
+ *  - **Icc maxima** en bornes del tablero, que fija el poder de corte
+ *    minimo de las protecciones. Sale de la impedancia de la red aguas
+ *    arriba mas la del transformador (Sn y ucc%).
+ *  - **Icc minima** en el punto mas lejano, que fija si la proteccion
+ *    llega a despejar una falla al final de la linea. Necesita ademas la
+ *    impedancia del tramo: distancia al transformador, seccion y
+ *    material del conductor de acometida.
+ *
+ * Todos opcionales: se cargan cuando se saben. El motor de calculo de
+ * Icc todavia no esta escrito — esto define el dato de entrada.
+ */
 export interface FuenteCortocircuito {
+  /** Potencia de cortocircuito de la red en el punto de entrega, en MVA */
   scc_mva?: number;
+  /** Corriente de cortocircuito de la red, en kA (alternativa a Scc) */
   icc_ka?: number;
+  /** De donde viene la alimentacion: de la red publica o de un trafo propio */
+  origen?: "red" | "transformador";
+  /** Potencia nominal del transformador, en kVA */
+  trafo_sn_kva?: number;
+  /** Tension de cortocircuito del transformador, en % */
+  trafo_ucc_pct?: number;
+  /** Distancia desde el transformador (o el punto de entrega) al tablero, en m */
+  distancia_m?: number;
+  /** Seccion del conductor de acometida, en mm2 */
+  seccion_acometida_mm2?: number;
+  /** Material del conductor de acometida */
+  material_acometida?: "Cu" | "Al";
 }
 
 /**
