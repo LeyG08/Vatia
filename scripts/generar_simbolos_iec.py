@@ -715,13 +715,85 @@ def s00152():
     return hoja, c, "Termostato NC", "IEC 60617 07-72-12"
 
 
+# ---------------------------------------------------------------------------
+# E69 (corrección del usuario: "no pusiste en el multifilar la parte de
+# fuerza... debe haber unipolar, bipolar, tripolar y tetrapolar"). En un
+# diagrama MULTIFILAR cada polo se dibuja como una línea propia — al
+# contrario del unifilar (una sola línea para todas las fases), que es
+# donde vive S00110/S00121/etc. Estos símbolos son la versión multipolar,
+# para usar en comando/, del interruptor automático (07-72-21): un polo
+# repetido N veces, unidos por el enlace mecánico punteado que ya usa la
+# norma para grupos de contactos que operan juntos.
+#
+# PILOTO: solo interruptor_termomagnetico, en las 4 variantes de polo.
+# El resto de los aparatos multipolares (contactor, guardamotores, MCCB,
+# diferencial, fusible, portafusible, relé térmico) esperan a que el
+# usuario apruebe el criterio de composición antes de escalarlo.
+# ---------------------------------------------------------------------------
+
+ESPACIADO_POLO = 10.0  # múltiplo de 5: los centros de cada polo son puntos_conexion, tienen que caer en la grilla (lint_simbolos.py)
+
+
+def interruptor_automatico_polo(cx=0.0, y_arriba=-30.0, y_abajo=20.0):
+    """07-72-21: aspa + cuchilla de UN polo, sin envolvente — mismo
+    trazo que ya usa S00121 (MCCB), listo para repetir en variantes
+    multipolares."""
+    c = linea(cx, y_arriba, cx, -16)
+    c += linea(cx - 2, -21, cx + 2, -17)
+    c += linea(cx + 2, -21, cx - 2, -17)
+    c += linea(cx, -6, cx - 5, -16)
+    c += linea(cx, -6, cx, y_abajo)
+    return c
+
+
+def xs_polos(n_polos, espaciado=ESPACIADO_POLO):
+    """Centros X de cada polo, centrados en 0."""
+    ancho_total = (n_polos - 1) * espaciado
+    x0 = -ancho_total / 2.0
+    return [x0 + i * espaciado for i in range(n_polos)]
+
+
+def interruptor_multipolar(n_polos):
+    """N polos de interruptor_automatico_polo(), unidos por una línea
+    punteada vertical a la altura del aspa — representación normal de
+    un interruptor multipolar en un diagrama multifilar: cada polo
+    conduce por su cuenta, el enlace punteado indica que abren/cierran
+    juntos (mismo mecanismo)."""
+    xs = xs_polos(n_polos)
+    c = ""
+    for cx in xs:
+        c += interruptor_automatico_polo(cx)
+    if n_polos > 1:
+        c += linea(xs[0], -19, xs[-1], -19, PUNTEADO)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} -35.0 {ancho_vb} 60.0"
+    return hoja, c
+
+
+def s00153():
+    return (*interruptor_multipolar(1), "Interruptor termomagnético unipolar (multifilar)", "IEC 60617 07-72-21")
+
+
+def s00154():
+    return (*interruptor_multipolar(2), "Interruptor termomagnético bipolar (multifilar)", "IEC 60617 07-72-21")
+
+
+def s00155():
+    return (*interruptor_multipolar(3), "Interruptor termomagnético tripolar (multifilar)", "IEC 60617 07-72-21")
+
+
+def s00156():
+    return (*interruptor_multipolar(4), "Interruptor termomagnético tetrapolar (multifilar)", "IEC 60617 07-72-21")
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
     "S00140": s00140, "S00141": s00141, "S00142": s00142, "S00143": s00143,
     "S00144": s00144, "S00145": s00145, "S00146": s00146, "S00147": s00147,
     "S00148": s00148, "S00149": s00149, "S00150": s00150, "S00151": s00151,
-    "S00152": s00152,
+    "S00152": s00152, "S00153": s00153, "S00154": s00154, "S00155": s00155,
+    "S00156": s00156,
 }
 
 

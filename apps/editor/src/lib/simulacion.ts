@@ -182,6 +182,30 @@ class UnionFind {
   }
 }
 
+/** E69: agrupa terminales "inN"/"outN" en pares por polo — un aparato
+ * multipolar dibujado en multifilar (interruptor termomagnético
+ * bipolar/tripolar/tetrapolar, etc.) tiene un par de terminales
+ * independiente POR POLO, pero los N polos abren/cierran juntos (un
+ * solo mecanismo). Devuelve `null` si algún terminal no seguía esa
+ * convención de nombre (aparato multi-terminal de otro tipo, no
+ * contemplado todavía) — el llamador cae al comportamiento anterior. */
+function agruparPolos(handles: string[]): [string, string][] | null {
+  const porPolo = new Map<string, { in?: string; out?: string }>();
+  for (const h of handles) {
+    const m = /^(in|out)(\d+)$/.exec(h);
+    if (!m) return null;
+    const entrada = porPolo.get(m[2]) ?? {};
+    entrada[m[1] as "in" | "out"] = h;
+    porPolo.set(m[2], entrada);
+  }
+  const pares: [string, string][] = [];
+  for (const { in: hIn, out: hOut } of porPolo.values()) {
+    if (!hIn || !hOut) return null;
+    pares.push([hIn, hOut]);
+  }
+  return pares;
+}
+
 function partirTerminal(direccion: string): [string, string] {
   const punto = direccion.indexOf(".");
   if (punto === -1) return [direccion, ""];
@@ -287,10 +311,24 @@ function construirRed(
     if (tipo && TIPOS_BOBINA.has(tipo)) continue; // carga: nunca une sus terminales
 
     if (arr.length !== 2) {
-      // No es un aparato de 2 terminales conocido con ambigüedad: si es
-      // desconocido (sin tipo_aparato, ej. "sin_ficha_tecnica") se
-      // asume conductor simple para no romper el resto de la red.
-      if (!tipo) for (let i = 1; i < arr.length; i++) uf.union(clave(nodoId, arr[0]), clave(nodoId, arr[i]));
+      if (!tipo) {
+        // Sin tipo_aparato (ej. "sin_ficha_tecnica"): se asume conductor
+        // simple para no romper el resto de la red.
+        for (let i = 1; i < arr.length; i++) uf.union(clave(nodoId, arr[0]), clave(nodoId, arr[i]));
+        continue;
+      }
+      // E69: aparato multipolar dibujado en multifilar (interruptor
+      // termomagnético bipolar/tripolar/tetrapolar, etc.) — cada polo
+      // es un par "inN"/"outN" independiente, pero los N polos
+      // conducen juntos: un solo cálculo de calcularCerrado() para
+      // todo el aparato, aplicado a cada par.
+      const pares = agruparPolos(arr);
+      if (pares) {
+        const cerrado = calcularCerrado(nodo, hoja.id, bobinasEnergizadas, manual);
+        if (cerrado) {
+          for (const [hIn, hOut] of pares) uf.union(clave(nodoId, hIn), clave(nodoId, hOut));
+        }
+      }
       continue;
     }
 

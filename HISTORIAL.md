@@ -6564,3 +6564,69 @@ El usuario aprobó los 2 símbolos ("good, continue"). Los `metadata.json`
 de S00151 y S00152 pasan `estado_revision` de `pendiente_revision` a
 `verificado`. Galería regenerada — la librería de comando queda en
 20/20 símbolos verificados.
+
+## E69 — Interruptor termomagnético multipolar (piloto): la parte de fuerza faltaba en multifilar
+
+Corrección real del usuario sobre E66: agregar la librería de fuerza
+COMPLETA a la Paleta multifilar (E66) no alcanzaba, porque esos símbolos
+siguen dibujados en estilo UNIFILAR (una sola línea para todas las
+fases) — y un diagrama multifilar de verdad dibuja cada polo como su
+PROPIA línea. Palabras del usuario: *"ahí deben haber múltiples porque
+se trata de multipolar, entonces debe haber unipolar, bipolar, tripolar
+y tetrapolar"*.
+
+### Alcance: piloto sobre un solo aparato, antes de escalar
+
+Extender esto a los ~9 aparatos de fuerza con `cantidad_polos` en su
+ficha (interruptor termomagnético, contactor, MCCB, guardamotores,
+diferencial, fusible, portafusible, relé térmico) en las 4 variantes de
+polo es un lote grande (hasta 36 símbolos). Se hizo primero un piloto
+sobre **interruptor termomagnético** para validar el criterio de
+composición antes de escalar al resto — mismo patrón que ya funcionó en
+E15 (lote piloto → aprobación → lote grande).
+
+### Composición: un polo, repetido N veces, con enlace mecánico
+
+Se extrajo el trazo de "interruptor automático" (aspa 07-70-02 + cuchilla
+07-71-01) que ya usa S00121 (MCCB) como una función de UN polo, sin el
+envolvente moldeado. `interruptor_multipolar(n)` la repite `n` veces con
+un espaciado fijo (10 unidades, múltiplo de grilla) y agrega una línea
+punteada horizontal a la altura del aspa uniendo todos los polos — el
+"enlace mecánico" que ya usa la norma para indicar que varios contactos
+operan juntos. Nacen **S00153/154/155/156** (interruptor termomagnético
+uni/bi/tri/tetrapolar), viven en `comando/` porque son para uso
+multifilar, con el MISMO `tipo_aparato: "interruptor_termomagnetico"`
+que S00110 — es el mismo dispositivo eléctrico, solo cambia cómo se
+dibuja. `atributos_base.cantidad_polos` viene pre-cargado según la
+variante elegida.
+
+### Bug real que esto expuso en el motor de simulación
+
+Un aparato multipolar tiene terminales `in1/out1`, `in2/out2`, etc. — no
+el par `in`/`out` de siempre. `construirRed()` en `simulacion.ts` caía
+en la rama "aparato de más de 2 terminales, tipo conocido → no hace
+nada" (pensada para casos ambiguos sin resolver), así que NINGÚN polo
+conducía nunca, ni con el interruptor cerrado. Se agregó
+`agruparPolos()`: reconoce la convención `inN`/`outN`, arma los pares
+por número de polo, y aplica el MISMO resultado de `calcularCerrado()`
+a todos los pares — los polos son independientes entre sí pero abren y
+cierran juntos (un solo mecanismo). Si algún terminal no sigue esa
+convención, cae al comportamiento anterior (sin cambios para el resto
+de la librería).
+
+Verificado en vivo: circuito con 3 rieles de fase (L1/L2/L3), un
+interruptor termomagnético tripolar (S00155) y un motor, cargado como
+`.json` real — con "Simular" activo, el interruptor cierra sus 3 polos
+y el motor queda energizado. Antes del fix del motor de simulación, el
+motor quedaba sin energizar pese al interruptor "cerrado" (el bug real
+que describe el párrafo anterior).
+
+Los 4 símbolos quedan `estado_revision: "pendiente_revision"` — piloto
+para aprobación antes de escalar el mismo criterio a contactor,
+guardamotores, MCCB, diferencial, fusible, portafusible y relé térmico.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (24/24) y `generar_tipos_atributos.py
+--verificar` (29 interfaces, sin cambio de schema — reusa
+`interruptor_termomagnetico` existente), todos en verde.
