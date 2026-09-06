@@ -6520,3 +6520,10 @@ había caído entre mensajes), `verificar_proyecto_real.mjs`,
 `verificar_alineacion.mjs`, `lint_simbolos.py --carpeta comando` (18/18)
 y `generar_tipos_atributos.py --verificar` (28 interfaces), todos en
 verde.
+
+### E67.1 — Sensores de proximidad, aprobados
+
+El usuario aprobó los 2 símbolos ("aprove and continue"). Los
+`metadata.json` de S00149 y S00150 pasan `estado_revision` de
+`pendiente_revision` a `verificado`. Galería regenerada — la librería de
+comando queda en 18/18 símbolos verificados.
