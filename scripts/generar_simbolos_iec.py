@@ -1045,20 +1045,26 @@ def s00177():
 # disparo que censa las tres fases a la vez — se representa mejor con UNA
 # caja compartida (mismo criterio que el envolvente de MCCB, E73) y UN
 # solo símbolo de protección térmica centrado, en vez de repetirlo por
-# polo. Los N conductores simplemente atraviesan esa caja compartida.
+# polo. Segunda corrección (E76.1): los conductores NO cruzan el interior
+# de la caja — se cortan en sus bordes, de modo que la caja queda como un
+# elemento en serie sobre cada polo (el elemento calefactor), con el
+# glifo térmico solo y legible adentro.
 # ---------------------------------------------------------------------------
 
 def rele_termico_multipolar(n_polos):
-    """N conductores atravesando UNA sola caja de relé térmico, con UN
+    """N conductores entrando a UNA sola caja de relé térmico, con UN
     solo símbolo de efecto térmico (03-30-37) centrado — no uno por
-    polo. Sin enlace punteado: la caja compartida ya representa el
-    mecanismo de disparo común (mismo criterio que mccb_multipolar())."""
+    polo. Los conductores se cortan en los bordes de la caja en vez de
+    atravesarla, para no cruzar el glifo térmico (E76.1). Sin enlace
+    punteado: la caja compartida ya representa el mecanismo de disparo
+    común (mismo criterio que mccb_multipolar())."""
     xs = xs_polos(n_polos)
     ancho_caja = (xs[-1] - xs[0]) + 12.0
     x_caja = xs[0] - 6.0
     c = rectangulo(x_caja, -6, ancho_caja, 12)
     for cx in xs:
-        c += linea(cx, -30, cx, 20)
+        c += linea(cx, -30, cx, -6)
+        c += linea(cx, 6, cx, 20)
     c += efecto_termico(0, 0, 7.0)
     ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
     hoja = f"{xs[0] - 10.0} -35.0 {ancho_vb} 60.0"
