@@ -1,0 +1,26 @@
+{
+  "codigo_iec": "S00165",
+  "nombre": "Guardamotor magnético unipolar (multifilar)",
+  "familia_atributos": "aparato",
+  "estado_revision": "pendiente_revision",
+  "puntos_conexion": [
+    {
+      "id": "in1",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -30.0
+    },
+    {
+      "id": "out1",
+      "rol": "salida",
+      "x": 0.0,
+      "y": 20.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_norma": "IEC 60617 07-72-21 + 03-30-38",
+  "atributos_base": {
+    "tipo_aparato": "guardamotor_magnetico",
+    "cantidad_polos": 1
+  }
+}

@@ -6689,3 +6689,34 @@ El usuario aprobó los 4 símbolos ("Bien, si segui con el siguiente
 dispositivo"). Los `metadata.json` de S00157–160 pasan `estado_revision`
 de `pendiente_revision` a `verificado`. Galería regenerada — la librería
 de comando queda en 28/28 símbolos verificados.
+
+## E71 — Guardamotores multipolares
+
+Continúa el escalado de E69/E70 al tercer y cuarto aparato:
+**guardamotor termomagnético** y **guardamotor magnético**. Mismo
+criterio de composición, ahora factorizado en un helper genérico
+`repetir_polos(dibujar_polo, n_polos, y_link, hoja_min_y, hoja_alto)`
+en `generar_simbolos_iec.py` (antes duplicado entre
+`interruptor_multipolar()`/`contactor_multipolar()`; no se tocó ese
+código ya aprobado, el helper nuevo lo usan solo los aparatos que
+siguen).
+
+El trazo de un polo es el mismo que ya usan S00122 (termomagnético, dos
+cajas de disparo: térmico + magnético) y S00133 (magnético, una sola
+caja) en la librería de fuerza. Nacen **S00161–164** (termomagnético
+uni/bi/tri/tetrapolar) y **S00165–168** (magnético uni/bi/tri/tetrapolar),
+mismo `tipo_aparato` que sus pares unifilares — ambos ya están en
+`TIPOS_SIEMPRE_CERRADO` del motor de simulación, así que conducen igual
+que el interruptor termomagnético sin tocar `simulacion.ts`.
+
+Verificado en vivo (pedido explícito del usuario de probar, no solo
+revisar visualmente): 3 rieles de fase + guardamotor termomagnético
+tripolar (S00163) + motor, cargado como `.json` real — con "Simular"
+activo, conduce por los 3 polos y el motor queda energizado.
+
+Los 8 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (36/36) y `generar_tipos_atributos.py
+--verificar` (29 interfaces, sin cambio de schema), todos en verde.

@@ -753,6 +753,23 @@ def xs_polos(n_polos, espaciado=ESPACIADO_POLO):
     return [x0 + i * espaciado for i in range(n_polos)]
 
 
+def repetir_polos(dibujar_polo, n_polos, y_link, hoja_min_y, hoja_alto):
+    """Generaliza interruptor_multipolar()/contactor_multipolar(): repite
+    `dibujar_polo(cx)` (una función que dibuja UN polo centrado en cx)
+    `n_polos` veces, agregando el enlace mecánico punteado a la altura
+    `y_link` — mismo criterio de composición para cualquier aparato
+    multipolar de fuerza dibujado en multifilar (E69/E70/E71...)."""
+    xs = xs_polos(n_polos)
+    c = ""
+    for cx in xs:
+        c += dibujar_polo(cx)
+    if n_polos > 1:
+        c += linea(xs[0], y_link, xs[-1], y_link, PUNTEADO)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} {hoja_min_y} {ancho_vb} {hoja_alto}"
+    return hoja, c
+
+
 def interruptor_multipolar(n_polos):
     """N polos de interruptor_automatico_polo(), unidos por una línea
     punteada vertical a la altura del aspa — representación normal de
@@ -835,6 +852,79 @@ def s00160():
     return (*contactor_multipolar(4), "Contactor tetrapolar (multifilar)", "IEC 60617 07-70-01")
 
 
+# ---------------------------------------------------------------------------
+# E71 (continúa el escalado de E69/E70): guardamotores multipolares.
+# Mismo criterio: un polo repetido N veces + enlace mecánico punteado, a
+# la altura del aspa (igual que interruptor_multipolar). El trazo de un
+# polo es el que ya usan S00122 (termomagnético, dos cajas de disparo) y
+# S00133 (magnético, una sola caja) en la librería de fuerza.
+# ---------------------------------------------------------------------------
+
+def guardamotor_termomagnetico_polo(cx=0.0):
+    """Aspa + cuchilla + caja de disparo térmico + caja de disparo
+    magnético — mismo trazo que S00122, UN polo."""
+    p0, p1 = (cx, -12.0), (cx - 5.0, -22.0)
+    c = linea(cx, -30, cx, -22)
+    c += linea(cx - 2, -28, cx + 2, -24)
+    c += linea(cx + 2, -28, cx - 2, -24)
+    c += linea(p0[0], p0[1], p1[0], p1[1])
+    c += linea(cx, -12, cx, -10)
+    c += rectangulo(cx - 5, -10, 10, 10)
+    c += efecto_termico(cx, -5, 6.0)
+    c += linea(cx, 0, cx, 2)
+    c += rectangulo(cx - 5, 2, 10, 10)
+    c += efecto_electromagnetico(cx, 7, 6.0)
+    c += linea(cx, 12, cx, 20)
+    return c
+
+
+def guardamotor_magnetico_polo(cx=0.0):
+    """Aspa + cuchilla + una sola caja de disparo magnético — mismo
+    trazo que S00133, UN polo."""
+    p0, p1 = (cx, -12.0), (cx - 5.0, -22.0)
+    c = linea(cx, -30, cx, -22)
+    c += linea(cx - 2, -28, cx + 2, -24)
+    c += linea(cx + 2, -28, cx - 2, -24)
+    c += linea(p0[0], p0[1], p1[0], p1[1])
+    c += linea(cx, -12, cx, -5)
+    c += rectangulo(cx - 5, -5, 10, 10)
+    c += efecto_electromagnetico(cx, 0, 6.0)
+    c += linea(cx, 5, cx, 20)
+    return c
+
+
+def s00161():
+    return (*repetir_polos(guardamotor_termomagnetico_polo, 1, -26.0, -35.0, 60.0), "Guardamotor termomagnético unipolar (multifilar)", "IEC 60617 07-72-21 + 03-30-37 + 03-30-38")
+
+
+def s00162():
+    return (*repetir_polos(guardamotor_termomagnetico_polo, 2, -26.0, -35.0, 60.0), "Guardamotor termomagnético bipolar (multifilar)", "IEC 60617 07-72-21 + 03-30-37 + 03-30-38")
+
+
+def s00163():
+    return (*repetir_polos(guardamotor_termomagnetico_polo, 3, -26.0, -35.0, 60.0), "Guardamotor termomagnético tripolar (multifilar)", "IEC 60617 07-72-21 + 03-30-37 + 03-30-38")
+
+
+def s00164():
+    return (*repetir_polos(guardamotor_termomagnetico_polo, 4, -26.0, -35.0, 60.0), "Guardamotor termomagnético tetrapolar (multifilar)", "IEC 60617 07-72-21 + 03-30-37 + 03-30-38")
+
+
+def s00165():
+    return (*repetir_polos(guardamotor_magnetico_polo, 1, -26.0, -35.0, 60.0), "Guardamotor magnético unipolar (multifilar)", "IEC 60617 07-72-21 + 03-30-38")
+
+
+def s00166():
+    return (*repetir_polos(guardamotor_magnetico_polo, 2, -26.0, -35.0, 60.0), "Guardamotor magnético bipolar (multifilar)", "IEC 60617 07-72-21 + 03-30-38")
+
+
+def s00167():
+    return (*repetir_polos(guardamotor_magnetico_polo, 3, -26.0, -35.0, 60.0), "Guardamotor magnético tripolar (multifilar)", "IEC 60617 07-72-21 + 03-30-38")
+
+
+def s00168():
+    return (*repetir_polos(guardamotor_magnetico_polo, 4, -26.0, -35.0, 60.0), "Guardamotor magnético tetrapolar (multifilar)", "IEC 60617 07-72-21 + 03-30-38")
+
+
 SIMBOLOS_COMANDO = {
     "S00124": s00124, "S00130": s00130, "S00134": s00134, "S00135": s00135,
     "S00136": s00136, "S00137": s00137, "S00139": s00139,
@@ -843,7 +933,9 @@ SIMBOLOS_COMANDO = {
     "S00148": s00148, "S00149": s00149, "S00150": s00150, "S00151": s00151,
     "S00152": s00152, "S00153": s00153, "S00154": s00154, "S00155": s00155,
     "S00156": s00156, "S00157": s00157, "S00158": s00158, "S00159": s00159,
-    "S00160": s00160,
+    "S00160": s00160, "S00161": s00161, "S00162": s00162, "S00163": s00163,
+    "S00164": s00164, "S00165": s00165, "S00166": s00166, "S00167": s00167,
+    "S00168": s00168,
 }
 
 
