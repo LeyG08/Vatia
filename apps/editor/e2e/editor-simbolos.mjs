@@ -184,9 +184,16 @@ async function probarGuardadoReal() {
     await pagina.mouse.up();
     await pagina.waitForTimeout(200);
 
+    /* El botón se busca DENTRO de la barra del editor de símbolos: la
+     * barra superior de la app también tiene un "Guardar" (E79 le sacó
+     * el emoji, así que ahora los dos nombres coinciden exactamente y
+     * un selector global da strict mode violation). */
     const [respuesta] = await Promise.all([
       pagina.waitForResponse((r) => r.url().includes("/api/geometry")),
-      pagina.getByRole("button", { name: "Guardar", exact: true }).click(),
+      pagina
+        .locator(".editor-simbolos-toolbar")
+        .getByRole("button", { name: "Guardar", exact: true })
+        .click(),
     ]);
     const cuerpo = await respuesta.json();
 
@@ -267,9 +274,16 @@ async function probarPuntoConexion() {
     await pagina.mouse.up();
     await pagina.waitForTimeout(200);
 
+    /* El botón se busca DENTRO de la barra del editor de símbolos: la
+     * barra superior de la app también tiene un "Guardar" (E79 le sacó
+     * el emoji, así que ahora los dos nombres coinciden exactamente y
+     * un selector global da strict mode violation). */
     const [respuesta] = await Promise.all([
       pagina.waitForResponse((r) => r.url().includes("/api/geometry")),
-      pagina.getByRole("button", { name: "Guardar", exact: true }).click(),
+      pagina
+        .locator(".editor-simbolos-toolbar")
+        .getByRole("button", { name: "Guardar", exact: true })
+        .click(),
     ]);
     const cuerpo = await respuesta.json();
 
