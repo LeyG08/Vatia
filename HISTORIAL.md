@@ -7521,3 +7521,49 @@ Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
 Queda pendiente: los campos del arranque reversible (`rol_reversor`,
 `motor_asociado`) siguen escondidos en la ficha del contactor, así que el
 sentido de giro funciona pero no se descubre solo.
+
+## E82.1 — El diagrama se dibujaba debajo del velo, y otros tres arreglos de legibilidad
+
+Reportado con capturas: *"esto está mal, no se ve bien"*.
+
+**El diagrama de bloques quedaba DEBAJO del modal.** `.diagrama` usaba
+`z-index: 70` y `.modal-fondo` —el velo oscuro que atenúa el fondo
+mientras hay un diálogo abierto— usa 90. O sea que el diálogo se dibujaba
+detrás de su propio velo: todo el contenido salía lavado, como si
+estuviera deshabilitado. Pasó a 100, que es lo que ya usaba
+`.panel-hoja`. Este es el bug que se ve en la primera captura, y explica
+por qué "no se veía bien" toda la pantalla: no era contraste, era una
+capa mal ordenada.
+
+**Los dos botones de la jerarquía eran ilegibles.** Estaban escritos como
+caracteres: `⌂` para el tablero principal y `⑂` para los seccionales
+automáticos. A 12 px el primero se lee como una manchita triangular y el
+segundo directamente no existe en la mayoría de las tipografías, así que
+caía en un glifo de reemplazo — se veía una especie de "Ψ". Un botón que
+nadie puede leer no es un botón. Ahora son dos íconos SVG dibujados (una
+casa y una rama que se abre), de 15 px dentro de un objetivo de 26, con
+el trazo tomando el color del botón para que apagado, hover y encendido
+se definan en un solo lugar. Se les agregó además `aria-label` con el
+nombre del tablero.
+
+**El aviso citaba un glifo que no se ve.** Decía "Marcalo con el ícono ⌂";
+ahora describe el botón por su posición y su forma, sin depender de que
+el carácter renderice.
+
+**La banda de Simular tenía un botón y un hueco al lado.** Un modo de
+simulación sin lectura del estado es un tablero sin instrumentos. Se
+agregó el grupo "Estado del circuito" con lo que el motor acaba de
+resolver: cuántas bobinas quedaron energizadas, cuántos aparatos
+conducen, y —cuando corresponde— el aviso de circuito oscilante, que es
+el caso en que la iteración no llega a un punto fijo (una realimentación
+que se muerde la cola, por ejemplo un contacto NC de la propia bobina que
+lo alimenta).
+
+**El diálogo del diagrama se ajusta al contenido.** Medía 920 px fijos:
+con dos tableros quedaba medio vacío. Ahora usa `width: max-content` con
+un mínimo de 460 px — verificado, con dos tableros abre en 481 px.
+
+Verificado en vivo con Playwright a 1920×1080, sin errores de consola.
+Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
+`npm run e2e` (21), `npm run e2e:simulacion` (11), `npm run e2e:simbolos`
+(19), `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`.

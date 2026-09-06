@@ -33,6 +33,13 @@ function BarraSuperior() {
   const modoAdmin = useEditor((s) => s.modoAdmin);
   const modoSimulacion = useEditor((s) => s.modoSimulacion);
   const reiniciarSimulacion = useEditor((s) => s.reiniciarSimulacion);
+  const bobinasEnergizadas = useEditor((s) => s.simulacionResultado?.bobinasEnergizadas.size ?? 0);
+  const aparatosConduciendo = useEditor((s) =>
+    s.simulacionResultado
+      ? [...s.simulacionResultado.aparatos.values()].filter(Boolean).length
+      : 0,
+  );
+  const simulacionEstable = useEditor((s) => s.simulacionResultado?.estable !== false);
   const modoTrabajo = useEditor((s) => s.modoTrabajo);
   const setModoTrabajo = useEditor((s) => s.setModoTrabajo);
   const hojaModo = useEditor((s) => s.hoja.modo);
@@ -331,19 +338,45 @@ function BarraSuperior() {
           )}
 
           {modoTrabajo === "simular" && (
-            <Grupo titulo="Circuito">
-              {/* E81.1 - el boton dice lo que hace, no en que estado esta:
-                * entrar a la solapa "Simular" ya energizo el circuito, asi
-                * que lo unico que queda por hacer aca es volver todo a
-                * reposo. */}
-              <button
-                type="button"
-                onClick={reiniciarSimulacion}
-                title="Vuelve el circuito a reposo: todas las bobinas caen, los pulsadores se sueltan y los selectores vuelven a la posicion 1"
-              >
-                Volver a reposo
-              </button>
-            </Grupo>
+            <>
+              <Grupo titulo="Circuito">
+                {/* E81.1 - el boton dice lo que hace, no en que estado esta:
+                  * entrar a la solapa "Simular" ya energizo el circuito, asi
+                  * que lo unico que queda por hacer aca es volver todo a
+                  * reposo. */}
+                <button
+                  type="button"
+                  onClick={reiniciarSimulacion}
+                  title="Vuelve el circuito a reposo: todas las bobinas caen, los pulsadores se sueltan y los selectores vuelven a la posicion 1"
+                >
+                  Volver a reposo
+                </button>
+              </Grupo>
+
+              {/* E82.1 - la banda de Simular tenia un solo boton y un hueco
+                * al lado. Un modo de simulacion sin lectura del estado es un
+                * tablero sin instrumentos: aca va lo que el motor acaba de
+                * resolver. */}
+              <Grupo titulo="Estado del circuito">
+                <span className="cinta-lectura">
+                  <b>{bobinasEnergizadas}</b> bobina
+                  {bobinasEnergizadas === 1 ? "" : "s"} energizada
+                  {bobinasEnergizadas === 1 ? "" : "s"}
+                </span>
+                <span className="cinta-lectura">
+                  <b>{aparatosConduciendo}</b> aparato
+                  {aparatosConduciendo === 1 ? "" : "s"} conduciendo
+                </span>
+                {!simulacionEstable && (
+                  <span
+                    className="cinta-lectura alerta"
+                    title="El circuito no llega a un estado estable: hay una realimentacion que se muerde la cola, por ejemplo un contacto NC de la propia bobina que lo alimenta."
+                  >
+                    circuito oscilante
+                  </span>
+                )}
+              </Grupo>
+            </>
           )}
 
           {modoTrabajo === "emitir" && (

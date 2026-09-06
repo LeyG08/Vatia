@@ -591,6 +591,26 @@ body,
   color: #17120a;
 }
 
+/* Lectura de instrumento: un dato, no un boton. Sin borde ni fondo, para
+ * que no se confunda con algo clickeable. */
+.cinta-lectura {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+.cinta-lectura b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.cinta-lectura.alerta {
+  color: var(--error);
+  font-weight: 600;
+}
+
 /* Que hace este modo, en una linea, al final de la banda. */
 .cinta-ayuda {
   align-self: center;
@@ -740,17 +760,29 @@ body,
  * el principal. */
 .arbol-marca {
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   border: 1px solid transparent;
   border-radius: var(--radio-chico);
   background: transparent;
-  color: var(--text-faint);
-  font-size: 12px;
+  color: var(--text-muted);
   line-height: 1;
   cursor: pointer;
+}
+
+/* El icono se dibuja con el color del boton: asi el estado (apagado,
+ * hover, puesto) se define en un solo lugar. */
+.arbol-marca svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .arbol-marca:hover {
@@ -924,13 +956,20 @@ body,
  * ===================================================================== */
 .diagrama {
   position: fixed;
-  z-index: 70;
+  /* Por encima de .modal-fondo (90), como el resto de los diálogos
+   * (.panel-hoja usa 100). Con 70 el diagrama quedaba DEBAJO del velo
+   * oscuro del modal y se veía lavado, como si estuviera deshabilitado. */
+  z-index: 100;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
-  width: min(920px, 92vw);
+  /* Se ajusta a lo que hay adentro: con dos tableros no tiene sentido
+   * abrir un dialogo de 920 px y dejar medio vacio. */
+  width: max-content;
+  min-width: min(460px, 92vw);
+  max-width: 92vw;
   max-height: 84vh;
   background: var(--bg-surface);
   border: 1px solid var(--borde);
@@ -1042,6 +1081,7 @@ body,
   font-size: 11px;
   line-height: 1.4;
   color: var(--text-muted);
+  max-width: 76ch;
 }
 
 /* =====================================================================

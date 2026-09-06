@@ -36,6 +36,30 @@ import { categoriaDeTipoAparato, etiquetaCategoriaAparato } from "../lib/categor
  *    documenta otro o todavía no se sabe.
  */
 
+/* E82.1 — los dos controles de la jerarquía se dibujan, no se escriben.
+ * Antes eran los caracteres "⌂" y "⑂": a 12 px, el primero se leía como
+ * una manchita triangular y el segundo directamente no existe en la
+ * mayoría de las tipografías, así que caía en un glifo de reemplazo. Un
+ * botón que nadie puede leer no es un botón. */
+function IconoPrincipal() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M2.5 7.2 8 2.8l5.5 4.4" />
+      <path d="M4 6.8v6.4h8V6.8" />
+    </svg>
+  );
+}
+
+function IconoRamifica() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M4 2.6v6.2a2 2 0 0 0 2 2h6" />
+      <path d="M9.6 8.4 12.4 10.8 9.6 13.2" />
+      <circle cx="4" cy="2.6" r="1.4" />
+    </svg>
+  );
+}
+
 interface ItemAparato {
   nodoId: string;
   hojaId: string;
@@ -201,8 +225,9 @@ function ArbolProyecto() {
 
       {!hayPrincipal && porHoja.length > 0 && (
         <p className="arbol-aviso">
-          Ningún tablero está marcado como principal. Marcalo con el ícono ⌂
-          para que el resto cuelgue de él.
+          Ningún tablero está marcado como principal. Tocá el primer botón del
+          renglón del tablero general —el de la casa— y el resto pasa a colgar
+          de él.
         </p>
       )}
 
@@ -253,26 +278,36 @@ function ArbolProyecto() {
                 className={`arbol-marca${hoja.esTableroPrincipal ? " puesta" : ""}`}
                 onClick={() => marcarTableroPrincipal(hoja.id)}
                 aria-pressed={!!hoja.esTableroPrincipal}
+                aria-label={
+                  hoja.esTableroPrincipal
+                    ? `${hoja.nombre} es el tablero principal`
+                    : `Marcar ${hoja.nombre} como tablero principal`
+                }
                 title={
                   hoja.esTableroPrincipal
-                    ? "Este es el tablero principal del proyecto"
+                    ? "Tablero principal del proyecto — de acá cuelga todo lo demás"
                     : "Marcar como tablero principal"
                 }
               >
-                ⌂
+                <IconoPrincipal />
               </button>
               <button
                 type="button"
                 className={`arbol-marca${autoOn ? " puesta" : ""}`}
                 onClick={() => setAutoSeccionales(hoja.id, !autoOn)}
                 aria-pressed={autoOn}
+                aria-label={
+                  autoOn
+                    ? `Desactivar la creación automática de hojas seccionales en ${hoja.nombre}`
+                    : `Activar la creación automática de hojas seccionales en ${hoja.nombre}`
+                }
                 title={
                   autoOn
                     ? "Al cargar un circuito seccional en esta hoja se crea sola la hoja de su tablero. Clic para desactivarlo."
                     : "La hoja de los tableros seccionales de esta hoja se crea a mano. Clic para que se cree sola."
                 }
               >
-                ⑂
+                <IconoRamifica />
               </button>
             </div>
 
