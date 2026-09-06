@@ -111,10 +111,10 @@ resumen("archivo cargado", await medir(page));
 /* Conexión fresca desde abajo: n5.2 → barra 430b */
 {
   const bbA = await page
-    .locator('.react-flow__handle[data-nodeid="n5"][data-handleid="2"]')
+    .locator('.react-flow__handle[data-nodeid="n5"][data-handleid="2"]:not(.handle-espejo)')
     .boundingBox();
   const bbB = await page
-    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="430b"]')
+    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="430b"]:not(.handle-espejo)')
     .boundingBox();
   const ax = bbA.x + bbA.width / 2;
   const ay = bbA.y + bbA.height / 2;
@@ -162,7 +162,7 @@ await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
   );
   const bbU = await upd.boundingBox().catch(() => null);
   const bbH = await page
-    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="410b"]')
+    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="410b"]:not(.handle-espejo)')
     .boundingBox();
   if (!bbU || !bbH) {
     marcarFalla("no encontré el updater target de c4 o el handle 410b");
@@ -222,7 +222,7 @@ await arrastrar("n3", 0, -170); // el que cuelga por c2 (fuente=barra)
   );
   const bbU = await upd.boundingBox().catch(() => null);
   const bbH = await page
-    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="210a"]')
+    .locator('.react-flow__handle[data-nodeid="n1"][data-handleid="210a"]:not(.handle-espejo)')
     .boundingBox();
   if (!bbU || !bbH) {
     marcarFalla("no encontré el updater source de c1 o el handle 210a");

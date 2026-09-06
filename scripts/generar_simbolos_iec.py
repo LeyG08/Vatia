@@ -1037,6 +1037,50 @@ def s00177():
     return (*fusible_multipolar(1), "Fusible unipolar (multifilar)", "IEC 60617 (fusible simple)")
 
 
+# ---------------------------------------------------------------------------
+# E76 (cierra la cola planteada junto con MCCB/diferencial/fusible): relé
+# térmico multipolar. Corrección del usuario sobre el primer intento (que
+# repetía una caja con su propio símbolo térmico por polo, con enlace
+# punteado): un relé térmico trifásico real tiene UN solo mecanismo de
+# disparo que censa las tres fases a la vez — se representa mejor con UNA
+# caja compartida (mismo criterio que el envolvente de MCCB, E73) y UN
+# solo símbolo de protección térmica centrado, en vez de repetirlo por
+# polo. Los N conductores simplemente atraviesan esa caja compartida.
+# ---------------------------------------------------------------------------
+
+def rele_termico_multipolar(n_polos):
+    """N conductores atravesando UNA sola caja de relé térmico, con UN
+    solo símbolo de efecto térmico (03-30-37) centrado — no uno por
+    polo. Sin enlace punteado: la caja compartida ya representa el
+    mecanismo de disparo común (mismo criterio que mccb_multipolar())."""
+    xs = xs_polos(n_polos)
+    ancho_caja = (xs[-1] - xs[0]) + 12.0
+    x_caja = xs[0] - 6.0
+    c = rectangulo(x_caja, -6, ancho_caja, 12)
+    for cx in xs:
+        c += linea(cx, -30, cx, 20)
+    c += efecto_termico(0, 0, 7.0)
+    ancho_vb = (xs[-1] - xs[0]) + 20.0 if n_polos > 1 else 20.0
+    hoja = f"{xs[0] - 10.0} -35.0 {ancho_vb} 60.0"
+    return hoja, c
+
+
+def s00185():
+    return (*rele_termico_multipolar(1), "Relé térmico unipolar (multifilar)", "IEC 60617 07-76-01 + 03-30-37")
+
+
+def s00186():
+    return (*rele_termico_multipolar(2), "Relé térmico bipolar (multifilar)", "IEC 60617 07-76-01 + 03-30-37")
+
+
+def s00187():
+    return (*rele_termico_multipolar(3), "Relé térmico tripolar (multifilar)", "IEC 60617 07-76-01 + 03-30-37")
+
+
+def s00188():
+    return (*rele_termico_multipolar(4), "Relé térmico tetrapolar (multifilar)", "IEC 60617 07-76-01 + 03-30-37")
+
+
 def s00178():
     return (*fusible_multipolar(2), "Fusible bipolar (multifilar)", "IEC 60617 (fusible simple)")
 
@@ -1130,7 +1174,8 @@ SIMBOLOS_COMANDO = {
     "S00172": s00172, "S00173": s00173, "S00174": s00174, "S00175": s00175,
     "S00176": s00176, "S00177": s00177, "S00178": s00178, "S00179": s00179,
     "S00180": s00180, "S00181": s00181, "S00182": s00182, "S00183": s00183,
-    "S00184": s00184,
+    "S00184": s00184, "S00185": s00185, "S00186": s00186, "S00187": s00187,
+    "S00188": s00188,
 }
 
 

@@ -5,6 +5,7 @@ import {
   useReactFlow,
   Controls,
   ControlButton,
+  ConnectionMode,
   type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -627,6 +628,7 @@ function Editor() {
           onReconnectStart={(_, __, t) => marcarConexion(t)}
           onReconnectEnd={() => desmarcarConexion()}
           isValidConnection={(c) => c.source !== c.target && c.source !== "hoja" && c.target !== "hoja"}
+          connectionMode={ConnectionMode.Loose}
           onNodeDragStart={(_, nodo) => {
             registrarArrastre([nodo.id]);
             zonasRef.current = capturarZonas();

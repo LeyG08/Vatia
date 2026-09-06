@@ -478,12 +478,22 @@ body,
 .react-flow__handle.handle-salida,
 .react-flow__handle.handle-tierra,
 .react-flow__handle.handle-auxiliar,
+.react-flow__handle.handle-espejo,
 .nodo-alimentador .react-flow__handle.react-flow__handle {
   width: 0;
   height: 0;
   min-width: 0;
   min-height: 0;
   border: none;
+}
+
+/* Handle espejo (ver NodoSimbolo): mismo punto, tipo source/target
+   opuesto al handle visible, para que React Flow pueda resolver un
+   cable sin importar cuál de los dos extremos terminó siendo "source"
+   en los datos. No dibuja nada — el anillo lo pone el handle visible
+   que comparte el mismo id. */
+.handle-espejo {
+  z-index: 2;
 }
 
 /* C13b: anillo visible del terminal — el Handle mide 0×0 (ver

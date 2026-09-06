@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ESCALA, useEditor, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
@@ -166,7 +167,7 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
     <div
       className={`nodo-simbolo${vinculado ? " nodo-simbolo-vinculado" : ""}${
         energizado ? " nodo-simbolo-energizado" : ""
-      }${accionable ? " nodo-simbolo-accionable" : ""}${
+      }${accionable ? " nodo-simbolo-accionable nodrag" : ""}${
         accionado ? " nodo-simbolo-presionado" : ""
       }`}
       style={{ width: anchoPx, height: altoPx }}
@@ -186,27 +187,51 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
         }}
         dangerouslySetInnerHTML={{ __html: svgLimpio(simbolo.svgRaw) }}
       />
-      {puntos.map(({ punto, r }) => (
-        <Handle
-          key={punto.id}
-          id={punto.id}
-          type={punto.rol === "salida" ? "source" : "target"}
-          position={r.direccion}
-          className={`handle-${punto.rol}`}
-          style={{
-            /* C13b: 0×0 — RF ancla al borde del handle; con tamaño
-             * real quedaban ~5 px de aire. El anillo visible es el
-             * ::before de la clase. */
-            width: 0,
-            height: 0,
-            border: "none",
-            background: "transparent",
-            pointerEvents: "all",
-            left: `${(r.x / r.cajaAncho) * 100}%`,
-            top: `${(r.y / r.cajaAlto) * 100}%`,
-          }}
-        />
-      ))}
+      {puntos.map(({ punto, r }) => {
+        const tipoPropio = punto.rol === "salida" ? "source" : "target";
+        const tipoEspejo = tipoPropio === "source" ? "target" : "source";
+        const estiloComun = {
+          /* C13b: 0×0 — RF ancla al borde del handle; con tamaño
+           * real quedaban ~5 px de aire. El anillo visible es el
+           * ::before de la clase. */
+          width: 0,
+          height: 0,
+          border: "none",
+          background: "transparent",
+          pointerEvents: "all" as const,
+          left: `${(r.x / r.cajaAncho) * 100}%`,
+          top: `${(r.y / r.cajaAlto) * 100}%`,
+        };
+        return (
+          <Fragment key={punto.id}>
+            <Handle
+              id={punto.id}
+              type={tipoPropio}
+              position={r.direccion}
+              className={`handle-${punto.rol}`}
+              style={estiloComun}
+            />
+            {/* Handle espejo (mismo id, tipo opuesto, invisible):
+             * un terminal de comando no tiene una única dirección de
+             * corriente fija como en fuerza — hace falta poder unir
+             * dos "entrada" entre sí (p. ej. seleccionar entre bobinas
+             * de contactores) o dos "salida". React Flow solo resuelve
+             * la posición de un cable si alguno de sus dos extremos
+             * tiene un handle type="source" registrado (ver
+             * getEdgePosition, busca sourceHandleBounds.source SIEMPRE,
+             * incluso en ConnectionMode.Loose) — por eso, sin este
+             * segundo handle, la conexión se crea pero queda invisible
+             * cuando el usuario conecta dos "entrada" entre sí. */}
+            <Handle
+              id={punto.id}
+              type={tipoEspejo}
+              position={r.direccion}
+              className="handle-espejo"
+              style={estiloComun}
+            />
+          </Fragment>
+        );
+      })}
       {lineasConSentido.length > 0 && (
         <div
           className={`anotacion-nodo${esCarga ? " anotacion-carga" : ""}`}

@@ -6870,3 +6870,96 @@ librería de comando/control queda **completa: sus 52 símbolos, verificados**.
 Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py --carpeta comando` (52/52), todos en verde.
+
+## E76 — Relé térmico multipolar: caja compartida con un solo símbolo de protección
+
+Último dispositivo de la cola (después de fusible/portafusible, E75). Primer
+intento: repetir una caja de relé térmico completa (con su propio símbolo de
+efecto térmico adentro) por polo, unidas por un enlace punteado — igual
+criterio que guardamotor (E71). Corrección del usuario sobre ese primer
+intento: un relé térmico trifásico real tiene UN solo mecanismo de disparo
+que censa las tres fases a la vez, así que corresponde UNA caja compartida
+con UN solo símbolo de protección térmica centrado — mismo criterio que el
+envolvente compartido de MCCB (E73), no el del enlace punteado entre cajas
+repetidas.
+
+`rele_termico_multipolar(n_polos)` reemplaza el primer intento: dibuja el
+rectángulo una sola vez (ancho ajustado a los N polos, margen de 6 unidades
+a cada lado como en el unifilar S00123), los N conductores lo atraviesan de
+punta a punta, y el símbolo de efecto térmico (03-30-37) se dibuja una sola
+vez, centrado en x=0 sin importar cuántos polos haya. Sin enlace punteado:
+la caja compartida ya representa el mecanismo común.
+
+Nacen **S00185–188** (uni/bi/tri/tetrapolar), mismo `tipo_aparato:
+"rele_termico"` que S00123 unifilar. El unipolar (S00185) reproduce la
+misma geometría que S00123 (la línea del conductor queda entera en vez de
+partida en dos a la altura de la caja, pero el trazo resultante es
+idéntico). Terminales `inN`/`outN` a y=-30/20, igual que el resto de la
+familia — `agruparPolos()` (E69) los agrupa sin ningún caso nuevo.
+
+Los 4 símbolos quedan `estado_revision: "pendiente_revision"`, a la espera
+de aprobación del diseño corregido.
+
+Verificaciones: `tsc -b`, `lint_simbolos.py --carpeta comando` (56/56).
+
+## E77 — Dos bugs de interacción reportados por el usuario
+
+Corrección de dos problemas reales de uso, señalados junto con la
+observación de E76:
+
+**(1) Arrastrar un pulsador en modo simulación desplazaba el símbolo
+completo**, en vez de solo accionarlo. `e.stopPropagation()` en el
+`onPointerDown` de `NodoSimbolo.tsx` no alcanza: React Flow inicia el
+arrastre de nodo con su propio listener nativo (XYDrag), que no lo detiene
+un `stopPropagation()` de React. El mecanismo oficial de React Flow para
+esto es la clase `nodrag` (la misma que ya usan sus `Handle` internamente) —
+se agrega solo cuando el símbolo es `accionable` (modo simulación + tipo
+interactivo), así que fuera de simulación el arrastre normal del nodo sigue
+intacto.
+
+**(2) Conectar dos terminales "entrada" entre sí no dejaba** — reportado al
+rotar una llave selectora e intentar unir su terminal de abajo (que tras
+rotar 180° pasó a ser una `entrada`, ya que originalmente estaba arriba) con
+la entrada de otro aparato (p. ej. para seleccionar entre bobinas de
+contactores). Causa doble:
+
+- `<ReactFlow>` nunca declaraba `connectionMode`, así que corría con el
+  default `Strict` (React Flow solo permite conectar un handle `source` con
+  uno `target`, nunca del mismo tipo entre sí) — nunca fue una decisión de
+  diseño, simplemente no se había tocado. Se agregó
+  `connectionMode={ConnectionMode.Loose}`.
+- Aun en `Loose`, `getEdgePosition` (la función interna de React Flow que
+  calcula por dónde pasa el cable) busca el lado "source" de la conexión
+  SOLO en `handleBounds.source` del nodo — nunca en `.target`, sin importar
+  el modo. Como el `type` de cada `Handle` en `NodoSimbolo.tsx` es fijo
+  según el `rol` del punto (`entrada` → `target`, `salida` → `source`), una
+  conexión entrada-entrada terminaba con un extremo cuyo handle real es
+  `target`, y la búsqueda en `.source` fallaba: la conexión se creaba en el
+  modelo de datos (el checklist ya la veía) pero el cable quedaba invisible.
+  Se agregó, por cada punto de conexión, un segundo `<Handle>` "espejo" —
+  mismo `id`, tipo opuesto, invisible (clase `handle-espejo`, sin el anillo
+  visual) — así cualquier terminal ofrece TANTO un handle `source` como uno
+  `target` en el mismo lugar, y `getEdgePosition` siempre encuentra lo que
+  necesita sin importar qué lado terminó siendo "source" en los datos. No
+  hace falta tocarlo en `simulacion.ts`: ya trata cada conexión como un par
+  no dirigido.
+
+`e2e/conexiones.mjs` tenía 4 selectores de handle por `data-nodeid`+
+`data-handleid` que ahora matchean DOS elementos (el visible y el espejo);
+se les agregó `:not(.handle-espejo)` para desambiguar.
+
+Verificado en vivo (real drag-and-drop con Playwright, no solo revisión de
+código): (1) arrastrar un pulsador con el mouse durante la simulación deja
+la posición del nodo sin cambios (0.00 px de desplazamiento) y un press
+estacionario sigue marcando `nodo-simbolo-presionado`/energizando el
+circuito con normalidad; (2) conectar la terminal `pos1` (entrada) de un
+selector de 2 posiciones con la terminal `in` (entrada) de una bobina de
+contactor/relé — dos handles `target` en nodos distintos — ahora sí dibuja
+el cable (antes del fix del handle espejo la conexión existía en el modelo,
+visible en el checklist ["Conexión ... → ...: cable sin conductores"], pero
+sin ningún trazo en el lienzo).
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks, con los selectores de handle corregidos),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` (fuerza 19/19, comando 56/56), todos en verde.

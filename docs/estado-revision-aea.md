@@ -58,21 +58,25 @@ para una etapa posterior.
 
 > **S00124 se mudó a `libreria-simbolos/comando/`** (E15) — dejó de ser
 > parte de esta tabla, que documenta solo la librería de fuerza
-> (`simbolos/`). La librería de comando/control (52 símbolos, S00124 +
-> S00130 + S00134–S00184) está **completa: los 52 verificados**. Tiene su
-> propia galería (`libreria-simbolos/comando/index.html`) y su historial
-> de revisión en `HISTORIAL.md` E15–E15.6 (lote piloto), E16–E16.1
-> (segundo lote), E66–E66.1 (retardo a la desconexión), E67–E67.1
-> (sensores de proximidad), E68–E68.1 (termostato), E69–E69.1
-> (interruptor multipolar), E70–E70.2 (contactor multipolar, verificado
-> de punta a punta), E71–E71.1 (guardamotores multipolares, verificado),
-> E72 (paleta: variantes de polos agrupadas en flyout), E73–E73.1 (MCCB
+> (`simbolos/`). La librería de comando/control (56 símbolos, S00124 +
+> S00130 + S00134–S00188, 52 verificados + 4 pendientes de revisión:
+> S00185–188, relé térmico multipolar, E76) tiene su propia galería
+> (`libreria-simbolos/comando/index.html`) y su historial de revisión en
+> `HISTORIAL.md` E15–E15.6 (lote piloto), E16–E16.1 (segundo lote),
+> E66–E66.1 (retardo a la desconexión), E67–E67.1 (sensores de
+> proximidad), E68–E68.1 (termostato), E69–E69.1 (interruptor
+> multipolar), E70–E70.2 (contactor multipolar, verificado de punta a
+> punta), E71–E71.1 (guardamotores multipolares, verificado), E72
+> (paleta: variantes de polos agrupadas en flyout), E73–E73.1 (MCCB
 > multipolar, envolvente compartido por todos los polos), E74–E74.1
-> (interruptor diferencial multipolar, toroide sumador compartido) y
+> (interruptor diferencial multipolar, toroide sumador compartido),
 > E75–E75.1 (fusible y seccionador fusible multipolares, sin enlace
-> mecánico entre polos, a propósito). No se duplica la tabla acá para no
-> repetir el desfasaje que ya sufrió esta misma tabla dos veces por
-> mantenerse a mano.
+> mecánico entre polos, a propósito) y E76 (relé térmico multipolar, caja
+> compartida, pendiente de aprobación). E77 corrige dos bugs de
+> interacción del editor (arrastre de pulsador en simulación, conexión
+> entre dos terminales "entrada") ajenos a la librería de símbolos. No se
+> duplica la tabla acá para no repetir el desfasaje que ya sufrió esta
+> misma tabla dos veces por mantenerse a mano.
 
 ## Fuera de alcance — pendiente-multifilar/
 
