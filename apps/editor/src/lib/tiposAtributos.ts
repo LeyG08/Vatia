@@ -17,20 +17,30 @@ export type TipoAparato =
   | "guardamotor_termomagnetico"
   | "instrumento_medicion"
   | "interruptor_diferencial"
+  | "interruptor_posicion"
   | "interruptor_termomagnetico"
+  | "lampara_piloto"
   | "mccb_caja_moldeada"
   | "motor_trifasico"
   | "portafusible"
+  | "pulsador"
+  | "pulsador_emergencia"
   | "rele_auxiliar"
   | "rele_proteccion_tension"
   | "rele_termico"
+  | "selector"
+  | "sensor_proximidad"
   | "sirena_alarma"
+  | "temporizador"
+  | "termostato"
   | "transformador"
   | "transformador_corriente";
 
 export interface AparatoBancoCapacitores {
   /** Tipo de aparato */
   tipo_aparato: "banco_capacitores";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -48,6 +58,8 @@ export interface AparatoBancoCapacitores {
 export interface AparatoContactoAuxiliar {
   /** Tipo de aparato */
   tipo_aparato: "contacto_auxiliar";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -63,6 +75,8 @@ export interface AparatoContactoAuxiliar {
 export interface AparatoContactor {
   /** Tipo de aparato */
   tipo_aparato: "contactor";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -77,16 +91,24 @@ export interface AparatoContactor {
   in_a?: number;
   /** Tensión de bobina (V) */
   tension_bobina_v?: number;
+  /** Rol en arranque reversible */
+  rol_reversor?: "adelante" | "atras";
+  /** Motor asociado (referencia) */
+  motor_asociado?: string;
 }
 
 /** Portafusible y fusible como dos productos distintos, como en las fichas SF-* del plano. */
 export interface AparatoFusible {
   /** Tipo de aparato */
   tipo_aparato: "fusible";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
   modelo?: string;
+  /** Cantidad de polos */
+  cantidad_polos?: number;
   /** Tensión del portafusible (V) */
   portafusible_tension_v?: number;
   /** Categoría del portafusible */
@@ -106,6 +128,8 @@ export interface AparatoFusible {
 /** Guardamotor magnético (IEC 60947-2/4-1): protege SOLO contra cortocircuito, con disparo magnético instantáneo. No lleva disparador térmico, por eso no declara rango de ajuste térmico Ir; la protección contra sobrecarga la aporta un relé térmico aparte. Simbólicamente se distingue del termomagnético en que lleva una sola caja de disparador. */
 export interface AparatoGuardamotorMagnetico {
   tipo_aparato: "guardamotor_magnetico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -127,6 +151,8 @@ export interface AparatoGuardamotorMagnetico {
 export interface AparatoGuardamotorTermomagnetico {
   /** Tipo de aparato */
   tipo_aparato: "guardamotor_termomagnetico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -145,13 +171,15 @@ export interface AparatoGuardamotorTermomagnetico {
   ii_a?: number;
   /** Poder de corte Icu (kA) */
   icu_kA?: number;
-  /** Poder de corte servicio Ics (A) */
+  /** Poder de corte servicio Ics (kA) */
   ics_kA?: number;
 }
 
 export interface AparatoInstrumentoMedicion {
   /** Tipo de aparato */
   tipo_aparato: "instrumento_medicion";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -167,6 +195,8 @@ export interface AparatoInstrumentoMedicion {
 export interface AparatoInterruptorDiferencial {
   /** Tipo de aparato */
   tipo_aparato: "interruptor_diferencial";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -187,9 +217,27 @@ export interface AparatoInterruptorDiferencial {
   norma_fabricacion?: string;
 }
 
+/** Interruptor de posición / fin de carrera (IEC 60617 07-72-07/08): contacto accionado mecánicamente (leva, rodillo, vástago), no por mando eléctrico ni manual. */
+export interface AparatoInterruptorPosicion {
+  /** Tipo de aparato */
+  tipo_aparato: "interruptor_posicion";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
+}
+
 export interface AparatoInterruptorTermomagnetico {
   /** Tipo de aparato */
   tipo_aparato: "interruptor_termomagnetico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -206,10 +254,30 @@ export interface AparatoInterruptorTermomagnetico {
   norma_fabricacion?: string;
 }
 
+/** Lámpara piloto / de señalización, símbolo general (IEC 60617 08-80-44). */
+export interface AparatoLamparaPiloto {
+  /** Tipo de aparato */
+  tipo_aparato: "lampara_piloto";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Color */
+  color?: "RD" | "YE" | "GN" | "BU" | "WH";
+  /** Tipo de lámpara */
+  tipo_lampara?: "LED" | "IN" | "Ne" | "FL";
+  /** Tensión (V) */
+  tension_v?: number;
+}
+
 /** Interruptor automatico en caja moldeada (IEC 60947-2). La norma no distingue aparatos por la construccion del envolvente, asi que no hay un simbolo IEC propio del MCCB: se dibuja el interruptor automatico rodeado por el envolvente moldeado, y el tipo de disparo se declara aca, en la ficha, habilitando los campos de ajuste que correspondan. */
 export interface AparatoMccbCajaMoldeada {
   /** Tipo de aparato */
   tipo_aparato: "mccb_caja_moldeada";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -224,8 +292,10 @@ export interface AparatoMccbCajaMoldeada {
   ir_a_max?: number;
   /** Ajuste magnético Im (A) */
   im_a?: number;
-  /** Poder de corte (kA) */
+  /** Poder de corte Icu (kA) */
   pdcc_kA?: number;
+  /** Poder de corte Ics (kA) */
+  ics_kA?: number;
   /** Categoría de utilización */
   categoria_utilizacion?: "A" | "B";
   /** Icw (kA, 1s) */
@@ -239,6 +309,8 @@ export interface AparatoMccbCajaMoldeada {
 export interface AparatoMotorTrifasico {
   /** Tipo de aparato */
   tipo_aparato: "motor_trifasico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -262,14 +334,14 @@ export interface AparatoMotorTrifasico {
 export interface AparatoPortafusible {
   /** Tipo de aparato */
   tipo_aparato: "portafusible";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
   modelo?: string;
-  /** Marca del portafusible */
-  portafusible_marca?: string;
-  /** Modelo del portafusible */
-  portafusible_modelo?: string;
+  /** Cantidad de polos */
+  cantidad_polos?: number;
   /** Tensión del portafusible (V) */
   portafusible_tension_v?: number;
   /** Categoría del portafusible */
@@ -278,9 +350,47 @@ export interface AparatoPortafusible {
   corriente_maxima_a?: number;
 }
 
+/** Pulsador de mando (IEC 60617 07-72-02): contacto momentáneo, retorno automático por resorte al soltar. */
+export interface AparatoPulsador {
+  /** Tipo de aparato */
+  tipo_aparato: "pulsador";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Iluminado */
+  iluminado?: boolean;
+  /** Color */
+  color?: "RD" | "YE" | "GN" | "BU" | "WH";
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
+  /** Es parada de emergencia */
+  es_parada_emergencia?: boolean;
+}
+
+/** Pulsador de parada de emergencia, cabeza de seta (IEC 60617 07-72-06): contacto NC con maniobra positiva de apertura y retención mecánica — queda enclavado hasta liberarlo a mano (girar o tirar), no vuelve solo. El contacto es siempre NC: la parada de emergencia corta, nunca cierra. */
+export interface AparatoPulsadorEmergencia {
+  /** Tipo de aparato */
+  tipo_aparato: "pulsador_emergencia";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
+}
+
 export interface AparatoReleAuxiliar {
   /** Tipo de aparato */
   tipo_aparato: "rele_auxiliar";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -296,12 +406,14 @@ export interface AparatoReleAuxiliar {
 export interface AparatoReleProteccionTension {
   /** Tipo de aparato */
   tipo_aparato: "rele_proteccion_tension";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
   modelo?: string;
   /** Tensión asignada (V) */
-  ue_v?: number;
+  ue_V?: number;
   /** Umbral subtensión (%) */
   subtension_pct?: number;
   /** Umbral sobretensión (%) */
@@ -315,6 +427,8 @@ export interface AparatoReleProteccionTension {
 export interface AparatoReleTermico {
   /** Tipo de aparato */
   tipo_aparato: "rele_termico";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -333,9 +447,49 @@ export interface AparatoReleTermico {
   clase_disparo?: string;
 }
 
+/** Selector rotativo de mando (IEC 60617 07-72-04): mantiene la posición elegida, sin retorno automático salvo que se indique lo contrario. */
+export interface AparatoSelector {
+  /** Tipo de aparato */
+  tipo_aparato: "selector";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Cantidad de posiciones */
+  posiciones?: number;
+  /** Con retorno automático */
+  con_retorno_automatico?: boolean;
+  /** Capacidad térmica Ith (A) */
+  ith_a?: number;
+}
+
+/** Sensor de proximidad / detector, símbolo de contacto (IEC 60617 07-74-06): cierra o abre sin contacto físico, por proximidad de un objeto. La variante NC se construye por analogía composicional (la norma solo lamina la NA). */
+export interface AparatoSensorProximidad {
+  /** Tipo de aparato */
+  tipo_aparato: "sensor_proximidad";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Tecnología */
+  tecnologia?: "inductivo" | "capacitivo" | "fotoelectrico" | "otra";
+  /** Distancia de detección (mm) */
+  distancia_deteccion_mm?: number;
+  /** Tensión de alimentación (V) */
+  tension_v?: number;
+}
+
 export interface AparatoSirenaAlarma {
   /** Tipo de aparato */
   tipo_aparato: "sirena_alarma";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -348,9 +502,49 @@ export interface AparatoSirenaAlarma {
   nivel_sonoro_db?: number;
 }
 
+/** Relé temporizador (IEC 60617 07-76-08): bobina con retardo a la conexión. Sus contactos (NA/NC) se dibujan por separado con los símbolos de contacto temporizado (07-71-15/17). */
+export interface AparatoTemporizador {
+  /** Tipo de aparato */
+  tipo_aparato: "temporizador";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de retardo */
+  tipo_retardo?: "a_la_conexion" | "a_la_desconexion";
+  /** Tiempo de retardo (s) */
+  tiempo_retardo_s?: number;
+  /** Tensión de bobina (V) */
+  tension_bobina_v?: number;
+}
+
+/** Contacto sensible a la temperatura / termostato (IEC 60617 07-72-11/12): abre o cierra por la temperatura del ambiente o de un elemento, sin mando eléctrico ni manual — mismo criterio de simulación que interruptor_posicion y sensor_proximidad. */
+export interface AparatoTermostato {
+  /** Tipo de aparato */
+  tipo_aparato: "termostato";
+  /** Referencia */
+  referencia?: string;
+  /** Marca */
+  marca?: string;
+  /** Modelo */
+  modelo?: string;
+  /** Tipo de contacto */
+  tipo_contacto?: "NA" | "NC";
+  /** Temperatura de consigna (°C) */
+  temperatura_consigna_c?: number;
+  /** Diferencial (°C) */
+  diferencial_c?: number;
+  /** Tensión de alimentación (V) */
+  tension_v?: number;
+}
+
 export interface AparatoTransformador {
   /** Tipo de aparato */
   tipo_aparato: "transformador";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -368,6 +562,8 @@ export interface AparatoTransformador {
 export interface AparatoTransformadorCorriente {
   /** Tipo de aparato */
   tipo_aparato: "transformador_corriente";
+  /** Referencia */
+  referencia?: string;
   /** Marca */
   marca?: string;
   /** Modelo */
@@ -394,14 +590,22 @@ export type AtributosAparato =
   | AparatoGuardamotorTermomagnetico
   | AparatoInstrumentoMedicion
   | AparatoInterruptorDiferencial
+  | AparatoInterruptorPosicion
   | AparatoInterruptorTermomagnetico
+  | AparatoLamparaPiloto
   | AparatoMccbCajaMoldeada
   | AparatoMotorTrifasico
   | AparatoPortafusible
+  | AparatoPulsador
+  | AparatoPulsadorEmergencia
   | AparatoReleAuxiliar
   | AparatoReleProteccionTension
   | AparatoReleTermico
+  | AparatoSelector
+  | AparatoSensorProximidad
   | AparatoSirenaAlarma
+  | AparatoTemporizador
+  | AparatoTermostato
   | AparatoTransformador
   | AparatoTransformadorCorriente;
 
@@ -421,16 +625,10 @@ export interface AtributosConductor {
   seccion_tierra_mm2?: number;
   /** Sección de fase (mm²) */
   seccion_fase_mm2?: number;
-  /** Longitud (m) */
-  longitud_m?: number;
   /** Material */
   material?: "Cu" | "Al";
-  /** Método de instalación */
-  metodo_instalacion?: "A1" | "A2" | "B1" | "B2" | "C" | "D" | "E" | "F" | "G";
-  /** Temperatura ambiente (°C) */
-  temperatura_ambiente_c?: number;
-  /** Circuitos agrupados */
-  cantidad_circuitos_agrupados?: number;
+  /** Tramos de instalación */
+  tramos?: unknown;
   /** Aislación */
   aislacion?: "PVC" | "XLPE" | "EPR";
   /** Norma IRAM */
@@ -439,6 +637,12 @@ export interface AtributosConductor {
 
 /** Fase C8. La barra es el nodo de distribución del tablero: la acometida llega a ella y de ella cuelgan los circuitos. La ficha se anota en el extremo izquierdo, por encima de la barra, con el formato del plano real: dimensiones · material · norma IRAM · corriente admisible. Los campos con x-obligatorio son advertidos por el Checklist: no bloquean el guardado. */
 export interface AtributosBarra {
+  /** Tipo de barra */
+  tipo_barra?: "fuerza" | "riel_multifilar";
+  /** Función del riel */
+  funcion_riel?: "fase_viva" | "neutro" | "tierra";
+  /** Etiqueta (L1, N, PE…) */
+  etiqueta_fase?: string;
   /** Dimensiones del perfil */
   dimensiones?: string;
   /** Es juego de barras */

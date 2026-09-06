@@ -42,6 +42,14 @@ function pdccEnA(v: unknown): string {
  */
 function anotacionAparato(a: Record<string, unknown>): string[] {
   const l: string[] = [];
+  // Designación de referencia (IEC 61346, ej. "KM1"): primera línea,
+  // separada de marca/modelo — es lo que en el futuro va a permitir
+  // reconocer qué contactos pertenecen a qué bobina para simular el
+  // circuito de comando (E47, primer paso: solo el dato, sin simular
+  // todavía).
+  if (typeof a.referencia === "string" && a.referencia.trim() !== "") {
+    l.push(a.referencia.trim());
+  }
   const mm = [capitalizar(a.marca), capitalizar(a.modelo)]
     .filter(Boolean)
     .join(" ");
@@ -69,6 +77,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       break;
     }
     case "fusible": {
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
       const porta = [capitalizar(a.marca), capitalizar(a.modelo)]
         .filter(Boolean)
         .join(" ");
@@ -151,8 +160,10 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       break;
     }
     case "portafusible": {
-      const pf = [capitalizar(a.portafusible_marca), capitalizar(a.portafusible_modelo)].filter(Boolean).join(" ");
-      if (pf) l.push(`Base ${pf}`);
+      // marca/modelo del portafusible ya salen en el prefijo genérico
+      // de arriba (a.marca/a.modelo, de base_comun) — no hace falta un
+      // campo aparte solo para este subtipo.
+      if (a.cantidad_polos != null) l.push(`${a.cantidad_polos}P`);
       if (n(a.portafusible_tension_v)) l.push(`${n(a.portafusible_tension_v)} V`);
       break;
     }
@@ -164,7 +175,7 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
       break;
     }
     case "rele_proteccion_tension": {
-      if (n(a.ue_v)) l.push(`Ue ${n(a.ue_v)} V`);
+      if (n(a.ue_V)) l.push(`Ue ${n(a.ue_V)} V`);
       if (n(a.subtension_pct) || n(a.sobretension_pct)) {
         l.push(`U< ${n(a.subtension_pct)}% · U> ${n(a.sobretension_pct)}%`);
       }
@@ -199,7 +210,22 @@ function anotacionAparato(a: Record<string, unknown>): string[] {
  *   500 A · IRAM 2181-1         ← corriente admisible con la norma al lado
  * Se dibuja en el extremo izquierdo, por encima de la barra.
  */
+const NOMBRE_FUNCION_RIEL: Record<string, string> = {
+  fase_viva: "Fase viva",
+  neutro: "Neutro",
+  tierra: "Tierra (PE)",
+};
+
 export function anotacionBarra(a: Record<string, unknown>): string[] {
+  // E64: riel de comando multifilar — ficha propia, nada de dimensiones/
+  // material/corriente admisible (eso es de la barra de fuerza).
+  if (a.tipo_barra === "riel_multifilar") {
+    const nombreFuncion =
+      typeof a.funcion_riel === "string" ? NOMBRE_FUNCION_RIEL[a.funcion_riel] : undefined;
+    const etiqueta = typeof a.etiqueta_fase === "string" ? a.etiqueta_fase.trim() : "";
+    if (!nombreFuncion) return etiqueta ? [etiqueta] : ["Riel de comando"];
+    return [etiqueta ? `${nombreFuncion} · ${etiqueta}` : nombreFuncion];
+  }
   const lineas: string[] = [];
   if (a.es_conjunto === true) {
     if (typeof a.cantidad_fases === "number" && a.cantidad_fases > 0) {

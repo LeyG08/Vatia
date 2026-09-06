@@ -1,0 +1,26 @@
+{
+  "codigo_iec": "S00144",
+  "nombre": "Contacto NA temporizado (retardo a la conexión)",
+  "familia_atributos": "aparato",
+  "estado_revision": "verificado",
+  "puntos_conexion": [
+    {
+      "id": "t1",
+      "rol": "entrada",
+      "x": 0.0,
+      "y": -20.0
+    },
+    {
+      "id": "t2",
+      "rol": "salida",
+      "x": 0.0,
+      "y": 20.0
+    }
+  ],
+  "version_libreria": "0.1.0",
+  "fuente_norma": "IEC 60617 07-71-15",
+  "atributos_base": {
+    "tipo_aparato": "contacto_auxiliar",
+    "tipo_contacto": "NA"
+  }
+}

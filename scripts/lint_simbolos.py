@@ -298,6 +298,8 @@ def main() -> int:
                         help="fuerza la ESCALA (por defecto se lee de store.ts)")
     parser.add_argument("--symbol", type=str, default=None,
                         help="valida un solo símbolo (ej. S00110)")
+    parser.add_argument("--carpeta", type=str, default="simbolos",
+                        help="subcarpeta de libreria-simbolos/ a lintear (simbolos = fuerza, comando = mando)")
     args = parser.parse_args()
 
     escala = args.escala or escala_desde_store(args.raiz)
@@ -305,7 +307,7 @@ def main() -> int:
         print("aviso: no pude leer ESCALA de store.ts; uso 2", file=sys.stderr)
         escala = 2
 
-    libreria = args.raiz / "libreria-simbolos" / "simbolos"
+    libreria = args.raiz / "libreria-simbolos" / args.carpeta
     carpetas = sorted(c for c in libreria.iterdir() if c.is_dir()) if libreria.is_dir() else []
 
     if args.symbol:

@@ -1,4 +1,4 @@
-import { useMemo, type ReactElement } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactElement } from "react";
 import {
   type FamiliaAtributos,
   camposDeFamilia,
@@ -6,16 +6,169 @@ import {
   parAutomatico,
   campoVisible,
 } from "../lib/esquemas";
+import { esAccesorioReferencia } from "../lib/referencia";
+import {
+  estimarCorrienteAdmisibleBarraA,
+  anchosBarraDisponiblesMm,
+  espesoresBarraDisponiblesMm,
+  cantidadesBarraDisponibles,
+} from "../lib/barras";
+import SelectorConEscape from "./SelectorConEscape";
+
+interface UsoReferencia {
+  id: string;
+  tipoAparato: string;
+  etiqueta: string;
+  hoja: string;
+}
 
 interface Props {
   familia: FamiliaAtributos;
   atributos: Record<string, unknown>;
   onChange: (nuevosAtributos: Record<string, unknown>) => void;
+  /** Aviso de incompatibilidad del campo "referencia" (E52, ver
+   * lib/referencia.ts) — calculado por el padre, que es quien tiene
+   * acceso al resto del proyecto; se muestra pegado al campo, no
+   * bloquea el guardado. */
+  avisoReferencia?: string | null;
+  /** Referencias YA usadas en el proyecto — para las piezas "accesorio"
+   * (contacto auxiliar, bobina genérica) el campo "referencia" se
+   * ofrece como lista en vez de texto libre: elegir de acá ES vincular
+   * la pieza a un aparato existente (E53). */
+  opcionesReferencia?: { referencia: string; etiqueta: string }[];
+  /** El resto de los símbolos que comparten la MISMA referencia que
+   * este — se muestra como "Vinculado con…" debajo del campo, aunque
+   * estén en otra hoja (E53). */
+  vinculosReferencia?: UsoReferencia[];
 }
 
 function valorComoTexto(v: unknown): string {
   return v === undefined || v === null ? "" : String(v);
 }
+
+interface DimensionesBarra {
+  cantidad: number;
+  ancho: number | undefined;
+  espesor: number | undefined;
+}
+
+/** Parsea el texto de `dimensiones` en (cantidad, ancho, espesor) — los
+ * mismos dos formatos reales que ya entiende `lib/barras.ts`. */
+function parsearDimensiones(valor: string): DimensionesBarra {
+  const m3 = /^\s*(\d+)\s*x\s*(\d+)\s*x\s*(\d+)/i.exec(valor);
+  if (m3) return { cantidad: Number(m3[1]), ancho: Number(m3[2]), espesor: Number(m3[3]) };
+  const m2 = /^\s*(\d+)\s*x\s*(\d+)/i.exec(valor);
+  if (m2) return { cantidad: 1, ancho: Number(m2[1]), espesor: Number(m2[2]) };
+  return { cantidad: 1, ancho: undefined, espesor: undefined };
+}
+
+/** Compone (cantidad, ancho, espesor) de vuelta al texto de
+ * `dimensiones` — inverso de `parsearDimensiones`. "" si todavía falta
+ * ancho o espesor (selección a medio hacer). */
+function componerDimensiones({ cantidad, ancho, espesor }: DimensionesBarra): string {
+  if (ancho === undefined || espesor === undefined) return "";
+  return cantidad > 1 ? `${cantidad}x${ancho}x${espesor}mm` : `${ancho}x${espesor}mm`;
+}
+
+/**
+ * Dimensiones de barra (E60): tres selectores en cascada sobre la
+ * MISMA tabla real DIN 43671 de `lib/barras.ts` — pedido explícito del
+ * usuario: "las dimensiones deben ser las normalizadas, seleccionamos
+ * primero 30mm o 40mm... y luego la otra dimensión 3mm o 4mm...". Sin
+ * escape a texto libre a propósito: el pedido es justamente que no se
+ * pueda cargar cualquier número.
+ *
+ * Estado LOCAL, no derivado directo de `valor`: elegir el ancho todavía
+ * no compone una `dimensiones` válida (falta el espesor) — emitir ""
+ * al padre en ese momento borraba el ancho recién elegido en el
+ * siguiente render (encontrado en vivo: la lista de espesores quedaba
+ * vacía después de elegir el ancho). El efecto solo resincroniza desde
+ * afuera cuando `valor` cambia por algo que ESTE componente no generó
+ * (otro nodo seleccionado, deshacer, etc.).
+ */
+function SelectorDimensionesBarra({
+  valor,
+  onChange,
+}: {
+  valor: string;
+  onChange: (v: string) => void;
+}) {
+  const [estado, setEstado] = useState<DimensionesBarra>(() => parsearDimensiones(valor));
+
+  useEffect(() => {
+    if (valor !== componerDimensiones(estado)) {
+      setEstado(parsearDimensiones(valor));
+    }
+    // Solo resincroniza cuando CAMBIA `valor` desde afuera — comparar
+    // contra `estado` acá adentro dispararía en cada tecla propia.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valor]);
+
+  const anchos = anchosBarraDisponiblesMm();
+  const espesores = estado.ancho !== undefined ? espesoresBarraDisponiblesMm(estado.ancho) : [];
+  const cantidades =
+    estado.ancho !== undefined && estado.espesor !== undefined
+      ? cantidadesBarraDisponibles(estado.ancho, estado.espesor)
+      : [1];
+
+  function actualizar(cambio: Partial<DimensionesBarra>) {
+    const siguiente = { ...estado, ...cambio };
+    setEstado(siguiente);
+    const compuesto = componerDimensiones(siguiente);
+    if (compuesto) onChange(compuesto);
+  }
+
+  return (
+    <span className="selector-dimensiones-barra">
+      <select
+        value={estado.ancho ?? ""}
+        onChange={(e) =>
+          actualizar({
+            ancho: e.target.value ? Number(e.target.value) : undefined,
+            espesor: undefined,
+            cantidad: 1,
+          })
+        }
+      >
+        <option value="">Ancho —</option>
+        {anchos.map((a) => (
+          <option key={a} value={a}>
+            {a} mm
+          </option>
+        ))}
+      </select>
+      <select
+        value={estado.espesor ?? ""}
+        disabled={estado.ancho === undefined}
+        onChange={(e) =>
+          actualizar({
+            espesor: e.target.value ? Number(e.target.value) : undefined,
+            cantidad: 1,
+          })
+        }
+      >
+        <option value="">Espesor —</option>
+        {espesores.map((e) => (
+          <option key={e} value={e}>
+            {e} mm
+          </option>
+        ))}
+      </select>
+      <select
+        value={estado.cantidad}
+        disabled={estado.ancho === undefined || estado.espesor === undefined}
+        onChange={(e) => actualizar({ cantidad: Number(e.target.value) })}
+      >
+        {cantidades.map((c) => (
+          <option key={c} value={c}>
+            {c} {c === 1 ? "barra" : "barras"}
+          </option>
+        ))}
+      </select>
+    </span>
+  );
+}
+
 
 /** Campos del JUEGO DE BARRAS que maneja el bloque de composición
  * (chips): nunca se renderizan como campos sueltos. */
@@ -55,7 +208,14 @@ function estimarInA(a: Record<string, unknown>): number | null {
   return Math.round(i * 10) / 10;
 }
 
-export default function FormularioAtributos({ familia, atributos, onChange }: Props) {
+export default function FormularioAtributos({
+  familia,
+  atributos,
+  onChange,
+  avisoReferencia,
+  opcionesReferencia,
+  vinculosReferencia,
+}: Props) {
   const campos = useMemo(() => camposDeFamilia(familia, atributos), [familia, atributos]);
   const alguno = useMemo(() => algunoObligatorio(familia, atributos), [familia, atributos]);
   const reglaPar = useMemo(() => parAutomatico(familia, atributos), [familia, atributos]);
@@ -130,7 +290,30 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
 
         let control: ReactElement;
 
-        if (esquema.enum) {
+        if (
+          nombre === "referencia" &&
+          typeof atributos.tipo_aparato === "string" &&
+          esAccesorioReferencia(atributos.tipo_aparato) &&
+          opcionesReferencia &&
+          opcionesReferencia.length > 0
+        ) {
+          control = (
+            <SelectorConEscape
+              valor={valorComoTexto(valorActual)}
+              opciones={opcionesReferencia.map((o) => ({ valor: o.referencia, etiqueta: o.etiqueta }))}
+              onChange={(v) => actualizar(nombre, v || undefined)}
+              placeholder="ej. KM1"
+              etiquetaVacio="— sin vincular —"
+            />
+          );
+        } else if (familia === "barra" && nombre === "dimensiones") {
+          control = (
+            <SelectorDimensionesBarra
+              valor={valorComoTexto(valorActual)}
+              onChange={(v) => actualizar(nombre, v || undefined)}
+            />
+          );
+        } else if (esquema.enum) {
           control = (
             <select
               value={valorComoTexto(valorActual)}
@@ -188,13 +371,26 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
         }
 
         return (
-          <label key={nombre} className="campo-atributo" title={esquema.description}>
-            <span>
-              {title ?? nombre}
-              {obligatorio && <em className="obligatorio" aria-label="obligatorio">*</em>}
-            </span>
-            {control}
-          </label>
+          <Fragment key={nombre}>
+            <label className="campo-atributo" title={esquema.description}>
+              <span>
+                {title ?? nombre}
+                {obligatorio && <em className="obligatorio" aria-label="obligatorio">*</em>}
+              </span>
+              {control}
+            </label>
+            {nombre === "referencia" && avisoReferencia && (
+              <p className="form-atributos-aviso">{avisoReferencia}</p>
+            )}
+            {nombre === "referencia" && vinculosReferencia && vinculosReferencia.length > 0 && (
+              <p className="form-atributos-vinculos">
+                Vinculado con:{" "}
+                {vinculosReferencia
+                  .map((v) => `${v.etiqueta} (${v.hoja})`)
+                  .join(" · ")}
+              </p>
+            )}
+          </Fragment>
         );
       })}
 
@@ -269,6 +465,41 @@ export default function FormularioAtributos({ familia, atributos, onChange }: Pr
             <div className="estimacion-in">
               <span title="Estimación desde potencia de eje + η + cosφ + tensión; no reemplaza el dato de placa">
                 In ≈ {est} A (estimado, η={ef}% · cosφ={cos})
+              </span>
+              <button type="button" onClick={usarEstimacion}>
+                usar
+              </button>
+            </div>
+          );
+        })()}
+
+      {/* Barra: si falta la corriente admisible, ofrecé el valor de
+          DIN 43671 (cobre, tabla real) o una ESTIMACIÓN por densidad de
+          corriente si la sección no está tabulada o hay varias barras
+          apiladas (E55/E56, ver lib/barras.ts). Nunca pisa un valor
+          real ya cargado. */}
+      {familia === "barra" &&
+        atributos.corriente_admisible_A == null &&
+        (() => {
+          const est = estimarCorrienteAdmisibleBarraA(
+            atributos.dimensiones as string | undefined,
+            atributos.material as "Cu" | "Al" | undefined,
+          );
+          if (est === null) return null;
+          const usarEstimacion = () =>
+            onChange({ ...atributos, corriente_admisible_A: est.corrienteA });
+          const esTabla = est.fuente === "tabla";
+          return (
+            <div className="estimacion-in">
+              <span
+                title={
+                  esTabla
+                    ? "DIN 43671 (barras de cobre desnudas, 35°C aire / 65°C barra) — aluminio derivado con el factor de conversión Cu→Al habitual (÷1,27). Ver lib/barras.ts."
+                    : "Estimación por densidad de corriente típica de barra de tablero BT — sección no tabulada en DIN 43671, o varias barras apiladas (el agrupamiento no es lineal). No reemplaza la tabla real del fabricante. Ver lib/barras.ts."
+                }
+              >
+                Corriente admisible ≈ {est.corrienteA} A
+                {esTabla ? " (DIN 43671)" : " (estimado)"}
               </span>
               <button type="button" onClick={usarEstimacion}>
                 usar

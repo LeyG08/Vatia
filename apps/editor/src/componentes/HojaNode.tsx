@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import {
   MARGEN_IZQ_MM,
   MARGEN_RESTO_MM,
@@ -8,9 +8,11 @@ import {
   calcularPaginacion,
   dimensionesHoja,
   numeroPlanoConSufijo,
+  type HojaConfig,
   type NotasGabineteConfig,
+  type RotuloConfig,
 } from "../lib/tipos";
-import { useEditor } from "../lib/store";
+import { useEditor, type DatosSimbolo } from "../lib/store";
 
 const mm = (v: number) => v * PX_POR_MM;
 
@@ -121,15 +123,20 @@ function CeldaRotulo({
   );
 }
 
-function RotuloIram() {
-  const rotulo = useEditor((s) => s.hoja.rotulo);
-  const formato = useEditor((s) => s.hoja.formato);
-  // Paginación y nº de plano calculados sobre el proyecto multi-hoja:
-  // con una sola hoja se muestra tal cual el usuario los cargó
-  const totalHojas = useEditor((s) => s.proyecto.hojas.length);
-  const indiceHoja = useEditor((s) =>
-    s.proyecto.hojas.findIndex((h) => h.id === s.hojaActivaId),
-  );
+interface RotuloIramProps {
+  rotulo: RotuloConfig;
+  formato: HojaConfig["formato"];
+  indiceHoja: number;
+  totalHojas: number;
+}
+
+/** Recibe la hoja a mostrar por props — nunca lee la hoja activa global
+ * directo del store (E43): durante "Exportar proyecto" hay varias
+ * instancias de este nodo a la vez, una por hoja, y cada una necesita
+ * mostrar SU PROPIO rótulo, no el de la hoja activa en el lienzo
+ * interactivo (bug real, encontrado en vivo con dos hojas de tablero
+ * distinto — ver `HojaNode` y `tiposFlow.ts`). */
+function RotuloIram({ rotulo, formato, indiceHoja, totalHojas }: RotuloIramProps) {
   const paginacionMostrada = calcularPaginacion(
     rotulo.paginacion,
     indiceHoja,
@@ -387,8 +394,25 @@ const NOTAS_GABINETE_FIJAS: [keyof NotasGabineteConfig, string][] = [
   ["reservaFutura", "Reserva futura"],
 ];
 
-function HojaNode(_props: NodeProps) {
-  const hoja = useEditor((s) => s.hoja);
+/**
+ * Marco + rótulo de la hoja. `props.data.hojaOverride` (E43) manda
+ * cuando está presente — así cada página de "Exportar proyecto" (una
+ * instancia de este nodo por hoja) muestra SU PROPIA hoja en vez de
+ * la activa global. El lienzo interactivo (una sola instancia, sin
+ * override) sigue leyendo `s.hoja` como siempre. Ver `tiposFlow.ts`
+ * (`crearNodoHoja`) sobre cómo llega el override. */
+function HojaNode(props: NodeProps<Node<DatosSimbolo>>) {
+  const activaGlobal = useEditor((s) => s.hoja);
+  const proyectoHojas = useEditor((s) => s.proyecto.hojas);
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+
+  const override = props.data?.hojaOverride;
+  const hoja: HojaConfig = override ?? activaGlobal;
+  const totalHojas = proyectoHojas.length;
+  const indiceHoja = proyectoHojas.findIndex(
+    (h) => h.id === (override?.id ?? hojaActivaId),
+  );
+
   const { pxW, pxH } = dimensionesHoja(hoja);
   const mi = mm(MARGEN_IZQ_MM);
   const mr = mm(MARGEN_RESTO_MM);
@@ -467,7 +491,12 @@ function HojaNode(_props: NodeProps) {
         )}
 
         {/* Rótulo IRAM 4508 pegado al vértice inferior derecho */}
-        <RotuloIram />
+        <RotuloIram
+          rotulo={hoja.rotulo}
+          formato={hoja.formato}
+          indiceHoja={indiceHoja}
+          totalHojas={totalHojas}
+        />
       </div>
       {/* handles inertes para que RF no reclame; no conectables */}
       <Handle type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0, pointerEvents: "none" }} />

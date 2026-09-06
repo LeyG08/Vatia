@@ -1,11 +1,8 @@
 {
-  "codigo_iec": "S00130",
-  "nombre": "Relé/contactor auxiliar",
+  "codigo_iec": "S00143",
+  "nombre": "Bobina de temporizador (retardo a la conexión)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
-  "atributos_base": {
-    "tipo_aparato": "rele_auxiliar"
-  },
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "in",
@@ -21,5 +18,9 @@
     }
   ],
   "version_libreria": "0.1.0",
-  "fuente_norma": "IEC 60617 07-76-01"
+  "fuente_norma": "IEC 60617 07-76-08",
+  "atributos_base": {
+    "tipo_aparato": "temporizador",
+    "tipo_retardo": "a_la_conexion"
+  }
 }

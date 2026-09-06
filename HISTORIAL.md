@@ -3345,3 +3345,3882 @@ Rama `proyecto/fundaciones-datos-20260901` pusheada (7 commits, `d32b5b8`
 a `c62e2d3`) y PR #14 abierto hacia `main`
 (https://github.com/LeyG08/Vatia/pull/14). No mergeado — queda esperando
 aprobación explícita del usuario, según `AGENTS.md`.
+
+## E15 — Comando, Paso 1: base de esquema + lote piloto de 8 símbolos
+
+Primer paso de la etapa "finalizar el editor" (símbolos nuevos, parte de
+comando, pestañas — el usuario pidió priorizar esto sobre el motor de
+cálculo hasta terminarlo). Se acordó con el usuario arrancar por lo más
+grande/complicado entre rediseño de hojas y librería de comando, con el
+criterio de "que quede bien tanto visualmente como funcionando" — se eligió
+comando por ser librería nueva desde cero más un modo de dibujo distinto,
+mayor alcance que el rediseño de hojas.
+
+### La norma es "DGE", no literalmente "IEC 60617" — y es la misma de siempre
+
+Al abrir `Simbologia_iec_60617_completa.pdf` para buscar los símbolos de
+comando, el encabezado real del documento dice "NORMA DGE - SIMBOLOS
+GRAFICOS EN ELECTRICIDAD" (Perú, Dirección General de Electricidad), no un
+documento con el sello IEC. Es una adaptación nacional que sigue la
+estructura y numeración de IEC 60617 (Sección 7 "Dispositivos de maniobra,
+control y protección", códigos `07-70-01`, `07-71-01`, etc. — exactamente
+los mismos que ya se citan en `generar_simbolos_iec.py` para los símbolos de
+fuerza ya aprobados). No es un documento distinto del que se usó antes en
+esta sesión: es el único PDF de símbolos en Descargas y la numeración de las
+láminas ya usadas coincide. Se sigue usando sin más cambio que este.
+
+### Decisión de diseño: NO se creó una familia "comando" nueva
+
+El plan original decía "nueva familia de esquema `comando`". Al revisar el
+schema existente se encontró que `aparato.schema.json` YA tenía dos subtipos
+de comando estancados desde antes (`contacto_auxiliar` con
+`tipo_contacto: NA|NC|NA+NC|otra`, y `rele_auxiliar` con bobina/contactos) —
+`S00124` y `S00130` ya existían, uno en la librería de fuerza (mal, sacado de
+QET) y otro en `pendiente-multifilar/`. Mantener una sola familia "aparato"
+para cualquier dispositivo discreto (fuerza o comando) es más consistente
+con lo que ya había que inventar una segunda familia solo para separar por
+uso — la única distinción real entre fuerza y comando es EN QUÉ CARPETA vive
+el símbolo y en qué modo de canvas se usa, no la forma de su ficha.
+
+### Dónde viven los símbolos de comando
+
+Se creó `libreria-simbolos/comando/`, hermana de `simbolos/` (fuerza), fuera
+del glob que carga la Paleta del editor
+(`libreria.ts: import.meta.glob("../../../../libreria-simbolos/simbolos/*/...")`).
+Es deliberado: el canvas actual es unifilar-solo, no tiene todavía modo
+multifilar (Paso 3) para que estos símbolos tengan sentido de uso real. Para
+que el usuario pudiera revisarlos igual, se generó una galería estática
+aparte con `scripts/generar_galeria.py --simbolos-dir libreria-simbolos/comando`
+(mismo script que ya arma `libreria-simbolos/simbolos/index.html`, sin tocar
+la app). De paso se encontró y arregló un bug menor del script: mostraba
+siempre "Fuente QET" vacío para los símbolos ya migrados a `fuente_norma`
+(toda la tanda de fuerza redibujada en E4-E7) — ahora rotula "Fuente
+(norma)" cuando corresponde, en ambas galerías.
+
+`scripts/generar_simbolos_iec.py` y `scripts/lint_simbolos.py` ganaron un
+flag `--carpeta` (default `simbolos`) para poder generar/lintear
+`comando/` sin duplicar script.
+
+### Los 8 símbolos del piloto
+
+Todos sacados de la norma (Sección 7 "071 Contactos" / "072 Dispositivos de
+Maniobra" para los primeros seis, Sección 8 "080" para la lámpara):
+
+| Código | Símbolo | Referencia | Origen |
+|---|---|---|---|
+| S00124 | Contacto auxiliar NA | 07-71-01 Forma 1 | Redibujado — vivía en `simbolos/`, sacado de QET |
+| S00134 | Contacto auxiliar NC | 07-71-02 | Nuevo |
+| S00135 | Pulsador NA | 07-72-02 | Nuevo |
+| S00136 | Pulsador NC | 07-72-02 + 07-71-02 | Nuevo |
+| S00137 | Selector 2 posiciones | 07-72-04 | Nuevo |
+| S00138 | Pulsador de emergencia (seta) | 07-72-06 | Nuevo |
+| S00130 | Bobina de contactor/relé | 07-76-01 Forma 1 | Reubicado desde `pendiente-multifilar/`, ya estaba bien dibujado |
+| S00139 | Lámpara piloto | 08-80-44 | Nuevo |
+
+Composición geométrica (documentada en el docstring de cada función):
+- **Contacto NA/NC** es el mismo bloque "cuchilla" que ya usa la librería de
+  fuerza (pivota en el borne inferior), agregando para NC un codo hacia la
+  izquierda con una marca de corte — un trazo corto PERPENDICULAR a la
+  cuchilla un poco más abajo del vértice, no una X sobre la esquina (primer
+  intento salía confuso, se corrigió tras revisar el render).
+- **Pulsador/selector/seta** agregan un ACTUADOR a la IZQUIERDA del
+  contacto, unido por un enlace mecánico punteado — composición horizontal,
+  distinta de los calificadores de fuerza (07-70-xx) que van ARRIBA de la
+  cuchilla.
+- El **pulsador de emergencia** combina tres calificadores (maniobra
+  positiva 07-70-09, cabeza de seta como medio círculo, marca de retención
+  "V" en el enlace) sobre un contacto NC — es, con diferencia, el más
+  compuesto de los ocho. La cabeza de seta se dibuja con una polilínea que
+  aproxima el arco (mismo truco que `efecto_electromagnetico`), no con un
+  comando de arco SVG: un primer intento con `<path d="A ...">` no
+  renderizaba de forma confiable.
+
+### Verificaciones
+
+`lint_simbolos.py` verde en ambas carpetas (19 fuerza + 8 comando, sin
+contarse entre sí). `generar_tipos_atributos.py` generó 25 interfaces
+(+4: `AparatoPulsador`, `AparatoSelector`, `AparatoPulsadorEmergencia`,
+`AparatoLamparaPiloto`) y `--verificar` da OK. `tsc --noEmit`, build y
+oxlint sin novedad (mismos dos warnings preexistentes). Cada uno de los 8
+símbolos se renderizó individualmente a PNG (pymupdf) para revisión visual
+propia antes de mostrarlos — no sustituye la aprobación del usuario, que
+sigue pendiente sobre la galería de `libreria-simbolos/comando/index.html`.
+
+Los 8 quedan `estado_revision: "pendiente_revision"`: falta el mismo paso
+que ya se hizo con la librería de fuerza — mostrárselos al usuario y
+corregir lo que no le convenza antes de escalar al resto de la librería de
+comando (Paso 2).
+
+### E15.1 — Corrección: NC no convencía, selector rehecho, seta en espera
+
+Devolución del usuario sobre la galería (publicada como Artifact para
+revisión visual, no solo `index.html`): aprobó S00124, S00130, S00135 y
+S00139 tal cual. Rechazó tres:
+
+- **S00134/S00136 (contacto NC)**: "no me termina de convencer la parte que
+  representa que es normal cerrado". Se volvió a medir la lámina 07-71-02 a
+  600 dpi (recorte bien ajustado, la primera medición había quedado
+  imprecisa) — la marca de corte sale pegada AL VÉRTICE del codo, apuntando
+  arriba-derecha, no cruzando la cuchilla más abajo como en la primera
+  versión. `contacto_nc()` corregido; el fix se propaga solo a los tres
+  símbolos que comparten esa función (S00134, S00136, y S00138 de forma
+  incidental).
+- **S00137 (selector 2 posiciones)**: "no creo que sea correcto que tenga 2
+  nodos únicamente a no ser que sea un pulsador donde una de sus posiciones
+  en abierto". Tenía razón — 2 bornes con contacto simple es exactamente el
+  caso del pulsador (S00135/S00136), no el de un selector real, que conmuta
+  entre dos circuitos distintos. Rehecho como contacto conmutador de 3
+  bornes (07-71-03: común + posición 1 cerrada con marca de corte +
+  posición 2 abierta), con el botón giratorio "F" arriba y el enlace
+  bajando por el centro para no cruzarse con ninguno de los dos bornes
+  fijos. `metadata.json` pasó de 2 a 3 `puntos_conexion`.
+- **S00138 (pulsador de emergencia)**: "nunca vi esa simbología". Lo que se
+  dibujó SÍ es lo que muestra la norma (07-72-06: maniobra positiva + seta +
+  retención + NC), pero si el usuario nunca lo vio en la práctica no tiene
+  sentido insistir con la lectura literal de la lámina sin más información.
+  Queda sin tocar, marcado "en espera" en la galería, hasta preguntarle qué
+  usa habitualmente en el campo.
+
+También quedó pendiente un pedido más grande, todavía sin alcance definido:
+variantes de los símbolos existentes por cantidad de polos y otras
+salvedades ("habría que crear las variantes de todos los símbolos en caso
+de existir con las diferentes cantidades de polos"). Se le preguntó al
+usuario para acotar el alcance antes de tocar código.
+
+Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
+`generar_tipos_atributos.py --verificar` OK (sin cambios de schema en esta
+ronda). Los tres símbolos corregidos se volvieron a renderizar a PNG
+(pymupdf) antes de subir la corrección a la galería.
+
+### E15.2 — Ronda 3: la marca de corte y el enlace, otra vez; S00138 se da de baja
+
+El usuario contestó las dos preguntas de cierre de E15.1 y agregó feedback
+nuevo sobre los símbolos ya corregidos, en el mismo mensaje:
+
+- **Pulsador (S00135/S00136)**: "hacelo a la mitad del contacto no justo al
+  final" — el enlace punteado del actuador conectaba al codo/extremo de la
+  cuchilla; ahora conecta al punto medio geométrico entre el pivote y la
+  punta (mismo punto (-3,0) para NA y NC, porque ambas cuchillas van entre
+  los mismos dos puntos).
+- **Contacto NC (S00134/S00136)**: la marca de corte de E15.1 "tiene que
+  cruzar más" y la línea "que está en un ángulo raro" tiene que quedar "a
+  90°". Se reemplazó por `marca_corte()`, un helper nuevo que calcula el
+  perpendicular exacto a la cuchilla con matemática de vectores (no un
+  ángulo fijo a ojo) y la dibuja cruzando de lado a lado, no como gancho
+  corto tocando un vértice.
+- **Selector (S00137)**: "es fácil, como hacer un contacto donde tenés dos
+  estados y va en el medio el pulsador" — la composición de E15.1 (actuador
+  arriba de todo, enlace vertical largo por el centro) quedó rechazada.
+  Reescrito con el mismo patrón que el pulsador: actuador al costado, a la
+  altura del punto medio de la cuchilla activa (posición 1), enlace
+  horizontal corto.
+- **Pulsador de emergencia (S00138)**: a la pregunta de qué usa en el campo,
+  contestó "es que nunca vi una simbología de un pulsador de emergencia" —
+  no es que el dibujo no coincidiera con lo que conoce, es que en su
+  experiencia no existe un símbolo aparte para esto. Se dio de baja como
+  símbolo (`git rm`, código S00138 liberado): un pulsador de emergencia es
+  un Pulsador NC común (S00136). Se agregó `es_parada_emergencia` (boolean)
+  al subtipo `pulsador` del schema para que la ficha lo distinga sin
+  inventar un dibujo que nadie usa.
+
+También contestó el alcance de "variantes por cantidad de polos": aplica
+tanto a bloques de contactos combinados de comando (ej. un pulsador con
+1NA+1NC en un solo cuerpo) como a fuerza (1P/2P/3P/4P), y agregó un caso
+más — un equipo cuya ficha trae varios elementos de una vez (ej. un relé
+con salida a contactos múltiples biestado), y el caso de la parte de fuerza
+de un aparato que en realidad se resuelve en la sección de comando por ser
+multifilar. Esto no se implementó: es un tema de MODELO DE DATOS (un
+"equipo" con varios elementos de contacto enlazados, y cómo se referencia
+un mismo dispositivo entre la hoja de fuerza y la de comando), más grande
+que agregar símbolos al lote piloto — queda anotado como paso futuro, ligado
+al modo multifilar (Paso 3), no a resolver ahora.
+
+Verificaciones: `lint_simbolos.py` verde (7 símbolos en `comando/`, uno
+menos que la ronda anterior), `generar_tipos_atributos.py --verificar` OK
+(25 interfaces, sin cambiar de cantidad porque `pulsador` solo ganó un
+campo), `tsc --noEmit` limpio. Los cuatro símbolos tocados se volvieron a
+renderizar a PNG antes de actualizar la galería.
+
+### E15.3 — Ronda 4: mover solo la punta del enlace no alcanzaba; el selector, aprobado
+
+El usuario aprobó el selector (S00137) sin cambios y marcó que el pulsador
+seguía mal pese al ajuste anterior: "solo moviste un punto del pulsador
+pero todo lo que representa quedó mal". El diagnóstico: en E15.2 se movió
+el EXTREMO del enlace punteado al punto medio de la cuchilla, pero el
+enlace seguía saliendo del corchete a la altura original (-8) — quedaba una
+diagonal larga que se metía a cruzar la propia cuchilla, confundiendo la
+lectura de todo el símbolo (¿cuántas cuchillas hay acá?). La composición
+que SÍ funcionaba ya estaba aprobada un mensaje antes: la del selector,
+donde el actuador entero está a la altura del punto de enlace y el enlace
+es una línea horizontal limpia, sin diagonales.
+
+Arreglo real: bajar el corchete de `actuador_pulsador` completo a
+`cy=0` (antes `cy=-8`) en S00135/S00136, para que el enlace sea horizontal
+de punta a punta — mismo patrón que el selector, no un parche sobre la
+punta del enlace nada más.
+
+También pidió alargar la marca de corte del NC ("un poco más larga...
+para que forme una especie de cruz pero muy poquito"): `marca_corte()`
+pasó de `t=3.5, medio=3.0` a `t=5.0, medio=3.8` por defecto — la cruz
+cruza un poco más lejos del vértice y un poco más larga a cada lado, sin
+exagerar.
+
+Detalle de implementación importante: como el selector (S00137) ya estaba
+aprobado y también usa `marca_corte()`, cambiar el default lo habría
+alterado sin que nadie lo pidiera. Se fijaron sus parámetros explícitos
+(`t=3.5, medio=3.0`, los valores con los que se aprobó) para que ese
+símbolo quede BYTE A BYTE igual — verificado con `git diff` antes de
+commitear: sin diferencias.
+
+Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
+`generar_tipos_atributos.py --verificar` OK, `tsc --noEmit` limpio,
+`git diff` confirma que S00137 no cambió un solo byte pese a la
+regeneración completa de la carpeta `comando/`.
+
+### E15.4 — Ronda 5: se saca la marca de corte del NC
+
+Cuatro rondas de ajuste sobre la marca de "corte" del contacto NC (gancho
+corto en el vértice, cruz a 90° corta, cruz a 90° más larga) y seguía sin
+convencer. El usuario cortó por lo sano: "sácale la cruz a lo NC porque no
+lo estás haciendo bien y solucionado". `contacto_nc()` queda sin ninguna
+marca: la única diferencia con `contacto_na()` es que la cuchilla llega
+CERRADA (toca el borne móvil) en vez de con un hueco abierto — que ya es,
+en sí, la distinción NA/NC de la norma.
+
+El selector (S00137) usa el mismo tipo de marca en su posición 1, pero no
+fue mencionado en el pedido — sigue "aprobado" del mensaje anterior, así
+que se dejó sin tocar a propósito (la función `marca_corte()` no se borró,
+solo perdió su único otro llamador; queda documentada como "ya no se usa
+acá, pero el selector la sigue necesitando"). Verificado con `git diff`:
+S00137 no cambió.
+
+Verificaciones: `lint_simbolos.py` verde en ambas carpetas,
+`generar_tipos_atributos.py --verificar` OK, `tsc --noEmit` limpio.
+
+### E15.5 — Ronda 6: la marca de corte también sale del selector
+
+El usuario confirmó lo que en E15.4 se había dejado deliberadamente sin
+tocar por respeto a una aprobación previa: "sácale la línea que forma la
+cruz también al selector biestado". Se quita `marca_corte(pos1, comun)` de
+`s00137()` — la posición 1 queda cerrada (toca el común) sin marca extra,
+mismo criterio que `contacto_nc()`. Como ya no queda ningún llamador,
+`marca_corte()` se borró del script (no queda código muerto).
+
+Verificaciones: `lint_simbolos.py` verde, `generar_tipos_atributos.py
+--verificar` OK, `tsc --noEmit` limpio.
+
+### E15.6 — Paso 1 cerrado: los 7 símbolos de comando, aprobados
+
+El usuario aprobó los 7 símbolos restantes del lote piloto ("vamos con los
+siguientes aprobados todos"). Los 7 `metadata.json` de
+`libreria-simbolos/comando/` pasan `estado_revision` de
+`pendiente_revision` a `verificado`: S00124 (contacto NA), S00130 (bobina),
+S00134 (contacto NC), S00135 (pulsador NA), S00136 (pulsador NC), S00137
+(selector 2 posiciones) y S00139 (lámpara piloto). Galería regenerada con
+el estado nuevo.
+
+Cierra el Paso 1 de la etapa "librería de comando" (dentro de "finalizar
+el editor", la prioridad que fijó el usuario por sobre el motor de
+cálculo). Seis rondas de corrección en total sobre el lote piloto — todas
+documentadas arriba (E15 a E15.6) — dejaron validado el criterio de
+composición (actuador a la izquierda a la altura media de la cuchilla,
+enlace horizontal sin diagonales, contactos NA/NC distinguidos solo por
+abierto/cerrado sin marcas extra, seta de emergencia = pulsador NC común)
+que el resto de la librería de comando (Paso 2) puede seguir sin
+reinventar cada vez.
+
+### E16 — Paso 2: interruptor de posición, selector de 3 posiciones y temporizador
+
+Con el Paso 1 cerrado, se propusieron 4 items de alcance para el Paso 2 y
+el usuario dio el visto bueno ("xale", leído como confirmación). Se
+dibujaron 6 símbolos nuevos en `libreria-simbolos/comando/`, todos con
+`estado_revision: pendiente_revision` (todavía no mostrados ni aprobados
+por el usuario):
+
+- **S00140/S00141 — Interruptor de posición NA/NC** (07-72-07/08 +
+  calificador 07-70-06): mismo contacto NA/NC ya aprobado en el Paso 1,
+  con el triángulo sólido de "contacto de posición" (fin de carrera) al
+  costado. Sin ese triángulo sería indistinguible de un contacto auxiliar
+  común, así que se agregó el helper `qualif_posicion()`.
+- **S00142 — Selector de 3 posiciones** (07-71-03 + 07-72-04): misma
+  estructura ya aprobada del selector de 2 (actuador a la izquierda a la
+  altura media, enlace horizontal, sin marcas de corte), extendida a un
+  común + 3 posiciones (4 puntos de conexión en vez de 3).
+- **S00143 — Bobina de temporizador** (07-76-08, retardo a la conexión):
+  mismo rectángulo de bobina general con el tercio izquierdo separado y
+  cruzado en X. Se dejó fuera, a propósito, la variante de retardo a la
+  desconexión (relleno negro) — no la pidió nadie todavía y agregarla
+  ahora sería adelantarse sin necesidad.
+- **S00144/S00145 — Contacto NA/NC temporizado** (07-71-15/17, retardo a
+  la conexión): el contacto NA/NC de siempre, con el calificador de
+  "acción retardada" (doble línea + arco, 03-31-05) colgando de la punta
+  abierta. Nuevo helper `retardo_horizontal()`, hecho con `polyline` (arco
+  aproximado por segmentos) para no depender de comandos de arco SVG,
+  siguiendo el mismo criterio que ya usa el resto del generador.
+
+Alcance deliberadamente recortado: se dejaron afuera las variantes de
+retardo a la desconexión (bobina 07-76-07, contactos 07-71-16/18) porque
+nadie las pidió y hubiera sido agregar superficie sin necesidad real
+todavía — quedan documentadas acá como pendientes si en algún momento
+hacen falta.
+
+Cambios de schema: se agregaron los subtipos `interruptor_posicion`
+(`tipo_contacto` NA/NC, `ith_a`) y `temporizador` (`tipo_retardo` const
+`"a_la_conexion"`, `tiempo_retardo_s`, `tension_bobina_v` obligatorio) a
+`aparato.schema.json`, con sus entradas en el dispatcher `allOf`/`if`/
+`then`. Los contactos temporizados (S00144/S00145) reusan el subtipo
+`contacto_auxiliar` que ya existía — el retardo es un rasgo del símbolo,
+no un tipo de aparato distinto.
+
+Se armó una sección "Paso 2" en el mismo Artifact de revisión ya
+publicado en el Paso 1 (`comando-piloto.html`, republicado en la misma
+URL, no uno nuevo), con los 6 símbolos marcados "Pendiente" para que el
+usuario los revise con el mismo criterio de rondas de corrección que ya
+funcionó en el Paso 1.
+
+Verificaciones: `lint_simbolos.py` verde en `simbolos/` (19) y `comando/`
+(13), `generar_tipos_atributos.py --verificar` OK (27 interfaces, antes
+21), `tsc --noEmit` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos (los dos preexistentes en `FormularioCarga.tsx` y
+`EditorSimbolos.tsx` no están relacionados con este cambio).
+
+Pendiente explícito, sin resolver todavía: el tema de "polos"/variantes
+—dispositivos con varios elementos de contacto ligados (por ejemplo un
+relé con varias salidas biestables) y la referencia cruzada entre los
+contactos de un mismo aparato en la hoja de fuerza y en la de comando
+(multifilar)— quedó identificado en la conversación con el usuario como
+un tema más grande, ligado a cuando exista el modo multifilar (Paso 3).
+No se tocó nada de eso en este paso.
+
+### E16.1 — Paso 2 cerrado: los 6 símbolos, aprobados sin correcciones
+
+El usuario aprobó los 6 símbolos del Paso 2 de una sola vez, sin ninguna
+ronda de corrección ("dentro de todo esta aprobados, si quiero
+modificarlas después te digo") — a diferencia del Paso 1, que llevó seis
+rondas. Los 6 `metadata.json` de `libreria-simbolos/comando/` pasan
+`estado_revision` de `pendiente_revision` a `verificado`: S00140
+(interruptor de posición NA), S00141 (interruptor de posición NC), S00142
+(selector 3 posiciones), S00143 (bobina de temporizador), S00144
+(contacto NA temporizado) y S00145 (contacto NC temporizado). Galería
+regenerada; Artifact de revisión actualizado (los 13 símbolos de la
+librería de comando quedan marcados "Aprobado").
+
+Con esto cierra la librería de comando/multifilar tal como estaba
+planteada en los Pasos 1 y 2: 13 símbolos verificados. El usuario dejó
+abierta la puerta a pedir modificaciones puntuales más adelante ("si
+quiero modificarlas después te digo") — no implica que el trabajo siga
+abierto, es una reserva de derecho a corrección futura.
+
+Verificaciones: `lint_simbolos.py` verde en `comando/` (13),
+`generar_tipos_atributos.py --verificar` OK (sin cambios de schema, solo
+metadata).
+
+### E17 — Paso 3 arranca: modo multifilar por hoja
+
+Con la librería de comando cerrada (13/13), el usuario eligió seguir con
+el modo multifilar antes que con la jerarquía de hojas ("vamos", en
+respuesta a la propuesta de arrancar por ahí porque "le da sentido
+práctico a todo lo que acabamos de aprobar"). Alcance deliberadamente
+recortado para este primer corte: dar de alta los 13 símbolos de comando
+en el editor (hoy dibujados pero fuera de uso, `comando/` vive fuera del
+glob de `libreria.ts`) sin inventar todavía la semántica propia de un
+diagrama multifilar (filas/rieles tipo escalera, reglas de conexión
+distintas). Esa semántica queda para un paso posterior, cuando haya casos
+reales de uso que la justifiquen — construirla ahora sería adelantarse.
+
+Cambios:
+
+- **`HojaConfig.modo: "unifilar" | "multifilar"`** (nuevo tipo `ModoHoja`,
+  `tipos.ts`). Cada hoja del proyecto declara qué convención usa; default
+  `"unifilar"` (comportamiento de siempre, sin cambios visibles para
+  proyectos existentes).
+- **Formato de archivo → v4** (`migrarAProyectoV4`, reemplaza a
+  `migrarAProyectoV3`): las hojas guardadas antes de que existiera `modo`
+  se completan con `"unifilar"` al cargar, sin tocar nada más. Se
+  actualizaron los dos literales `version: 3` hardcodeados en
+  `store.ts` (proyecto inicial y ruta de carga) a `4`.
+- **`libreriaComando.ts`** (nuevo): carga `libreria-simbolos/comando/*`
+  con el mismo mecanismo de `import.meta.glob` que ya usaba `libreria.ts`
+  para `simbolos/`, como librería aparte — sin los hooks de HMR de
+  edición en caliente de `libreria.ts` (esos símbolos todavía no se
+  editan desde `EditorSimbolos`, que solo vigila la carpeta `simbolos`).
+- **`obtenerSimbolo()` en `libreria.ts`** ahora cae a la librería de
+  comando si el código no está en la de fuerza. Los códigos no se pisan
+  entre las dos carpetas (verificado), así que un único punto de lookup
+  alcanza para que TODO el código de render/lógica que ya llamaba a
+  `obtenerSimbolo` (`NodoSimbolo`, `PanelAtributos`, `checklist.ts`,
+  `topologia.ts`, `store.ts`, `App.tsx`) funcione con símbolos de comando
+  sin tocar esos seis archivos. `SIMBOLOS`/`PROBLEMAS_LIBRERIA` (el mapa
+  crudo, usado solo por `EditorSimbolos` y `PanelProblemas` para el panel
+  de administración) siguen siendo fuerza-only a propósito.
+- **`Paleta.tsx`** lee `hoja.modo` de la hoja activa y muestra
+  `SIMBOLOS_COMANDO` en vez de `SIMBOLOS` cuando es `"multifilar"`. El
+  botón "+ Alimentador «Desde …»" se oculta en multifilar: un circuito de
+  comando no se alimenta "desde la red", se alimenta desde un aparato de
+  la propia hoja — mostrarlo ahí hubiera sido confuso.
+- **`PanelHoja.tsx`**: nuevo selector "Tipo de esquema" (Unifilar /
+  Multifilar), mismo patrón visual que el de Orientación ya existente.
+- **`PestanasHoja.tsx`**: las pestañas de hojas multifilares llevan una
+  insignia "M" junto al nombre, para distinguirlas de un vistazo sin abrir
+  el panel de configuración.
+
+Verificación en vivo (no solo build/tipos): se levantó el dev server y se
+probó con Playwright (vía el propio `playwright` del proyecto, ya que la
+sesión del agente no tiene Chrome instalado) — cambiar una hoja a
+"Multifilar" repinta la Paleta con los 13 símbolos de comando y oculta el
+alimentador; arrastrar "Pulsador NA" al plano lo coloca, se ve
+correctamente, y la ficha técnica abre con los campos del subtipo
+`pulsador` (incluido `es_parada_emergencia`). Sin errores de consola.
+
+Limitación conocida, sin resolver: el checklist de campos obligatorios
+sigue hablando en términos de fuerza ("Sin conexión a ningún
+alimentador") aunque la lógica de "sin conexión aguas arriba" en sí es
+válida también para comando. Adaptar el lenguaje/las reglas del checklist
+a la semántica de un circuito de mando es un tema aparte, no resuelto acá.
+
+Verificaciones: `tsc -b` limpio (atrapó 2 errores reales que
+`tsc --noEmit` solo no había marcado — hoja hardcodeada sin `modo` en
+`store.ts` y una clave `modo` duplicada en el merge de migración; ambos
+corregidos), `npm run build` OK, `npm run lint` sin warnings nuevos,
+`npm run e2e` verde (21 checks), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes.
+
+## E18 — Jerarquía de hojas: hoja hija colgando de una carga seccional
+
+Segunda de las dos tareas de "finalizar el editor" (la otra, modo
+multifilar, cerró en E17). El usuario pidió avanzar sin pausas
+("hagamos y cuando tenga tiempo de probarlo ahí te mando para hacer los
+ajustes") — se ejecuta el criterio ya acordado con él en E14: *"la
+jerarquía cuelga cada hoja hija de la carga `seccional` de la hoja padre
+que la origina (no una jerarquía libre)"*. No es un árbol de hojas
+arbitrario: cada vínculo padre→hija apunta a un nodo concreto (una carga
+con `tipo_carga: "seccional"`) que representa, en la instalación real, el
+circuito que alimenta ese tablero seccional.
+
+Cambios:
+
+- **`Hoja.hojaPadreId` / `Hoja.nodoOrigenId`** (nuevos, ambos opcionales
+  — no hizo falta otro bump de versión de archivo, a diferencia de
+  `modo` en E17: una hoja sin estos campos simplemente es de nivel raíz,
+  comportamiento idéntico a antes). Viven en `Hoja`, no en `HojaConfig`
+  — son identidad/relación, no configuración clonable de plantilla.
+- **`crearOIrAHojaHija(nodoId)`** (store): si la carga ya tiene una hoja
+  hija (mismo `hojaPadreId` + `nodoOrigenId`), navega a ella; si no, crea
+  una nueva (nombre sugerido desde `descripcion` o `codigo_circuito` de
+  la carga, con fallback a "Hoja hija"), la inserta justo después de la
+  hoja padre en el array, y cambia la hoja activa a la nueva.
+  `hojaPadreDeActiva()` / `irAHojaPadre()` para el camino inverso.
+- **`PanelAtributos.tsx`**: cuando la ficha abierta es una carga con
+  `tipo_carga === "seccional"`, aparece un botón bajo el formulario —
+  "+ Crear hoja del tablero seccional" o, si ya existe, "→ Ir a la hoja
+  del tablero: <nombre>".
+- **`PestanasHoja.tsx`**: las pestañas hijas llevan prefijo "↳" en vez
+  del número de orden, y un botón "⤴" aparece a la izquierda de las
+  pestañas cuando la hoja activa tiene padre, para volver.
+- **Desvinculación no destructiva** en los tres lugares donde podía
+  quedar un link roto: `eliminarHoja` (si se borra el padre, la hija
+  pierde `hojaPadreId`/`nodoOrigenId` pero no se borra — sigue el mismo
+  criterio ya establecido de no borrar en cadena, ver el comentario
+  original de esa función), `eliminarSeleccion` (si se borra el nodo de
+  origen en la hoja activa, ídem, incluido en el mismo `ejecutar`/`undo`
+  para que Ctrl+Z lo revierta junto con todo lo demás), y `duplicarHoja`
+  (fix real, no solo defensivo: `clonarCfg` clona con
+  `JSON.parse(JSON.stringify(...))`, que no respeta el tipo estático
+  `HojaConfig` — copiaba `hojaPadreId`/`nodoOrigenId` en tiempo de
+  ejecución aunque el código explícito no los mencionara, así que
+  duplicar una hoja hija habría creado una segunda hoja reclamando ser
+  la hija de la misma carga. Se limpian explícitamente en la copia).
+
+Limitación conocida, no resuelta: si el nodo de origen se MUEVE a otra
+hoja (`moverSeleccionAHoja`) en vez de borrarse, el link no se actualiza
+— la hoja hija sigue "colgando" de la hoja vieja aunque la carga ya no
+esté ahí. No corrompe datos (en el peor caso, `crearOIrAHojaHija` desde
+la hoja nueva no encuentra la hija existente y ofrece crear una
+distinta), pero es una inconsistencia de UX pendiente; caso de uso poco
+frecuente, se deja para si aparece en uso real.
+
+Verificado en vivo con Playwright: crear una "Carga de circuito", ponerle
+`tipo_carga: seccional`, click en "+ Crear hoja del tablero seccional" →
+aparece la pestaña "↳ Hoja hija" activa y el botón "⤴"; click en "⤴"
+vuelve a "1. Hoja 1". De paso se confirmó que el warning de consola
+"two children with the same key... n1" al cambiar de pestaña es
+PREEXISTENTE (se reproduce igual con el botón "+ Nueva" de toda la vida,
+sin usar ninguna función nueva de esta entrada) — no se investiga ni se
+toca acá, queda anotado para cuando se revise el editor en general.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.
+
+## E19 — Autoguardado en el navegador
+
+Cerradas las dos tareas de "finalizar el editor" (comando/multifilar en
+E17, jerarquía de hojas en E18), el usuario pidió seguir con lo más
+prioritario a criterio propio. De la lista de pendientes repasada con él,
+se eligió el riesgo de pérdida de datos: hasta acá el único guardado era
+la descarga manual de un JSON (botón "Guardar") — cerrar la pestaña sin
+haberlo hecho perdía todo el trabajo. Es el ítem #9 del diagnóstico
+original ("El proyecto abierto se pierde al cerrar la pestaña"), nunca
+resuelto.
+
+### Diseño
+
+Autoguardado en `localStorage`, como red de seguridad — NO reemplaza el
+"Guardar" manual (que sigue descargando el archivo igual que siempre) ni
+anticipa el guardado en la nube que está en la visión de producto: es una
+capa aparte que puede convivir con lo que venga después sin tocarse.
+
+- **Recuperación al abrir**: si hay algo en `localStorage["vatia-autoguardado"]`,
+  se carga solo (reusa `cargarProyecto()`, con toda su normalización y
+  migración de versión — cero lógica duplicada) y se muestra un aviso
+  descartable ("↺ Se recuperó tu último trabajo sin guardar.") para que no
+  parezca que apareció contenido de la nada.
+- **Guardado en cada cambio, con debounce de 1 s**: `useEditor.subscribe()`
+  fuera del store, sin depender de que un componente esté montado.
+- **Fix de diseño necesario para que no fuera un loop infinito**: la
+  función `volcarActiva()` (que mezcla los nodos/conexiones EN VIVO de
+  React Flow con `proyecto.hojas` antes de servir el estado) hacía
+  `set(...)` — llamarla desde el listener del autoguardado habría
+  disparado el propio listener de nuevo, reprogramando el guardado cada
+  segundo para siempre aunque no pasara nada. Se extrajo la parte pura a
+  `proyectoVolcado()` (función de módulo, sin `set`), que ahora usan tanto
+  `volcarActiva()` (con `set`) como el autoguardado (sin `set`, solo
+  lectura vía `useEditor.getState()`).
+- **`nuevoProyecto()` (store) + botón "📄 Nuevo" (con confirmación)**:
+  antes de este cambio, recargar la página YA era la forma implícita de
+  "empezar de cero" (no había autosave, así que recargar daba un proyecto
+  en blanco). Con autoguardado, recargar ahora TRAE DE VUELTA el proyecto
+  — hacía falta una forma explícita de soltarlo. Limpia
+  `localStorage["vatia-autoguardado"]` y reinicia el store a un proyecto
+  en blanco (reusa `proyectoInicial()`).
+
+Verificado en vivo con Playwright: cambiar el nombre del proyecto →
+esperar >1 s → confirmar que aparece en `localStorage` → recargar la
+página → el proyecto vuelve solo, con el aviso visible. Botón "Nuevo":
+confirma con diálogo, borra el autoguardado, vuelve a
+`proyecto_sin_nombre` en blanco, sin errores de consola en ningún caso.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.
+
+## E20 — Limpieza de datos y nomenclatura del schema de aparatos
+
+El usuario pidió seguir abarcando pendientes del diagnóstico original sin
+pausar entre uno y otro. Este lote junta correcciones chicas e
+independientes entre sí, todas de bajo riesgo (verificadas una por una
+antes de pasar a la siguiente):
+
+- **`pdcc_kA: 2500` → `2.5`** en los dos MCCB "EMA SACE ISOL Z500" del
+  proyecto real (n4/n5). El bug estaba en la FUENTE (`scripts/migrar_tgbt.mjs`,
+  no solo en el JSON): corregido ahí y regenerado el archivo corriendo el
+  script — `git diff` confirma que el único cambio real son los dos
+  valores de `pdcc_kA` (el script es idempotente sobre el resto).
+- **`ics_kA` agregado a `mccb_caja_moldeada`** (schema): el MCCB solo
+  declaraba `pdcc_kA` (Icu); sin Ics no se puede verificar filiación
+  entre protecciones, que es justo donde el MCCB importa. Mismo patrón
+  que ya usa `guardamotor_termomagnetico` (Icu + Ics por separado). De
+  paso, el `title` de `pdcc_kA` pasa a aclarar que es Icu.
+- **Typo de unidad corregido**: `ics_kA` de `guardamotor_termomagnetico`
+  decía `"(A)"` en el título cuando el campo está en kA.
+- **`ue_v` → `ue_V`** en `rele_proteccion_tension`: todos los demás
+  subtipos (contactor, guardamotor, etc.) ya usaban mayúscula. Verificado
+  que ningún proyecto guardado usaba la minúscula antes de renombrar; se
+  actualizó también la lectura en `lib/anotaciones.ts`.
+- **`portafusible_marca`/`portafusible_modelo` eliminados** del subtipo
+  `portafusible`: duplicaban `marca`/`modelo`, que `base_comun` ya le da
+  a TODOS los subtipos. `lib/anotaciones.ts` ya imprime un prefijo
+  genérico marca+modelo para cualquier aparato (línea 45); el bloque
+  específico de `portafusible` solo tenía que dejar de repetirlo. Sin
+  proyectos guardados usando esos campos (verificado antes de tocar).
+
+Deliberadamente NO tocado en este lote: la duplicación mayor de
+nomenclatura de poder de corte (`pdcc_kA` en interruptor_termomagnetico/
+MCCB/fusible vs `icu_kA`+`ics_kA` en guardamotor) — el diagnóstico
+original la deja como pregunta abierta ("hace falta una capa de
+normalización, o unificar la nomenclatura"), no como corrección
+mecánica: unificarla de verdad implica decidir un nombre único y migrar
+`pdcc_kA` en datos ya guardados, una decisión de diseño que no correspondía
+tomar sola dentro de un lote de limpieza chica.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `python -c "json.load(...)"` confirma el schema
+editado a mano sigue siendo JSON válido, `lint_simbolos.py` verde en
+ambas carpetas, `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`
+verdes.
+
+## E21 — `docs/estado-revision-aea.md` puesto al día (parcial, a propósito)
+
+Ítem #7 del diagnóstico original ("el documento que gobierna el
+procedimiento de cierre no refleja la librería real"). Se corrigieron las
+afirmaciones que quedaban activamente engañosas, sin reescribir el
+documento entero:
+
+- **Fila de S00124 quitada** de la tabla de fuerza: ese símbolo se mudó a
+  `libreria-simbolos/comando/` en E15 y ya no vive en `simbolos/`, que es
+  el alcance de esta tabla. Se agregó una nota corta explicando la mudanza
+  y remitiendo a `HISTORIAL.md` (E15–E16.1) para el estado de los 13
+  símbolos de comando, en vez de duplicar esa tabla acá — el propio
+  documento ya advierte que se desfasó dos veces por mantenerse a mano.
+- **Nota "Icu/Ics del guardamotor futuro" marcada RESUELTA**: hablaba de
+  un subtipo que ya existe hace rato (`guardamotor_termomagnetico` con
+  `icu_kA`/`ics_kA`) como si fuera trabajo pendiente. Se referencia la
+  extensión del mismo criterio al MCCB en E20.
+- **Nota del rediseño E7 corregida**: decía que los 7 símbolos
+  (S00121/122/123/127/128/129/130) "siguen en `pendiente_revision`" —
+  falso, están todos `verificado` desde hace tiempo (confirmado contra
+  los `metadata.json` reales antes de escribir la corrección, no de
+  memoria).
+
+Deliberadamente NO regenerada la tabla completa de 27 filas a mano ni
+sumadas las 13 de comando en una tabla nueva: sería repetir exactamente
+el patrón que ya causó el desfasaje ("se desfasó dos veces por mantenerse
+a mano"). El documento no es la bitácora obligatoria del proyecto —
+`HISTORIAL.md` lo es, por regla de `AGENTS.md`— así que mantenerlo
+100% sincronizado a mano en cada cambio de librería no es sostenible;
+mejor que remita a `HISTORIAL.md` para el detalle vivo.
+
+## E22 — Checklist: el chequeo de "huérfano" ya no dispara en multifilar
+
+Limitación documentada en E17 ("el checklist sigue hablando en términos
+de fuerza") pasó a ser un bug funcional real, no solo cosmético: en una
+hoja multifilar NUNCA hay un nodo `alimentador` (el botón está oculto a
+propósito en `Paleta.tsx` desde E17, porque un circuito de mando no se
+alimenta "desde la red"), así que el chequeo de topología de
+`checklist.ts` — "sin camino a ningún alimentador" — marcaba **TODOS**
+los símbolos de una hoja multifilar como huérfanos, siempre, sin
+excepción. Puro ruido, no un aviso real.
+
+`armarChecklist()` gana un tercer parámetro opcional `modo: ModoHoja`
+(default `"unifilar"`, no rompe el único otro llamador implícito si
+hubiera). En multifilar se sigue llamando a `calcularTopologia()` (los
+ciclos de cableado siguen siendo un error real en cualquier modo, un lazo
+es un lazo) pero se omiten los mensajes de "huérfano" — ese concepto es
+inherentemente de fuerza. `ChecklistAea.tsx` pasa `hoja.modo` del store.
+
+Verificado en vivo con Playwright: mismo símbolo (interruptor
+termomagnético) en la misma hoja, contador de pendientes pasa de 5 a 4
+al cambiar el modo a Multifilar, y el texto "alimentador" desaparece del
+panel — el resto de los avisos reales (fichas incompletas) se mantiene.
+
+No se tocó la duplicación de lógica entre `checklist.ts` y
+`scripts/verificar_proyecto_real.mjs` (E11, sigue abierta): unificarlas
+de verdad requiere que el script Node pueda importar código que hoy
+depende de `import.meta.glob` (Vite-only, vía `lib/libreria.ts`) — es un
+cambio de arquitectura de cómo se comparte código entre el navegador y
+Node, no una corrección mecánica, y el script actual funciona y es el
+gate de CI; no correspondía tocarlo sin más contexto dentro de un lote
+de arreglos chicos.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.
+
+## E23 — Últimos desajustes menores del diagnóstico original (§2.2)
+
+Cierre del resto de los "desajustes menores de contrato" que quedaban
+del diagnóstico, todos de una línea o dos, mecánicos y de bajo riesgo:
+
+- **`convertir_qet.py --familia`** aceptaba solo `aparato|conductor|barra`
+  aunque el schema (`metadata.schema.json`) también admite `carga` y
+  `sin_ficha_tecnica` — por eso S00118 (PE, sin_ficha_tecnica) y S00120
+  (carga) no se podían regenerar con el conversor. Revisado el cuerpo de
+  `convertir()`: `familia` se pasa directo a `metadata["familia_atributos"]`
+  sin ningún branching especial por valor, así que ampliar los `choices`
+  del CLI es un cambio mecánico sin efectos colaterales.
+- **`rol: "auxiliar"`** existía en `metadata.schema.json` pero faltaba en
+  tres lugares del editor que deberían reconocerlo igual: el tipo
+  `RolConexion` (`tipos.ts`), el validador runtime `ROLES` en
+  `validadorMetadata.ts` (este era el más serio: un metadata con
+  `rol: "auxiliar"`, válido según el schema, era RECHAZADO por el
+  validador de la app) y el CSS de los handles. `NodoSimbolo.tsx` ya
+  trataba cualquier rol que no fuera `"salida"` como `target` (fallback
+  seguro), así que auxiliar se suma a los mismos selectores CSS que
+  entrada/tierra en vez de quedar sin estilo. Sigue sin haber ningún
+  símbolo que use este rol — es sincronizar la capacidad, no agregar uso.
+
+Deliberadamente NO tocado: qué significa "auxiliar" en términos de
+electricidad real (¿un contacto de señalización aparte? ¿una referencia
+cruzada?) — no hay ningún caso real todavía que lo exija, y definir esa
+semántica sin un caso de uso concreto sería inventar de más.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `python -c "ast.parse(...)"` confirma sintaxis válida
+de `convertir_qet.py`, `--help` muestra las 5 opciones de `--familia`,
+`lint_simbolos.py` verde en ambas carpetas, `npm run e2e` verde
+(21 checks), `verificar_alineacion.mjs` y `verificar_proyecto_real.mjs`
+verdes.
+
+Con esto se agotó la lista de pendientes chicos, mecánicos y de bajo
+riesgo del diagnóstico original que se podían resolver sin necesitar una
+decisión de diseño del usuario. Lo que queda abierto (documentado en las
+entradas de arriba, no repetido acá) necesita alguno de: una decisión de
+arquitectura (unificar `pdcc_kA`/`icu_kA`, compartir código
+`checklist.ts`↔Node), una decisión de producto (semántica del modo
+multifilar, el problema de los "polos"), o coordinación de git que no
+correspondía resolver sola (PR de esta rama bloqueado porque
+`comando-piloto-20260901` nace de `fundaciones-datos-20260901`, cuyo
+PR #14 sigue sin mergear — abrir un PR ahora mostraría el diff de los
+dos juntos, confuso de revisar).
+
+## E24 — `Guardar` vuelve a refrescar `ultimaModificacion`
+
+Último bug chico del diagnóstico (§4, deuda de código): existe
+`serializarProyecto()` en `tipos.ts` desde hace tiempo, pensada
+específicamente para refrescar `meta.ultimaModificacion` al momento real
+de guardar — pero **nunca la llamaba nadie**. `BarraSuperior.guardar()`
+hacía su propio `JSON.stringify(proyecto, null, 2)` en vez de usarla, así
+que el JSON descargado siempre traía la fecha de la última vez que se
+CARGÓ o creó el proyecto (`cargarProyecto`/`nuevoProyecto`), no la del
+guardado real.
+
+Fix de una línea: `guardar()` ahora arma el blob con
+`serializarProyecto(proyecto)` en vez de `JSON.stringify` directo.
+Verificado en vivo con Playwright: click en "Guardar", se lee el JSON
+descargado, `meta.ultimaModificacion` cae después del momento en que
+arrancó el test — antes hubiera quedado con el timestamp de apertura del
+editor.
+
+Deliberadamente NO se aplicó el mismo refresco al escritor del
+autoguardado (E19): ese dispara con CUALQUIER cambio de estado
+(selección, paneles) con debounce de 1 s, así que estampar "ahora" ahí
+haría que `ultimaModificacion` dejara de significar "la última vez que
+se tocó un dato real" para pasar a ser casi siempre "hace un segundo" —
+degradaría el campo en vez de arreglarlo. `serializarProyecto()` está
+pensada para el gesto explícito de guardar, no para el guardado
+continuo en segundo plano.
+
+Verificaciones: `tsc -b` limpio, `npm run build` OK, `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs` verdes.
+
+---
+
+Con E15 a E24 se cierra, por esta sesión, el trabajo autónomo sobre la
+lista de pendientes del diagnóstico original ("qué más queda por hacer
+en el editor"): librería de comando completa (13 símbolos), modo
+multifilar, jerarquía de hojas, autoguardado, y todos los desajustes de
+datos/nomenclatura/contrato de bajo riesgo que no requerían una decisión
+de diseño del usuario. Lo que sigue abierto (nomenclatura de poder de
+corte, duplicación checklist↔Node, semántica multifilar, "polos", PR de
+esta rama) está documentado arriba, entrada por entrada, con la razón
+puntual de por qué se dejó para que el usuario decida.
+
+## E25 — `checklist.ts` y `verificar_proyecto_real.mjs` comparten lógica
+
+Decisión del usuario ("que compartan lógica es la mejor opción") sobre el
+punto que había quedado abierto en E24: el Checklist AEA del editor
+(`lib/checklist.ts`, corre en el navegador vía Vite) y el verificador de
+proyectos reales (`scripts/verificar_proyecto_real.mjs`, corre en CI con
+Node puro) tenían las mismas reglas escritas **dos veces**, literalmente
+byte a byte en `problemasCable()`, y casi byte a byte en `campoVisible()`
+y en el cálculo de mensajes "Falta X" / "Cargá al menos uno de…". El
+script incluso se documentaba a sí mismo como "espejo de checklist.ts" —
+un espejo que un cambio futuro en uno de los dos lados iba a desincronizar
+tarde o temprano, sin que nada lo avisara.
+
+**Antes se había descartado esto** (ver resumen de sesión anterior) por un
+motivo real: `checklist.ts` depende de `lib/libreria.ts`, que usa
+`import.meta.glob`, una API exclusiva de Vite que un script Node no puede
+ejecutar. Pero ese motivo solo bloquea compartir la RESOLUCIÓN de la
+librería de símbolos — no bloquea compartir las reglas de validación en sí,
+que ya eran funciones puras (reciben atributos ya resueltos, no tocan
+`import.meta` ni el DOM).
+
+Se extrajo esa parte pura a un módulo nuevo,
+`libreria-simbolos/verificacion/reglasFicha.mjs`: `esVacio`,
+`humanizarCampo`, `esCampoVisible` (regla `x-visible-si`),
+`mensajesDeCampos` (arma "Falta X" / "Cargá al menos uno de…" a partir de
+una lista ya resuelta de campos obligatorios) y `problemasCable` (la
+validación completa de un cable, sin ninguna dependencia de schema). Es
+JS plano, no TypeScript — así lo importa un script Node sin
+transpilador, y el editor lo importa habilitando `"allowJs": true` en
+`tsconfig.app.json` (sin necesitar un `.d.ts` aparte).
+
+Los dos consumidores ahora llaman al mismo módulo:
+
+- `lib/esquemas.ts`: `campoVisible()` pasa a ser un wrapper tipado sobre
+  `esCampoVisible()` — se conserva la firma para no tocar sus dos
+  llamadores (`checklist.ts`, `FormularioAtributos.tsx`).
+- `lib/checklist.ts`: `problemasFicha()` resuelve el schema con
+  `camposDeFamilia()`/`algunoObligatorio()` (eso sigue siendo específico
+  del editor, JSON importado por Vite + tipos generados) y delega el
+  criterio de qué mensaje corresponde a `mensajesDeCampos()`. Perdió sus
+  copias locales de `vacio`, `humanizarCampo` y `problemasCable`.
+- `scripts/verificar_proyecto_real.mjs`: mismo patrón del lado Node
+  (resuelve el schema leyendo el JSON con `fs`, que sigue siendo
+  necesariamente distinto porque no hay Vite) — perdió sus copias locales
+  de `vacio`, `humanizar`, `campoVisible` y `problemasCable`.
+
+Lo que **no** se unificó, a propósito: la resolución del subtipo de
+`tipo_aparato` a partir del schema (`camposDeFamilia` en el editor vs.
+`subtipoDeAparato`/`reglasDeFamiliaAparato` en el script). Unificar eso
+sí exigiría resolver el problema de `import.meta.glob`/carga de
+librería, que es un cambio de arquitectura mayor y no lo que el usuario
+pidió acá — lo que pidió, y lo que se hizo, es que la lógica de
+validación deje de estar duplicada.
+
+Verificado: `npm run build` (`tsc -b` limpio con el módulo `.mjs`
+importado desde TS), `npm run lint` sin warnings nuevos,
+`node scripts/verificar_proyecto_real.mjs` sigue dando el mismo resultado
+exacto contra el proyecto real (0 pendientes bloqueantes, 24 datos de
+sitio informativos), `npm run e2e` verde (21 checks),
+`verificar_alineacion.mjs` y `lint_simbolos.py` verdes. Además, prueba en
+vivo con Playwright: se arrastró un interruptor termomagnético recién
+creado al plano y el Checklist AEA mostró exactamente los mismos mensajes
+que antes del refactor ("Falta Cantidad polos.", "Falta In A.", "Falta
+Pdcc kA.", "Falta Norma fabricacion.", "Sin conexión a ningún
+alimentador."), confirmando que el refactor no cambió ningún mensaje ni
+criterio, solo dónde vive el código.
+
+Nota aparte (no relacionada con este cambio, ya documentada antes): la
+prueba en vivo repitió el warning de consola "Encountered two children
+with the same key... n1" al soltar un símbolo — es la falla preexistente
+de claves duplicadas ya registrada en una sesión anterior, no algo que
+haya introducido este refactor.
+
+## E26 — Motor de cálculo, etapa 1: Ib y ΔU% (informativo)
+
+Con el checklist ya sin duplicación (E25), avance sobre el objetivo de
+fondo del proyecto: el motor de verificación. Esta etapa es deliberadamente
+chica y acotada a lo que se puede calcular con **fórmulas físicas**, sin
+tocar todavía ninguna tabla normativa (Iz por AEA/IEC) — esas tablas son
+datos sensibles, específicos de cada norma y método de instalación, que
+conviene que un electricista valide antes de confiar en ellas; se dejan
+para la próxima etapa a propósito.
+
+**Qué se agregó:**
+
+- `lib/calculo.ts` (nuevo): `calcularIbA()` (corriente de cálculo, a
+  partir de la potencia en VA y si el tramo es mono/trifásico) y
+  `calcularCaidaTensionPct()` (ΔU%, modelo resistivo puro: ΔU ≈ factor ·
+  ρ · L · Ib · cosφ / S, con ρ_Cu = 0,0225 y ρ_Al = 0,036 Ω·mm²/m a
+  temperatura de servicio — valores de referencia habituales, no una
+  tabla normativa transcripta). Ignora la reactancia inductiva del cable:
+  válido para secciones chicas/medianas, optimista para secciones grandes
+  (≳95 mm²) — queda anotado en el propio módulo.
+- `lib/topologia.ts`: `ResultadoTopologia` gana `potenciaConexionVa`
+  (potencia que circula por CADA cable, no solo la agregada por barra) y
+  `esTrifasica` (mono/trifásico de cada tramo). La parte que exigió más
+  cuidado: **cuándo aplica la diversidad (Ku/Ks) y cuándo no.** Un cable
+  que llega a una barra (punto de agregación de varios circuitos) usa la
+  potencia YA diversificada (`potenciaBarraVa`, que ya existía). Un cable
+  que llega a una carga hoja usa su potencia NOMINAL sin diversificar —
+  aplicar Ku/Ks a un circuito derivado individual sería un error real de
+  dimensionamiento (ese circuito tiene que bancar su carga completa, la
+  diversidad es una propiedad del punto donde varios circuitos se
+  agrupan, no de uno solo). Se separaron las dos sumas recursivas
+  (`sumarPotenciaAgregableDesde` con Ku/Ks, `sumarPotenciaNominalDesde`
+  sin) para que esta distinción quede explícita en el código, no
+  implícita.
+- `componentes/PanelAtributos.tsx` / `FormularioConductor.tsx`: al
+  seleccionar un cable, la ficha muestra un bloque "Cálculo (informativo)"
+  con Ib y ΔU%, con una nota explícita de que es una estimación que no
+  reemplaza el cálculo normativo. No aparece si falta algún dato (no se
+  fuerza un número con supuestos de más). No se agregó al alimentador (ahí
+  "aguas abajo" es el proyecto entero, no un tramo — no correspondía el
+  mismo cálculo) ni al dibujo del plano (mostrar ΔU% impreso en el
+  unifilar es una decisión de qué lleva el plano en sí, no algo para
+  decidir de paso acá).
+
+**Verificado en vivo con Playwright**, extremo a extremo: se armó un
+circuito real (alimentador → cable → "Carga de circuito" S00120, 3F,
+10 A → potencia_va = 6582 VA calculada sola por `FormularioCarga`), se
+cargó el cable con 50 m / 4 mm² / Cu, y el panel mostró **Ib = 10,0 A** y
+**ΔU = 1,09 %** — coincide exacto con el cálculo a mano (Ib se recupera
+solo porque `6582 = √3·380·10` redondeado, así que dividir de vuelta da
+~10,0 A; ΔU% = √3·0,0225·50·10·0,85/4/380·100 ≈ 1,09 %).
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` verde (21 checks, contra `vite preview`),
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 20/20.
+
+Nota aparte (pre-existente, no introducida acá): al crear la conexión de
+prueba aparecieron en consola warnings de React sobre props no
+reconocidas en el DOM (`selectable`, `deletable`, `sourceHandleId`,
+`targetHandleId`, `pathOptions`) — vienen de cómo `ConexionEdge.tsx`
+esparce `...props` sobre el path del cable; no se tocó ese componente en
+esta etapa y no afecta el resultado, pero conviene una limpieza futura.
+
+**Lo que sigue, y por qué queda para una decisión del usuario:** la
+etapa 2 (verificar Ib ≤ In ≤ Iz contra la tabla real de corriente
+admisible AEA 90364-5-52 / IEC 60364-5-52 por método de instalación,
+aislación, temperatura y agrupamiento) necesita esos valores de tabla
+verificados por un electricista antes de que el sistema los use para
+decir "este cable está bien" — no es prudente que yo los transcriba de
+memoria y el programa los trate como verdad. Después de eso: Icc
+(IEC 60909, necesita impedancia de fuente + transformador + cable) y
+protección contra contactos indirectos (depende del esquema PAT, ya
+soportado en `datosProyecto`).
+
+## E27 — Merge PR #14 a `main`
+
+Aprobación explícita del usuario ("mergeá el PR 14"). `gh pr merge 14 --merge
+--delete-branch`, merge commit `a1c3aab` en `main` (03/09, 11:40 UTC), rama
+remota `proyecto/fundaciones-datos-20260901` borrada. `main` local
+sincronizado por fast-forward.
+
+Desbloquea lo que quedaba pendiente desde E24: `proyecto/comando-piloto-
+20260901` nacía de esa rama, así que un PR desde acá mostraba el diff de
+las dos ramas juntas. Verificado después del merge:
+`git diff --stat main...HEAD` ahora lista solo el trabajo propio de esta
+rama (E15 en adelante), ya no arrastra el contenido de fundaciones-datos.
+
+## E28 — Exportación a PDF de la hoja activa
+
+Primer ítem del punch list "finalizar el editor" (el usuario pidió
+terminar el editor antes de retomar motor de cálculo o base de datos).
+Elegido por sobre guardado en la nube porque es autocontenido: no exige
+decidir infraestructura nueva (backend/hosting/autenticación), se resuelve
+del lado del cliente sobre lo que el editor ya dibuja.
+
+**Decisión de diseño clave: no se construyó un renderer paralelo.** La
+tentación era generar el PDF con una librería (jsPDF, html2canvas)
+redibujando símbolos y cables por separado — pero eso hubiera significado
+mantener DOS caminos de renderizado (el de pantalla y el de export) que
+inevitablemente se hubieran desincronizado con el tiempo, el mismo
+problema de fondo que ya se resolvió en E25 para el checklist. En cambio,
+`BarraSuperior.exportarPdf()` reusa el MISMO lienzo de React Flow que ya
+está en pantalla: oculta el resto de la interfaz con `@media print`
+(`estilos.css`), lleva el viewport a la escala física real y llama a
+`window.print()` — el PDF nativo del navegador. Cero riesgo de que el PDF
+se vea distinto del plano en pantalla, porque es literalmente el mismo
+DOM.
+
+**El detalle que exigió más cuidado: la escala.** La hoja se dibuja a
+`PX_POR_MM = 4` unidades de React Flow por mm real. Al imprimir, el
+navegador trata 1 unidad de React Flow como 1 px CSS, y 1 px CSS son
+1/96", no 1/(4·mm) — hay un desajuste real entre la escala de diseño del
+editor y la física de impresión. `lib/impresion.ts` deriva el factor de
+corrección (`ZOOM_IMPRESION = 96 / (PX_POR_MM · 25,4) ≈ 0,94488`) en vez
+de hardcodear un número mágico, y como `PX_POR_MM` es una constante única
+del proyecto, ese factor es el mismo para cualquier formato u
+orientación de hoja — no hace falta recalcularlo por hoja, solo el
+tamaño de página (`@page`) sí varía (A4..A0, horizontal/vertical) y se
+inyecta con un `<style>` dinámico por exportación, porque el formato es
+un dato de CADA hoja, no una constante CSS.
+
+**Antes de exportar, si algo no verifica, pregunta** (pedido explícito de
+la visión del producto, memoria `vatia-vision-producto`): corre
+`armarChecklist()` sobre la hoja activa y, si hay pendientes de ficha
+técnica, `window.confirm()` antes de seguir — igual criterio "informa,
+no bloquea" que ya rige el resto del editor.
+
+**Alcance de esta v1, a propósito:** exporta la hoja ACTIVA, una por vez
+(no las 20 hojas de un proyecto real en un solo PDF multipágina), y no
+incluye lista de materiales. Ambas quedan como próximo paso del mismo
+punch list, no requieren el motor de cálculo.
+
+**Verificado con Playwright, en dos partes** (`window.print()` en
+Chromium headless dispara `afterprint` casi al instante, así que hubo que
+stubear `window.print` para poder inspeccionar el estado intermedio):
+
+1. Con `window.print` reemplazado por un no-op: se colocó un símbolo, se
+   hizo clic en "Exportar PDF" y se verificó, MIENTRAS el "diálogo" está
+   abierto, que la regla inyectada es exactamente
+   `@page { size: 420mm 297mm; margin: 0; }` (A3 horizontal, el default) y
+   que el transform del viewport es
+   `matrix(0.944882, 0, 0, 0.944882, 0, 0)` — el zoom calculado, exacto,
+   con la hoja en el origen.
+2. Bajo `page.emulateMedia({ media: 'print' })`: `.barra-superior` pasa a
+   `display: none` y `.lienzo`/`.react-flow` quedan en `display: block`.
+3. Al simular `afterprint` (`window.dispatchEvent(new Event('afterprint'))`):
+   el `<style>` inyectado se retira del DOM — confirma que la limpieza no
+   depende de un happy path.
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` verde (21 checks), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+## E29 — Exportación del proyecto completo a PDF + lista de materiales
+
+Segunda parte del ítem "PDF" del punch list (E28 exportaba una hoja por
+vez; esto agrega "todo el proyecto en un solo PDF" + la lista de
+materiales que faltaba).
+
+**Se mantuvo el mismo principio de E28: reusar el renderizado real, no
+uno paralelo.** La diferencia es que acá hace falta mostrar TODAS las
+hojas a la vez (una por página), y el lienzo interactivo solo tiene
+montada la hoja ACTIVA. Se resolvió con N instancias de `<ReactFlow>`
+independientes (una por hoja, cada una en su propio `<ReactFlowProvider>`
+para no compartir estado entre sí), todas usando el mismo `nodeTypes`/
+`edgeTypes`/nodo-hoja que ya usaba el lienzo principal — se extrajeron a
+`lib/tiposFlow.ts` para que fueran literalmente el mismo código, no una
+copia. Cada instancia es de solo lectura (`nodesDraggable`,
+`nodesConnectable`, `elementsSelectable`, `panOnDrag`, `zoomOnScroll` en
+`false`) y fija en la escala de impresión.
+
+`ExportacionProyecto.tsx` solo monta contenido mientras
+`exportandoTodo` (store) es `true` — evita tener 20 lienzos React Flow
+vivos en memoria todo el tiempo "por si acaso" se exporta.
+
+**Bug real encontrado y corregido durante la verificación con Playwright,
+no en el diseño inicial:** `exportarProyectoCompletoPdf()` leía
+`proyecto.hojas` directo del store, pero la hoja ACTIVA vive en
+`nodos`/`conexiones` "sueltos" hasta que algo la vuelca a
+`proyecto.hojas` (cambiar de hoja, o guardar) — el mismo patrón de dos
+fuentes de verdad que ya señalaba el diagnóstico original como deuda de
+`store.ts`. Sin corregirlo, la última hoja editada por el usuario hubiera
+quedado afuera del PDF y de la lista de materiales, silenciosamente. Fix:
+llamar a `serializar()` (que internamente vuelca la hoja activa) como
+PRIMER paso de la función, antes de leer nada — se detectó porque la
+primera verificación en vivo dio la lista de materiales vacía cuando
+debía tener dos ítems.
+
+**Lista de materiales:** una fila por (hoja, código, marca, modelo), con
+cantidad agrupada. Deliberadamente afuera: los alimentadores (no son un
+aparato físico, son "acá entra la alimentación").
+
+**Verificado con Playwright de punta a punta** (con manejo del diálogo
+`window.confirm` de pendientes, que Playwright headless descarta por
+defecto si no se le engancha un handler — la primera corrida de la
+prueba "fallaba" en silencio por esto, no por un bug real): se armaron
+dos hojas reales, cada una con un símbolo distinto (uno con marca/modelo
+cargados, otro sin), se exportó el proyecto completo y se confirmó que:
+
+- Se generan 2 páginas de hoja (420×297 mm cada una, A3 horizontal) + 1
+  página de lista de materiales.
+- La lista de materiales tiene una fila por hoja con los datos correctos
+  ("Hoja 1 · S00110 · Interruptor termomagnético · Schneider · iC60N";
+  "Hoja 2 · S00110 · Interruptor termomagnético · — · —").
+- `document.body` recibe la clase `exportando-todo` durante el export y
+  la pierde después.
+- Al simular el cierre del diálogo de impresión, `<ExportacionProyecto>`
+  se desmonta del DOM.
+
+Con esto, la exportación a PDF que pedía la visión del producto (memoria
+`vatia-vision-producto`: "PDF listo para imprimir, con lista de
+materiales") queda completa en su alcance base — falta todavía que
+incluya resultados del motor de cálculo, pero eso depende de que ese
+motor avance más (etapa 4b en adelante, ver `docs/motor-de-calculo.md`),
+no de este punch list.
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` Y `npm run e2e:simbolos` verdes,
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 19/19 (el editor de símbolos sigue intacto — el
+refactor de `nodeTypes`/`edgeTypes`/nodo-hoja a `lib/tiposFlow.ts` no le
+tocó nada).
+
+## E30 — Lista de materiales opcional + accesorios sin símbolo propio
+
+Pedido explícito del usuario tras E29: "la lista de materiales solo
+cuando se quiera imprimirlo" y agregar accesorios (terminales, peines de
+conexión, bornera de distribución, etc.) que no tienen símbolo en el
+plano.
+
+**Lista de materiales opcional.** Antes, "Exportar proyecto" agregaba
+SIEMPRE la página de lista de materiales. Ahora se pregunta en cada
+exportación (`window.confirm`, mismo lenguaje que ya usa el resto del
+export para el aviso de pendientes): un plano de revisión rápida no
+siempre la necesita. El store gana `incluirBomEnExportacion`, seteado
+por `iniciarExportacionCompleta(incluirBom)`; `ExportacionProyecto.tsx`
+solo monta `<PaginaListaDeMateriales>` si es `true`.
+
+**Accesorios.** `HojaConfig.accesorios?: ItemAccesorio[]` (opcional, sin
+migración — mismo criterio que `hojaPadreId`/`nodoOrigenId` de una etapa
+anterior): descripción, cantidad, marca y modelo opcionales. Se editan en
+un bloque nuevo del panel "Configuración de hoja" ("Lista de materiales
+adicional"), con alta/baja de filas — reusa `actualizarHoja()` que ya
+existía (mismo mecanismo que el resto de la config de hoja: vuelca a
+`proyecto.hojas` al toque, sin esperar a cambiar de pestaña). En la
+lista de materiales, cada accesorio con descripción no vacía se suma
+como una fila más junto a los símbolos detectados automáticamente,
+con `código: "—"` porque no tienen IEC.
+
+**Verificado con Playwright, dos corridas del mismo flujo** (cargar un
+accesorio a mano vía el panel + colocar un símbolo con marca, exportar
+el proyecto dos veces con distinta respuesta al diálogo de la lista de
+materiales):
+
+- Rechazando la lista de materiales: 1 sola página en el PDF (la hoja),
+  cero `.pagina-bom` en el DOM.
+- Aceptándola: 2 páginas, la de materiales con **ambas** filas —
+  "Terminal punta de lanza 2,5 mm² · Phoenix Contact · 50" (accesorio
+  cargado a mano) y "S00110 Interruptor termomagnético · Schneider · 1"
+  (detectado del plano) — confirma que se combinan correctamente.
+
+Además: `npm run build` (`tsc -b` limpio), `npm run lint` sin warnings
+nuevos, `npm run e2e` verde, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+## E31 — Limpieza de bugs menores: warnings de consola
+
+Último ítem del punch list de "finalizar el editor" que quedaba
+pendiente de una sesión anterior: dos warnings de consola pre-existentes,
+ninguno reportado por el usuario como falla funcional.
+
+**Corregido: `ConexionEdge.tsx` pasaba props sin reconocer al DOM.**
+`{ ...props }` (todo lo que sobraba de `EdgeProps` tras destructurar lo
+que el componente realmente usa) se esparcía entero sobre
+`<BaseEdge path={d} {...props} />`. `BaseEdge` de XYFlow solo entiende
+`style`/`markerStart`/`markerEnd`/`interactionWidth`/`label*` — el resto
+(`selectable`, `deletable`, `sourceHandleId`, `targetHandleId`,
+`pathOptions`…) lo reenviaba tal cual al `<path>` del DOM, de ahí los
+warnings "React does not recognize the `X` prop on a DOM element". El
+componente en realidad solo necesitaba dos de esos campos: `style` (para
+el trazo — `defaultEdgeOptions` en `App.tsx` define
+`stroke`/`strokeWidth` ahí) y `selected` (para mostrar el grip de
+arrastre del quiebre solo cuando el cable está seleccionado — antes leía
+`props.selected`). Se destructuraron ambos explícitamente y se sacó el
+`...props` genérico. Verificado: `strokeWidth` del cable sigue
+resolviendo a `1.5px` (el valor de `defaultEdgeOptions`), y el arnés E2E
+completo (incluida la prueba de "quiebre" arrastrable, que depende de
+`selected`) sigue en verde.
+
+**Investigado a fondo y CERRADO sin fix: la clave duplicada `n1`.**
+Quedaba registrado de una sesión anterior como "aparece al cambiar de
+hoja", sin causa raíz confirmada. Se reprodujo desde cero con Playwright
+y se aisló: **no hace falta cambiar de hoja — aparece con el primer
+símbolo que se suelta en un lienzo recién abierto**, y el estado final
+(nodos renderizados en el DOM) es siempre correcto, un único `n1`. Lo
+decisivo: corriendo la MISMA interacción contra el build de PRODUCCIÓN
+(`vite build` + `vite preview`, en vez de `vite dev`), el warning
+**no aparece ni una vez** — cero, con el mismo resultado final. Eso aísla
+la causa a `<StrictMode>` (activado en `main.tsx`, que solo actúa en
+desarrollo): React re-invoca renders/efectos a propósito ahí para cazar
+efectos secundarios impuros, y en algún punto de ese doble paso durante
+un alta de nodo por arrastre, React ve momentáneamente dos elementos con
+key `n1` antes de asentarse — nunca llega a persistir, nunca lo ve un
+usuario real. Sacar `<StrictMode>` para silenciar esto sería peor que el
+problema: es la herramienta que ayuda a agarrar bugs de este tipo ANTES
+de que lleguen a producción. Se cierra como "confirmado inofensivo,
+exclusivo de desarrollo", no como pendiente.
+
+Con esto se termina, por ahora, el punch list de "finalizar el editor"
+que el usuario pidió agotar antes de retomar el motor de cálculo o la
+base de datos: exportación a PDF (hoja suelta y proyecto completo con
+lista de materiales opcional + accesorios), y los dos bugs de consola
+conocidos, resueltos o cerrados con causa raíz confirmada. Lo que sigue
+abierto y sin resolver a propósito (ya documentado en sesiones
+anteriores, no se repite acá): guardado en la nube (decisión de
+arquitectura mayor, backend/hosting/autenticación) y la deuda de
+`store.ts` con dos fuentes de verdad (estructural, no es un bug puntual).
+
+Verificado: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` verde (21 checks, incluida la prueba de
+quiebre arrastrable), `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+## E32 — Rediseño visual, accesibilidad y atajos de teclado (etapa 1)
+
+Pedido explícito del usuario: "modificaciones estéticas... accesibilidades,
+función y atajos... cosas que suelen tener programas de este estilo y todo
+lo que consideres". Alcance amplio y delegado a criterio propio — se
+encaró como una primera etapa concreta y verificada, no como un rediseño
+completo de una sola vez.
+
+**Paleta de color.** Toda la paleta era, literal, la escala `zinc` +
+`blue-600`/`red-600` de Tailwind sin modificar — reconocible como
+plantilla genérica. Se reemplazó por una paleta propia: acento
+petróleo/teal (`#0d6e6a` claro / `#4fd1c7` oscuro, en vez del azul
+genérico #2563eb) con un neutro de base ligeramente frío, coherente con
+el papel de plano ("blueprint") en vez de gris de librería. Se agregaron
+tokens que faltaban: `--acento-fuerte`, `--acento-suave`, `--ok`,
+`--error-suave`, `--radio`/`--radio-chico`, `--sombra-panel`,
+`--anillo-foco`.
+
+La sola actualización de los tokens no alcanzaba: había ~35 colores
+hardcodeados por fuera del sistema de variables (mismo valor que un
+token, pegado a mano) más otra tanda de azules específicos (hover states,
+`.fc-calculo` de E26) que no coincidían con ningún token. Se barrieron
+los dos grupos con reemplazos exactos hoja por hoja (no un buscar-
+reemplazar ciego: se verificó el contexto de cada valor — `color` vs
+`background` vs `border` — antes de mapearlo).
+
+**Jerarquía en la barra superior.** Antes todos los botones eran cajas
+blancas idénticas, sin indicar cuál accion pesa más. "Guardar" pasa a ser
+el único botón "primario" (relleno, texto blanco) — el resto sigue
+igual entre sí a propósito. El texto de ayuda fijo y largo ("Arrastrar
+con rueda: desplazar · Clic izq...") se reemplazó por un aviso corto que
+apunta a la ayuda de atajos nueva.
+
+**Accesibilidad.**
+- Anillo de foco visible y consistente (`:focus-visible`, con
+  `box-shadow` en vez de depender del outline por defecto del
+  navegador, inconsistente entre Chrome/Firefox) para toda la app.
+- `aria-label` en los botones de solo ícono que no lo tenían (deshacer,
+  rehacer, cambiar de tema) — antes su nombre accesible caía al
+  carácter crudo del ícono ("↶"), que un lector de pantalla no anuncia
+  de forma útil.
+
+**Funciones típicas de un editor CAD, que faltaban del todo:**
+- Controles de zoom / encuadre nativos de React Flow (`<Controls>`),
+  reposicionados a la esquina superior derecha del lienzo — la inferior
+  izquierda ya la ocupaba el Checklist AEA, y solaparse ahí escondía dos
+  de los cuatro botones (encontrado recién al verificar con una captura
+  de pantalla real, no era evidente mirando el código).
+- Ayuda de atajos de teclado (`AyudaAtajos.tsx`), con la tecla `?` o un
+  botón dedicado en el cluster de Controls — agrupa TODOS los atajos
+  (existentes y nuevos) por categoría, con teclas en `<kbd>`.
+
+**Atajos nuevos** (los existentes — Ctrl+Z/Shift+Z, Ctrl+C/V, R, Supr —
+quedan igual): `Ctrl+A` selecciona todo, `Esc` deselecciona o cierra el
+panel más "encima" (ayuda → Proyecto → Hoja → deselección, en ese
+orden), `Ctrl+S` guarda el proyecto (JSON), `?` abre/cierra la ayuda.
+Deliberadamente NO se agregó nudge con flechas (mover la selección de a
+un paso de grilla): hacerlo bien exige que quede en el historial de
+deshacer, y no alcanzaba el tiempo para probarlo con la misma
+rigurosidad que el resto — queda para una próxima pasada.
+
+**Bug real encontrado y corregido durante la verificación visual, no
+antes:** al agregar `<Controls>` en su posición por defecto
+(inferior izquierda), quedó exactamente superpuesto con
+`.paneles-flotantes` (Checklist AEA, mismo rincón) — los botones de
+encuadre y de ayuda quedaban tapados. Solo se vio con una captura de
+pantalla real a resolución completa; por código, nada lo delataba.
+Corregido con `position="top-right"`. Segundo hallazgo del mismo tipo:
+los botones de Controls se veían blancos en tema oscuro pese a usar
+`var(--bg-surface)` — la hoja de estilos propia de React Flow
+(`@xyflow/react/dist/style.css`) se carga DESPUÉS de `estilos.css` en el
+bundle final, así que a igual especificidad ganaba siempre la de la
+librería. Se resolvió duplicando la clase en el selector
+(`.react-flow__controls-button.react-flow__controls-button`) para subir
+la especificidad sin `!important`.
+
+**Verificado con Playwright, en las dos capas:**
+- Visual: capturas de pantalla reales en claro y oscuro, antes y
+  después de cada cambio — así se encontraron los dos bugs de arriba,
+  que ninguna revisión de código sola hubiera detectado.
+- Funcional: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+  warnings nuevos, `npm run e2e` (contra el build de producción) Y
+  `npm run e2e:simbolos` verdes, `verificar_alineacion.mjs` y
+  `verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 19/19. Se
+  confirmó además que la exportación a PDF (E28/E29) sigue funcionando
+  igual: `.react-flow__controls` y `.ayuda-atajos` quedan ocultos bajo
+  `@media print` (se agregaron a la lista existente), y el botón
+  "Exportar PDF" sigue disparando `window.print()` sin cambios.
+
+**Lo que sigue abierto de este pedido, a propósito** (el pedido era
+amplio y esto es una primera etapa, no todo de una vez): más pulido
+tipográfico (jerarquía de tamaños/pesos más marcada), revisar contraste
+de color en los estados semánticos del Checklist (ámbar/verde/rojo,
+todavía sin retocar), nudge de selección con flechas, y cualquier otra
+cosa puntual que el usuario señale al ver el resultado en vivo.
+
+## E33 — Nudge con flechas, contraste WCAG y tipografía (cierre de la etapa 1)
+
+Termina lo que había quedado explícitamente afuera de E32 ("más pulido
+tipográfico, contraste de los estados semánticos, nudge de selección"),
+a pedido del usuario, antes de pasar de lleno al motor de cálculo.
+
+**Nudge con flechas.** Las flechas mueven la selección un paso de grilla
+(10 px), Shift+flecha un paso grande (50 px), y queda en el historial de
+deshacer — reutiliza `registrarArrastre()`/`confirmarArrastre()`, el
+mismo mecanismo que ya usa el arrastre real con mouse, así que el nudge
+respeta el límite del marco útil de la hoja igual que un arrastre normal.
+
+**Bug real, encontrado solo al verificar en vivo:** la primera versión
+duplicaba el movimiento (10 px pedidos, 20 px reales). Causa: React Flow
+YA mueve los nodos seleccionados con las flechas por su cuenta (una
+característica nativa de accesibilidad de la librería, 1 px por toque,
+sin pasar por el historial de deshacer de esta app) — mi implementación
+se sumaba a la suya en vez de reemplazarla. Se corrigió con
+`disableKeyboardA11y` en el `<ReactFlow>` principal, que apaga el manejo
+de teclado propio de la librería y deja el nudge enteramente en manos
+del historial de deshacer de Vatia. Verificado con Playwright: 10 px,
+50 px con Shift, y dos `Ctrl+Z` consecutivos que deshacen cada paso por
+separado — contra el build de PRODUCCIÓN, no el de desarrollo, para
+descartar que fuera otra vez un artefacto de `StrictMode` (no lo era:
+se reproducía igual en los dos).
+
+**Contraste WCAG AA (4,5:1 para texto normal), verificado con la fórmula
+real, no a ojo.** Se encontraron y corrigieron 5 pares reales por debajo
+del mínimo:
+- `.sin-problemas` (Checklist AEA, "✓ completo"): 3,18:1 → 4,84:1.
+- `.toast-mover button:hover`: 3,30:1 → 5,02:1.
+- `.editor-simbolos-badge.verificado`: 3,00:1 → 6,49:1.
+- `.editor-simbolos-badge.pendiente_revision`: 2,74:1 → 6,60:1.
+- `--text-muted` (usado en toda la app para texto de ayuda chico): 4,05:1
+  claro / 4,47:1 oscuro → 5,24:1 / 5,15:1.
+
+Cada cambio queda con un comentario en el CSS con el número real
+verificado, no solo el color nuevo — para que quede constancia de por
+qué se movió y no haga falta re-derivarlo si alguien lo toca de nuevo.
+
+**Tipografía.** `font-variant-numeric: tabular-nums` en los campos
+numéricos y en los datos calculados (Ib/ΔU%, dimensiones de hoja,
+teclas de los atajos) — en una herramienta técnica los números aparecen
+en columna y bailan de ancho con cifras proporcionales. Los encabezados
+de los paneles modales (`PanelHoja`, `PanelProyecto` que comparte esa
+clase, `AyudaAtajos`, la ficha técnica) ganan un filete inferior con el
+acento suave — mismo tratamiento en los tres, antes cada uno tenía su
+propio criterio (uno sin separador, otro con un filete negro sólido).
+
+Verificado: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` (contra el build de producción) Y
+`npm run e2e:simbolos` verdes, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 19/19.
+
+Con E32 y E33 se cierra, por ahora, el pedido de estética/accesibilidad/
+atajos — a partir de acá, motor de cálculo.
+
+## E34 — Motor de cálculo, etapa 2: Iz real (AEA 90364-5-52 / IEC 60364-5-52)
+
+Primer avance real del motor de cálculo con datos normativos verdaderos
+(no una estimación con fórmula física, como Ib/ΔU% de E26). El usuario
+señaló la fuente local (`D:\Drive\Normativas`) y pidió cargar todos los
+métodos de instalación con el tiempo, empezando por 5 tablas.
+
+**Verificación, no transcripción de memoria.** El PDF de la AEA
+(`AEA 90364\AEA-90364-5-2006.pdf`, Parte 5, Capítulo 52, Anexo B) es un
+escaneo de 350 páginas; `pdftotext` lo lee razonablemente bien pero no es
+confiable al 100% para una tabla numérica densa (probado: se comía la
+columna D2 completa y algunas etiquetas de sección). Se usó en cambio
+para UBICAR las páginas (búsqueda de texto), y después se renderizó cada
+página como imagen de alta resolución (PyMuPDF) para transcribir los
+números mirando la tabla real, no el texto extraído. Cada tabla cargada
+se verificó así, página por página.
+
+**Tablas cargadas** (`libreria-simbolos/normativa/tablaIzAea90364552.mjs`,
+detalle completo y referencia exacta en
+`docs/normativa/iz-corriente-admisible.md`):
+- B52-1: resumen de métodos de referencia → qué columna de qué tabla.
+- B52-2/B52-3: Iz para PVC y XLPE/EPR, 2 conductores cargados (Cu y Al).
+- B52-4/B52-5: ídem, 3 conductores cargados.
+- B52-14/B52-15: corrección por temperatura ambiente (aire / enterrado).
+- B52-16: corrección por resistividad térmica del terreno (D1/D2).
+- B52-17 (ítem 1): corrección por agrupamiento, métodos A1-C al aire.
+
+**Hallazgo real, no anticipado: el método "D" no existe como tal.** La
+norma separa D1 (dentro de caño enterrado) y D2 (directamente enterrado,
+sin caño), con Iz distinta entre sí — confirmado en la Tabla B52-16, que
+da un factor de corrección diferente para cada uno. El schema de
+conductor de Vatia tenía un único código `"D"` genérico. Se corrigió el
+enum de `metodo_instalacion` a `D1`/`D2` en
+`libreria-simbolos/schemas/conductor.schema.json` (sin migración: `grep`
+contra los proyectos reales confirmó que nadie tenía el campo cargado
+todavía) y se actualizó el recordatorio de métodos en
+`FormularioConductor.tsx`. De paso se corrigió la referencia de norma que
+tenía la descripción del campo (decía "tabla 52-C1", que no existe con
+ese nombre en esta tabla — era una referencia de memoria de una sesión
+anterior, ahora apunta a la Tabla B52-1 real).
+
+**`lib/calculo.ts` gana `calcularIzA()`**: corriente admisible corregida
+por temperatura y agrupamiento (NO por resistividad térmica del
+terreno todavía — el schema de conductor no tiene ese campo). La ficha
+del cable ahora muestra Ib, Iz y un veredicto "Ib ≤ Iz" con color
+(verde/rojo, tokens `--ok`/`--error`) junto a ΔU%. Deliberadamente NO
+compara contra la corriente de la protección aguas arriba (In): eso es
+una pregunta topológica distinta (qué protección alimenta este tramo)
+que no corresponde resolver en la ficha de un cable aislado.
+
+**Verificado con Playwright, dos casos reales:** un circuito PVC/A1/
+4 mm²/Cu trifásico con Ib=10 A dio Iz=21,0 A (Tabla B52-4, fila 4 mm²,
+columna A1 — la tabla de TRES conductores cargados, porque el circuito
+es trifásico) y "✓ cumple"; el mismo circuito con Ib=200 A sobre un
+cable de 1,5 mm² dio "✗ no cumple" — confirma que el veredicto responde
+en los dos sentidos, no solo el caso feliz.
+
+Además: `npm run build` (`tsc -b` limpio — hubo que ajustar el tipado de
+las tablas de corrección con `@type` JSDoc, TS no infería bien las
+claves de un objeto JS con `allowJs`), `npm run lint` sin warnings
+nuevos, `generar_tipos_atributos.py --verificar` (había que
+regenerarlo tras el cambio de enum), `npm run e2e` (contra producción) y
+`npm run e2e:simbolos` verdes, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20.
+
+**Lo que sigue, ya pedido por el usuario ("todos los métodos"):** cargar
+B52-6 a B52-13 (métodos E/F/G al aire libre sin canalización, y
+aislación mineral) con el mismo criterio de verificación visual, más las
+tablas de agrupamiento B52-18 a B52-21 (variantes para enterrado y para
+más de un cable multipolar). Documentado como pendiente explícito en
+`docs/normativa/iz-corriente-admisible.md`, no se pierde entre sesiones.
+
+## E35 — Corrección de bugs reales encontrados por el usuario (parte 1)
+
+El usuario probó el editor en vivo (no yo) y encontró varios problemas
+reales que mi propia verificación de las últimas etapas no había
+detectado — motivo explícito para hacer, a continuación, una prueba
+completa y sistemática del programa entero. Esta entrada cubre lo ya
+corregido; el resto queda para E36 en adelante.
+
+**Crítico: el encuadrado y el rótulo de la hoja habían desaparecido por
+completo.** Encontrado con el navegador: el nodo "hoja" (marco + rótulo
+IRAM 4508) quedaba con `visibility: hidden` para siempre — el estado
+interno que usa React Flow mientras mide un nodo por `ResizeObserver`,
+que nunca terminaba de resolverse. Bisección con `git checkout <commit>
+-- App.tsx` contra distintos puntos del historial de esta sesión: el
+bug NO existía antes del commit que movió `NODO_HOJA` (una constante
+estable, creada una sola vez) a `crearNodoHoja()` (una fábrica que
+devolvía un objeto NUEVO en cada llamada, dentro de
+`libreria-simbolos`... digo, `lib/tiposFlow.ts`, extraído para
+reusarlo en la exportación a PDF). Con una referencia nueva en cada
+render, React Flow nunca lograba "engancharse" a un objeto medido.
+Corregido: `crearNodoHoja(instancia)` ahora memoiza y devuelve SIEMPRE
+la misma referencia por instancia (el lienzo interactivo usa una fija;
+cada página de `ExportacionProyecto.tsx` usa la propia, por id de
+hoja, para no compartir referencia entre instancias de React Flow que
+corren en paralelo durante un export). Este bug estaba afectando TODAS
+las capturas de pantalla de las últimas tres sesiones — nunca until
+ahora nadie miró específicamente si el marco se veía, solo la barra de
+herramientas y los paneles.
+
+**Impresión: la hoja salía con la grilla de puntos de edición
+impresa, y a veces con una segunda página casi en blanco.** Se generó
+un PDF real de prueba (no solo una captura de pantalla) para
+confirmarlo. Dos causas, las dos en el CSS de impresión:
+`.lienzo`/`.react-flow` tenían `overflow: visible !important` — el
+borrón del `box-shadow` de `.hoja` (una sombra pensada solo para
+pantalla) se salía del área de una página y el navegador agregaba una
+segunda página casi vacía solo para esa sombra. Corregido a
+`overflow: hidden`, y se apaga explícitamente el punteado de fondo
+(`background-image`) y el `box-shadow` de `.hoja` bajo `@media print`
+— nada de eso pertenece al plano impreso. Verificado regenerando el PDF:
+una sola página, fondo blanco limpio, símbolo en negro sólido.
+
+**Modo oscuro: no se veía cuándo una opción estaba seleccionada.**
+Encontrado en varios lugares a la vez (chips de Fases/Neutro/Tierra,
+badges de "activo" en el editor de símbolos, tipo de cable
+unipolar/multipolar): todos ponían texto blanco sobre
+`background: var(--acento)`, que en modo oscuro es un teal claro y
+brillante — contraste real de 1,86:1, muy por debajo del mínimo
+legible. Se agregó el token `--acento-texto` (blanco en claro, casi
+negro en oscuro — 10,2:1 verificado) y se reemplazaron todos los
+`color: #fff`/`#ffffff` que dependían de ese fondo.
+
+**Quedaban ~14 usos de `rgba(37, 99, 235, …)` (el azul genérico de
+antes del rediseño) sin tocar** — halos de selección de handles, barra
+seleccionada, tiradores de barra, badge "corregido" del editor de
+símbolos. El barrido de E32 solo agarraba colores en formato `#hex`,
+no `rgba()` con componentes decimales. Se agregó el token
+`--acento-rgb` (componentes R,G,B de `--acento` por tema) y se
+reemplazaron todos con `rgba(var(--acento-rgb), X)` — ahora los halos
+de selección son teal, coherentes con el resto de la paleta. También
+quedaba un borde `#bfdbfe` (azul) suelto en `.fc-calculo`.
+
+**El editor de símbolos se veía azulado en modo claro** — a pedido del
+usuario, deja de heredar el token de fondo "plano azul" del resto de la
+app (elegido a propósito para el lienzo principal) y pasa a un gris
+neutro fijo (`#e4e4e4` claro / `#262626` oscuro): es una herramienta de
+edición de geometría de precisión, un fondo con tinte de color dificulta
+juzgar el trazo a ojo.
+
+**Desplazamiento con el botón central del mouse.** El prop
+`panOnDrag={[1]}` de React Flow (documentado, bien configurado) no
+funcionaba — verificado en vivo con varios métodos de simulación de
+eventos (incluido inspeccionar directamente qué eventos
+`pointerdown`/`pointermove` llegan al `.react-flow__pane`, con el
+bitmask de botones correcto) sin encontrar la causa exacta dentro de
+d3-zoom/d3-drag en el tiempo disponible. Se implementó a mano en
+`App.tsx` (un `mousedown`/`mousemove`/`mouseup` propio que mueve el
+viewport con `setViewport`), reemplazando el prop roto. Verificado:
+clic central arrastra el lienzo; clic izquierdo sigue siendo selección
+por recuadro, sin pisarse entre sí.
+
+Verificado en conjunto: `npm run build` (`tsc -b` limpio), `npm run
+lint` sin warnings nuevos, `npm run e2e` (contra producción, incluida la
+selección por recuadro) verde, `verificar_alineacion.mjs` y
+`verificar_proyecto_real.mjs` verdes, `lint_simbolos.py` 20/20. El bug
+del rótulo se verificó con `visibility` en el DOM real, no solo con una
+captura de pantalla; los de impresión, generando un PDF real
+(`page.pdf()` de Playwright) y no solo una vista en pantalla — la
+lección concreta de esta tanda es que varias de estas fallas NO se
+notan mirando la interfaz de arriba, hace falta generar el artefacto
+real (PDF) o inspeccionar el DOM (`visibility`, eventos) para
+encontrarlas.
+
+Pendiente, en curso (E36 en adelante): prueba completa de toda la
+simbología y funcionalidad pedida explícitamente por el usuario, más el
+resto de la lista (no combinar unifilar/multifilar, exportar todas las
+hojas juntas en una A0, rediseño del diálogo de exportación, auto-cálculo
+tensión fase/línea, reorganizar el panel de hoja, símbolo sin modo
+oscuro, polos múltiples tipo CADe SIMU + simulación de comando, mover la
+fuente de cortocircuito al alimentador principal).
+
+## E36 — Diálogo de exportación propio + auto-cálculo de tensión
+
+Sigue la lista del usuario tras E35.
+
+**"No me gusta la forma en la que te pregunta lo de exportar proyecto,
+no es para nada estético."** Los dos `window.confirm()` seguidos (avisar
+pendientes, preguntar si incluir la lista de materiales) eran diálogos
+nativos del navegador — cero control de estilo, dos ventanas
+interrumpiendo una detrás de otra. Se reemplazan por
+`DialogoExportarProyecto.tsx`: un solo panel propio, con el aviso de
+pendientes (si hay) y un checkbox para la lista de materiales, en el
+mismo lenguaje visual que el resto de la app (mismo tratamiento de
+encabezado con filete que `PanelHoja`/`AyudaAtajos`). Verificado con
+Playwright que YA NO aparece ningún diálogo nativo del navegador durante
+el flujo completo.
+
+**"Si uno asigna una tensión de fase o de línea automáticamente se
+debería cargar el otro."** `PanelProyecto.tsx`: cargar la tensión
+fase-neutro calcula sola la fase-fase (× √3) y viceversa (÷ √3) — sistema
+trifásico equilibrado. Verificado en las dos direcciones: 230 V fase →
+398 V línea; 400 V línea → 231 V fase.
+
+Verificado además: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` (contra producción) verde,
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 20/20.
+
+## E37 — No combinar unifilar/multifilar + prueba completa del programa
+
+**"No se debería poder combinar simbología multifilar y unifilar."**
+Reproducido: la paleta ya filtraba qué se puede AGREGAR según
+`hoja.modo`, pero nada impedía cambiar el modo de una hoja que YA tenía
+símbolos cargados — el símbolo viejo quedaba (la librería de símbolos ya
+resuelve por código sin importar el modo actual, a propósito, para que
+una hoja mixta siga renderizando), y la paleta nueva dejaba agregar del
+otro tipo encima. Corregido en `PanelHoja.tsx`: los botones Unifilar/
+Multifilar se deshabilitan (con el motivo en el `title`) apenas la hoja
+tiene al menos un símbolo, hasta que quede vacía de nuevo. Verificado:
+con un símbolo de fuerza ya colocado, el botón "Multifilar" queda
+deshabilitado y un clic forzado no cambia nada.
+
+**Prueba completa del programa, a pedido explícito del usuario** ("esto
+debería haber salido cuando hiciste las pruebas"): se colocaron los 19
+símbolos de fuerza Y los 13 de comando (los 32 completos de la
+librería), en las dos hojas y en los dos temas, revisando cada uno
+visualmente a tamaño real en el lienzo (no solo la miniatura de la
+paleta). Además: conexión entre alimentador y símbolo, copiar/pegar,
+deshacer/rehacer, la jerarquía de hojas completa (carga marcada
+`seccional` → botón "Crear hoja del tablero seccional" → pestaña hija
+creada), exportación a PDF de una hoja y del proyecto completo con
+contenido real cargado (no un proyecto vacío). Todo funcionó sin errores
+de consola en ningún paso.
+
+**No se pudo reproducir "hay algún símbolo que no tiene aplicado el modo
+oscuro"** pese al escaneo completo de los 32 símbolos en los dos temas —
+ninguno quedó negro-sobre-negro ni con un color roto. Puede haber sido
+un estado puntual (un símbolo rotado, una combinación de atributos
+específica) que no se reprodujo con este barrido. Si el usuario puede
+señalar cuál, se soluciona puntual; si no, queda como pendiente sin
+causa confirmada, no como "arreglado".
+
+Verificado: `npm run build` (`tsc -b` limpio), `npm run lint` sin
+warnings nuevos, `npm run e2e` (contra producción) verde,
+`verificar_alineacion.mjs` y `verificar_proyecto_real.mjs` verdes,
+`lint_simbolos.py` 20/20.
+
+**Lo que queda de la lista del usuario, todavía sin tocar** (son
+decisiones de producto/arquitectura, no bugs — se van a encarar por
+separado, con un plan concreto en vez de implementarlas a ciegas):
+imprimir todos los unifilares combinados en una sola hoja A0 según el
+tamaño del diagrama; reorganizar el panel "Configuración de hoja" (hoy
+todo en un solo panel largo); símbolos multipolares tipo CADe SIMU en la
+parte multifilar, con simulación de la lógica de comando; mover la
+fuente de cortocircuito de "Datos del proyecto" al alimentador principal,
+preguntada al crear la hoja de ese alimentador.
+
+## E38 — Reorganiza "Configuración de hoja" en secciones navegables
+
+**"Todo lo que se puso en la hoja se podría hacer de otra forma, no me
+gusta que esté todo junto."** El panel tenía seis bloques (Formato/
+orientación/esquema, Encabezado del tablero, Notas del gabinete, Nota
+de seguridad, Rótulo IRAM 4508 completo con 13 campos, Lista de
+materiales adicional) apilados uno debajo del otro en un solo scroll
+largo — para llegar al rótulo había que bajar por todo lo demás.
+
+Reorganizado en `PanelHoja.tsx` como un diálogo con pestañas laterales
+("Página", "Encabezado y notas", "Rótulo IRAM 4508", "Materiales
+adicionales"): se ve una sección a la vez, sin tocar ningún campo,
+handler ni dato — es reordenamiento de JSX puro, el store y la lógica
+de guardado quedan idénticos. En pantallas angostas (`max-width:640px`)
+las pestañas pasan a ser una fila horizontal con scroll arriba del
+contenido, en vez de columna lateral. Estilos nuevos en `estilos.css`
+(`.panel-hoja--tabulado`, `.panel-hoja-layout`, `.panel-hoja-tabs`,
+`.panel-hoja-contenido`) construidos enteramente sobre los tokens de
+tema ya existentes (`--acento`, `--acento-suave`, `--text-secondary`,
+`--borde`), sin necesidad de reglas `[data-theme="dark"]` separadas.
+
+Verificado con Playwright real (no solo build/lint): las 4 secciones
+en modo claro y oscuro, capturas de pantalla de cada una, y el layout
+responsive en 480px de ancho — sin errores de consola. `build`, `lint`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+Quedan pendientes, sin tocar todavía (decisiones de producto que
+necesitan alcance propio antes de implementarse): exportar todos los
+unifilares a una sola hoja A0, símbolos multipolares tipo CADe SIMU
+con simulación de comando, y mover la fuente de cortocircuito de
+"Datos del proyecto" al alimentador principal.
+
+## E39 — Fuente de cortocircuito pasa del proyecto al alimentador principal
+
+**"Con la jerarquía ya no se necesitaría colocar la fuente de cto cto en
+Proyecto, sino que cuando se le asigne al alimentador ya debería estar
+solo en el alimentador principal... al crear la hoja del alimentador
+principal ya debería salir esto preguntado."** Hasta ahora Scc/Icc era
+un único valor global en "Datos del proyecto" — no tenía sentido en un
+proyecto con más de un alimentador principal (cada uno puede venir de
+una red distinta), y quedaba escondido en un panel que nadie asocia con
+la hoja concreta que representa.
+
+**Modelo de datos**: `fuente_cortocircuito` se mueve de `DatosProyecto`
+a `HojaConfig` (formato de archivo v4 → v5, `migrarAProyectoV5` en
+`tipos.ts`). Solo tiene sentido en la hoja del alimentador principal
+(raíz, sin `hojaPadreId`) — un tablero seccional cuelga de un circuito
+ya existente y hereda el recorrido, no declara su propia red. La
+migración traslada el valor único que hubiera en `datosProyecto` a la
+primera hoja del archivo (la única candidata razonable, porque antes de
+v5 solo podía existir un valor para todo el proyecto).
+
+**De paso, un bug real encontrado al tocar esta zona**: `fusionarHoja()`
+armaba el objeto `HojaConfig` del espejo (`s.hoja`) listando cada campo
+a mano, y **`accesorios` no estaba en esa lista** — cada vez que se
+cambiaba de pestaña de hoja, el espejo perdía los accesorios cargados
+(el dato real sobrevivía en `proyecto.hojas` porque el merge no toca
+claves ausentes, pero la pestaña "Materiales adicionales" se veía vacía
+hasta la próxima edición, y esa próxima edición corría el riesgo de
+guardar la lista vacía encima de la real). Corregido junto con el
+agregado de `fuente_cortocircuito` al mismo objeto.
+
+**UI**: nueva pestaña "Fuente de cortocircuito" en Configuración de
+hoja (junto a las de E38), deshabilitada con tooltip explicativo cuando
+la hoja activa no es la raíz — mismo patrón que ya usa el toggle
+unifilar/multifilar. Y el prompt pedido explícitamente: al colocar el
+**primer** alimentador de una hoja raíz que todavía no tiene fuente
+cargada, se abre un diálogo chico preguntando Scc/Icc en el momento
+("Guardar" o "Omitir por ahora" — se puede completar después desde la
+pestaña). No se dispara en hojas seccionales ni en alimentadores
+siguientes de la misma hoja.
+
+Se generalizó la caja de diálogo modal chico (antes
+`.dialogo-exportar`) a `.dialogo-caja` reutilizable, para no duplicar
+~50 líneas de CSS entre el diálogo de exportar y este nuevo.
+
+Verificado con Playwright real contra los tres flujos: (1) proyecto en
+blanco → colocar alimentador → prompt → guardar → valores visibles en
+la pestaña → un segundo alimentador NO reabre el prompt; (2) "Datos del
+proyecto" ya no muestra la sección vieja; (3) cargar un archivo v4 de
+prueba con `datosProyecto.fuente_cortocircuito` y una hoja hija →
+migra correctamente a la hoja raíz, la hoja hija muestra la pestaña
+deshabilitada. Sin errores de consola en ningún paso. `tsc -b`, `lint`,
+`build`, `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+Queda pendiente el resto del punch list original: exportar todos los
+unifilares a una sola hoja A0, y los símbolos multipolares tipo CADe
+SIMU con simulación de comando — ambos necesitan alcance propio antes
+de implementarse.
+
+## E40 — Exportar proyecto roto, líneas grises al imprimir, seccionador fusible sin modo oscuro
+
+Tres bugs reales reportados juntos por el usuario tras probar el
+programa en profundidad.
+
+**"Exportar proyecto" no andaba** — la más seria de las tres, y la que
+más costó encontrar. Con más de una hoja, el PDF salía con UNA sola
+página (el resto del proyecto desaparecía sin avisar) o, tras el primer
+intento de arreglo, con una página fantasma en blanco antes de la
+primera hoja real. Encontrado y verificado generando PDFs reales
+(`page.pdf()`), nunca confiando en capturas de pantalla — la técnica ya
+establecida en E35, clave de nuevo acá porque el bug no se veía en el
+diálogo de impresión del navegador, solo en el archivo final. Causas,
+en cadena:
+
+1. `@page` por hoja asignado por `style` inline (`style={{ page: ... }}`)
+   — Chromium no lo respeta puesto así (confirmado con una reproducción
+   mínima aislada, fuera de la app): hace falta una regla de hoja de
+   estilos (`.pagina-hoja-0 { page: hoja-0 }`), no un atributo inline.
+2. Con eso corregido, alcanzaba con tener CUALQUIER `<div>` vacío pero
+   visible (ni display:none) como hermano de `.exportacion-proyecto`
+   —`.cuerpo`, que solo oculta a sus HIJOS (`.lienzo`/`.paleta`), no a
+   sí mismo— para que Chromium insertara una página en blanco de más
+   antes de la primera hoja real. No es un tema de flex (se descartó esa
+   hipótesis con pruebas); ocultar `.cuerpo` entero durante el export
+   del proyecto completo lo resuelve.
+3. `.app`/`.cuerpo` fijados a `height:100%` (necesario para que
+   funcione "Exportar PDF" de una sola hoja: `.lienzo` con `height:100%`
+   necesita un ancestro con altura definida) recortaban a una sola
+   página cualquier cosa que excediera la primera hoja durante
+   "Exportar proyecto" — se excluye ese bloque cuando
+   `body.exportando-todo` está activo.
+
+Antes no existía ningún `@page` dinámico para el export multi-hoja: el
+PDF salía siempre con el tamaño de página por defecto del navegador
+(A4/Carta), sin importar el formato real de cada hoja (A3, A1…). Ahora
+cada hoja lleva su propio `@page` con su formato real, y la lista de
+materiales su propia página A4.
+
+**Todas las líneas deberían ser negras, no grises** — dos causas
+independientes:
+- El color por defecto de los conductores es el gris claro de fábrica
+  de React Flow (`--xy-edge-stroke-default: #b1b1b7`), nunca
+  sobreescrito. Ahora usa `--border-strong` (se adapta al tema, igual
+  que los símbolos).
+- Al imprimir en modo OSCURO, `currentColor` resolvía a la variante
+  oscura de `--text-primary` (un gris casi blanco, pensado para
+  pantalla) y el papel de fondo (`--bg-surface` de `.hoja`) se quedaba
+  oscuro — el plano salía grisáceo o de plano ilegible sin importar el
+  tema activo en pantalla. Ahora la impresión fuerza negro puro y fondo
+  blanco siempre, sin importar el tema — verificado exportando desde
+  modo claro Y oscuro, mismo resultado en los dos. Los colores propios
+  de la librería (puntos de conexión `#e11d48`) no se tocan porque usan
+  `fill`/`stroke` explícitos, no `currentColor` — mantienen su color,
+  como pidió el usuario.
+
+**Seccionador fusible (S00127) sin modo oscuro** — encontrado: su
+`simbolo.svg` es el único de los 19 símbolos de fuerza que quedó
+exportado en formato Fabric.js crudo (`style="stroke: rgb(0,0,0); ..."`)
+en vez del formato limpio del resto de la librería (`stroke="#000000"`
+como atributo). `svgLimpio()` (en `lib/libreria.ts`) solo reemplaza
+`stroke="#000000"`/`fill="#000000"` como atributos de presentación —
+nunca tocó ese `style` inline, así que el símbolo quedaba negro fijo
+sobre fondo oscuro. Reescrito con la misma geometría exacta (mismas
+matrices de transformación, mismas coordenadas) en el formato limpio;
+`lint_simbolos.py` sigue en verde. Ningún otro símbolo de la librería
+tiene este problema (barrido completo, sin coincidencias).
+
+Verificado en vivo con Playwright + PDFs reales: export de una hoja
+(claro y oscuro), export del proyecto completo con 2 hojas + lista de
+materiales, sin errores de consola en ningún caso. `tsc -b`, `lint`,
+`build`, `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+**Nota aparte, no reportada por el usuario pero visible en las pruebas**:
+en el proyecto real de ejemplo, el bloque de "Notas del gabinete" (fijo
+arriba a la izquierda de la hoja) se superpone visualmente con la
+anotación de una barra colocada cerca de esa zona — no se tocó: no está
+claro si el diseño correcto es que las notas reserven su espacio o que
+las barras lo eviten, y no era parte de lo pedido.
+
+## E41 — Diálogos nativos del navegador reemplazados por diálogos en página
+
+**"Todas las advertencias que surjan como una ventana emergente del
+navegador quiero que eso esté integrado en la propia página"** — los 4
+`window.confirm()`/`alert()` que quedaban en el editor (exportar hoja
+con pendientes, empezar proyecto en blanco, error al cargar un archivo
+inválido, eliminar una hoja) se reemplazan por un diálogo genérico en
+página (`DialogoConfirmacion.tsx`), controlado por el store
+(`confirmacion`, `pedirConfirmacion()`, `mostrarAlerta()`,
+`cerrarConfirmacion()`) — mismo patrón ya usado para el prompt de
+fuente de cortocircuito (E39). Un solo componente cubre los dos casos:
+con `onConfirmar` es una confirmación (Cancelar/Confirmar), sin él es
+una alerta simple (un solo botón Aceptar). Verificado en vivo con
+Playwright interceptando el evento `dialog` de Chromium: ningún
+`window.confirm`/`alert` nativo se dispara en los 3 flujos que antes lo
+usaban, sin errores de consola.
+
+**"Algunos textos que describen qué es cada cosa en los menús se
+solapan o están cortados."** Encontrado uno concreto tras revisar los
+paneles principales (Paleta, Configuración de hoja completa, Datos del
+proyecto, formularios de conductor/carga/aparato, atajos de teclado):
+en el editor de símbolos (admin), el nombre del símbolo en la lista
+lateral truncaba con "…" a una sola línea — "Interruptor automático en
+caja moldeada (MCCB)" quedaba cortado sin forma de leerlo completo. La
+fila es flex sin alto fijo, así que se cambió a permitir el salto a 2
+líneas en vez de truncar, igual que ya hace el nombre en la paleta
+principal.
+
+No encontré otros casos de solapamiento real en una revisión de los
+paneles de uso frecuente (puede haber más en zonas no cubiertas; si el
+usuario señala cuál, se corrige puntual).
+
+Verificado: `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E42 — Exportar proyecto salía en blanco; marco gris al imprimir
+
+Regresión real de E40, encontrada por el usuario probando en vivo:
+"Exportar proyecto" salía con todas las hojas en blanco (ni el marco
+aparecía), y en "Exportar PDF" (una sola hoja) el marco se veía gris en
+vez de negro.
+
+**Marco gris**: `.hoja-marco { border: 2px solid var(--text-primary); }`
+— `--text-primary` no es negro puro (`#172128` en claro), y E40 forzó
+todo lo demás a `#000` sin tocar `border-color` (`color:#000!important`
+no toca `border-color`, son propiedades distintas). Al lado de todo lo
+demás ya en negro puro, el marco se notaba gris. Se agrega
+`.hoja-marco { border-color: #000 !important; }` al bloque de
+impresión.
+
+**Exportar proyecto en blanco — la más seria, tres causas reales**:
+
+1. `ExportacionProyecto` llamaba a `window.print()` con un puñado de
+   `requestAnimationFrame` después de montar, asumiendo que alcanzaba
+   para que React Flow terminara de medir los nodos de las N instancias
+   NUEVAS que arma (una por hoja) — no es la misma instancia ya medida
+   del lienzo interactivo. Si `window.print()` se dispara antes de esa
+   medición, los nodos quedan en `visibility:hidden` (mismo mecanismo
+   de la regresión de E35) y la hoja imprime vacía. Se intentó primero
+   `useNodesInitialized()` (el hook oficial de la librería para esto),
+   pero **no sirve para nodos estáticos**: solo se recalcula cuando el
+   prop `nodes` vuelve a cambiar (dispara `setNodes()` puertas adentro),
+   y estas páginas nunca vuelven a cambiar sus nodos después del
+   montaje — quedaba pegado en `false` para siempre aunque los nodos ya
+   estuvieran visibles (confirmado leyendo la fuente de la librería).
+   Reemplazado por una verificación directa del DOM: mientras quede
+   algún `.react-flow__node` con `visibility: hidden` todavía no
+   terminó, con un tope de seguridad a los ~3s. Recién cuando TODAS las
+   páginas avisan que terminaron, `ExportacionProyecto` llama a
+   `window.print()` — ya no lo dispara `BarraSuperior`.
+
+2. `.exportacion-proyecto` solo se hacía visible (`display:block`) bajo
+   `@media print` — pero `display:none` no tiene layout, y sin layout
+   el `ResizeObserver` de React Flow nunca dispara: es un problema del
+   huevo y la gallina (esperar a que mida algo que no puede medirse
+   hasta que ya esté imprimiendo). Ahora se hace visible ENTERO apenas
+   arranca el export (`body.exportando-todo`), pero *fuera de la
+   pantalla* (`position:fixed; left:-99999px`) — así tiene layout real
+   y mide de verdad, sin que el usuario vea el lienzo "de repuesto"
+   parpadear. Bajo `@media print` se reposiciona a estático para
+   imprimir en su lugar normal.
+
+3. `construirEstadoHoja()` arma objetos de nodos NUEVOS en cada
+   llamada; sin memoizarlos, cada vez que UNA hoja avisaba que estaba
+   lista, el padre re-renderizaba a TODAS (incluidas las hermanas ya
+   listas) con un array de nodos "nuevo" para React Flow — alimentaba
+   el mismo problema de raíz. Ahora `estado`/`nodes` van memoizados por
+   hoja.
+
+Verificado en vivo capturando el PDF real en el instante EXACTO en que
+`window.print()` se dispara de verdad (sin esperas arbitrarias de mi
+parte, enganchando el propio disparo): una hoja, proyecto completo (2
+hojas + lista de materiales) y encadenado con el diálogo de pendientes
+de E41. Tardó 257 ms desde click hasta imprimir — no se cuelga. Sin
+errores de consola. `tsc -b`, `lint`, `build`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E43 — "Exportar proyecto" imprimía el rótulo/tablero de la hoja equivocada
+
+Encontrado investigando la base para el A0 combinado (E44): con dos
+hojas de tablero distinto, "Exportar proyecto" imprimía **el mismo**
+nombre de tablero, notas de gabinete y rótulo en TODAS las páginas —
+el de la hoja que estuviera activa en el lienzo interactivo al momento
+de exportar, no el de cada hoja real. No se había notado antes porque
+las pruebas previas (E40, E42) usaban una hoja duplicada de sí misma
+(mismo contenido, así que el bug quedaba invisible).
+
+**Causa**: `HojaNode` (el marco + rótulo IRAM 4508) ignoraba sus
+propios props de nodo y leía directo `useEditor(s => s.hoja)` — el
+"espejo" global de la hoja ACTIVA. Correcto para el lienzo interactivo
+(una sola instancia de `<ReactFlow>`), pero durante "Exportar
+proyecto" hay N instancias simultáneas (una por hoja, ver
+`ExportacionProyecto.tsx`) — todas leyendo la MISMA variable global.
+Mismo problema en el cálculo de "N° de plano" / "Pág. X de Y": siempre
+buscaba el índice de la hoja ACTIVA, no el de la hoja que esa página
+en particular representaba.
+
+**Arreglo**: `crearNodoHoja()` (`tiposFlow.ts`) ahora acepta un
+`hojaOverride` opcional y lo guarda en `data.hojaOverride`, mutado IN
+SITU sobre el mismo objeto cacheado (nunca se reemplaza el nodo
+entero, para no reabrir la regresión de "visibility:hidden para
+siempre" de E35). `HojaNode`/`RotuloIram` ahora reciben la hoja a
+mostrar por props — cuando `hojaOverride` está presente, manda por
+sobre el store global; si no, siguen leyendo la hoja activa como
+siempre (comportamiento del lienzo interactivo sin cambios).
+`ExportacionProyecto.tsx` pasa su propia `hoja` como override en cada
+página.
+
+Verificado en vivo con dos hojas de tablero distinto ("TABLERO-UNO" /
+"TABLERO-DOS"): cada página del PDF exportado ahora muestra su propio
+nombre y su propia paginación ("1 / 2" / "2 / 2"), sin importar cuál
+esté activa en el lienzo. El export de una sola hoja (`Exportar PDF`,
+sin override) se probó sin cambios de comportamiento. Sin errores de
+consola. `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E44 — Las líneas del rótulo IRAM seguían grises al imprimir
+
+Continuación de E40/E42: el marco de la hoja ya salía negro, pero el
+usuario señaló que las líneas del rótulo IRAM 4508 (la tabla de
+Proyectó/Dibujó/Revisó/Aprobó, tolerancias, escala, etc.) seguían
+grises. Causa: esas líneas se dibujan con `border` puesto por `style`
+inline (`var(--text-primary)`), no por clase — la regla que ya forzaba
+`.hoja-marco` a negro no las alcanzaba, son un mecanismo distinto.
+Se agrega `.zona-protegida, .zona-protegida *` (la clase que ya
+envuelve el rótulo y los otros dos bloques de texto fijo de la hoja)
+al mismo `border-color: #000 !important` del marco. Verificado
+generando un PDF real y recortando la esquina del rótulo: todas las
+líneas internas y el borde exterior en negro puro.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E45 — Lista de materiales más descriptiva, con título y agrupada por hoja
+
+Pedido explícito: "la lista de materiales me gustaría que fuese más
+descriptivo de cierta forma y que tenga título y se vea mejor".
+
+- **Encabezado de documento** nuevo: "Lista de materiales" como
+  título real, más proyecto / fecha / total de ítems a la derecha —
+  antes era solo un `<h1>` suelto sin ningún dato de contexto.
+- **Agrupada por hoja** (subtítulo + tabla propia por hoja) en vez de
+  una columna "Hoja" repetida en cada fila — más legible con varias
+  hojas, y saca una columna que no aportaba nada dentro de cada grupo.
+- **Columna "Descripción" nueva**, con los mismos datos de chapa que
+  ya se imprimen al lado del símbolo en el plano (reutiliza
+  `anotacionNodo()`, la misma función — no un resumen inventado
+  aparte): para un contactor sale "SIEMENS 3TF57 · 3P x 475 A ·
+  Categoría AC-3 · Ue 415 V · Bobina 220 V" en vez de solo el nombre
+  genérico del símbolo.
+- Estilo: encabezado con línea divisoria, columnas con ancho fijo
+  (la descripción es la más ancha, es la que más texto lleva),
+  encabezados de tabla en mayúscula chica — más parecido a una lista
+  de materiales real de ingeniería.
+
+Verificado con el proyecto real (2 hojas duplicadas + BOM): título,
+metadatos, agrupación y descripciones técnicas correctas para
+contactor, MCCB y barra. Sin errores de consola. `tsc -b`, `lint`,
+`build`, `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E46 — Exportar todos los unifilares combinados en hoja(s) A0
+
+Último ítem grande del punch list original. "Exportar A0" combina
+todas las hojas **unifilares** del proyecto (las multifilar/comando
+quedan afuera) en una o varias hojas A0 apaisadas, a **escala real**
+—nada se achica para que "entre"—, respetando la jerarquía de
+tableros.
+
+- **Orden jerárquico**: cada alimentador principal (hoja raíz) seguido
+  inmediatamente por sus hojas hijas (tableros seccionales), recorrido
+  en profundidad — en vez del orden arbitrario de las pestañas. No
+  dibuja líneas de conexión entre hojas (sería rehacer el diagrama,
+  no combinar lo que ya existe); el orden de lectura ya agrupa la
+  familia.
+- **Empaquetado**: acomoda las hojas una al lado de la otra por filas
+  (como un `flex-wrap`, a tamaño real), pasando a una fila nueva
+  cuando no entra más a lo ancho de la A0, y a una página nueva cuando
+  no entra más a lo alto.
+- **Varias páginas, como opción explícita** ("esto debe ser una
+  opción para el que lo quiera así"): si no entra todo en una sola A0
+  y el usuario NO activó "permitir varias hojas A0" en el diálogo
+  previo, se avisa cuántas hojas entrarían y no se exporta nada — no
+  hay fallback automático ni recorte silencioso.
+
+**Reutiliza**, no duplica, el mecanismo ya construido y verificado en
+E39-E43 para "Exportar proyecto": se extrajo `HojaCanvas` (el
+`<ReactFlow>` de una hoja con su propio marco/rótulo) como pieza común
+entre `PaginaHoja` (una hoja = una página) y las nuevas celdas A0
+(varias hojas posicionadas dentro de una misma página, cada una en su
+propio `<ReactFlow>` aislado — no un canvas único combinado, así no
+hace falta re-namespacing de ids de nodo entre hojas). Misma espera de
+medición por DOM antes de imprimir, mismo `@page` con nombre por
+página, mismo truco de posición fuera de pantalla mientras mide
+(reusa directamente la clase `exportando-todo` y toda su CSS — cero
+reglas nuevas necesarias para eso).
+
+**Bug real encontrado y corregido en el camino**: si el combinado no
+entraba y se avisaba sin exportar, la clase `exportando-todo` quedaba
+pegada al `<body>` para siempre — `window.print()` nunca se llega a
+llamar en ese camino, así que el `afterprint` que normalmente la saca
+nunca dispara. Se agregó una limpieza explícita en ese punto de
+salida.
+
+Verificado en vivo con PDFs reales: una sola hoja (A0 con una A3
+adentro), dos hojas lado a lado en una sola A0 (cada una con su propio
+rótulo/tablero correcto — confirma que E43 también alcanza a este
+flujo), 6 hojas que NO entran en una sola A0 (avisa "entran 4 de 6",
+no imprime, la clase del body queda limpia) y las mismas 6 con la
+opción activada (2 páginas A0, paginación global correcta "5/6"/"6/6"
+en la segunda). Sin errores de consola en ningún caso.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+Con esto cierra el punch list original salvo CADe SIMU (símbolos
+multipolares + simulación de comando) — el ítem más grande, todavía
+sin encarar, es prácticamente un producto nuevo dentro del editor.
+
+## E47 — Referencia de dispositivo (IEC 61346): primer paso hacia CADe SIMU
+
+Arranca el ítem más grande que queda pendiente: "poder colocar
+simbología con múltiples polos como CADe SIMU, que además puede
+simular la parte de comando." Es, en la práctica, un producto nuevo
+dentro del editor — no algo para resolver de una sola vez. Este es
+el **primer paso**, la base sin la cual nada de lo demás se puede
+construir: no hay forma de simular un circuito de comando si el
+programa no sabe qué contactos pertenecen a qué bobina.
+
+Se agrega **`referencia`** (designación de dispositivo según IEC
+61346 — ej. "KM1", "K1", "S1") como campo opcional común a **todos**
+los aparatos (`base_comun` en `aparato.schema.json`), no solo a los
+de comando: es una convención real de planos eléctricos en general,
+no algo exclusivo del multifilar. Varios símbolos con la MISMA
+referencia se entienden como partes del mismo dispositivo físico —
+la bobina de un contactor y sus contactos auxiliares, repartidos por
+el esquema.
+
+Se muestra como primera línea de la anotación junto al símbolo
+(`anotacionAparato()`), antes de marca/modelo — mismo mecanismo que
+ya imprime el resto de los datos de chapa, sin agregar un sistema
+nuevo. Verificado en vivo: colocada una "Bobina de contactor/relé" y
+un "Contacto auxiliar NA" con `referencia: "KM1"` en los dos, el
+plano muestra "KM1" junto a la bobina y "KM1 · Contacto NA" junto al
+contacto — visualmente ligados sin todavía simular nada.
+
+**Lo que sigue, sin encarar todavía** (son las partes grandes de
+verdad): agrupar visualmente los polos de un mismo dispositivo como
+un símbolo compuesto (en vez de piezas sueltas que comparten
+referencia), y el motor de simulación en sí — recorrer el circuito,
+evaluar qué bobinas quedan energizadas, propagar el estado a sus
+contactos, un "modo simulación" interactivo con pulsadores/selectores
+clickeables. Cada una de esas es una etapa propia.
+
+Verificado: `tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde. Sin errores
+de consola colocando y vinculando los dos símbolos de prueba.
+
+## E48 — Elimina "Exportar A0" y reemplaza el export por descarga directa de PDF
+
+Pedido explícito del usuario, un turno después de construido E46:
+"Elimina lo de exportar A0 no me gusta no fue buena idea, y el tema de
+exportar proyecto sigue pasando que sale mal el plano, sino hace que
+se pueda obtener de un lado la lista de materiales para imprimir y de
+otro lado salga el plano, y que todo se descargue directamente en pdf
+y que el usuario luego se encargue de imprimirlo correctamente."
+
+**A0 fuera.** Se borran `ExportacionA0.tsx`, `DialogoExportarA0.tsx` y
+toda referencia (botón, estado del store `exportandoA0` /
+`permitirVariasPaginasA0`, acciones `iniciarExportacionA0` /
+`finalizarExportacionA0`).
+
+**Reemplaza `window.print()` por descarga directa (html2canvas +
+jsPDF).** Toda la cadena de bugs de exportación de esta sesión (E40,
+E42, E43, E44 — páginas en blanco, colores según el tema, tamaño de
+página equivocado, datos de la hoja incorrecta) tenía la misma raíz:
+dependía del motor de impresión del navegador (`window.print()`,
+`@media print`, `@page`), difícil de controlar con precisión. Se
+reemplaza enteramente: cada hoja se captura tal como está renderizada
+en pantalla con `html2canvas`, y las imágenes resultantes se
+empaquetan en un PDF con `jsPDF` (`lib/exportarPdf.ts`), que se
+descarga directo — sin diálogo de impresión de por medio. El usuario
+se encarga de imprimir el archivo después, como cualquier PDF.
+
+**Separa el plano de la lista de materiales**, pedido explícito ("de
+un lado la lista de materiales para imprimir y de otro lado salga el
+plano"): tres botones independientes, tres archivos independientes —
+"Plano PDF" (hoja activa), "Todos los planos" (todas las hojas, un
+PDF multipágina, cada página a su tamaño real) y "Lista de
+materiales" (BOM de todo el proyecto, aparte, paginada en A4 si no
+entra en una sola página). Antes había un solo export combinado con
+un checkbox para incluir la lista de materiales como última página;
+ese diálogo (`DialogoExportarProyecto.tsx`) se borra, ya no hace
+falta.
+
+Reutiliza `HojaCanvas` (extraído en E46): cada hoja a exportar se
+monta fuera de pantalla, en su propia instancia de `<ReactFlow>`, a
+su tamaño real — la diferencia con antes es que ya NO hace falta
+ningún truco de `@page`/paginación CSS: cada imagen capturada se
+agrega a `jsPDF` como una página de tamaño exacto.
+
+**El forzado de negro-sobre-blanco se reescribe sin `@media print`**:
+`html2canvas` lee el render de PANTALLA tal cual está, nunca pasa por
+esa media query — las reglas de `estilos.css` que antes vivían adentro
+de `@media print` (color, `border-color`, fondo) se mueven a una clase
+plana `.captura-pdf-negro`, que `lib/exportarPdf.ts` agrega al
+elemento justo antes de cada captura y saca después (incluso si
+`html2canvas` tira una excepción, así una exportación fallida nunca
+deja algo pisado en blanco y negro).
+
+**Bug real encontrado y corregido en el camino, no trivial**: la
+primera versión colgaba `html2canvas` INDEFINIDAMENTE (sin error, sin
+resolver, más de 60 s de espera) — pero SOLO en el flujo real de la
+app, nunca en pruebas manuales aisladas con los mismos parámetros.
+Aislado en vivo (congelando `requestAnimationFrame` globalmente para
+eliminar la carrera y probando la captura a mano con los mismos
+parámetros exactos: resolvía en menos de 1 segundo): la causa era
+disparar `html2canvas` desde DENTRO de un callback anidado de
+`requestAnimationFrame` (heredado literalmente del viejo código de
+`window.print()`, que sí necesitaba esperar una pintura real) — algo
+en cómo Chromium entrelaza el `rAF` del documento con el trabajo
+interno de `html2canvas` deja la promesa colgada para siempre, sin
+lanzar error. Se reemplazó el disparo por `setTimeout(fn, 0)`:
+`html2canvas` no necesita esperar una pintura real (lee estilos
+computados del DOM, no el framebuffer), así que no hace falta `rAF`.
+
+Verificado en vivo con Playwright contra el proyecto real del PPS
+(agregando una segunda hoja para probar el PDF multipágina): las tres
+descargas producen archivos PDF válidos (cabecera `%PDF-`, 150 KB a
+540 KB), sin errores de consola en ningún paso.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E49 — Fix: texto de ayuda solapado en "Datos del proyecto"
+
+Señalado en vivo con una captura (modo oscuro): el párrafo que explica
+que la fuente de cortocircuito se mudó a nivel de hoja (E39) se
+solapaba visualmente con el selector "Esquema de puesta a tierra" de
+arriba.
+
+Causa: `PanelProyecto.tsx` reusaba la clase `.panel-hoja-ayuda`,
+pensada para OTRO contexto (`PanelHoja.tsx`, debajo de los botones de
+"Tipo de esquema") con un `margin-top: -6px` — negativo a propósito
+ahí porque el elemento anterior en ESE panel deja aire de sobra. En
+"Datos del proyecto" el bloque anterior (`.panel-hoja-bloque`) no
+tiene margen propio abajo, así que el mismo `-6px` se comía el último
+campo del formulario.
+
+Fix: `PanelProyecto.tsx` usa ahora una clase propia,
+`.panel-proyecto-ayuda`, con margen positivo (`8px 0`) en vez de
+reusar la clase ajena.
+
+Verificado en vivo con captura de pantalla (modo oscuro, Playwright):
+gap real de 8px entre el bloque y el texto, sin superposición.
+
+## E50 — Referencia de dispositivo automática al colocar el símbolo
+
+Pedido explícito: "sobre el tema de referencia eso debe ser
+automatico" — el campo `referencia` (IEC 61346, agregado en E47)
+pedía texto libre; el usuario no quiere escribirlo a mano.
+
+Se agrega `lib/referencia.ts`: un mapa de prefijo IEC 61346 por
+`tipo_aparato` (Q = maniobra de potencia, KM = contactores, F =
+protección, M = motores, T = transformadores, C = capacitores, H =
+señalización, P = medición, K = relés/temporizadores auxiliares,
+S = mando/pulsadores/selectores — convención habitual en planos
+industriales) y `proximaReferencia()`, que busca el número más alto
+YA usado con ese prefijo en TODO el proyecto (no solo en la hoja
+activa) y devuelve el siguiente.
+
+Se dispara en `store.ts` → `agregarSimbolo()`, en el momento en que
+se coloca el símbolo en el lienzo: si su ficha trae un `tipo_aparato`
+fijo (`atributos_base`, por símbolo) y todavía no tiene `referencia`,
+se le asigna sola (el primer interruptor termomagnético colocado en
+el proyecto queda con "Q1", el segundo con "Q2"…). El campo sigue
+siendo editable en la ficha técnica: la asignación automática numera
+cada aparato por separado, pero no puede saber que la bobina de un
+contactor y sus contactos auxiliares, colocados como símbolos
+distintos, tienen que compartir la misma referencia — esa vinculación
+la sigue haciendo el usuario a mano, corrigiendo el campo.
+
+Verificado en vivo con Playwright: al arrastrar "Interruptor
+termomagnético" al lienzo, la ficha técnica muestra `referencia: "Q1"`
+sin que el usuario haya escrito nada.
+
+`tsc -b`, `lint` y `build` en verde.
+
+## E51 — Limpieza de la librería: nombres, polos del fusible, paleta por categorías
+
+Mensaje denso del usuario con al menos 8 pedidos distintos; se acordó
+con el usuario arrancar por el bloque de librería (bajo riesgo,
+autocontenido) y dejar para etapas separadas, con decisión previa del
+usuario: validar la referencia al editarla a mano (incompatibilidad),
+el vínculo bobina↔contacto en multifilar para la simulación, y el
+catálogo de secciones normadas (AEA/IEC, mínimos/máximos,
+unifilar/multifilar) para conductores **y barras** — señalado en el
+mensaje que las barras habían quedado afuera de todo lo hecho hasta
+acá, correcto: `barra.schema.json` no tiene ninguna noción de
+normativa.
+
+Del mismo mensaje, respondida en el momento como pregunta (no
+implementación todavía): "circuitos agrupados" hoy es un número
+suelto que el usuario tipea por cable, sin que el sistema sepa CUÁLES
+comparten canalización — moverlo a la carga no lo resuelve (el dato es
+del conductor, no del destino: dos cables pueden compartir bandeja en
+un tramo y separarse después). La mejora real, para cuando se encare
+esa etapa, es identificar la canalización por conductor y que el
+sistema CUENTE solo cuántos la comparten, en vez de un número
+manual.
+
+**Nombres de símbolo, solo el nombre del elemento**: se sacó
+descripción sobrante de 11 de los 32 símbolos de la librería (19
+unifilar + 13 comando) — "Fusible 1P" → "Fusible" (el "1P" ahora es un
+dato de ficha técnica, ver abajo), "Contactor de potencia" →
+"Contactor", "Transformador dos bobinados" → "Transformador", "Carga
+de circuito" → "Carga", "Interruptor automático en caja moldeada
+(MCCB)" → "Interruptor MCCB", "Relé térmico (RT)" → "Relé térmico",
+"Transformador de corriente (TI)" → "Transformador de corriente",
+"Interruptor diferencial (ID/RCD)" → "Interruptor diferencial", "Relé
+de protección de tensión" → "Relé de tensión", "Sirena / alarma
+sonora" → "Sirena de alarma", "Instrumento de medición (voltímetro)"
+→ "Voltímetro". Se conservaron los nombres que distinguen variantes
+reales (p. ej. "Guardamotor termomagnético" vs. "Guardamotor
+magnético", "MCCB" como sigla que el electricista realmente usa) —
+solo se sacaron abreviaturas redundantes que repetían lo que el
+nombre ya decía.
+
+**Cantidad de polos en fusible y seccionador fusible**: eran los dos
+únicos tipos de aparato de maniobra/protección SIN `cantidad_polos`
+(interruptor, contactor, MCCB, guardamotor, diferencial ya lo tenían)
+— se agrega a `fusible` y `portafusible` en `aparato.schema.json`
+(obligatorio, sin tope superior — los fusibles no conmutan neutro,
+mismo criterio que contactor/guardamotor/relé térmico) y se refleja en
+`anotacionAparato()` como "3P" junto al resto de los datos de chapa.
+No se extendió a relés/pulsadores/contactos auxiliares: son
+dispositivos de señal, no de maniobra de potencia — "polos" no aplica
+igual ahí.
+
+**Paleta organizada por categorías** (`lib/categoriasAparato.ts`):
+los símbolos de familia "aparato" (los dos modos, unifilar Y
+multifilar/comando) se reparten en Protección, Maniobra, Motores y
+transformadores, Medición y compensación, Señalización y alarmas,
+Mando, Contactos y bobinas, Detección — en vez de una sola lista larga
+bajo "Aparatos". Un tipo sin categoría mapeada cae en "Otros
+aparatos" en vez de desaparecer de la paleta (defensivo, por si se
+agrega un tipo nuevo sin actualizar el mapa).
+
+Verificado en vivo con Playwright: los grupos de la paleta aparecen en
+el orden esperado (Alimentación, Protección, Maniobra… Barras, Cargas,
+Auxiliares), el ítem "Fusible" existe sin "1P" en el nombre, y al
+colocarlo la ficha técnica muestra el campo "Cantidad de polos".
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde (los ejemplos existentes no usan
+`fusible`/`portafusible` salvo `regresion-barra.json`, que no corre
+checklist de ficha técnica — sin impacto).
+
+## E52 — Avisa incompatibilidad al editar la referencia a mano
+
+Bloque B del mensaje anterior (el usuario eligió el orden: "B").
+Pedido explícito: "Si te permite cambiar la referencia deberia
+decirte que hay incopatiblidad de ello."
+
+`lib/referencia.ts` suma `avisoIncompatibilidadReferencia()`, con dos
+chequeos, ninguno bloqueante — se muestra como aviso (mismo estilo
+`.form-atributos-aviso` que ya usa "alguno obligatorio") pegado al
+campo, no un diálogo que interrumpa cada tecla tipeada:
+
+1. **Prefijo sospechoso**: si el tipo de aparato tiene un prefijo IEC
+   61346 fijo (E50) y lo tipeado no empieza con ese prefijo, avisa
+   ("F1" en un contactor, que espera "KM" — probable error de tipeo).
+2. **Conflicto entre dos aparatos distintos**: si la misma referencia
+   ya la usa, en cualquier hoja del proyecto, un aparato de un tipo
+   DISTINTO — dos aparatos distintos no pueden ser el mismo
+   dispositivo físico (un fusible con la referencia de un contactor ya
+   existente).
+
+**El caso que casi rompe el diseño, encontrado ANTES de escribir
+código, no en producción**: el símbolo multifilar "Bobina de
+contactor/relé" (S00130) tiene `tipo_aparato: "rele_auxiliar"` fijo
+— es el MISMO símbolo genérico tanto para la bobina de un contactor
+real (que en el unifilar tiene su propio cuerpo con prefijo "KM") como
+para un relé auxiliar suelto (prefijo "K"). Validar su prefijo a
+rajatabla habría roto el caso de uso CENTRAL de la referencia (E47/E50:
+vincular la bobina de un contactor con su cuerpo en el unifilar,
+tipeando "KM1" a mano) — el aviso hubiera saltado justo cuando el
+usuario hace lo correcto. Se resuelve con un concepto de tipo
+"accesorio" (`contacto_auxiliar` y `rele_auxiliar`, en `lib/referencia.ts`):
+nunca tienen designación propia fija, siempre representan una PARTE de
+otro aparato, así que quedan afuera de los dos chequeos — pueden
+adoptar cualquier prefijo ya existente en el proyecto sin generar aviso.
+
+Se calcula en `PanelAtributos.tsx` (necesita ver TODO el proyecto, no
+solo el nodo seleccionado: un mapa referencia → tipos de aparato que ya
+la usan, recorriendo todas las hojas + los nodos en vivo de la activa)
+y se pasa como prop a `FormularioAtributos`, que lo renderiza pegado
+al campo "referencia" en su lugar en el loop genérico del formulario.
+
+Verificado en vivo con Playwright, los 5 casos: dos contactores
+(KM1/KM2 automáticos, sin aviso), un contactor editado a mano a "F5"
+(avisa prefijo), un fusible editado a "KM1" ya usado por el contactor
+(avisa), la bobina "de contactor/relé" editada a "KM1" (SIN aviso,
+caso permitido) y un contacto auxiliar editado a "KM1" (SIN aviso,
+caso permitido). Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E53 — Vínculo bobina↔contacto: selector + resaltado en el lienzo
+
+Bloque C del mensaje de dos turnos atrás (orden elegido por el
+usuario: B, después C). Pedido explícito, reconfirmado antes de
+escribir código porque la frase original era ambigua ("en los
+multifilares... a la hora de hacerlo quedan vinculados para la
+simulación"): construir LOS DOS a la vez — un selector para vincular
+(en vez de tipear la referencia a ciegas) y un resaltado visual del
+vínculo ya hecho.
+
+**Selector en vez de texto libre**, solo para las piezas "accesorio"
+(`contacto_auxiliar`, la bobina genérica "de contactor/relé" — ver
+`esAccesorioReferencia()`, E52): el campo "Referencia" de su ficha
+técnica pasa a ser un `<select>` con todas las referencias que YA
+existen en el proyecto (con una etiqueta legible: "KM1 — Contactor"),
+más "Otra… (escribir)" para volver a texto libre la primera vez que se
+crea una referencia nueva. Elegir de la lista directamente es el
+vínculo — sin poder tipear mal. Los aparatos "cuerpo" (contactor,
+interruptor…) NO usan este selector: siguen con su numeración
+automática (E50) más el aviso de incompatibilidad (E52) si se editan a
+mano.
+
+**"Vinculado con…"**: la ficha de cualquier aparato con referencia
+muestra, debajo del campo, el resto de los símbolos que comparten esa
+MISMA referencia — con su nombre y la hoja donde están, aunque sea
+otra. Es la traza completa, ya que el resaltado visual (ver abajo)
+solo puede pintar lo que está en la hoja activa.
+
+**Resaltado en el lienzo**: al seleccionar un símbolo con referencia,
+los demás símbolos de la MISMA hoja que comparten esa referencia se
+marcan con un borde punteado violeta (`--vinculo`, token nuevo,
+deliberadamente distinto del teal `--acento` de la selección — tienen
+que leerse como dos estados diferentes de un vistazo). Se calcula en
+`NodoSimbolo.tsx` con un selector de Zustand que devuelve un
+`string | null` (la referencia seleccionada): aunque el selector se
+reevalúa en cada cambio del store, solo dispara un re-render si ESE
+valor cambió, así que no hay costo real por tener el resaltado
+"siempre encendido".
+
+Los tres puntos comparten una sola base de datos en
+`PanelAtributos.tsx` (`usosPorReferencia`, recorre todas las hojas del
+proyecto + los nodos en vivo de la activa), de la que se derivan
+`tiposPorReferencia` (E52), `opcionesReferencia` (el selector) y
+`vinculosReferencia` (el texto "vinculado con") — un solo recorrido de
+nodos, no tres.
+
+Sobre la otra mitad del pedido original ("los nodos de la bobina no
+los marques en rojo si no se conectan"): se verificó ANTES de tocar
+código que ya no aplica — el único "marcado en rojo" que existe hoy
+(`armarChecklist`, "sin conexión a ningún alimentador") ya está
+completamente desactivado en hojas multifilar, y el contactor unifilar
+no tiene puntos de conexión propios para la bobina (2 puntos en total,
+solo la línea de potencia). No hizo falta cambiar nada ahí.
+
+Verificado en vivo con Playwright: contactor → KM1 (auto, hoja
+unifilar); bobina "de contactor/relé" en una hoja multifilar nueva,
+selector con las opciones ["K1 — Bobina de contactor/relé", "KM1 —
+Contactor"], elegida "KM1"; un contacto auxiliar NA vinculado también a
+"KM1" desde el mismo selector, cuya ficha muestra "Vinculado con:
+Contactor (Hoja 1) · Bobina de contactor/relé (Hoja 2)"; al
+seleccionar la bobina, 1 nodo (el contacto auxiliar) queda marcado
+`.nodo-simbolo-vinculado` en el lienzo. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E54 — Secciones de conductor normadas y discretas (cables y barras)
+
+Bloque D del mensaje de tres turnos atrás, el último del punch list de
+esa ronda. Pedido explícito: "la sección se debería colocar o
+aumentar pero de forma discreta 1.5 2 4 6 10 16 y así, y dependiendo la
+norma hay un mínimo y máximo, y también dependiendo si la norma se
+trata de multifilares o unifilares permite una sección o no" — más la
+corrección "no consideraste las barras".
+
+**No se inventó una lista nueva.** Antes de tocar código apareció que
+el proyecto YA tiene una tabla Iz real, cargada y verificada
+visualmente contra el PDF de la norma
+(`libreria-simbolos/normativa/tablaIzAea90364552.mjs`, ver
+`docs/normativa/iz-corriente-admisible.md`) — con las secciones
+normadas REALES de las Tablas B52-2 a B52-5 (AEA 90364-5-52 / IEC
+60364-5-52): cobre 1,5 a 300 mm², aluminio 2,5 a 300 mm² (la norma no
+tabula aluminio de 1,5 mm² — el "mínimo" ya sale solo del material, sin
+inventar un número). `lib/secciones.ts` reusa esa tabla en vez de
+declarar una propia.
+
+**Consecuencia colateral real, no buscada**: el cálculo de Iz
+(`lib/calculo.ts`, ya en producción) busca la sección EXACTA en la
+tabla (`indexOf`) — con el campo de texto libre de antes, tipear
+cualquier valor que no fuera uno de los tabulados hacía que Iz
+desapareciera en silencio, sin aviso. Con la sección como lista
+cerrada, el valor SIEMPRE tiene fila en la tabla — verificado en vivo:
+Iz no salía en una conexión real del PPS (le faltaba longitud/método
+de instalación, datos de sitio ya señalados como pendientes en
+sesiones anteriores) y apareció (301 A) apenas se cargaron esos dos
+campos.
+
+**Fuerza vs. comando** ("dependiendo si la norma se trata de
+multifilares o unifilares permite una sección o no"): en una hoja
+multifilar la lista se recorta a ≤4 mm², el techo habitual del
+cableado de mando de un tablero — **esto NO es un límite tabulado de
+la norma** (la tabla cargada es de fuerza; ningún documento del
+proyecto tiene todavía una tabla de mando), es un techo de práctica
+de tablero. Se documenta así explícitamente en el código en vez de
+disfrazarlo de cita normativa. "Otra…" (mismo componente que el
+selector de E53, extraído a `SelectorConEscape.tsx` para no duplicar
+el patrón) sigue disponible por si un caso real lo necesita.
+
+**Mínimo de tierra (PE)**: aviso (no bloqueante) si la sección de
+tierra cargada queda por debajo de la regla proporcional de IEC
+60364-5-54 / AEA 90364-5-54 (S≤16→Spe=S, 16<S≤35→Spe=16, S>35→Spe=S/2)
+respecto de la sección de fase del mismo cable.
+
+**Barras, la corrección del usuario**: `barra.schema.json` no tenía
+ninguna noción de normativa. Como las barras se dimensionan por perfil
+físico (`dimensiones`, texto libre, decisión C8 anterior) y no por una
+lista discreta de sección como el cable, no le cabe la misma lista —
+se le agregó en cambio un rango de PLAUSIBILIDAD a
+`corriente_admisible_A` (16 A a 6300 A, lo habitual en juegos de barra
+de tablero BT) para atrapar errores de tipeo, mismo espíritu que el
+`pdcc_kA: 2500` ya documentado en la revisión del proyecto.
+
+Verificado en vivo con Playwright contra el proyecto real del PPS: el
+campo "Sección mm²" es un `<select>` con las opciones reales de la
+tabla, preserva el valor existente (240 mm²) sin forzar "Otra…", y al
+cambiar el material a Al "1,5 mm²" desaparece de la lista. `tsc -b`,
+`lint`, `build`, `e2e/conexiones.mjs`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E55 — Estimación de corriente admisible de barra por dimensiones y material
+
+Corrección del usuario sobre E54, después de commitear: "de las
+barras hay tablas de corriente admisible por sus dimensiones y
+normativa, que la normativa cambia si es Cu o Al" — el rango de
+plausibilidad de E54 (16-6300 A) no alcanzaba, hacía falta derivar el
+valor de la sección real, como con los cables.
+
+**Investigación honesta antes de escribir un número.** Se buscó
+`IRAM 2181` (la norma de tableros BT que rige el dimensionamiento de
+barras) en la misma carpeta `D:\Drive\Normativas\` de donde salió la
+tabla de cables verificada — no está. El usuario pidió entonces
+buscarla en la web. Se encontraron:
+
+- Una tabla de fabricante (GRL Copper) con corriente por sección de
+  barra de cobre, pero resultó ser exactamente `área_mm² × 1,55` en
+  DC y `× ~1,5` en AC para TODAS las filas — no una tabla con efectos
+  térmicos reales por forma, un coeficiente lineal disfrazado de tabla.
+- Documentos de Scribd/Studocu ("Tablas B187", "Ampacidad de Barras de
+  Cobre") con el contenido real bloqueado detrás de una vista previa —
+  no se pudo extraer ni verificar ningún valor de ahí.
+- Rangos de densidad de corriente de guías técnicas de fabricante para
+  barras de tablero BT en gabinete: cobre 1,0–1,6 A/mm², aluminio
+  0,7–1,2 A/mm² (cobre soporta ~25-30% más que aluminio a igual
+  sección, por su mayor conductividad — ahí sí "la normativa cambia si
+  es Cu o Al", aunque no sea una norma IRAM sino una convención de
+  fabricante).
+
+**No hay una tabla normativa verificable para transcribir**, a
+diferencia de los cables. En vez de fabricar una tabla con precisión
+falsa, `lib/barras.ts` implementa una ESTIMACIÓN — mismo patrón ya
+usado en este formulario para la corriente de motor trifásico
+(`estimarInA`): parsea `dimensiones` (acepta los DOS formatos que
+existen en proyectos reales — "30x10mm" ancho×espesor, o
+"3x30x10mm" con cantidad de barras apiladas por fase), calcula el
+área y la multiplica por el punto medio de cada rango (Cu 1,3 A/mm²,
+Al 0,9 A/mm²), y se ofrece con un botón "usar" — nunca pisa un valor
+real ya cargado.
+
+**Encontrado en vivo, corrigiendo el propio código recién escrito**: el
+primer intento de `estimarCorrienteAdmisibleBarraA()` solo entendía el
+formato "cantidad x ancho x espesor" (3 números) — la barra REAL del
+proyecto del PPS usa "30x10mm" (2 números, sin cantidad), y la
+estimación devolvía `null` en silencio. Se corrigió para aceptar
+ambos formatos, cantidad=1 si no está explícita.
+
+Verificado en vivo con Playwright contra la barra real del PPS
+(30×10mm, Cu, con `corriente_admisible_A: 573` ya cargado en el
+proyecto real): al vaciar el campo aparece "Corriente admisible ≈ 390
+A (estimado)" (300 mm² × 1,3 A/mm²) — más baja que el valor real de
+catálogo (573 A), lo cual es coherente con ser una estimación
+conservadora de regla general, no la tabla real del fabricante. Click
+en "usar" carga 390 correctamente. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E56 — Tabla real DIN 43671 para barras de cobre (corrige E55)
+
+El usuario, después de leer E55: "DIN 43671 donde esta normado
+corriente admisible y dimensiones" — señalando la norma exacta que
+E55 no había identificado (buscó "IRAM 2181" y una tabla genérica de
+fabricante, sin dar con el número de norma correcto).
+
+**Búsqueda ampliada, siguiendo la pista del usuario.** DIN 43671 no
+está en `D:\Drive\Normativas\` (se había revisado antes, en E55) ni en
+el resto del disco del usuario. Buscando en la web con el número de
+norma correcto sí apareció una fuente real y verificable: "Rated
+currents of busbars E-Cu (DIN 43 671)", Rittal Catálogo 33 "Power
+distribution", 11.2012, páginas 152-153 — descargada y leída
+visualmente (mismo criterio que la tabla de cables, no OCR). El propio
+documento trae un ejemplo resuelto: barra de cobre 30×10mm → 573 A —
+que **coincide exacto** con el valor ya cargado en el proyecto real del
+PPS, confirmando de forma independiente que es la fuente correcta (el
+proyecto cita IRAM 2181-1, que remite al mismo criterio de DIN 43671
+para barras de cobre).
+
+**Hallazgo real, no una decisión de diseño**: la corriente admisible
+NO escala linealmente con el área — una barra de 12×2mm (24 mm²) da
+~4,5 A/mm², mientras que una de 100×10mm (1000 mm²) da ~1,5 A/mm² (a
+mayor sección, peor relación superficie/volumen para disipar calor).
+La estimación por "densidad de corriente constante" de E55 era, por
+diseño, una aproximación gruesa — confirmado numéricamente: para
+30×10mm daba 390 A estimados contra 573 A reales, un 32% de error.
+
+**`lib/barras.ts` reescrito**: 22 filas reales de la tabla (12×2 a
+100×10mm, corriente CA continua, barra de cobre desnuda) con búsqueda
+EXACTA por (ancho, espesor) — la norma no interpola entre pasos,
+tampoco se inventa acá. Aluminio: **es una norma DISTINTA** (DIN
+43670, no 43671 — "la normativa cambia si es Cu o Al" es literal, no
+solo la tabla), y no se consiguió una fuente de aluminio igual de
+verificable — se deriva de la tabla de cobre con el factor de
+conversión habitual (cobre admite ~1,27 veces más que aluminio a igual
+sección), documentado como derivado, no transcripto. Fuera de la tabla
+(sección no tabulada, o varias barras apiladas — el agrupamiento no es
+lineal por calentamiento mutuo, y no hay tabla de grupo verificada) se
+sigue cayendo a la estimación de E55, ahora claramente marcada
+"(estimado)" en vez de mezclarse con los valores reales "(DIN 43671)".
+
+Verificado en vivo con Playwright, tres casos: 30×10mm Cu → "573 A
+(DIN 43671)" (exacto, coincide con el dato real del proyecto);
+30×10mm Al → "451 A (DIN 43671)" (derivado, 573÷1,27); 33×10mm Cu
+(sección no tabulada) → "429 A (estimado)" (cae a la densidad de
+corriente, sin fingir precisión de tabla). Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E57 — Tabla DIN 43671 más completa, con barras apiladas reales
+
+Encontrada en el propio disco del usuario, en un hallazgo que llegó
+por una notificación de una búsqueda en segundo plano lanzada durante
+E56 (buscaba "43671" en TODO `D:\Drive\Facultad` y `D:\Drive\
+Normativas`, no solo en la carpeta de normativas): `D:\Drive\Facultad\
+PPS\Hojas de datos\ficha_tecnica_pletina_de_cobre.pdf` — ficha de
+Bronmetal, "Pletinas de cobre para aplicaciones eléctricas, según EN
+13601", con la tabla "INTENSIDAD ADMISIBLE. DIN 43671" completa. Vive
+en la carpeta del PROPIO PPS del usuario — casi seguro es la fuente
+real que se usó para cargar el dato del proyecto (30×10mm → 573 A
+coincide exacto, igual que con la tabla de Rittal de E56 — las dos
+fuentes independientes se corroboran entre sí).
+
+Esta ficha es más completa que la de Rittal en dos sentidos: más filas
+(hasta 200×10mm) y, sobre todo, **corriente real para 2, 3 y 4 barras
+apiladas por fase** — el caso que en E55/E56 quedaba sin tabla (el
+agrupamiento no es lineal por calentamiento mutuo entre barras, así
+que antes caía siempre a la estimación por densidad de corriente, sin
+importar cuántas barras apiladas se cargaran). `lib/barras.ts` se
+reescribe con esta tabla (27 filas × hasta 4 columnas de cantidad de
+barras) y la búsqueda ahora es por (ancho, espesor, cantidad) exacta,
+no solo (ancho, espesor).
+
+Verificado en vivo con Playwright: 30×10mm × 1 barra → "573 A (DIN
+43671)" (sigue exacto); 30×10mm × 2 barras (antes cadía a
+"estimado") → "1060 A (DIN 43671)", valor real de tabla; 40×10mm × 3
+barras → "1770 A (DIN 43671)"; 30×10mm × 5 barras (fuera de la tabla,
+la ficha solo llega a 4) → "1950 A (estimado)", cae correctamente sin
+fingir precisión que no tiene. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs` y `lint_simbolos.py` en verde.
+
+## E58 — "Circuitos agrupados" pasa a contarse solo por canalización
+
+Único ítem que quedaba pendiente de la ronda de 8 pedidos del bloque D
+(el resto — E51 a E57 — ya estaba cerrado). Era una pregunta del
+usuario que se había respondido en su momento sin implementar todavía:
+"circuitos agrupados hoy es un número suelto que el usuario tipea a
+mano por cable, sin que el sistema sepa CUÁLES — la mejora real es
+identificar la canalización por conductor y que el sistema CUENTE
+solo, en vez de un número manual que se puede desactualizar."
+
+`conductor.schema.json`: `cantidad_circuitos_agrupados` (entero
+manual) se reemplaza por `canalizacion` (texto libre — "Bandeja 1",
+"Caño 2"). Se regeneraron los tipos (`python
+scripts/generar_tipos_atributos.py`, `tiposAtributos.ts` es generado,
+no se edita a mano). Sin proyectos de ejemplo con el campo viejo
+cargado — no hizo falta migración.
+
+`lib/calculo.ts` → `calcularIzA()` deja de leer
+`cable.cantidad_circuitos_agrupados` de la ficha propia del cable: pasa
+a recibir `circuitosAgrupados` como parámetro, que calcula quien
+llama. `PanelAtributos.tsx` lo cuenta recorriendo todas las
+conexiones + alimentadores de la HOJA ACTIVA (no entre hojas distintas
+— cada hoja es su propio tablero, con su propio recorrido físico) y
+contando cuántos tienen el mismo valor de `canalizacion`, incluido el
+cable seleccionado. `FormularioConductor.tsx` muestra la línea
+"Circuitos agrupados (canalización): N" en el bloque de cálculo, solo
+cuando N > 1 (no hay nada que mostrar si va solo).
+
+Verificado en vivo con Playwright contra el proyecto real del PPS, con
+dos cables DISTINTOS (confirmado antes con un debug aparte: dos
+índices de `.react-flow__edge` pueden resolver al MISMO edge lógico —
+hay que verificar identidad antes de asumir "son dos"): Cable A con
+"Bandeja A" y solo → Iz 301,0 A, sin línea de agrupados. Cable B con
+la MISMA "Bandeja A" → Iz 119,2 A, "Circuitos agrupados: 2". Al volver
+a Cable A sin tocarlo, su Iz bajó SOLO a 240,8 A (301 × 0,8, el factor
+real de Tabla B52-17 para 2 circuitos) — la corrección se propaga
+automáticamente al resto de la canalización sin que nadie la vuelva a
+tipear. Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E59 — Un conductor puede recorrer varios métodos de instalación
+
+Observación del usuario tras cerrar la ronda de 8 pedidos: "habría que
+considerar que algunos circuitos tienen múltiples métodos de
+instalación en ellos" — un mismo cable real puede ir parte encañado en
+pared (B1) y parte enterrado (D1), por ejemplo. Se le ofrecieron dos
+caminos (uno rápido, sin tocar el modelo de datos; el completo, con
+una lista de tramos por conductor) y eligió el completo.
+
+**`conductor.schema.json`**: `metodo_instalacion` / `longitud_m` /
+`temperatura_ambiente_c`, que antes eran TRES campos únicos por cable,
+pasan a ser sub-campos de `tramos` (array) — cada tramo con su propio
+método, longitud y temperatura. El caso común (un solo tramo) sigue
+siendo una lista de un elemento, sin ceremonia de más. Se regeneraron
+los tipos (`python scripts/generar_tipos_atributos.py`).
+
+**`lib/calculo.ts` → `calcularIzA()`**: calcula el Iz de CADA tramo por
+separado (su propio método + temperatura) y toma el MÍNIMO — el tramo
+más restrictivo manda (AEA 90364-5-52 / IEC 60364-5-52), en vez de un
+solo método para todo el cable. El agrupamiento (`circuitosAgrupados`,
+E58) sigue siendo una sola cifra para todo el cable — simplificación
+deliberada, documentada en el código, para no explotar el alcance de
+esta etapa modelando agrupamiento distinto por tramo. Nueva función
+`longitudTotalM()`: suma la longitud de todos los tramos para la caída
+de tensión, que depende del recorrido completo, no de un tramo suelto.
+
+**`libreria-simbolos/verificacion/reglasFicha.mjs`** (compartido con
+`scripts/verificar_proyecto_real.mjs`): `problemasCable()` valida cada
+tramo por separado — sin ningún tramo cargado, el mensaje es el mismo
+de siempre ("Falta la longitud del tramo." / "Falta el método de
+instalación."); con más de uno, cada mensaje incompleto lleva el
+sufijo "(tramo N)" para saber cuál falta.
+
+**`FormularioConductor.tsx`**: el campo único "Método de instalación"
+se reemplaza por una lista de tarjetas "Tramo 1", "Tramo 2"… (método +
+longitud + temperatura ambiente cada una), con "+ Agregar tramo" y
+"Quitar" por tarjeta. El tramo que resultó el más restrictivo (el que
+fija el Iz del cable entero) se marca "· más restrictivo" cuando hay
+más de uno, para que se vea de un vistazo cuál es el que manda.
+
+Verificado en vivo con Playwright contra una conexión real del PPS:
+con 1 tramo (B1, 15 m) → Iz 301,0 A; agregado un 2º tramo (D1, 10 m) →
+Iz se mantuvo en 301,0 A y el Tramo 1 quedó marcado "más restrictivo"
+(el tramo enterrado admitía MÁS corriente para esta sección/aislación
+— resultado real, no forzado). El checklist, con el 2º tramo
+incompleto a propósito, mostró el mensaje con el sufijo "(tramo 2)".
+Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E60 — Dimensiones de barra normadas, canalización por tramo, mínimo AEA por rol
+
+Cierra los tres ítems elegidos del "qué quedó pendiente": 2 (AEA/IEC
+no diferenciadas), 3 (dimensiones de barra en texto libre) y 4
+(canalización por conductor entero, no por tramo). El usuario dio
+instrucción concreta para el 3: "las dimensiones deben ser las
+normalizadas, seleccionamos primero 30mm o 40mm... y luego la otra
+dimensión 3mm o 4mm...".
+
+**Dimensiones de barra, tres selectores en cascada** (`ancho` →
+`espesor` → `barras apiladas`), sobre la MISMA tabla real DIN 43671 ya
+cargada en `lib/barras.ts` (E56/E57) — no una lista aparte. Sin
+escape a texto libre a propósito: el pedido era justamente que no se
+pudiera cargar cualquier número. `lib/barras.ts` suma
+`anchosBarraDisponiblesMm()`, `espesoresBarraDisponiblesMm(ancho)` y
+`cantidadesBarraDisponibles(ancho, espesor)`, derivadas de la tabla.
+
+**Bug real encontrado y corregido en el camino**: la primera versión
+del selector derivaba el estado directo de la prop `valor` en cada
+render — al elegir un ancho nuevo, como todavía faltaba el espesor,
+emitía `dimensiones: ""` al padre, que en el siguiente render volvía a
+parsear "" y perdía el ancho recién elegido (la lista de espesores
+quedaba vacía). Se corrigió con estado LOCAL en el componente
+(`useState` + un `useEffect` que solo resincroniza cuando `valor`
+cambia por algo que el propio componente no generó), verificado en
+vivo: antes del fix, elegir "40mm" de ancho dejaba la lista de
+espesores vacía; después, muestra correctamente "3 mm, 5 mm, 10 mm".
+
+**Canalización por TRAMO, no por cable entero**: se mueve de
+nivel superior a sub-campo de cada tramo en `conductor.schema.json` —
+un cable puede compartir bandeja con otros en un tramo y seguir solo
+en el resto de su recorrido. `lib/calculo.ts` → `calcularIzA()` deja
+de recibir un número fijo de circuitos agrupados y pasa a recibir una
+función `circuitosAgrupadosDe(canalización)`, que cada tramo consulta
+con SU PROPIA canalización. `PanelAtributos.tsx` arma el mapa
+recorriendo los tramos de toda la hoja activa, no un solo cable.
+
+**Mínimo de sección por rol de circuito y normativa (AEA vs IEC)**:
+`lib/secciones.ts` suma `seccionMinimaMm2(normativa, rol)` — AEA
+90364-7-771, Tabla 771.13.I (verificada por búsqueda, no
+transcripción completa): 1,5 mm² circuitos terminales, 2,5 mm²
+seccionales, 4 mm² líneas principales. El `rol` se infiere solo: una
+conexión cualquiera es "terminal"; un alimentador es "seccional" si su
+hoja tiene `hojaPadreId` (cuelga de otra, va a un tablero seccional) o
+"principal" si es la hoja raíz. **Acá está la diferencia real entre
+AEA e IEC** que faltaba desde E54: no se consiguió una tabla de
+mínimos por rol para IEC igual de verificable — se deja en el mínimo
+general (1,5 mm²) para los tres roles en vez de inventar una
+diferenciación que no se pudo confirmar, en lugar de fingir que las
+dos normativas son iguales sin decirlo.
+
+Verificado en vivo con Playwright contra el proyecto real del PPS: la
+barra 30×10mm (dato real) aparece pre-seleccionada correctamente en
+los tres selectores; elegir 40×5mm ×2 barras da "836 A (DIN 43671)"
+(coincide exacto con la fila real de la tabla); el campo Canalización
+aparece DENTRO de cada tarjeta de tramo; una conexión regular muestra
+"Mínimo para este circuito (terminal, AEA): 1,5 mm²" y el alimentador
+de la hoja raíz muestra "(principal, AEA): 4 mm²". Sin errores de
+consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs`,
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E61 — Métodos de instalación E, F y G (cables al aire libre, tablas B52-10 a B52-13)
+
+Elegido por el usuario entre los dos ítems restantes del "qué sigue"
+("Métodos E, F, G (más chico)", frente al motor de simulación CADe
+SIMU). Cierra el hueco documentado desde E54: hasta ahora
+`metodo_instalacion` aceptaba "E"/"F"/"G" en el schema pero
+`corrienteAdmisibleBaseA()` no tenía ninguna tabla cargada para esos
+tres códigos y devolvía `null` (Iz no calculable).
+
+**Origen de los datos**: mismo criterio de verificación que las
+tablas A1-D2 ya cargadas — nada de OCR ni transcripción de memoria.
+El PDF de la norma (`AEA-90364-5-2006.pdf`, 189 MB) excede el límite
+de 100 MB de la herramienta de lectura, así que las páginas se
+renderizaron a PNG con PyMuPDF (150 DPI) y se leyeron como imagen.
+Se transcribieron a mano las cuatro tablas reales: B52-10 (PVC, Cu),
+B52-11 (PVC, Al), B52-12 (XLPE/EPR, Cu) y B52-13 (XLPE/EPR, Al).
+Aislación mineral (B52-8, B52-9) se deja sin cargar, consistente con
+el mismo gap ya documentado para B52-6/B52-7 en los métodos A-D.
+
+**Hallazgo clave que simplificó el trabajo**: la Tabla B52-1
+(continuación) muestra que los factores de corrección por
+temperatura (B52-14) y por agrupamiento (B52-17) YA CUBREN los
+métodos E/F/G — no hacía falta cargar tablas nuevas para eso, solo
+las cuatro tablas de Iz base.
+
+**Decisión de diseño no trivial, documentada en el código**: la norma
+subdivide método F en tres disposiciones físicas de cables unipolares
+y método G en dos planos, mientras que el modelo de Vatia solo separa
+2 vs 3 conductores cargados (sin campo de "disposición"). Se resolvió
+así, con el mismo criterio conservador que ya rige "cantidad no
+tabulada → escalón inferior" en `calculo.ts`: para F con 3 cargados se
+usa "trébol/cuadrete" (siempre el valor más bajo de las dos
+disposiciones tabuladas, en las cuatro tablas); para G con 3 cargados,
+"plano vertical" (ídem, siempre el más bajo). Para G con 2 cargados no
+hay NINGÚN valor tabulado en la norma — no es un dato que falte
+cargar, la Tabla B52-1 directamente no lo define — así que se
+devuelve `null`, honesto en vez de inventar. Además, la Tabla B52-1
+marca con "-" la columna de agrupamiento para método G:
+`calcularIzA()` ahora trata a G igual que a los métodos enterrados,
+sin aplicarle el factor de B52-17.
+
+Todo documentado en el comentario que antecede a `TABLAS` en
+`tablaIzAea90364552.mjs` y en `docs/normativa/iz-corriente-admisible.md`.
+
+Verificado en vivo con Playwright contra la conexión real del PPS
+"c1" (240 mm², Cu, PVC, trifásico): antes de esta etapa, elegir
+método E, F o G en su tramo no mostraba ningún Iz (`null`). Después,
+método A1 (control, sin cambios) sigue en 249,0 A; E pasa a mostrar
+374,0 A; F, 422,0 A; G, 495,0 A — los tres coinciden exactos con la
+fila de 240 mm² transcripta de la Tabla B52-10 (columnas E-3cargados,
+F-trébol y G-vertical respectivamente). Sin errores de consola.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs` (21 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+Queda pendiente, sin elegir todavía por el usuario: el motor de
+simulación CADe SIMU (recorrer el circuito, decidir bobinas
+energizadas, propagar a contactos, modo interactivo).
+
+## E62 — Motor de simulación: bobinas, contactos y autoenclavamiento (primera etapa)
+
+Elegido por el usuario ("VAMOS CON ESO") como el ítem que quedaba: el
+motor de simulación tipo CADe SIMU (pedido original en E47/E50: "dejar
+al contactor con su bobina asociada"). Primera etapa: el núcleo de
+cálculo puro (`apps/editor/src/lib/simulacion.ts`), sin todavía un
+"modo simulación" en la interfaz — se corta acá a propósito, es un
+punto de control natural antes de decidir cómo se ve/usa desde la UI.
+
+**Decisión de modelado que hubo que consultar**: la librería no tiene
+ningún símbolo de "riel" de fase de mando (L) ni de neutro/común (N)
+para dibujar un circuito de comando entre ellos. Se preguntó y el
+usuario confirmó reusar la "barra" ya existente para los dos rieles:
+la barra que recibe el alimentador de la hoja es la fase de mando: la
+otra barra de la misma hoja es el común/neutro. Documentado como
+convención de dibujo de este proyecto, no como norma, en el comentario
+que encabeza `simulacion.ts`.
+
+**Algoritmo**: Union-Find por hoja (cada conexión dibujada conduce;
+una barra une TODOS sus terminales entre sí; un interruptor cerrado
+une sus dos terminales; una bobina NUNCA une las suyas), con punto fijo
+iterado entre bobinas y contactos — necesario porque un contactor que
+se autoenclanca con su propio contacto auxiliar es una dependencia
+circular bobina→contacto→bobina.
+
+**El hallazgo más importante de esta etapa**: un autoenclavamiento es,
+por definición, BIESTABLE — con el pulsador de marcha soltado, tanto
+"sigue enclavado" como "está abierto" son puntos fijos igual de válidos
+del mismo circuito. La primera versión arrancaba la iteración siempre
+desde el conjunto vacío y esto rompía el enclavamiento apenas se
+soltaba el pulsador (sesgaba la solución hacia "todo apagado"). Se
+corrigió agregando `estadoInicial` a `simular()`: quien la llama tiene
+que guardar el `bobinasEnergizadas` que devuelve y pasarlo de vuelta en
+la próxima llamada, así el punto fijo que gana es el más cercano al
+estado físico anterior — igual que un contactor real, que sigue
+mecánicamente energizado hasta que algo interrumpe SU propio camino,
+no el botón que lo arrancó.
+
+**Verificado** con un circuito real de manual (arranque directo con
+enclavamiento: pulsador de Parada NC en serie con Marcha NA en
+paralelo con el contacto auxiliar NA de KM1, alimentando la bobina
+KM1) montado en memoria y corrido con `simular()` vía import directo
+del módulo TS en el navegador (dev server + Playwright, sin fixture
+en disco): en reposo nada energizado; al presionar Marcha, KM1 se
+energiza Y el contactor de fuerza (otra hoja, mismo `referencia:
+"KM1"`) cierra y el motor pasa a energizado; al SOLTAR Marcha
+(pasando el estado anterior), KM1 sigue enclavado — motor sigue
+encendido; al presionar Parada, todo se corta; al soltar Parada, no
+vuelve a arrancar solo. Las cinco transiciones coinciden exactas con
+el comportamiento real de este circuito clásico.
+
+Queda fuera de esta etapa (documentado en el propio módulo): familia
+"carga" (S00120) todavía no entra en el cálculo; protecciones se
+asumen siempre sanas (sin campo de disparo); `selector` no es
+simulable (el schema no define qué contacto cierra en qué posición);
+`temporizador` se resuelve instantáneo, sin la dimensión de tiempo.
+Y, sobre todo, falta TODA la interfaz: un "modo simulación", accionar
+pulsadores con el mouse y resaltar en el lienzo qué conduce y qué no.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs` (21 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde (ninguno tocaba el módulo nuevo, pero se
+corrieron igual para no dejar pasar una regresión).
+
+## E63 — Modo simulación en la interfaz: accionar y ver el circuito
+
+Segunda etapa del motor de simulación (E62 dejó el cálculo puro, sin
+UI, "a propósito, es un punto de control natural"). Esta la retoma:
+un botón "▶ Simular" en la barra superior activa un modo de USO (no
+de edición) donde los aparatos calculados como conductores/energizados
+por `simulacion.ts` se resaltan en el lienzo, y los contactos manuales
+(pulsador, interruptor de posición, paro de emergencia) se accionan
+con el mouse directamente sobre su símbolo.
+
+**Wiring, en `lib/store.ts`**: dos acciones nuevas.
+`alternarSimulacion()` prende/apaga el modo; al prender, corre
+`simular(proyectoVolcado(get()))` una vez con todo vacío (foto de
+reposo) y guarda el resultado. `accionarSimulacion(nodoId, accionado)`
+arma la clave `${hojaActivaId}:${nodoId}`, actualiza el set de
+`simulacionManual` y vuelve a correr `simular()` — pasándole
+`simulacionEstado` (el `bobinasEnergizadas` de la llamada anterior)
+como `estadoInicial`, exactamente el patrón que E62 identificó como
+imprescindible para que un autoenclavamiento no se abra solo al mover
+el mouse. `proyectoVolcado()` es la misma función que ya usan Guardar
+y la exportación a PDF: no hubo que inventar un camino nuevo para leer
+"el proyecto completo, con la hoja activa al día".
+
+**Interacción por tipo de contacto** (`NodoSimbolo.tsx`): pulsador e
+interruptor de posición son MOMENTÁNEOS — conducen mientras se los
+mantiene presionados (`onPointerDown`/`onPointerUp`/`onPointerLeave`,
+para soltar también si el mouse se arrastra fuera sin soltar el botón).
+`pulsador_emergencia` se togglea con un clic, porque un paro de
+emergencia real enclava mecánicamente hasta que alguien lo destraba a
+mano. `selector` queda afuera (ya lo estaba en el motor: el schema no
+define qué contacto cierra en qué posición).
+
+**Resaltado**: un aparato con `aparatos.get("hoja:nodo") === true`
+(interruptor cerrado, bobina energizada, o sumidero con tensión) recibe
+la clase `nodo-simbolo-energizado` (halo verde, mismo `--ok` que el
+resto del editor); mientras se mantiene presionado, `nodo-simbolo-
+presionado` lo encoge un toque como feedback táctil inmediato,
+independiente de si el circuito aguas abajo terminó conduciendo o no.
+Se decidió NO resaltar también los cables (conexiones): hacerlo bien
+requeriría que `simulacion.ts` exponga qué tramo del Union-Find de cada
+hoja llega a una fuente Y a un retorno (no solo qué NODOS conducen),
+que es más cálculo del que esta etapa necesitaba para ser útil —
+queda anotado como el siguiente paso natural si hace falta.
+
+**Bloqueo de edición mientras se simula**: `nodesDraggable`,
+`nodesConnectable` y `edgesReconnectable` del `<ReactFlow>` pasan a
+`false`, y la Paleta se oculta — es un modo de uso, no de dibujo.
+Excepción encontrada en vivo y NO resuelta en esta etapa: la barra
+(`BarraNode.tsx`) tiene su propio arrastre de cuerpo independiente del
+`nodesDraggable` global (los tiradores de estiramiento SÍ son ajenos a
+esto, pero mover la barra entera aparentemente no pasa por el mismo
+camino) — quedó de comportamiento inconsistente entre corridas de
+prueba, sin alcanzar a aislar la causa exacta; anotado para revisar,
+severidad baja (no corrompe nada, solo correría la barra unos px).
+
+**Verificado en vivo** (Playwright + dev server, contra
+`proyecto-real-pps.json`, que ya tiene MCCB y contactores reales):
+activar el modo muestra el badge "▶ SIMULACIÓN" y oculta la Paleta;
+los dos MCCB (`interruptor_siempre_cerrado` en el motor) quedan con la
+clase `nodo-simbolo-energizado`; los contactores (sin `referencia`
+cargada en este proyecto) NO la reciben — correcto, sin bobina
+asociada no hay forma de que el motor sepa cuándo cierran; al
+desactivar, el badge y la Paleta vuelven a su estado normal. También
+se probó `alternarSimulacion()`/`accionarSimulacion()` a través del
+store real (no de un import directo de `simulacion.ts` como en E62)
+con un circuito de autoenclavamiento armado a mano en memoria —
+confirmó que `proyectoVolcado()` preserva la identidad de cada hoja
+correctamente.
+
+**Lo que sigue sin poderse probar de punta a punta por la interfaz
+real** (gap heredado de E62, no de esta etapa): la librería todavía no
+tiene símbolos dibujados para `pulsador`, `interruptor_posicion`,
+`pulsador_emergencia`, `contacto_auxiliar`, `rele_auxiliar` ni
+`selector` — son tipos que el motor de cálculo entiende perfectamente,
+pero que hoy no se pueden COLOCAR en una hoja desde la Paleta. Hasta
+que existan esos símbolos, un circuito de comando con autoenclavamiento
+solo puede probarse construyendo el proyecto a mano (JSON o consola del
+navegador), nunca dibujándolo en el editor real.
+
+`tsc -b`, `lint`, `build`, `e2e/conexiones.mjs` (21 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` en verde.
+
+## E64 — Rieles multifilares configurables: primer circuito real de punta a punta
+
+Disparado por una queja concreta del usuario tras E63: *"si yo estoy en modo
+multifilar porque no tengo todos los símbolos para ello ni siquiera tengo
+los alimentadores... no se puede simular nada"*. Al investigar antes de
+tocar código apareció un hallazgo importante que corrige el registro de
+E62/E63: **ya existían 13 símbolos de comando aprobados** en
+`libreria-simbolos/comando/` (E15-E16, sesión anterior) y el modo
+multifilar de la Paleta ya estaba armado (E17) — la afirmación de E62 de
+que "no existe ningún símbolo de comando" fue un error de investigación:
+solo se había revisado `libreria-simbolos/simbolos/` (fuerza), nunca
+`comando/`.
+
+Lo que SÍ faltaba, y era exactamente lo que el usuario señaló: la Paleta de
+comando no incluye la barra (vive en la librería de fuerza) y el botón
+"+ Alimentador" está oculto a propósito en multifilar (E17: "un circuito de
+comando no se alimenta desde la red") — así que hasta esta etapa no había
+NINGUNA forma de energizar un circuito de comando desde la interfaz.
+
+### Decisión de alcance (regla nueva, guardada en memoria)
+
+El usuario confirmó dos cosas por pregunta directa: (1) para los rieles,
+"no sé si querés hacer con la barra actual o no… que ande bien, hacé
+muchas pruebas y que sea fácil de usar" — deja el cómo a criterio propio;
+(2) el motor SÍ debe mostrar el sentido de giro calculado, no alcanza con
+que el circuito de dos contactores entrelazados simplemente funcione.
+Además quedó registrada como regla de alcance durable: multifilar debe
+tener TODA la simbología disponible ("uno nunca sabe qué se va a usar"),
+fuerza solo protecciones y cargas.
+
+### La barra como riel de comando
+
+Se extendió `barra.schema.json` con un discriminador `tipo_barra`
+("fuerza" | "riel_multifilar", ausente = "fuerza" por compatibilidad —
+ver el truco de visibilidad más abajo) y, cuando es riel, dos campos
+propios: `funcion_riel` ("fase_viva" | "neutro" | "tierra") y
+`etiqueta_fase` (texto libre: "L1", "L2"… sin tope, para no limitar la
+cantidad de fases — pedido explícito: "no vaya a ser que quieran simular
+un motor hexafásico"). Los 5 campos de la ficha de fuerza (dimensiones,
+es_conjunto, material, norma_iram, corriente_admisible_A) ganaron
+`x-visible-si: "tipo_barra:fuerza|"` — el `|` final hace que la condición
+también matchee cuando `tipo_barra` está AUSENTE (proyectos guardados
+antes de esta etapa), evitando que el Checklist empiece a reclamar campos
+"faltantes" en barras de fuerza ya cargadas. `agregarSimbolo()` en
+`store.ts` pretipa la barra según el modo de la hoja activa al momento de
+colocarla (fuerza → `tipo_barra:"fuerza"`; multifilar → `"riel_multifilar"`
++ `funcion_riel:"fase_viva"` por defecto), así la ficha abre ya mostrando
+los campos correctos sin que el usuario tenga que elegir nada a mano.
+
+`Paleta.tsx` agrega la barra (S00119) a la lista de comando en modo
+multifilar sin duplicar el símbolo en `libreria-simbolos/comando/` — sigue
+viviendo en la librería de fuerza, la Paleta arma la unión de mapas al
+vuelo. Se necesitan tantos rieles de fase viva como fases quiera simular
+el usuario (L1, L2, L3, L4… colocando una barra por fase), lo que resuelve
+"cantidad de fases variable" sin agregar ningún campo de conteo: el límite
+es cuántas barras coloque, no un número fijo en un schema.
+
+### Cambio en el motor de simulación
+
+`simulacion.ts` reemplaza la vieja heurística ("la barra que recibe un
+alimentador es la fuente") por la marca explícita `funcion_riel`: cada
+barra con `funcion_riel:"fase_viva"` es fuente por sí misma (no depende de
+que exista un alimentador — la hoja multifilar nunca tuvo uno disponible,
+así que la vieja regla nunca podía cumplirse en la práctica real);
+`"neutro"` es retorno; `"tierra"` no participa del cálculo (solo
+documentación). Una barra sin `funcion_riel` (barra de fuerza, o un riel
+de antes de esta etapa) conserva la heurística vieja intacta —
+retrocompatible. `anotaciones.ts` muestra el rol del riel en el lienzo
+("Fase viva", "Neutro", más la etiqueta si tiene una: "Fase viva · L1").
+
+### Verificado de punta a punta, por primera vez, en la interfaz real
+
+Hasta ahora todo lo relativo a comando se había probado inyectando el
+proyecto directo al store (E62, E63): esta vez se armó el circuito
+clásico de arranque directo con autoenclavamiento (Parada NC + Marcha NA
+en paralelo con el contacto auxiliar NA de K1, alimentando la bobina K1,
+entre un riel L1 y un riel N) usando los CÓDIGOS REALES de la librería
+(S00135/S00136 pulsadores, S00124 contacto auxiliar, S00130 bobina,
+S00119 barra) más una hoja de fuerza real (interruptor termomagnético +
+contactor + motor, vinculados por `referencia: "K1"`), cargado como
+archivo `.json` real por el mismo input que usa un usuario. Cero símbolos
+sin resolver. Con "Simular" activo y clics reales (pointerdown/up) sobre
+el pulsador: reposo todo apagado; Marcha presionada cierra K1aux Y
+energiza el motor (cruzando de hoja); al SOLTAR Marcha sigue enclavado;
+Parada corta todo; al soltar Parada no rearranca solo. Las cinco
+transiciones, correctas.
+
+Queda pendiente, explícitamente fuera de esta etapa: sentido de giro del
+motor (necesita terminales de fase diferenciados en el símbolo del motor
+y lógica nueva en el motor de simulación — no hay symbol book todavía para
+eso), variantes por cantidad de polos en bloques de contacto combinados, y
+ampliar la cobertura de "todos los elementos existentes" más allá de los
+13 símbolos de comando ya aprobados.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py` (fuerza y `--carpeta comando`) y
+`generar_tipos_atributos.py --verificar`, todos en verde.
+
+## E65 — Sentido de giro del motor + un bug real de selección en modo simulación
+
+Continuación directa de E64 en la misma sesión ("hacé todo lo que sea para
+solucionar todo lo que dije"): el segundo pedido pendiente era que el motor
+mostrara el sentido de giro calculado, no solo que un arranque reversible
+"funcione".
+
+### Diseño: sin terminales de fase, reusando `referencia`
+
+Un arranque reversible cambia el sentido invirtiendo dos fases con DOS
+contactores entrelazados. Modelar eso bien (qué fase física llega a qué
+terminal del motor) exigiría símbolos con terminales U/V/W diferenciados,
+que no existen. Se evitó ese trabajo: el contactor gana `rol_reversor`
+("adelante" | "atrás") y `motor_asociado` (referencia del motor que
+gobierna), reusando el mismo mecanismo de `referencia` que ya vincula
+bobina↔contactos. `simulacion.ts` agrega `calcularSentidoGiro()`: para cada
+motor con `referencia` cargada, busca los contactores que declaren esa
+misma referencia en `motor_asociado` y mira cuál de los dos ("adelante" o
+"atrás") está cerrado — si están cerrados los dos a la vez (falla de
+enclavamiento) o ninguno, informa "detenido", nunca inventa un sentido sin
+una respuesta clara. `NodoSimbolo.tsx` agrega la línea "⟳ Sentido: …" a la
+anotación del motor, solo en modo simulación y solo si tiene algún
+reversor asociado.
+
+### Bug real encontrado en vivo (no un artefacto de la prueba)
+
+Al verificar con un motor + KM1 (adelante) + KM2 (atrás), presionar el
+primer pulsador (Marcha-adelante) funcionaba, pero presionar el SEGUNDO
+(Marcha-atrás) no registraba nada — ni un solo evento nativo de
+`pointerdown` llegaba a su `<div>`. Diagnóstico con
+`document.elementFromPoint()`: el clic caía sobre un `<h3>` de
+`PanelAtributos`, no sobre el pulsador. Causa real: presionar un pulsador
+en modo simulación también lo SELECCIONA (comportamiento normal de React
+Flow, nunca desactivado para este modo), lo que abre el panel de ficha
+técnica — y ese panel, posicionado en pantalla, quedaba tapando al
+pulsador vecino.
+
+Primer intento de arreglo, descartado: `elementsSelectable={false}` en
+`<ReactFlow>` saca la selección, pero React Flow también le pone
+`pointer-events: none` al nodo entero con eso — dejaba de llegar hasta el
+clic del propio pulsador que se quería presionar. Arreglo real:
+`PanelAtributos.tsx` no se renderiza mientras `modoSimulacion` es `true`
+(el nodo se sigue seleccionando internamente, pero no hay panel que tapar
+nada) — no interfiere con nada del modo simulación, y editar una ficha
+mientras se simula tampoco tenía sentido.
+
+### Verificado en vivo
+
+Circuito real (motor M1, KM1 adelante / KM2 atrás, dos pulsadores, dos
+bobinas, mismos rieles L1/N de E64) cargado como `.json` con códigos
+reales de la librería. Con clics de mouse de verdad: reposo → sentido
+"detenido"; Marcha-adelante presionada → KM1 cierra, motor energizado,
+sentido "adelante"; soltar → todo se apaga (sin autoenclavamiento en este
+circuito, a propósito); Marcha-atrás presionada → KM2 cierra, sentido
+"atrás". Los cinco valores, correctos.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py` (fuerza y `comando`) y `generar_tipos_atributos.py
+--verificar`, todos en verde.
+
+## E66 — Multifilar muestra toda la librería + retardo a la desconexión
+
+Cierre del pedido "hacé todo lo que sea para solucionar todo lo que dije":
+lo último pendiente eran "todos los elementos existentes" y "las variantes
+con las diferentes cantidades de polos".
+
+### "Todos los elementos": la Paleta multifilar ahora es la unión completa
+
+Hasta E65, la hoja multifilar mostraba SOLO los 13 símbolos de
+`libreria-simbolos/comando/`. `Paleta.tsx` ahora arma la unión de esa
+librería con la de fuerza completa (`new Map([...SIMBOLOS,
+...SIMBOLOS_COMANDO])`) cuando `modo === "multifilar"` — un circuito de
+mando puede necesitar cualquier cosa (un fusible de mando, un
+transformador chico, un instrumento de medición…), no solo lo pensado
+específicamente para él. Fuerza sigue mostrando solo su propia librería,
+sin cambios (regla de alcance ya acordada: "fuerza solo protecciones y
+cargas"). Verificado en vivo: la Paleta multifilar pasó de 13 a 35
+símbolos disponibles.
+
+### "Variantes de polos": ya estaban resueltas, con un caso real completado
+
+Auditoría de los 24 subtipos de `aparato.schema.json`: **todo dispositivo
+de FUERZA donde "polos" significa conductores que switchea/protege ya
+tiene `cantidad_polos`** como campo de ficha (interruptor termomagnético,
+contactor, fusible, MCCB, guardamotores, relé térmico, portafusible,
+diferencial) — es informativo, no cambia el dibujo, porque el unifilar es
+justamente UNA línea para todas las fases por definición. Los dispositivos
+de COMANDO (contacto auxiliar, pulsador, bobina…) resuelven "más de un
+polo/contacto" colocando VARIAS instancias del símbolo que comparten la
+misma `referencia` — ya probado y funcionando en E62/64/65 (un contactor
+con dos contactos auxiliares, dos contactores para un arranque
+reversible). No hacía falta ninguna arquitectura nueva.
+
+Lo que SÍ estaba genuinamente incompleto: la familia `temporizador` solo
+tenía el retardo **a la conexión** (07-76-08 bobina, 07-71-15/17
+contactos) — el retardo **a la desconexión** (07-76-07, 07-71-16/18)
+había quedado deliberadamente afuera en E16 "por falta de un caso de uso
+concreto". El pedido actual ("todos los elementos existentes") es
+justamente ese caso de uso. Se agregan:
+
+- **S00146** Bobina de temporizador, retardo a la desconexión (07-76-07):
+  mismo rectángulo que S00143, tercio izquierdo **relleno negro** en vez
+  de cruzado en X (así distingue la norma las dos variantes — verificado
+  contra la lámina, página 64 del PDF).
+- **S00147/S00148** Contacto NA/NC temporizado, retardo a la desconexión
+  (07-71-16/18): mismo calificador de "acción retardada" que S00144/145,
+  pero **espejado** — la norma (página 51) invierte hacia qué lado bombea
+  el arco entre "retarda al activar" y "retarda al desactivar". Nueva
+  función `retardo_horizontal_invertido()` en `generar_simbolos_iec.py`
+  (invierte el signo del coseno del arco, mismas puntas ancladas).
+
+`aparato.schema.json`: `temporizador.tipo_retardo` pasa de `const`
+(`"a_la_conexion"` fijo) a `enum` con las dos variantes, `x-obligatorio`.
+Sin migración: todo temporizador existente ya traía el valor poblado
+desde `atributos_base` de su símbolo.
+
+Los 3 símbolos quedan `estado_revision: "pendiente_revision"` — mismo
+paso que falta para cualquier símbolo nuevo de esta librería: mostrárselos
+al usuario. Publicados en un Artifact de revisión
+(`revision-retardo-desconexion.html`) comparando cada uno con su par ya
+aprobado, para que el espejo se pueda chequear de un vistazo.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (16/16) y `generar_tipos_atributos.py
+--verificar`, todos en verde. Cada símbolo nuevo renderizado a PNG (vía
+la galería `libreria-simbolos/comando/index.html`) y revisado
+individualmente antes de publicarlo.
+
+### E66.1 — Retardo a la desconexión, aprobado
+
+El usuario aprobó los 3 símbolos sin correcciones ("aprobado"). Los
+`metadata.json` de S00146, S00147 y S00148 pasan `estado_revision` de
+`pendiente_revision` a `verificado`. Galería regenerada — la librería de
+comando queda en 16/16 símbolos verificados.
+
+## E67 — Sensores de proximidad
+
+Continuación de "con lo demás símbolos" (E66). Se buscó en el índice
+general del PDF de la norma (página 1, nunca revisado hasta ahora) qué
+faltaba cubrir dentro de la Sección 7, y apareció **074 "Dispositivos de
+Proximidad y Sensibles al Toque"** (página 60) — sensores inductivos,
+capacitivos y fotoeléctricos, casi universales en cualquier tablero de
+automatismo real y hasta ahora sin ningún símbolo en la librería.
+
+Se agregan **S00149/S00150** (contacto NA/NC sensible a proximidad,
+07-74-06): mismo patrón compositivo que pulsador (S00135) y selector
+(S00137) ya aprobados — actuador a la izquierda, enlace horizontal
+punteado a la mitad de la cuchilla — con el rombo de sensor de
+proximidad (07-74-01: dos triángulos separados por una línea vertical)
+en lugar de corchete o botón giratorio. La norma solo lamina la variante
+NA; la NC se construye por analogía composicional, documentado así en
+`fuente_norma`.
+
+Nuevo subtipo `sensor_proximidad` en `aparato.schema.json`: `tipo_contacto`
+(NA/NC, como interruptor_posicion), más `tecnologia` (inductivo /
+capacitivo / fotoeléctrico / otra), `distancia_deteccion_mm` y
+`tension_v` — a diferencia de un interruptor de posición mecánico, un
+sensor de proximidad es electrónico y necesita alimentación propia.
+
+`simulacion.ts`: `sensor_proximidad` entra a `TIPOS_CONTACTO_MANUAL`, con
+el mismo criterio que `interruptor_posicion` — el clic del usuario en
+modo simulación representa "el objeto está ahí", no una orden de mando.
+
+Los 2 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks — hubo que relevantar `npm run preview` en segundo plano, se
+había caído entre mensajes), `verificar_proyecto_real.mjs`,
+`verificar_alineacion.mjs`, `lint_simbolos.py --carpeta comando` (18/18)
+y `generar_tipos_atributos.py --verificar` (28 interfaces), todos en
+verde.
+
+### E67.1 — Sensores de proximidad, aprobados
+
+El usuario aprobó los 2 símbolos ("aprove and continue"). Los
+`metadata.json` de S00149 y S00150 pasan `estado_revision` de
+`pendiente_revision` a `verificado`. Galería regenerada — la librería de
+comando queda en 18/18 símbolos verificados.
+
+## E68 — Termostato
+
+Continuación de "con lo demás símbolos". Revisando la página 54 del PDF
+de la norma (Sección 072, "Seccionadores sensibles a la temperatura")
+apareció otro sensor de uso muy común y hasta ahora sin ningún símbolo:
+el **termostato** (07-72-11/12) — contacto que abre o cierra por la
+temperatura del ambiente o de un elemento, sin mando eléctrico ni manual.
+
+Se agregan **S00151/S00152** (termostato NA/NC): mismo contacto NA/NC de
+siempre, con un calificador nuevo al costado — "θ" dentro de un óvalo,
+sin enlace ni línea de conexión (a diferencia de pulsador/sensor de
+proximidad, que sí llevan un actuador con enlace punteado). Mismo patrón
+de posicionamiento que el triángulo de interruptor de posición (S00140):
+un glifo chico a la derecha del contacto, en (6,0).
+
+Nuevo subtipo `termostato` en `aparato.schema.json`: `tipo_contacto`
+(NA/NC), `temperatura_consigna_c`, `diferencial_c` (histéresis) y
+`tension_v` opcional (un termostato bimetálico simple no necesita
+alimentación propia; uno electrónico sí). `simulacion.ts` lo agrega a
+`TIPOS_CONTACTO_MANUAL` con el mismo criterio que interruptor de posición
+y sensor de proximidad: el clic del usuario representa que la condición
+externa (temperatura alcanzada) se cumplió, no una orden de mando.
+
+Los 2 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (20/20) y `generar_tipos_atributos.py
+--verificar` (29 interfaces), todos en verde.
+
+### E68.1 — Termostato, aprobado
+
+El usuario aprobó los 2 símbolos ("good, continue"). Los `metadata.json`
+de S00151 y S00152 pasan `estado_revision` de `pendiente_revision` a
+`verificado`. Galería regenerada — la librería de comando queda en
+20/20 símbolos verificados.
+
+## E69 — Interruptor termomagnético multipolar (piloto): la parte de fuerza faltaba en multifilar
+
+Corrección real del usuario sobre E66: agregar la librería de fuerza
+COMPLETA a la Paleta multifilar (E66) no alcanzaba, porque esos símbolos
+siguen dibujados en estilo UNIFILAR (una sola línea para todas las
+fases) — y un diagrama multifilar de verdad dibuja cada polo como su
+PROPIA línea. Palabras del usuario: *"ahí deben haber múltiples porque
+se trata de multipolar, entonces debe haber unipolar, bipolar, tripolar
+y tetrapolar"*.
+
+### Alcance: piloto sobre un solo aparato, antes de escalar
+
+Extender esto a los ~9 aparatos de fuerza con `cantidad_polos` en su
+ficha (interruptor termomagnético, contactor, MCCB, guardamotores,
+diferencial, fusible, portafusible, relé térmico) en las 4 variantes de
+polo es un lote grande (hasta 36 símbolos). Se hizo primero un piloto
+sobre **interruptor termomagnético** para validar el criterio de
+composición antes de escalar al resto — mismo patrón que ya funcionó en
+E15 (lote piloto → aprobación → lote grande).
+
+### Composición: un polo, repetido N veces, con enlace mecánico
+
+Se extrajo el trazo de "interruptor automático" (aspa 07-70-02 + cuchilla
+07-71-01) que ya usa S00121 (MCCB) como una función de UN polo, sin el
+envolvente moldeado. `interruptor_multipolar(n)` la repite `n` veces con
+un espaciado fijo (10 unidades, múltiplo de grilla) y agrega una línea
+punteada horizontal a la altura del aspa uniendo todos los polos — el
+"enlace mecánico" que ya usa la norma para indicar que varios contactos
+operan juntos. Nacen **S00153/154/155/156** (interruptor termomagnético
+uni/bi/tri/tetrapolar), viven en `comando/` porque son para uso
+multifilar, con el MISMO `tipo_aparato: "interruptor_termomagnetico"`
+que S00110 — es el mismo dispositivo eléctrico, solo cambia cómo se
+dibuja. `atributos_base.cantidad_polos` viene pre-cargado según la
+variante elegida.
+
+### Bug real que esto expuso en el motor de simulación
+
+Un aparato multipolar tiene terminales `in1/out1`, `in2/out2`, etc. — no
+el par `in`/`out` de siempre. `construirRed()` en `simulacion.ts` caía
+en la rama "aparato de más de 2 terminales, tipo conocido → no hace
+nada" (pensada para casos ambiguos sin resolver), así que NINGÚN polo
+conducía nunca, ni con el interruptor cerrado. Se agregó
+`agruparPolos()`: reconoce la convención `inN`/`outN`, arma los pares
+por número de polo, y aplica el MISMO resultado de `calcularCerrado()`
+a todos los pares — los polos son independientes entre sí pero abren y
+cierran juntos (un solo mecanismo). Si algún terminal no sigue esa
+convención, cae al comportamiento anterior (sin cambios para el resto
+de la librería).
+
+Verificado en vivo: circuito con 3 rieles de fase (L1/L2/L3), un
+interruptor termomagnético tripolar (S00155) y un motor, cargado como
+`.json` real — con "Simular" activo, el interruptor cierra sus 3 polos
+y el motor queda energizado. Antes del fix del motor de simulación, el
+motor quedaba sin energizar pese al interruptor "cerrado" (el bug real
+que describe el párrafo anterior).
+
+Los 4 símbolos quedan `estado_revision: "pendiente_revision"` — piloto
+para aprobación antes de escalar el mismo criterio a contactor,
+guardamotores, MCCB, diferencial, fusible, portafusible y relé térmico.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (24/24) y `generar_tipos_atributos.py
+--verificar` (29 interfaces, sin cambio de schema — reusa
+`interruptor_termomagnetico` existente), todos en verde.
+
+### E69.1 — Interruptor multipolar, piloto aprobado
+
+El usuario resolvió la duda de espaciado entre polos comparando contra
+la grilla real del editor (5 unidades = 1 celda) y confirmó que el
+espaciado ya publicado (2 celdas) era el correcto — el problema era que
+la primera galería de revisión usaba una grilla decorativa a escala
+arbitraria, no la grilla real. Sin cambios de código: los 4
+`metadata.json` de S00153–156 pasan `estado_revision` de
+`pendiente_revision` a `verificado`. Galería regenerada — la librería
+de comando queda en 24/24 símbolos verificados. Sigue el escalado del
+mismo criterio (E69) al resto de los aparatos multipolares de fuerza:
+contactor, guardamotores, MCCB, diferencial, fusible, portafusible y
+relé térmico.
+
+## E70 — Contactor multipolar
+
+Continúa el escalado de E69 (ya aprobado) al segundo aparato: **contactor**.
+Mismo criterio de composición — un polo repetido N veces con enlace
+mecánico punteado — pero el trazo de un polo es el "contacto principal
+de contactor" (07-70-01, semicírculo calificador) que ya usa S00112 en
+la librería de fuerza, **sin la bobina**: la bobina vive aparte, como
+símbolo de comando (S00130), vinculada por `referencia` — el mismo
+mecanismo cruzado-de-hoja que ya prueban E62/64/65.
+
+Nacen **S00157/158/159/160** (contactor uni/bi/tri/tetrapolar), mismo
+`tipo_aparato: "contactor"` que S00112. Ningún cambio de motor de
+simulación: `agruparPolos()` (el fix de E69) ya es genérico para
+cualquier aparato con terminales `inN`/`outN`, así que el contactor
+multipolar conduce correctamente sin tocar `simulacion.ts`.
+
+Los 4 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (28/28) y `generar_tipos_atributos.py
+--verificar` (29 interfaces, sin cambio de schema), todos en verde.
+
+### E70.1 — Verificación real de punta a punta (pedida por el usuario)
+
+El usuario pidió pruebas concretas antes de dar por buena la corrección
+del Artifact, no solo la revisión visual. Se armó el circuito real
+completo: hoja de comando (pulsador NA + bobina K1 entre rieles Lc/N) +
+hoja de fuerza (3 rieles L1/L2/L3 + contactor tripolar S00159 referencia
+K1 + motor), cargado como `.json` real, con clics de mouse de verdad en
+modo Simular. Reposo: todo apagado. Marcha presionada: la bobina K1 se
+energiza → el contactor cierra sus 3 polos → el motor queda energizado
+(los 3 polos conducen L1/L2/L3 hacia el motor, no solo el primero).
+Marcha soltada: sin autoenclavamiento en este circuito, todo se apaga.
+Confirma que el contactor multipolar funciona con su lógica real de
+bobina (no solo "siempre cerrado" como el interruptor termomagnético
+verificado en E69), a través de las 3 fases simultáneamente.
+
+### E70.2 — Contactor multipolar, aprobado
+
+El usuario aprobó los 4 símbolos ("Bien, si segui con el siguiente
+dispositivo"). Los `metadata.json` de S00157–160 pasan `estado_revision`
+de `pendiente_revision` a `verificado`. Galería regenerada — la librería
+de comando queda en 28/28 símbolos verificados.
+
+## E71 — Guardamotores multipolares
+
+Continúa el escalado de E69/E70 al tercer y cuarto aparato:
+**guardamotor termomagnético** y **guardamotor magnético**. Mismo
+criterio de composición, ahora factorizado en un helper genérico
+`repetir_polos(dibujar_polo, n_polos, y_link, hoja_min_y, hoja_alto)`
+en `generar_simbolos_iec.py` (antes duplicado entre
+`interruptor_multipolar()`/`contactor_multipolar()`; no se tocó ese
+código ya aprobado, el helper nuevo lo usan solo los aparatos que
+siguen).
+
+El trazo de un polo es el mismo que ya usan S00122 (termomagnético, dos
+cajas de disparo: térmico + magnético) y S00133 (magnético, una sola
+caja) en la librería de fuerza. Nacen **S00161–164** (termomagnético
+uni/bi/tri/tetrapolar) y **S00165–168** (magnético uni/bi/tri/tetrapolar),
+mismo `tipo_aparato` que sus pares unifilares — ambos ya están en
+`TIPOS_SIEMPRE_CERRADO` del motor de simulación, así que conducen igual
+que el interruptor termomagnético sin tocar `simulacion.ts`.
+
+Verificado en vivo (pedido explícito del usuario de probar, no solo
+revisar visualmente): 3 rieles de fase + guardamotor termomagnético
+tripolar (S00163) + motor, cargado como `.json` real — con "Simular"
+activo, conduce por los 3 polos y el motor queda energizado.
+
+Los 8 símbolos quedan `estado_revision: "pendiente_revision"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
+`lint_simbolos.py --carpeta comando` (36/36) y `generar_tipos_atributos.py
+--verificar` (29 interfaces, sin cambio de schema), todos en verde.
+
+### E71.1 — Aprobado y verificado
+
+Quedaron pendientes durante los lotes E72–E74 (la revisión llegó recién
+después de MCCB, diferencial y fusible/portafusible). Los 8 símbolos
+(S00161–168) pasan a `estado_revision: "verificado"`.
+
+## E72 — Paleta: variantes de polos agrupadas detrás de un flyout al pasar el mouse
+
+Pedido explícito del usuario, viendo crecer la librería con guardamotores
+(E71): en vez de listar cada variante de polos como un ítem plano en la
+Paleta (interruptor termomagnético unipolar/bipolar/tripolar/tetrapolar,
+contactor ídem, guardamotores ídem — ya son 20 ítems solo de eso, y
+crecerá con MCCB/diferencial/fusible/portafusible/relé térmico),
+agruparlas detrás de UN botón que las despliega al pasar el mouse por
+arriba, hacia el costado.
+
+`agruparPorPolos()` en `Paleta.tsx`: un símbolo entra a un grupo si
+comparte `tipo_aparato` con al menos otro Y declara `cantidad_polos` en
+su ficha base — ese filtro es a propósito angosto: NO agrupa pulsador
+NA/NC, contacto auxiliar NA/NC, sensor de proximidad NA/NC, etc. (esos
+son símbolos realmente distintos, no "el mismo aparato con más polos"),
+solo las variantes multipolares nacidas desde E69. El botón
+representante muestra el nombre sin la palabra de polos ("Interruptor
+termomagnético"); el flyout lista cada variante con SOLO la palabra de
+polos ("Unipolar", "Bipolar"…), ya que el nombre completo está en el
+botón que lo abre.
+
+Detalle de implementación: el flyout usa `position: fixed` (no
+`absolute`) posicionado a mano con el rectángulo real del botón — con
+`absolute` lo recortaría el `overflow-y: auto` de `.paleta` (CSS
+calcula `overflow-x` como `auto` en ese caso aunque no se lo pida
+explícito, es un comportamiento estándar poco conocido). Un timeout
+chico (200ms) en el cierre, compartido entre el botón y el flyout, deja
+mover el mouse de uno a otro sin que se cierre de golpe — mismo
+criterio que un submenú nativo.
+
+Verificado en vivo: antes de pasar el mouse, ningún ítem "…polar" queda
+suelto en la lista (43 símbolos totales en multifilar, ninguno con
+"polar" en el nombre visible); al pasar el mouse sobre "Interruptor
+termomagnético" aparece el flyout con las 4 variantes a la derecha;
+arrastrar "Tripolar" desde el flyout coloca efectivamente S00155
+(`cantidad_polos: 3`) — el flujo de arrastre no se rompió.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs` y `verificar_alineacion.mjs`,
+todos en verde.
+
+## E73 — MCCB multipolar: envolvente moldeado compartido por todos los polos
+
+Continúa el escalado E69/E70/E71 con el siguiente dispositivo de fuerza en
+multifilar: el interruptor automático en caja moldeada (MCCB, S00121
+unifilar). A diferencia de interruptor termomagnético/contactor/guardamotor,
+acá el envolvente NO se repite por polo — un MCCB real tiene UNA sola caja
+física que aloja todos los polos, así que `mccb_multipolar()` dibuja el
+rectángulo una única vez, con el ancho de los N polos, y repite adentro el
+mismo aspa+cuchilla de `interruptor_automatico_polo()` (ya extraído de
+S00121 en E69, sin cambios). No hace falta tocar `simulacion.ts`: los
+terminales son `inN`/`outN` igual que el resto de la familia multipolar, así
+que `agruparPolos()` (E69) los agrupa sin ningún caso nuevo.
+
+Nacen **S00169–172** (MCCB uni/bi/tri/tetrapolar), mismo `tipo_aparato:
+"mccb_caja_moldeada"` que S00121 unifilar. El 1P (S00169) queda idéntico al
+unifilar existente (mismo trazo exacto); el rectángulo compartido crece de a
+10 unidades de viewBox por polo agregado, con 2 unidades de margen a cada
+lado del envolvente.
+
+Revisión: artefacto con grilla real embebida (patrón SVG de 5 unidades =
+1 celda de editor) comparando los 4 nuevos contra el interruptor
+termomagnético 4P ya aprobado (mismo aspa, sin caja compartida) — aprobado
+sin cambios.
+
+### E73.1 — Aprobado y verificado
+
+Los 4 símbolos pasan a `estado_revision: "verificado"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py --carpeta comando` (40/40), todos en verde.
+
+## E74 — Interruptor diferencial multipolar: toroide sumador compartido
+
+Siguiente dispositivo de la cola (después de MCCB, E73). Composición
+distinta de todo lo anterior: acá lo compartido entre polos NO es el
+envolvente sino el **toroide sumador** — un diferencial real mide la suma
+vectorial de la corriente de TODOS los conductores (fase + neutro) con un
+único núcleo, por eso `diferencial_multipolar()` dibuja el mismo aspa+cuchilla
+de `diferencial_polo()` (extraído de S00128, sin el toroide) N veces, y agrega
+el toroide una sola vez con el radio ajustado al ancho de los N polos
+(`rx = mitad_del_ancho + 7`, mismo margen que el unifilar).
+
+El enlace punteado de disparo generaliza la polilínea de 3 puntos que ya
+usa S00128 (borde izquierdo del toroide → arriba → hacia el mecanismo del
+polo): para n_polos=1 la fórmula colapsa exactamente al trazo original
+(confirmado con `diff`, S00173 es **idéntico byte a byte** a S00128). Para
+n>1 el tramo final del enlace cruza por debajo de los polos intermedios sin
+tocar sus cuchillas — mismo criterio de cruce limpio que ya usa el enlace
+mecánico de `contactor_multipolar()` (E70).
+
+Nacen **S00173–176** (uni/bi/tri/tetrapolar), mismo `tipo_aparato:
+"interruptor_diferencial"` que S00128 unifilar. Terminales `inN`/`outN`
+iguales al resto de la familia multipolar: no hace falta tocar
+`simulacion.ts`, `agruparPolos()` (E69) ya los agrupa.
+
+### E74.1 — Aprobado y verificado
+
+Los 4 símbolos pasan a `estado_revision: "verificado"`.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py --carpeta comando` (44/44), todos en verde.
+
+## E75 — Fusible y seccionador fusible multipolares: sin enlace mecánico entre polos
+
+Último dispositivo de la cola planteada junto con MCCB/diferencial (E73/E74).
+Composición deliberadamente distinta de TODO lo anterior: acá no hay ningún
+trazo compartido entre polos. Un fusible funde según la corriente de SU
+propio conductor — no existe un mecanismo que abra o cierre los N polos en
+conjunto (a diferencia del interruptor/contactor/guardamotor, donde el
+enlace punteado representa justamente ese mecanismo común). Por eso
+`fusible_multipolar()` y `portafusible_multipolar()` son simplemente "repetir
+el polo N veces", sin agregar ningún elemento extra ni enlace.
+
+`fusible_polo()` reproduce el cartucho simple de S00113 (rectángulo +
+línea). `portafusible_polo()` reproduce el seccionador fusible de S00127
+(barra 07-70-03 + cuchilla + cartucho montado sobre la cuchilla, vía
+`rect_sobre_recta()`, ya reutilizado sin cambios desde E4). La comparación
+byte a byte con S00113 dio limpia; con S00127 no, porque ese archivo quedó
+guardado con formato de grupos/`transform` de un paso anterior por el editor
+visual — resueltas las matrices a mano, las coordenadas finales coinciden
+exactamente. No se tocó el unifilar: es una discrepancia de codificación
+preexistente, ajena a este lote.
+
+Nacen **S00177–180** (fusible uni/bi/tri/tetrapolar, `tipo_aparato:
+"fusible"`) y **S00181–184** (seccionador fusible uni/bi/tri/tetrapolar,
+`tipo_aparato: "portafusible"`). Ambos ya están en `TIPOS_SIEMPRE_CERRADO`
+del motor de simulación (no se modela el fusible fundiendo), así que
+`agruparPolos()` los agrupa igual que al resto de la familia sin ningún
+caso nuevo — el resultado es el mismo (todos los polos cerrados) tanto si
+se los trata como independientes como si se aplica el criterio uniforme de
+`agruparPolos()`, porque nunca hay un estado que diverja entre polos.
+
+### E75.1 — Aprobado y verificado
+
+Los 8 símbolos pasan a `estado_revision: "verificado"`. Con este lote, la
+librería de comando/control queda **completa: sus 52 símbolos, verificados**.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py --carpeta comando` (52/52), todos en verde.
+
+## E76 — Relé térmico multipolar: caja compartida con un solo símbolo de protección
+
+Último dispositivo de la cola (después de fusible/portafusible, E75). Primer
+intento: repetir una caja de relé térmico completa (con su propio símbolo de
+efecto térmico adentro) por polo, unidas por un enlace punteado — igual
+criterio que guardamotor (E71). Corrección del usuario sobre ese primer
+intento: un relé térmico trifásico real tiene UN solo mecanismo de disparo
+que censa las tres fases a la vez, así que corresponde UNA caja compartida
+con UN solo símbolo de protección térmica centrado — mismo criterio que el
+envolvente compartido de MCCB (E73), no el del enlace punteado entre cajas
+repetidas.
+
+`rele_termico_multipolar(n_polos)` reemplaza el primer intento: dibuja el
+rectángulo una sola vez (ancho ajustado a los N polos, margen de 6 unidades
+a cada lado como en el unifilar S00123), los N conductores lo atraviesan de
+punta a punta, y el símbolo de efecto térmico (03-30-37) se dibuja una sola
+vez, centrado en x=0 sin importar cuántos polos haya. Sin enlace punteado:
+la caja compartida ya representa el mecanismo común.
+
+Nacen **S00185–188** (uni/bi/tri/tetrapolar), mismo `tipo_aparato:
+"rele_termico"` que S00123 unifilar. El unipolar (S00185) reproduce la
+misma geometría que S00123 (la línea del conductor queda entera en vez de
+partida en dos a la altura de la caja, pero el trazo resultante es
+idéntico). Terminales `inN`/`outN` a y=-30/20, igual que el resto de la
+familia — `agruparPolos()` (E69) los agrupa sin ningún caso nuevo.
+
+Los 4 símbolos quedan `estado_revision: "pendiente_revision"`, a la espera
+de aprobación del diseño corregido.
+
+Verificaciones: `tsc -b`, `lint_simbolos.py --carpeta comando` (56/56).
+
+## E77 — Dos bugs de interacción reportados por el usuario
+
+Corrección de dos problemas reales de uso, señalados junto con la
+observación de E76:
+
+**(1) Arrastrar un pulsador en modo simulación desplazaba el símbolo
+completo**, en vez de solo accionarlo. `e.stopPropagation()` en el
+`onPointerDown` de `NodoSimbolo.tsx` no alcanza: React Flow inicia el
+arrastre de nodo con su propio listener nativo (XYDrag), que no lo detiene
+un `stopPropagation()` de React. El mecanismo oficial de React Flow para
+esto es la clase `nodrag` (la misma que ya usan sus `Handle` internamente) —
+se agrega solo cuando el símbolo es `accionable` (modo simulación + tipo
+interactivo), así que fuera de simulación el arrastre normal del nodo sigue
+intacto.
+
+**(2) Conectar dos terminales "entrada" entre sí no dejaba** — reportado al
+rotar una llave selectora e intentar unir su terminal de abajo (que tras
+rotar 180° pasó a ser una `entrada`, ya que originalmente estaba arriba) con
+la entrada de otro aparato (p. ej. para seleccionar entre bobinas de
+contactores). Causa doble:
+
+- `<ReactFlow>` nunca declaraba `connectionMode`, así que corría con el
+  default `Strict` (React Flow solo permite conectar un handle `source` con
+  uno `target`, nunca del mismo tipo entre sí) — nunca fue una decisión de
+  diseño, simplemente no se había tocado. Se agregó
+  `connectionMode={ConnectionMode.Loose}`.
+- Aun en `Loose`, `getEdgePosition` (la función interna de React Flow que
+  calcula por dónde pasa el cable) busca el lado "source" de la conexión
+  SOLO en `handleBounds.source` del nodo — nunca en `.target`, sin importar
+  el modo. Como el `type` de cada `Handle` en `NodoSimbolo.tsx` es fijo
+  según el `rol` del punto (`entrada` → `target`, `salida` → `source`), una
+  conexión entrada-entrada terminaba con un extremo cuyo handle real es
+  `target`, y la búsqueda en `.source` fallaba: la conexión se creaba en el
+  modelo de datos (el checklist ya la veía) pero el cable quedaba invisible.
+  Se agregó, por cada punto de conexión, un segundo `<Handle>` "espejo" —
+  mismo `id`, tipo opuesto, invisible (clase `handle-espejo`, sin el anillo
+  visual) — así cualquier terminal ofrece TANTO un handle `source` como uno
+  `target` en el mismo lugar, y `getEdgePosition` siempre encuentra lo que
+  necesita sin importar qué lado terminó siendo "source" en los datos. No
+  hace falta tocarlo en `simulacion.ts`: ya trata cada conexión como un par
+  no dirigido.
+
+`e2e/conexiones.mjs` tenía 4 selectores de handle por `data-nodeid`+
+`data-handleid` que ahora matchean DOS elementos (el visible y el espejo);
+se les agregó `:not(.handle-espejo)` para desambiguar.
+
+Verificado en vivo (real drag-and-drop con Playwright, no solo revisión de
+código): (1) arrastrar un pulsador con el mouse durante la simulación deja
+la posición del nodo sin cambios (0.00 px de desplazamiento) y un press
+estacionario sigue marcando `nodo-simbolo-presionado`/energizando el
+circuito con normalidad; (2) conectar la terminal `pos1` (entrada) de un
+selector de 2 posiciones con la terminal `in` (entrada) de una bobina de
+contactor/relé — dos handles `target` en nodos distintos — ahora sí dibuja
+el cable (antes del fix del handle espejo la conexión existía en el modelo,
+visible en el checklist ["Conexión ... → ...: cable sin conductores"], pero
+sin ningún trazo en el lienzo).
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks, con los selectores de handle corregidos),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` (fuerza 19/19, comando 56/56), todos en verde.
+
+## E76.1 — Relé térmico: los conductores dejan de cruzar el recuadro
+
+Aprobación con corrección del usuario sobre E76: *"las líneas que
+atraviesan el recuadro donde está la simbología de la protección térmica
+eso no me gusta, lo demás está bien"*.
+
+Las tres (o N) líneas de polo iban de punta a punta (`y=-30` a `y=20`) y
+pasaban por encima del glifo de efecto térmico (03-30-37) centrado en la
+caja. Ahora cada conductor se corta en el borde del recuadro — de `-30` a
+`-6` arriba y de `6` a `20` abajo — así que la caja compartida se lee
+como un elemento en serie sobre los N polos (el elemento calefactor), con
+el símbolo térmico solo y legible adentro.
+
+Los puntos de conexión no se movieron, así que ni el editor ni
+`simulacion.ts` ven ningún cambio. Verificado: `lint_simbolos.py`
+(fuerza 19/19, comando 56/56), `tsc -b`, `npm run build`,
+`verificar_alineacion.mjs`, `verificar_proyecto_real.mjs`.
+
+## E78 — Simular todo lo posible: llave selectora, bobinas vinculadas y cargas con lazo real
+
+Tercera parte del pedido de feedback de E76/E77: *"también me fijé que en
+el contactor no pusiste la bobina para su activación para la simulación,
+y para los relés los contactos que se activan ante su activación, que
+debería también dejar simular todo lo posible en todos estos elementos"*.
+Son tres huecos distintos del motor de E62.
+
+**(1) La llave selectora ahora se simula.** El comentario de
+`simulacion.ts` decía que no era simulable porque "el schema no declara
+qué contacto cierra en qué posición" — pero el dato ya estaba, en otro
+lado: los propios puntos de conexión del símbolo declaran la topología
+real de una llave rotativa, un común (`com`) y una entrada por posición
+(`pos1`, `pos2`, `pos3`). Simular es unir `com` con el `posN` elegido y
+dejar el resto abierto; no hizo falta ningún campo nuevo de ficha
+técnica. La posición elegida es estado de UI efímero
+(`simulacionPosiciones` en el store, análogo a `simulacionManual` para
+los pulsadores): un clic sobre la llave en modo simulación pasa a la
+posición siguiente y vuelve a la primera al llegar al final, igual que
+girarla con la mano, y el nodo muestra "⟲ Posición N de M". Sin elección
+previa se asume la posición 1 — una llave real siempre está en alguna
+posición, nunca "en ninguna". Esto habilita justamente el caso que
+reportó el usuario en E77: seleccionar entre dos bobinas de contactor.
+
+**(2) La bobina y los contactos nacen ya vinculados.** El mecanismo de
+vinculación existía desde E53 (compartir `referencia`), pero la
+referencia automática numeraba cada pieza por separado: una bobina
+colocada al lado de un contactor "KM1" nacía como "K1", así que la
+simulación las veía como dos aparatos distintos y el contactor nunca
+cerraba — había que corregir el campo a mano para que algo funcionara.
+Eso es lo que el usuario leyó como "no pusiste la bobina para su
+activación". Ahora `referenciaSugeridaAccesorio()` da un valor inicial
+útil: una bobina (`rele_auxiliar`) adopta la referencia del primer
+aparato de mando que todavía no tiene bobina (hoy solo el contactor: el
+resto de los multipolares son de accionamiento manual o térmico), y un
+contacto auxiliar adopta la de la última bobina colocada, que es el
+aparato que se está armando. Si no hay candidato se cae a la numeración
+de siempre. Sigue siendo un campo editable con su lista desplegable
+(E53) — es un valor por defecto, no una decisión irreversible.
+
+**(3) Las cargas de comando exigen el lazo completo.** Una lámpara
+piloto o una sirena se marcaban encendidas con que UN terminal llegara a
+una fuente, así que una lámpara con un solo cable a la fase aparecía
+prendida. Ahora `lampara_piloto` y `sirena_alarma` se resuelven como una
+bobina: fuente de un lado, retorno del otro. La regla se aplica solo
+donde la hoja declara algún retorno; en una hoja de fuerza dibujada sin
+barra de neutro no hay con qué cerrar el lazo y apagarlas todas sería
+peor que la aproximación vieja. Los sumideros de un solo terminal (el
+motor del unifilar) conservan la regla laxa por la misma razón.
+
+Verificación nueva y permanente: `apps/editor/e2e/simulacion.mjs`
+(`npm run e2e:simulacion`, contra el servidor de desarrollo porque
+importa el módulo TypeScript directo). Arma en memoria un circuito con
+riel L y N, una llave selectora de dos posiciones eligiendo entre las
+bobinas KM1 y KM2, el polo del contactor KM1 con su motor en OTRA hoja, y
+dos lámparas (una mal cableada, con un solo cable a la fase). Las 11
+comprobaciones pasan: cada posición energiza su bobina y solo esa, el
+polo del contactor de la hoja de fuerza sigue a la bobina de la hoja de
+comando, el motor arranca y para, volver a la posición 1 restaura el
+estado, la lámpara mal cableada queda apagada y la bien cableada
+encendida.
+
+Verificado además en vivo con el mouse real (Playwright sobre el editor):
+clic sobre la llave selectora cicla 1→2→1 con la bobina correcta
+encendida en cada paso y **0,00 px** de desplazamiento del nodo (la clase
+`nodrag` de E77 se aplica también al selector); y colocando desde la
+paleta una bobina y un contacto auxiliar en la hoja de comando, con un
+contactor KM1 ya dibujado en la hoja de fuerza, ambos nacen con la
+referencia **KM1** en vez de "K1".
+
+Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
+`npm run e2e` (21 checks), `npm run e2e:simulacion` (11 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` (fuerza 19/19, comando 56/56).
+
+Qué sigue sin simularse (a propósito, documentado en `simulacion.ts`):
+el temporizador es instantáneo (no hay dimensión de tiempo), las
+protecciones se asumen siempre sanas (no hay estado de disparo), el
+contacto auxiliar "NA+NC" no tiene símbolo de 4 terminales en la
+librería, y los nodos de familia "carga" del unifilar todavía no entran
+en el resultado.
+
+## E79 — Rediseño visual: "la mesa de dibujo"
+
+Pase de diseño sobre la interfaz entera, pedido con la skill
+`frontend-design`. El diagnóstico: la herramienta se comportaba como un
+sitio web —tarjetas redondeadas con sombra, emoji en la barra, tintes de
+color de librería por todos lados— cuando lo que es, es un instrumento
+alrededor de un plano. De ahí la idea rectora y sus tres reglas.
+
+**1. El blanco es papel.** La única superficie blanca de la pantalla pasa
+a ser la lámina (`--papel`). Los paneles son gris frío (`--bg-surface`) y
+los campos de carga un gris casi blanco (`--campo`). El lienzo alrededor
+de la hoja se oscurece a pizarra (`--bg-canvas`, antes `#d8dfe8`) para
+que el papel se lea como papel apoyado sobre la mesa. La sombra de la
+hoja (`--sombra-hoja`) es la única sombra de la app que representa algo
+real; las tarjetas perdieron las suyas.
+
+**2. El croma significa electricidad.** El cromo es acromático a
+propósito: el color queda reservado para lo que es eléctrico. El único
+acento de interfaz es el azul de cianotipo (`#1b4e8c`), elegido
+justamente porque queda FUERA del código de colores AEA
+(marrón/negro/rojo, celeste, verde-amarillo) y no va a competir con los
+conductores cuando se pinten las fases (pendiente 6). Se normalizaron
+~35 colores hardcodeados de librería (los verdes/ámbares/rojos tipo
+Tailwind desperdigados en avisos, toasts y badges) contra los tokens
+`--ok`, `--vivo` y `--error`.
+
+**3. Un solo momento audaz: el ámbar de circuito vivo.** El resaltado de
+aparato energizado pasó de verde a ámbar (`--vivo`), y el botón
+"Detener simulación" se enciende del mismo color. Verde quedó para "esto
+está bien/completo", que es otra cosa: un contacto energizado no es una
+validación aprobada, es un circuito vivo. Como el botón ya dice el
+estado en ámbar, se eliminó el badge "▶ SIMULACIÓN" que lo repetía.
+
+**Tipografía.** Archivo (Omnibus-Type, Buenos Aires) como única familia,
+en su versión variable con eje de ancho: el grotesco de formas
+rectificadas se lee como lettering de plano y el eje `wdth` da la
+condensada de las etiquetas densas sin sumar una segunda familia.
+Autohospedada (`@fontsource-variable/archivo`) para que el editor se vea
+igual sin conexión. Se agregó `font-family: inherit` a botones, inputs y
+selects: sin eso, media interfaz seguía con la fuente del sistema.
+
+La columna de etiquetas de la ficha técnica dejó de ser monoespaciada —
+no es un dato tabulado, es texto ("Sección", "Norma IRAM"), y la
+monoespaciada solo disfrazaba de dato lo que es una etiqueta. La
+monoespaciada queda donde sí corresponde: la anotación técnica SOBRE el
+plano (`.anotacion-nodo`, `.anotacion-edge`, `.alim-nota`), que es
+lettering de plano de verdad.
+
+**Barra superior.** Eran once botones de igual peso repartidos en dos
+filas, con emoji (💾📐⚡📂) y sin decir cuál sirve para qué. Ahora es una
+sola fila partida en grupos por función —documento · dibujo · simulación
+· salidas— separados por filetes, con lo instrumental (deshacer, rehacer,
+tema, ayuda) al margen derecho. El nombre del proyecto se muestra como
+título del documento y solo se comporta como campo cuando el mouse o el
+foco están encima. Sin emoji.
+
+**Paleta.** Cada símbolo era una tarjeta blanca con borde propio: 75
+tarjetas compitiendo entre sí y con el plano. Ahora son renglones planos
+sobre la superficie del panel, con la cabecera fija arriba; lo único que
+se dibuja al pasar el mouse es un filete de acento del lado del lienzo,
+que es hacia donde se lo va a arrastrar.
+
+**Checklist AEA.** Dejó de ser una tarjeta amarilla con subrayado
+punteado en cada elemento. Es una superficie de panel más y lo único en
+color es el filete izquierdo: ámbar mientras falten datos, verde cuando
+está completa. La columna de paneles flotantes se achicó de 460 a 380 px
+de ancho y de 62% a 44% de alto: con 24 pendientes tapaba media lámina,
+que es justamente lo que se está tratando de mirar.
+
+**Radios y filetes.** `--radio` bajó de 6 a 3 px y `--radio-chico` de 4 a
+2 px: la tarjeta redondeada de 6-8 px es lo que hace que una herramienta
+técnica parezca un sitio web.
+
+El PDF no cambia: `.captura-pdf-negro .hoja` y `.pagina-bom` fuerzan
+blanco literal (no `var(--papel)`), así el plano se imprime en papel real
+aunque el editor esté en tema oscuro.
+
+Verificado: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e` (21
+checks), `npm run e2e:simulacion` (11 checks), `verificar_alineacion.mjs`
+y `verificar_proyecto_real.mjs`. Revisado con capturas en claro y oscuro,
+con proyecto vacío y con el proyecto real del PPS, y en modo simulación.
+
+## E80 — Rieles de alimentación por preset, la barra primero y código de colores de conductores
+
+Los tres pendientes que quedaban de la ronda de feedback de E76/E77.
+
+**(4) Preset del juego de rieles.** Pedido: *"la barra donde colocamos
+las fases y neutro debería ser un preseteo de una disposición de las
+distintas combinaciones"*. Antes había que colocar cada riel a mano, uno
+por uno, y después abrirle la ficha a cada uno para decirle si era fase,
+neutro o tierra. Peor: `agregarSimbolo` tipa todo riel nuevo como
+`fase_viva` por defecto (E64), así que un riel de neutro que quedara sin
+corregir dejaba a la simulación sin retorno y no se energizaba nada —
+una trampa silenciosa. Ahora la paleta de una hoja multifilar abre con
+"Rieles de alimentación…": se elige cantidad de fases (1 a 12, sin
+límite normativo — el usuario llegó a mencionar simular un motor
+hexafásico), y si lleva neutro y/o tierra; el resumen muestra la
+composición como se anota en el plano (`L1 · L2 · L3 · N · PE`) y
+"Colocar rieles" pone el juego entero, cada riel ya con su
+`funcion_riel` y su `etiqueta_fase`, apilado arriba del rectángulo útil
+de la hoja con 60 px de separación (`SEPARACION_RIELES_PX`), que deja
+lugar para meter un aparato entre dos rieles sin que se pisen las
+anotaciones.
+
+**(5) La barra, arriba de todo.** Pedido: *"esto de la barra habría que
+dejarlo arriba del todo porque es lo más importante a la hora de hacer un
+diagrama porque si no este no tiene sentido"*. El grupo "Barras"
+encabeza `ORDEN_GRUPOS` en vez de quedar sepultado detrás de las ocho
+categorías de aparatos, y el preset de rieles va todavía más arriba, en
+"Alimentación". Es de donde cuelga todo lo demás, así que es lo primero
+que ofrece la paleta — y los rieles del preset se colocan arriba de la
+hoja por el mismo motivo.
+
+**(6) Código de colores de conductores.** Pedido: *"en la parte de
+unifilar, para hacer más sencilla el plano visual, agregá colores por
+fase, neutro y tierra y en sus conexiones"*. Se sumaron tres tokens
+—`--fase` marrón, `--neutro` celeste, `--tierra` verde— según el código
+AEA 90364-5-51 / IEC 60446, oscurecidos respecto del color literal del
+aislante para llegar a contraste legible sobre papel blanco (el celeste
+normativo puro sobre blanco es ilegible). Son los únicos colores de la
+app que no son decisión de diseño: los fija la norma, y es exactamente
+por eso que E79 dejó el resto del cromo acromático.
+
+Dónde se aplican, y por qué distinto en cada caso:
+
+- **Conexiones del unifilar**: la LÍNEA es una sola para todo el cable,
+  así que no hay un color único que la describa. Lo que sí describe la
+  composición son las marcas que ya se dibujaban sobre el cable (una
+  raya por fase, la raya con círculo del neutro, la raya con cruz de la
+  tierra): cada una toma ahora el color de su función. La composición se
+  lee de un vistazo sin leer la anotación, y el trazo del cable sigue
+  siendo tinta, porque es el circuito, no una fase.
+- **Alimentador "Desde …"**: mismas marcas, misma regla.
+- **Rieles de comando (multifilar)**: acá el trazo ENTERO sí es una sola
+  función, así que se colorea la línea completa. Un riel seleccionado
+  conserva su color en vez de pintarse del acento: ahora ese color es
+  información, y perderlo justo al ir a editarlo era el peor momento
+  posible. La selección se marca con el halo, que ya alcanza.
+- **La barra de fuerza NO se colorea**: es un juego de barras, lleva todo
+  junto — mismo criterio que el cable del unifilar.
+
+El PDF sigue saliendo en negro: el código de colores es una ayuda en
+pantalla y el plano impreso es un documento normativo que se fotocopia.
+De paso se corrigió un bug latente que apareció al revisar esto: la
+regla `.captura-pdf-negro * { background: transparent }` volvía
+transparente el trazo de la barra (que es un `background`, no un
+`stroke`), así que las barras podían salir invisibles del PDF; ahora se
+las fuerza a negro explícito.
+
+Verificado en vivo con Playwright: el preset coloca los cinco rieles
+(3F+N+PE) apilados arriba con los colores correctos
+(`rgb(107,74,47)` / `rgb(16,112,140)` / `rgb(79,122,14)`), el resumen se
+actualiza al tildar tierra, "Barras" es el primer grupo de símbolos de la
+paleta, y sobre el proyecto real del PPS las marcas de fase salen marrón
+y las de neutro celeste sobre el cable.
+
+Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
+`npm run e2e` (21 checks), `npm run e2e:simulacion` (11 checks),
+`verificar_alineacion.mjs`, `verificar_proyecto_real.mjs` y
+`lint_simbolos.py` (fuerza 19/19, comando 56/56).

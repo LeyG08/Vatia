@@ -14,6 +14,11 @@ export default function PestanasHoja() {
   const eliminarHojaFn = useEditor((s) => s.eliminarHoja);
   const renombrarHojaFn = useEditor((s) => s.renombrarHoja);
   const cambiarHojaActiva = useEditor((s) => s.cambiarHojaActiva);
+  const padreDeActiva = useEditor((s) =>
+    s.proyecto.hojas.find((h) => h.id === activa)?.hojaPadreId,
+  );
+  const irAHojaPadre = useEditor((s) => s.irAHojaPadre);
+  const pedirConfirmacion = useEditor((s) => s.pedirConfirmacion);
 
   const [editando, setEditando] = useState<string | null>(null);
   const [borrador, setBorrador] = useState("");
@@ -28,13 +33,23 @@ export default function PestanasHoja() {
 
   return (
     <div className="pestanas-hoja" role="tablist" aria-label="Hojas del proyecto">
+      {padreDeActiva && (
+        <button
+          type="button"
+          className="pestana-hoja-padre"
+          title="Ir a la hoja padre (de donde cuelga este tablero)"
+          onClick={() => irAHojaPadre()}
+        >
+          ⤴
+        </button>
+      )}
       {hojas.map((h, i) => (
         <div
           key={h.id}
           role="tab"
           aria-selected={h.id === activa}
           tabIndex={0}
-          className={`pestana-hoja${h.id === activa ? " activa" : ""}`}
+          className={`pestana-hoja${h.id === activa ? " activa" : ""}${h.hojaPadreId ? " hija" : ""}`}
           onClick={() => {
             if (h.id !== activa && editando !== h.id) cambiarHojaActiva(h.id);
           }}
@@ -52,7 +67,7 @@ export default function PestanasHoja() {
             setBorrador(h.nombre);
             setEditando(h.id);
           }}
-          title={`${h.nombre} — doble clic para renombrar`}
+          title={`${h.nombre} (${h.modo}) — doble clic para renombrar`}
         >
           {editando === h.id ? (
             <input
@@ -71,7 +86,13 @@ export default function PestanasHoja() {
           ) : (
             <>
               <span className="pestana-nombre">
-                {i + 1}. {h.nombre}
+                {h.hojaPadreId ? "↳ " : `${i + 1}. `}
+                {h.nombre}
+                {h.modo === "multifilar" && (
+                  <span className="pestana-modo" title="Hoja multifilar (comando)">
+                    M
+                  </span>
+                )}
               </span>
               <button
                 type="button"
@@ -91,13 +112,10 @@ export default function PestanasHoja() {
                   title="Eliminar hoja con todo su contenido"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (
-                      window.confirm(
-                        `¿Eliminar la hoja «${h.nombre}» con todo su contenido? Esta acción no se puede deshacer.`,
-                      )
-                    ) {
-                      eliminarHojaFn(h.id);
-                    }
+                    pedirConfirmacion(
+                      `¿Eliminar la hoja «${h.nombre}» con todo su contenido? Esta acción no se puede deshacer.`,
+                      () => eliminarHojaFn(h.id),
+                    );
                   }}
                 >
                   ✕

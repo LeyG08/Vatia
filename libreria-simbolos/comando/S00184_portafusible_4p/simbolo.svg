@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-25.0 -25.0 50.0 50.0" width="500" height="500">
+  <g fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="-15.0" y1="-20.0" x2="-15.0" y2="-12.0"/>
+  <line x1="-18.0" y1="-12.0" x2="-12.0" y2="-12.0"/>
+  <line x1="-15.0" y1="8.0" x2="-19.0" y2="-11.0"/>
+  <polygon points="-16.215,-6.264 -19.64,-5.543 -17.785,3.264 -14.36,2.543"/>
+  <line x1="-15.0" y1="8.0" x2="-15.0" y2="20.0"/>
+  <line x1="-5.0" y1="-20.0" x2="-5.0" y2="-12.0"/>
+  <line x1="-8.0" y1="-12.0" x2="-2.0" y2="-12.0"/>
+  <line x1="-5.0" y1="8.0" x2="-9.0" y2="-11.0"/>
+  <polygon points="-6.215,-6.264 -9.64,-5.543 -7.785,3.264 -4.36,2.543"/>
+  <line x1="-5.0" y1="8.0" x2="-5.0" y2="20.0"/>
+  <line x1="5.0" y1="-20.0" x2="5.0" y2="-12.0"/>
+  <line x1="2.0" y1="-12.0" x2="8.0" y2="-12.0"/>
+  <line x1="5.0" y1="8.0" x2="1.0" y2="-11.0"/>
+  <polygon points="3.785,-6.264 0.36,-5.543 2.215,3.264 5.64,2.543"/>
+  <line x1="5.0" y1="8.0" x2="5.0" y2="20.0"/>
+  <line x1="15.0" y1="-20.0" x2="15.0" y2="-12.0"/>
+  <line x1="12.0" y1="-12.0" x2="18.0" y2="-12.0"/>
+  <line x1="15.0" y1="8.0" x2="11.0" y2="-11.0"/>
+  <polygon points="13.785,-6.264 10.36,-5.543 12.215,3.264 15.64,2.543"/>
+  <line x1="15.0" y1="8.0" x2="15.0" y2="20.0"/>
+  <circle class="punto-conexion" cx="-15.0" cy="-20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="-15.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="-5.0" cy="-20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="-5.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="5.0" cy="-20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="5.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="15.0" cy="-20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="15.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  </g>
+</svg>

@@ -9,11 +9,15 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "e2e": "node e2e/conexiones.mjs",
-    "e2e:simbolos": "node e2e/editor-simbolos.mjs"
+    "e2e:simbolos": "node e2e/editor-simbolos.mjs",
+    "e2e:simulacion": "node e2e/simulacion.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/archivo": "^5.3.0",
     "@xyflow/react": "^12.11.3",
     "fabric": "^7.4.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "zustand": "^5.0.15"

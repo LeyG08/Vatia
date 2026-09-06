@@ -80,13 +80,21 @@ function AlimentadorNode({
               const cy = ALTO_LINEA / 2 + (i - (total - 1) / 2) * SEP;
               const bx = 15 + wx * h;
               const by = cy + wy * h;
+              /* E80: misma regla que en ConexionEdge — cada marca de
+               * composición toma el color de su función (marrón fase,
+               * celeste neutro, verde PE). */
+              const esNeutro = neutro && i === fases;
+              const esTierra = tierra && i === fases + (neutro ? 1 : 0);
+              const clase = esTierra
+                ? "marca-tierra"
+                : esNeutro
+                  ? "marca-neutro"
+                  : "marca-fase";
               return (
-                <g key={i} stroke="currentColor" strokeWidth={1.3} strokeLinecap="round" fill="none">
+                <g key={i} className={clase} strokeWidth={1.3} strokeLinecap="round" fill="none">
                   <line x1={15 - wx * h} y1={cy - wy * h} x2={bx} y2={by} />
-                  {neutro && i === fases && (
-                    <circle cx={bx} cy={by} r={2.6} fill="#fdfdfd" />
-                  )}
-                  {tierra && i === fases + (neutro ? 1 : 0) && (
+                  {esNeutro && <circle cx={bx} cy={by} r={2.6} className="marca-neutro-punto" />}
+                  {esTierra && (
                     <line
                       x1={bx - wy * 3}
                       y1={by + wx * 3}

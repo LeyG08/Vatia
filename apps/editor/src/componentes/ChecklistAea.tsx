@@ -10,12 +10,13 @@ import { armarChecklist } from "../lib/checklist";
 function ChecklistAea() {
   const nodos = useEditor((s) => s.nodos);
   const conexiones = useEditor((s) => s.conexiones);
+  const modo = useEditor((s) => s.hoja.modo);
   const seleccionarNodosFn = useEditor((s) => s.seleccionarNodos);
   const [abierto, setAbierto] = useState(true);
 
   const problemas = useMemo(
-    () => armarChecklist(nodos, conexiones),
-    [nodos, conexiones],
+    () => armarChecklist(nodos, conexiones, modo),
+    [nodos, conexiones, modo],
   );
   const total = problemas.reduce((t, p) => t + p.mensajes.length, 0);
 

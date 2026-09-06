@@ -3,7 +3,7 @@
   "meta": {
     "nombre": "unifilares_de_tableros_pps",
     "fechaCreacion": "2026-08-25T01:56:44.419Z",
-    "ultimaModificacion": "2026-08-25T03:56:12.484Z"
+    "ultimaModificacion": "2026-09-03T05:04:15.092Z"
   },
   "hojas": [
     {
@@ -175,7 +175,7 @@
             "tipo_disparo": "termomagnetico",
             "ir_a_min": 500,
             "ir_a_max": 500,
-            "pdcc_kA": 2500,
+            "pdcc_kA": 2.5,
             "norma_fabricacion": "IEC 60947-2"
           }
         },
@@ -195,7 +195,7 @@
             "tipo_disparo": "termomagnetico",
             "ir_a_min": 500,
             "ir_a_max": 500,
-            "pdcc_kA": 2500,
+            "pdcc_kA": 2.5,
             "norma_fabricacion": "IEC 60947-2"
           }
         },

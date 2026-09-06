@@ -21,7 +21,6 @@ function PanelProyecto() {
   const actualizar = useEditor((s) => s.actualizarDatosProyecto);
 
   if (!abierto) return null;
-  const fuente = datos.fuente_cortocircuito ?? {};
 
   return (
     <>
@@ -53,11 +52,16 @@ function PanelProyecto() {
                 type="number"
                 min={0}
                 value={valorComoTexto(datos.tension_fase_v)}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const v = Number.parseFloat(e.target.value) || 0;
+                  // Sistema trifásico equilibrado: U_línea = √3 · U_fase.
+                  // Se actualizan las dos juntas — cargar una sola y dejar
+                  // la otra desactualizada es peor que redondear.
                   actualizar({
-                    tension_fase_v: Number.parseFloat(e.target.value) || 0,
-                  })
-                }
+                    tension_fase_v: v,
+                    tension_linea_v: Math.round(v * Math.sqrt(3)),
+                  });
+                }}
               />
             </label>
             <label className="panel-hoja-campo">
@@ -66,11 +70,13 @@ function PanelProyecto() {
                 type="number"
                 min={0}
                 value={valorComoTexto(datos.tension_linea_v)}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const v = Number.parseFloat(e.target.value) || 0;
                   actualizar({
-                    tension_linea_v: Number.parseFloat(e.target.value) || 0,
-                  })
-                }
+                    tension_linea_v: v,
+                    tension_fase_v: Math.round(v / Math.sqrt(3)),
+                  });
+                }}
               />
             </label>
           </div>
@@ -92,53 +98,12 @@ function PanelProyecto() {
           </label>
         </div>
 
-        <h3>Fuente de cortocircuito</h3>
-
-        <div className="panel-hoja-bloque">
-          <p className="panel-hoja-dimension">
-            Dato de la alimentación principal, para verificar Icc aguas
-            abajo. Todavía no lo consume ningún cálculo (falta el recorrido
-            del tablero); se carga acá para no perderlo.
-          </p>
-          <div className="panel-hoja-dos-col">
-            <label className="panel-hoja-campo">
-              <span>Potencia de cortocircuito Scc (MVA)</span>
-              <input
-                type="number"
-                min={0}
-                value={valorComoTexto(fuente.scc_mva)}
-                onChange={(e) =>
-                  actualizar({
-                    fuente_cortocircuito: {
-                      scc_mva:
-                        e.target.value === ""
-                          ? undefined
-                          : Number.parseFloat(e.target.value),
-                    },
-                  })
-                }
-              />
-            </label>
-            <label className="panel-hoja-campo">
-              <span>Corriente de cortocircuito Icc (kA)</span>
-              <input
-                type="number"
-                min={0}
-                value={valorComoTexto(fuente.icc_ka)}
-                onChange={(e) =>
-                  actualizar({
-                    fuente_cortocircuito: {
-                      icc_ka:
-                        e.target.value === ""
-                          ? undefined
-                          : Number.parseFloat(e.target.value),
-                    },
-                  })
-                }
-              />
-            </label>
-          </div>
-        </div>
+        <p className="panel-proyecto-ayuda">
+          La fuente de cortocircuito (Scc / Icc) ahora se carga por
+          alimentador, en Hoja… → Fuente de cortocircuito de la hoja del
+          alimentador principal — no es un dato único de todo el proyecto,
+          porque cada alimentador puede venir de una red distinta.
+        </p>
 
         <footer className="panel-hoja-pie">
           <button type="button" onClick={alternar}>

@@ -1,7 +1,9 @@
+import { Fragment } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ESCALA, useEditor, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
 import { anotacionNodo } from "../lib/anotaciones";
+import { TIPOS_CONTACTO_MANUAL, posicionesDeSelector } from "../lib/simulacion";
 import type { SimboloDef } from "../lib/tipos";
 
 const DIRECCIONES = [
@@ -67,10 +69,83 @@ function rotarPunto(
   };
 }
 
-function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
+function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const simbolo = obtenerSimbolo(data.codigo_iec);
   const tensionFaseV = useEditor((s) => s.proyecto.datosProyecto.tension_fase_v);
   const tensionLineaV = useEditor((s) => s.proyecto.datosProyecto.tension_linea_v);
+  // Modo simulación (E63): resalta el estado calculado por
+  // lib/simulacion.ts y permite accionar pulsadores/interruptores de
+  // posición con el mouse. `resultado`/`manual` cambian de referencia en
+  // cada recálculo, así que comparar por referencia (default de zustand)
+  // ya evita renders de más.
+  const modoSimulacion = useEditor((s) => s.modoSimulacion);
+  const resultadoSimulacion = useEditor((s) => s.simulacionResultado);
+  const manualSimulacion = useEditor((s) => s.simulacionManual);
+  const hojaActivaId = useEditor((s) => s.hojaActivaId);
+  const accionarSimulacion = useEditor((s) => s.accionarSimulacion);
+  const girarSelectorSimulacion = useEditor((s) => s.girarSelectorSimulacion);
+  // E78: llave selectora accionable. Las posiciones no salen de la ficha
+  // técnica sino de los propios terminales del símbolo (`pos1`, `pos2`,
+  // `pos3`…), que es donde ya estaba declarada la topología real.
+  const posicionSimulacion = useEditor((s) =>
+    s.simulacionPosiciones.get(`${s.hojaActivaId}:${id}`),
+  );
+  // Resalta en el lienzo los símbolos que comparten la MISMA referencia
+  // (IEC 61346) que el seleccionado — pedido explícito: "en los
+  // multifilares... a la hora de hacerlo quedan vinculados para la
+  // simulación" (E53). Selector primitivo (string|null): zustand
+  // solo re-renderiza este nodo si el valor realmente cambia, aunque el
+  // selector recorra `nodos` en cada actualización del store.
+  const referenciaSeleccionada = useEditor((s) => {
+    if (selected) return null; // el propio seleccionado no se resalta a sí mismo
+    const sel = s.nodos.find((n) => n.selected && n.type === "simbolo");
+    if (!sel) return null;
+    const ref = (sel.data as DatosSimbolo).atributos?.referencia;
+    return typeof ref === "string" && ref.trim() !== "" ? ref.trim() : null;
+  });
+  const miReferencia =
+    typeof data.atributos?.referencia === "string" ? data.atributos.referencia.trim() : "";
+  const vinculado = referenciaSeleccionada !== null && miReferencia === referenciaSeleccionada;
+
+  const tipoAparato =
+    typeof data.atributos?.tipo_aparato === "string" ? data.atributos.tipo_aparato : null;
+  const claveSimulacion = `${hojaActivaId}:${id}`;
+  const energizado =
+    modoSimulacion && resultadoSimulacion?.aparatos.get(claveSimulacion) === true;
+  const accionado = modoSimulacion && manualSimulacion.has(claveSimulacion);
+  const posicionesSelector = simbolo
+    ? posicionesDeSelector(simbolo.metadata.puntos_conexion.map((p) => p.id))
+    : [];
+  const esSelector = tipoAparato === "selector" && posicionesSelector.length > 0;
+  const posicionActual = posicionSimulacion ?? posicionesSelector[0];
+  const accionable =
+    modoSimulacion &&
+    ((tipoAparato !== null && TIPOS_CONTACTO_MANUAL.has(tipoAparato)) ||
+      (esSelector && posicionesSelector.length > 1));
+  // pulsador_emergencia enclava mecánicamente (se togglea con un clic);
+  // pulsador/interruptor_posicion son momentáneos: conducen solo
+  // mientras se los mantiene apretados (press/release real, no un clic).
+  const esEnclavable = tipoAparato === "pulsador_emergencia";
+  const onAccionarInicio = accionable
+    ? (e: React.PointerEvent) => {
+        e.stopPropagation();
+        if (esSelector) {
+          // Un clic pasa a la posición siguiente y vuelve a la primera
+          // al llegar al final — igual que girar la llave con la mano.
+          const i = posicionesSelector.indexOf(posicionActual);
+          const siguiente = posicionesSelector[(i + 1) % posicionesSelector.length];
+          girarSelectorSimulacion(id, siguiente);
+          return;
+        }
+        accionarSimulacion(id, esEnclavable ? !accionado : true);
+      }
+    : undefined;
+  const onAccionarFin = accionable && !esEnclavable && !esSelector
+    ? (e: React.PointerEvent) => {
+        e.stopPropagation();
+        accionarSimulacion(id, false);
+      }
+    : undefined;
 
   if (!simbolo) {
     return <div className="nodo-faltante">? {data.codigo_iec}</div>;
@@ -95,12 +170,46 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
     tensionFaseV,
     tensionLineaV,
   );
+  // E64: sentido de giro calculado — pedido explícito ("que el motor lo
+  // muestre"), solo visible en modo simulación y solo si el motor tiene
+  // al menos un contactor reversor asociado (ver simulacion.ts).
+  const sentidoGiro =
+    modoSimulacion && tipoAparato === "motor_trifasico"
+      ? resultadoSimulacion?.sentidoGiroPorMotor.get(claveSimulacion)
+      : undefined;
+  const NOMBRE_SENTIDO: Record<string, string> = {
+    adelante: "adelante",
+    atras: "atrás",
+    detenido: "detenido",
+  };
+  const lineasConSentido = sentidoGiro
+    ? [...lineas, { texto: `⟳ Sentido: ${NOMBRE_SENTIDO[sentidoGiro]}`, secundaria: true }]
+    : lineas;
+  // E78: posición de la llave selectora, solo en simulación — es estado
+  // de uso, no un dato de la ficha técnica.
+  const lineasFinales =
+    modoSimulacion && esSelector
+      ? [
+          ...lineasConSentido,
+          {
+            texto: `⟲ Posición ${posicionActual} de ${posicionesSelector.length}`,
+            secundaria: true,
+          },
+        ]
+      : lineasConSentido;
 
   return (
     <div
-      className="nodo-simbolo"
+      className={`nodo-simbolo${vinculado ? " nodo-simbolo-vinculado" : ""}${
+        energizado ? " nodo-simbolo-energizado" : ""
+      }${accionable ? " nodo-simbolo-accionable nodrag" : ""}${
+        accionado ? " nodo-simbolo-presionado" : ""
+      }`}
       style={{ width: anchoPx, height: altoPx }}
       title={simbolo.metadata.nombre}
+      onPointerDown={onAccionarInicio}
+      onPointerUp={onAccionarFin}
+      onPointerLeave={onAccionarFin}
     >
       <div
         className="simbolo-svg"
@@ -113,32 +222,56 @@ function NodoSimbolo({ data }: NodeProps<Node<DatosSimbolo>>) {
         }}
         dangerouslySetInnerHTML={{ __html: svgLimpio(simbolo.svgRaw) }}
       />
-      {puntos.map(({ punto, r }) => (
-        <Handle
-          key={punto.id}
-          id={punto.id}
-          type={punto.rol === "salida" ? "source" : "target"}
-          position={r.direccion}
-          className={`handle-${punto.rol}`}
-          style={{
-            /* C13b: 0×0 — RF ancla al borde del handle; con tamaño
-             * real quedaban ~5 px de aire. El anillo visible es el
-             * ::before de la clase. */
-            width: 0,
-            height: 0,
-            border: "none",
-            background: "transparent",
-            pointerEvents: "all",
-            left: `${(r.x / r.cajaAncho) * 100}%`,
-            top: `${(r.y / r.cajaAlto) * 100}%`,
-          }}
-        />
-      ))}
-      {lineas.length > 0 && (
+      {puntos.map(({ punto, r }) => {
+        const tipoPropio = punto.rol === "salida" ? "source" : "target";
+        const tipoEspejo = tipoPropio === "source" ? "target" : "source";
+        const estiloComun = {
+          /* C13b: 0×0 — RF ancla al borde del handle; con tamaño
+           * real quedaban ~5 px de aire. El anillo visible es el
+           * ::before de la clase. */
+          width: 0,
+          height: 0,
+          border: "none",
+          background: "transparent",
+          pointerEvents: "all" as const,
+          left: `${(r.x / r.cajaAncho) * 100}%`,
+          top: `${(r.y / r.cajaAlto) * 100}%`,
+        };
+        return (
+          <Fragment key={punto.id}>
+            <Handle
+              id={punto.id}
+              type={tipoPropio}
+              position={r.direccion}
+              className={`handle-${punto.rol}`}
+              style={estiloComun}
+            />
+            {/* Handle espejo (mismo id, tipo opuesto, invisible):
+             * un terminal de comando no tiene una única dirección de
+             * corriente fija como en fuerza — hace falta poder unir
+             * dos "entrada" entre sí (p. ej. seleccionar entre bobinas
+             * de contactores) o dos "salida". React Flow solo resuelve
+             * la posición de un cable si alguno de sus dos extremos
+             * tiene un handle type="source" registrado (ver
+             * getEdgePosition, busca sourceHandleBounds.source SIEMPRE,
+             * incluso en ConnectionMode.Loose) — por eso, sin este
+             * segundo handle, la conexión se crea pero queda invisible
+             * cuando el usuario conecta dos "entrada" entre sí. */}
+            <Handle
+              id={punto.id}
+              type={tipoEspejo}
+              position={r.direccion}
+              className="handle-espejo"
+              style={estiloComun}
+            />
+          </Fragment>
+        );
+      })}
+      {lineasFinales.length > 0 && (
         <div
           className={`anotacion-nodo${esCarga ? " anotacion-carga" : ""}`}
         >
-          {lineas.map((l, i) => (
+          {lineasFinales.map((l, i) => (
             <div key={i} className={l.secundaria ? "anotacion-sec" : undefined}>
               {l.texto}
             </div>

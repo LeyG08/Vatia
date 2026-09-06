@@ -47,7 +47,6 @@ para una etapa posterior.
 | S00121 | Interruptor automático en caja moldeada (MCCB) | `IEC 60617 07-72-21 en envolvente` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E7). No hay símbolo IEC propio del MCCB: la norma no distingue por envolvente. Se dibuja el interruptor automático dentro del rectángulo moldeado y el tipo de disparo se declara en la ficha (`tipo_disparo`). |
 | S00122 | Guardamotor termomagnético | `IEC 60617 07-72-21 + 03-30-37 + 03-30-38` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E6). Interruptor + **dos** cajas de disparador: actuación térmica y magnética. |
 | S00123 | Relé térmico (RT) | `IEC 60617 07-76-01 + 03-30-37` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E6). Caja de relé con el pulso cuadrado del efecto térmico adentro; la línea no atraviesa la caja. |
-| S00124 | Contacto auxiliar (NA/NC) | QET `con_simple.elmt` | aparato | verificado | 01/09/2026 | — |
 | S00125 | Transformador de corriente (TI) | `manual - IEC 60617` | aparato | verificado | 01/09/2026 | — |
 | S00126 | Banco de capacitores | `manual - IEC 60617` | aparato | verificado | 01/09/2026 | — |
 | S00127 | Seccionador fusible | `IEC 60617 07-75-08` | aparato | verificado | 01/09/2026 | Redibujado desde la norma (E4). Barra de seccionador arriba y cartucho del fusible montado sobre la cuchilla. |
@@ -56,6 +55,30 @@ para una etapa posterior.
 | S00131 | Sirena / alarma sonora | QET `avertisseur.elmt` | aparato | verificado | 01/09/2026 | — |
 | S00132 | Instrumento de medición (voltímetro) | QET `voltmetre-v.elmt (polo único)` | aparato | verificado | 01/09/2026 | — |
 | S00133 | Guardamotor magnético | `IEC 60617 07-72-21 + 03-30-38` | aparato | verificado | 01/09/2026 | **Nuevo** (E6). Interruptor + **una** caja de disparador, la magnética: protege solo contra cortocircuito. |
+
+> **S00124 se mudó a `libreria-simbolos/comando/`** (E15) — dejó de ser
+> parte de esta tabla, que documenta solo la librería de fuerza
+> (`simbolos/`). La librería de comando/control (56 símbolos, S00124 +
+> S00130 + S00134–S00188) está **completa: los 56 verificados**. Tiene su
+> propia galería
+> (`libreria-simbolos/comando/index.html`) y su historial de revisión en
+> `HISTORIAL.md` E15–E15.6 (lote piloto), E16–E16.1 (segundo lote),
+> E66–E66.1 (retardo a la desconexión), E67–E67.1 (sensores de
+> proximidad), E68–E68.1 (termostato), E69–E69.1 (interruptor
+> multipolar), E70–E70.2 (contactor multipolar, verificado de punta a
+> punta), E71–E71.1 (guardamotores multipolares, verificado), E72
+> (paleta: variantes de polos agrupadas en flyout), E73–E73.1 (MCCB
+> multipolar, envolvente compartido por todos los polos), E74–E74.1
+> (interruptor diferencial multipolar, toroide sumador compartido),
+> E75–E75.1 (fusible y seccionador fusible multipolares, sin enlace
+> mecánico entre polos, a propósito) y E76–E76.1 (relé térmico
+> multipolar, caja compartida, con los conductores cortados en el borde
+> del recuadro, aprobado). E77 (dos bugs de interacción del editor) y E78
+> (llave selectora simulable, bobinas y contactos que nacen vinculados,
+> cargas de comando con lazo completo) son del editor y del motor de
+> simulación, ajenos a la librería de símbolos. No se
+> duplica la tabla acá para no repetir el desfasaje que ya sufrió esta
+> misma tabla dos veces por mantenerse a mano.
 
 ## Fuera de alcance — pendiente-multifilar/
 
@@ -85,12 +108,12 @@ posterior los retoma:
 
 Registro de decisiones diferidas para que no se pierdan entre pasos:
 
-1. **Icu/Ics del guardamotor futuro.** El subtipo
-   `interruptor_termomagnetico` actual es IEC 60898-1: solo declara
-   `pdcc_kA` (Icn). Cuando la fase de simbología ampliada agregue el
-   subtipo `guardamotor_termomagnetico` (IEC 60947-2), ese schema
-   necesitará campos propios `Icu_kA` e `Ics_kA`. Anotado también como
-   `$comment` en `aparato.schema.json`. NO reutilizar el subtipo actual.
+1. ~~**Icu/Ics del guardamotor futuro.**~~ **RESUELTO**: el subtipo
+   `guardamotor_termomagnetico` (IEC 60947-2) ya existe con `icu_kA` +
+   `ics_kA` propios, separado de `interruptor_termomagnetico` (IEC 60898-1,
+   `pdcc_kA`). E20 (02/09/2026) extendió el mismo criterio a
+   `mccb_caja_moldeada`, que declaraba `pdcc_kA` pero no `ics_kA` — ahora
+   tiene los dos, necesarios para verificar filiación entre protecciones.
 
 2. ~~**Checklist AEA para conductores: validar por MAZO, no por rol.**~~
    **RESUELTO en C5:** `apps/editor/src/lib/checklist.ts` valida las
@@ -131,10 +154,10 @@ Registro de decisiones diferidas para que no se pierdan entre pasos:
    inventada. El detalle de cada fuente queda en `fuente_qet` de cada
    `metadata.json` y en la tabla de arriba.
 
-   Estos 7 símbolos **siguen en `pendiente_revision`**: la corrección es
-   una propuesta con fuente real detrás, no un cierre — falta la
-   aprobación visual del usuario, como corresponde al procedimiento de
-   cierre de este documento.
+   **Actualización**: los 7 quedaron aprobados por el usuario y su
+   `estado_revision` pasó a `verificado` (S00130, además, se mudó
+   después a `libreria-simbolos/comando/` — ver la nota sobre S00124 más
+   arriba).
 
 4. **`atributos_base.tipo_aparato` faltante en 4 símbolos "verificados".**
    S00124, S00125, S00126 y S00131 tenían `estado_revision: "verificado"`

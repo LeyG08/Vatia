@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15.0 -35.0 30.0 60.0" width="300" height="600">
+  <g fill="none" stroke="#000000" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="-5.0" y1="-30.0" x2="-5.0" y2="-22.0"/>
+  <line x1="-7.0" y1="-28.0" x2="-3.0" y2="-24.0"/>
+  <line x1="-3.0" y1="-28.0" x2="-7.0" y2="-24.0"/>
+  <line x1="-5.0" y1="-12.0" x2="-10.0" y2="-22.0"/>
+  <line x1="-5.0" y1="-12.0" x2="-5.0" y2="-5.0"/>
+  <rect x="-10.0" y="-5.0" width="10.0" height="10.0"/>
+  <polyline points="-5.0,-3.0 -5.0,-1.5 -4.612,-1.449 -4.25,-1.299 -3.939,-1.061 -3.701,-0.75 -3.551,-0.388 -3.5,0.0 -3.551,0.388 -3.701,0.75 -3.939,1.061 -4.25,1.299 -4.612,1.449 -5.0,1.5 -5.0,3.0"/>
+  <line x1="-5.0" y1="5.0" x2="-5.0" y2="20.0"/>
+  <line x1="5.0" y1="-30.0" x2="5.0" y2="-22.0"/>
+  <line x1="3.0" y1="-28.0" x2="7.0" y2="-24.0"/>
+  <line x1="7.0" y1="-28.0" x2="3.0" y2="-24.0"/>
+  <line x1="5.0" y1="-12.0" x2="0.0" y2="-22.0"/>
+  <line x1="5.0" y1="-12.0" x2="5.0" y2="-5.0"/>
+  <rect x="0.0" y="-5.0" width="10.0" height="10.0"/>
+  <polyline points="5.0,-3.0 5.0,-1.5 5.388,-1.449 5.75,-1.299 6.061,-1.061 6.299,-0.75 6.449,-0.388 6.5,0.0 6.449,0.388 6.299,0.75 6.061,1.061 5.75,1.299 5.388,1.449 5.0,1.5 5.0,3.0"/>
+  <line x1="5.0" y1="5.0" x2="5.0" y2="20.0"/>
+  <line x1="-5.0" y1="-26.0" x2="5.0" y2="-26.0" stroke-dasharray="1.5,1.5"/>
+  <circle class="punto-conexion" cx="-5.0" cy="-30.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="-5.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="5.0" cy="-30.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  <circle class="punto-conexion" cx="5.0" cy="20.0" r="1.1" fill="#e11d48" fill-opacity="0.85" stroke="#e11d48" stroke-width="0.4"/>
+  </g>
+</svg>
