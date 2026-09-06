@@ -6557,3 +6557,10 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
 `lint_simbolos.py --carpeta comando` (20/20) y `generar_tipos_atributos.py
 --verificar` (29 interfaces), todos en verde.
+
+### E68.1 — Termostato, aprobado
+
+El usuario aprobó los 2 símbolos ("good, continue"). Los `metadata.json`
+de S00151 y S00152 pasan `estado_revision` de `pendiente_revision` a
+`verificado`. Galería regenerada — la librería de comando queda en
+20/20 símbolos verificados.
