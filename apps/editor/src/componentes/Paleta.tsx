@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { SIMBOLOS, svgLimpio } from "../lib/libreria";
 import { SIMBOLOS_COMANDO } from "../lib/libreriaComando";
 import { useEditor } from "../lib/store";
@@ -38,6 +39,68 @@ const ORDEN_GRUPOS = [
   ETIQUETAS_FAMILIA.sin_ficha_tecnica,
 ];
 
+const PALABRAS_POLO = ["unipolar", "bipolar", "tripolar", "tetrapolar"];
+const RE_POLO = new RegExp(`\\s+(${PALABRAS_POLO.join("|")})\\b`, "i");
+
+/** Nombre del símbolo sin la palabra de cantidad de polos — para el
+ * botón representante del grupo ("Interruptor termomagnético
+ * (multifilar)" en vez de repetir "unipolar/bipolar/…"). */
+function nombreSinPolo(nombre: string): string {
+  return nombre.replace(RE_POLO, "").trim();
+}
+
+/** Solo la palabra de polos ("Tripolar") — para la etiqueta de cada
+ * variante DENTRO del flyout, ya que el nombre base va en el botón que
+ * lo abre. */
+function etiquetaPolo(nombre: string): string {
+  const m = RE_POLO.exec(nombre);
+  if (!m) return nombre;
+  const palabra = m[1];
+  return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
+}
+
+function cantidadPolosDe(s: SimboloDef): number | null {
+  const cp = s.metadata.atributos_base?.cantidad_polos;
+  return typeof cp === "number" ? cp : null;
+}
+
+/** E72 (pedido explícito: en vez de listar cada variante de polos como
+ * un ítem aparte, agruparlas detrás de un solo botón que las despliega
+ * al pasar el mouse). Un símbolo entra a un grupo de polos solo si
+ * comparte `tipo_aparato` con al menos otro Y declara `cantidad_polos`
+ * en su ficha base — así NO agrupa pulsador NA/NC, contacto auxiliar
+ * NA/NC, etc. (esos son símbolos distintos, no "el mismo aparato con
+ * más polos"), solo las variantes multipolares de E69 en adelante. */
+interface ItemPaleta {
+  representante: SimboloDef;
+  variantes: SimboloDef[] | null; // null = símbolo suelto, sin variantes de polo
+}
+
+function agruparPorPolos(simbolos: SimboloDef[]): ItemPaleta[] {
+  const porTipo = new Map<string, SimboloDef[]>();
+  const sueltos: SimboloDef[] = [];
+  for (const s of simbolos) {
+    const tipo = s.metadata.atributos_base?.tipo_aparato;
+    if (typeof tipo === "string" && cantidadPolosDe(s) !== null) {
+      if (!porTipo.has(tipo)) porTipo.set(tipo, []);
+      porTipo.get(tipo)!.push(s);
+    } else {
+      sueltos.push(s);
+    }
+  }
+  const items: ItemPaleta[] = [];
+  for (const variantes of porTipo.values()) {
+    if (variantes.length < 2) {
+      sueltos.push(...variantes);
+      continue;
+    }
+    variantes.sort((a, b) => (cantidadPolosDe(a) ?? 0) - (cantidadPolosDe(b) ?? 0));
+    items.push({ representante: variantes[0], variantes });
+  }
+  for (const s of sueltos) items.push({ representante: s, variantes: null });
+  return items.sort((a, b) => a.representante.codigo_iec.localeCompare(b.representante.codigo_iec));
+}
+
 function Paleta({
   onIniciarArrastre,
 }: {
@@ -69,6 +132,29 @@ function Paleta({
     ([a], [b]) => ORDEN_GRUPOS.indexOf(a) - ORDEN_GRUPOS.indexOf(b),
   );
 
+  // E72: flyout de variantes de polo. `position: fixed` (no `absolute`)
+  // para que no lo recorte el `overflow-y: auto` de `.paleta` — se
+  // posiciona a mano con el rectángulo del botón que lo abrió. Un
+  // timeout chico en el cierre deja pasar el mouse del botón al
+  // flyout sin que se cierre de golpe (mismo criterio que un submenú
+  // nativo).
+  const [grupoAbierto, setGrupoAbierto] = useState<{
+    item: ItemPaleta;
+    rect: DOMRect;
+  } | null>(null);
+  const cierreRef = useRef<number | null>(null);
+
+  function abrirGrupo(item: ItemPaleta, rect: DOMRect) {
+    if (cierreRef.current !== null) {
+      window.clearTimeout(cierreRef.current);
+      cierreRef.current = null;
+    }
+    setGrupoAbierto({ item, rect });
+  }
+  function programarCierre() {
+    cierreRef.current = window.setTimeout(() => setGrupoAbierto(null), 200);
+  }
+
   return (
     <aside className="paleta">
       <h2>Símbolos</h2>
@@ -97,23 +183,75 @@ function Paleta({
       {gruposOrdenados.map(([titulo, items]) => (
         <div key={titulo} className="paleta-grupo">
           <h3>{titulo}</h3>
-          {items.map((s) => (
+          {agruparPorPolos(items).map((item) =>
+            item.variantes ? (
+              <div
+                key={item.representante.codigo_iec}
+                className="paleta-item-contenedor"
+                onMouseEnter={(e) => abrirGrupo(item, e.currentTarget.getBoundingClientRect())}
+                onMouseLeave={programarCierre}
+              >
+                <button
+                  type="button"
+                  className="paleta-item paleta-item-grupo"
+                  title={`${nombreSinPolo(item.representante.metadata.nombre)} — pasá el mouse para elegir cantidad de polos`}
+                >
+                  <span
+                    className="paleta-thumb"
+                    dangerouslySetInnerHTML={{ __html: svgLimpio(item.representante.svgRaw) }}
+                  />
+                  <span className="paleta-nombre">
+                    {nombreSinPolo(item.representante.metadata.nombre)}
+                  </span>
+                  <span className="paleta-item-grupo-flecha">▸</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                key={item.representante.codigo_iec}
+                type="button"
+                className="paleta-item"
+                onMouseDown={(e) => onIniciarArrastre(item.representante.codigo_iec, e)}
+                title={item.representante.metadata.nombre}
+              >
+                <span
+                  className="paleta-thumb"
+                  dangerouslySetInnerHTML={{ __html: svgLimpio(item.representante.svgRaw) }}
+                />
+                <span className="paleta-nombre">{item.representante.metadata.nombre}</span>
+              </button>
+            ),
+          )}
+        </div>
+      ))}
+
+      {grupoAbierto && (
+        <div
+          className="paleta-flyout"
+          style={{
+            top: grupoAbierto.rect.top,
+            left: grupoAbierto.rect.right + 4,
+          }}
+          onMouseEnter={() => abrirGrupo(grupoAbierto.item, grupoAbierto.rect)}
+          onMouseLeave={programarCierre}
+        >
+          {grupoAbierto.item.variantes!.map((v) => (
             <button
-              key={s.codigo_iec}
+              key={v.codigo_iec}
               type="button"
               className="paleta-item"
-              onMouseDown={(e) => onIniciarArrastre(s.codigo_iec, e)}
-              title={`${s.metadata.nombre}`}
+              onMouseDown={(e) => onIniciarArrastre(v.codigo_iec, e)}
+              title={v.metadata.nombre}
             >
               <span
                 className="paleta-thumb"
-                dangerouslySetInnerHTML={{ __html: svgLimpio(s.svgRaw) }}
+                dangerouslySetInnerHTML={{ __html: svgLimpio(v.svgRaw) }}
               />
-              <span className="paleta-nombre">{s.metadata.nombre}</span>
+              <span className="paleta-nombre">{etiquetaPolo(v.metadata.nombre)}</span>
             </button>
           ))}
         </div>
-      ))}
+      )}
     </aside>
   );
 }

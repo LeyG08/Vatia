@@ -6720,3 +6720,44 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks), `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs`,
 `lint_simbolos.py --carpeta comando` (36/36) y `generar_tipos_atributos.py
 --verificar` (29 interfaces, sin cambio de schema), todos en verde.
+
+## E72 — Paleta: variantes de polos agrupadas detrás de un flyout al pasar el mouse
+
+Pedido explícito del usuario, viendo crecer la librería con guardamotores
+(E71): en vez de listar cada variante de polos como un ítem plano en la
+Paleta (interruptor termomagnético unipolar/bipolar/tripolar/tetrapolar,
+contactor ídem, guardamotores ídem — ya son 20 ítems solo de eso, y
+crecerá con MCCB/diferencial/fusible/portafusible/relé térmico),
+agruparlas detrás de UN botón que las despliega al pasar el mouse por
+arriba, hacia el costado.
+
+`agruparPorPolos()` en `Paleta.tsx`: un símbolo entra a un grupo si
+comparte `tipo_aparato` con al menos otro Y declara `cantidad_polos` en
+su ficha base — ese filtro es a propósito angosto: NO agrupa pulsador
+NA/NC, contacto auxiliar NA/NC, sensor de proximidad NA/NC, etc. (esos
+son símbolos realmente distintos, no "el mismo aparato con más polos"),
+solo las variantes multipolares nacidas desde E69. El botón
+representante muestra el nombre sin la palabra de polos ("Interruptor
+termomagnético"); el flyout lista cada variante con SOLO la palabra de
+polos ("Unipolar", "Bipolar"…), ya que el nombre completo está en el
+botón que lo abre.
+
+Detalle de implementación: el flyout usa `position: fixed` (no
+`absolute`) posicionado a mano con el rectángulo real del botón — con
+`absolute` lo recortaría el `overflow-y: auto` de `.paleta` (CSS
+calcula `overflow-x` como `auto` en ese caso aunque no se lo pida
+explícito, es un comportamiento estándar poco conocido). Un timeout
+chico (200ms) en el cierre, compartido entre el botón y el flyout, deja
+mover el mouse de uno a otro sin que se cierre de golpe — mismo
+criterio que un submenú nativo.
+
+Verificado en vivo: antes de pasar el mouse, ningún ítem "…polar" queda
+suelto en la lista (43 símbolos totales en multifilar, ninguno con
+"polar" en el nombre visible); al pasar el mouse sobre "Interruptor
+termomagnético" aparece el flyout con las 4 variantes a la derecha;
+arrastrar "Tripolar" desde el flyout coloca efectivamente S00155
+(`cantidad_polos: 3`) — el flujo de arrastre no se rompió.
+
+Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
+(21 checks), `verificar_proyecto_real.mjs` y `verificar_alineacion.mjs`,
+todos en verde.

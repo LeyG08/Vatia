@@ -403,6 +403,35 @@ body,
   line-height: 1.25;
 }
 
+/* ---- E72: grupo de variantes de polo (hover → flyout) ---- */
+.paleta-item-contenedor {
+  position: relative;
+}
+
+.paleta-item-grupo-flecha {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 11px;
+  flex: 0 0 auto;
+}
+
+/* `position: fixed`, no `absolute`: así no lo recorta el
+ * `overflow-y: auto` de `.paleta` — se posiciona en JS con el
+ * rectángulo real del botón que lo abrió (Paleta.tsx). */
+.paleta-flyout {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-panel);
+}
+
 /* ---- Lienzo ---- */
 .lienzo {
   position: relative;
