@@ -2,7 +2,7 @@
   "codigo_iec": "S00185",
   "nombre": "Relé térmico unipolar (multifilar)",
   "familia_atributos": "aparato",
-  "estado_revision": "pendiente_revision",
+  "estado_revision": "verificado",
   "puntos_conexion": [
     {
       "id": "in1",

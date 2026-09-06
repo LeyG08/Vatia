@@ -6963,3 +6963,103 @@ Verificaciones: `tsc -b`, `npm run build`, `npm run lint`, `npm run e2e`
 (21 checks, con los selectores de handle corregidos),
 `verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
 `lint_simbolos.py` (fuerza 19/19, comando 56/56), todos en verde.
+
+## E76.1 — Relé térmico: los conductores dejan de cruzar el recuadro
+
+Aprobación con corrección del usuario sobre E76: *"las líneas que
+atraviesan el recuadro donde está la simbología de la protección térmica
+eso no me gusta, lo demás está bien"*.
+
+Las tres (o N) líneas de polo iban de punta a punta (`y=-30` a `y=20`) y
+pasaban por encima del glifo de efecto térmico (03-30-37) centrado en la
+caja. Ahora cada conductor se corta en el borde del recuadro — de `-30` a
+`-6` arriba y de `6` a `20` abajo — así que la caja compartida se lee
+como un elemento en serie sobre los N polos (el elemento calefactor), con
+el símbolo térmico solo y legible adentro.
+
+Los puntos de conexión no se movieron, así que ni el editor ni
+`simulacion.ts` ven ningún cambio. Verificado: `lint_simbolos.py`
+(fuerza 19/19, comando 56/56), `tsc -b`, `npm run build`,
+`verificar_alineacion.mjs`, `verificar_proyecto_real.mjs`.
+
+## E78 — Simular todo lo posible: llave selectora, bobinas vinculadas y cargas con lazo real
+
+Tercera parte del pedido de feedback de E76/E77: *"también me fijé que en
+el contactor no pusiste la bobina para su activación para la simulación,
+y para los relés los contactos que se activan ante su activación, que
+debería también dejar simular todo lo posible en todos estos elementos"*.
+Son tres huecos distintos del motor de E62.
+
+**(1) La llave selectora ahora se simula.** El comentario de
+`simulacion.ts` decía que no era simulable porque "el schema no declara
+qué contacto cierra en qué posición" — pero el dato ya estaba, en otro
+lado: los propios puntos de conexión del símbolo declaran la topología
+real de una llave rotativa, un común (`com`) y una entrada por posición
+(`pos1`, `pos2`, `pos3`). Simular es unir `com` con el `posN` elegido y
+dejar el resto abierto; no hizo falta ningún campo nuevo de ficha
+técnica. La posición elegida es estado de UI efímero
+(`simulacionPosiciones` en el store, análogo a `simulacionManual` para
+los pulsadores): un clic sobre la llave en modo simulación pasa a la
+posición siguiente y vuelve a la primera al llegar al final, igual que
+girarla con la mano, y el nodo muestra "⟲ Posición N de M". Sin elección
+previa se asume la posición 1 — una llave real siempre está en alguna
+posición, nunca "en ninguna". Esto habilita justamente el caso que
+reportó el usuario en E77: seleccionar entre dos bobinas de contactor.
+
+**(2) La bobina y los contactos nacen ya vinculados.** El mecanismo de
+vinculación existía desde E53 (compartir `referencia`), pero la
+referencia automática numeraba cada pieza por separado: una bobina
+colocada al lado de un contactor "KM1" nacía como "K1", así que la
+simulación las veía como dos aparatos distintos y el contactor nunca
+cerraba — había que corregir el campo a mano para que algo funcionara.
+Eso es lo que el usuario leyó como "no pusiste la bobina para su
+activación". Ahora `referenciaSugeridaAccesorio()` da un valor inicial
+útil: una bobina (`rele_auxiliar`) adopta la referencia del primer
+aparato de mando que todavía no tiene bobina (hoy solo el contactor: el
+resto de los multipolares son de accionamiento manual o térmico), y un
+contacto auxiliar adopta la de la última bobina colocada, que es el
+aparato que se está armando. Si no hay candidato se cae a la numeración
+de siempre. Sigue siendo un campo editable con su lista desplegable
+(E53) — es un valor por defecto, no una decisión irreversible.
+
+**(3) Las cargas de comando exigen el lazo completo.** Una lámpara
+piloto o una sirena se marcaban encendidas con que UN terminal llegara a
+una fuente, así que una lámpara con un solo cable a la fase aparecía
+prendida. Ahora `lampara_piloto` y `sirena_alarma` se resuelven como una
+bobina: fuente de un lado, retorno del otro. La regla se aplica solo
+donde la hoja declara algún retorno; en una hoja de fuerza dibujada sin
+barra de neutro no hay con qué cerrar el lazo y apagarlas todas sería
+peor que la aproximación vieja. Los sumideros de un solo terminal (el
+motor del unifilar) conservan la regla laxa por la misma razón.
+
+Verificación nueva y permanente: `apps/editor/e2e/simulacion.mjs`
+(`npm run e2e:simulacion`, contra el servidor de desarrollo porque
+importa el módulo TypeScript directo). Arma en memoria un circuito con
+riel L y N, una llave selectora de dos posiciones eligiendo entre las
+bobinas KM1 y KM2, el polo del contactor KM1 con su motor en OTRA hoja, y
+dos lámparas (una mal cableada, con un solo cable a la fase). Las 11
+comprobaciones pasan: cada posición energiza su bobina y solo esa, el
+polo del contactor de la hoja de fuerza sigue a la bobina de la hoja de
+comando, el motor arranca y para, volver a la posición 1 restaura el
+estado, la lámpara mal cableada queda apagada y la bien cableada
+encendida.
+
+Verificado además en vivo con el mouse real (Playwright sobre el editor):
+clic sobre la llave selectora cicla 1→2→1 con la bobina correcta
+encendida en cada paso y **0,00 px** de desplazamiento del nodo (la clase
+`nodrag` de E77 se aplica también al selector); y colocando desde la
+paleta una bobina y un contacto auxiliar en la hoja de comando, con un
+contactor KM1 ya dibujado en la hoja de fuerza, ambos nacen con la
+referencia **KM1** en vez de "K1".
+
+Suite completa en verde: `tsc -b`, `npm run build`, `npm run lint`,
+`npm run e2e` (21 checks), `npm run e2e:simulacion` (11 checks),
+`verificar_proyecto_real.mjs`, `verificar_alineacion.mjs` y
+`lint_simbolos.py` (fuerza 19/19, comando 56/56).
+
+Qué sigue sin simularse (a propósito, documentado en `simulacion.ts`):
+el temporizador es instantáneo (no hay dimensión de tiempo), las
+protecciones se asumen siempre sanas (no hay estado de disparo), el
+contacto auxiliar "NA+NC" no tiene símbolo de 4 terminales en la
+librería, y los nodos de familia "carga" del unifilar todavía no entran
+en el resultado.

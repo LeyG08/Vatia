@@ -12,7 +12,11 @@ import {
 import { Historial, type Comando } from "./historial";
 import { obtenerSimbolo } from "./libreria";
 import { GRILLA_PX } from "./ruta";
-import { proximaReferencia } from "./referencia";
+import {
+  proximaReferencia,
+  referenciaSugeridaAccesorio,
+  type AparatoColocado,
+} from "./referencia";
 import { simular, type ResultadoSimulacion } from "./simulacion";
 import {
   ALIMENTADOR_POR_DEFECTO,
@@ -523,6 +527,11 @@ interface EstadoEditor {
    * contacto quedaría enclavado al soltar el pulsador de marcha.
    */
   simulacionEstado: Set<string>;
+  /** Posición elegida de cada llave selectora (E78): clave
+   * `${hojaId}:${nodoId}` → número de posición 1-based. Un selector que
+   * no figure acá está en la posición 1. Es estado de UI efímero, igual
+   * que `simulacionManual`: no se guarda en el archivo del proyecto. */
+  simulacionPosiciones: Map<string, number>;
   /** Último resultado calculado — lo leen NodoSimbolo.tsx (resaltado) y
    * eventualmente ConexionEdge.tsx. `null` fuera de modo simulación. */
   simulacionResultado: ResultadoSimulacion | null;
@@ -530,6 +539,9 @@ interface EstadoEditor {
   /** Presiona/suelta (o togglea, para `pulsador_emergencia`) un contacto
    * manual de la hoja ACTIVA y recalcula todo el proyecto. */
   accionarSimulacion: (nodoId: string, accionado: boolean) => void;
+  /** Pone una llave selectora de la hoja ACTIVA en `posicion` (1-based)
+   * y recalcula todo el proyecto (E78). */
+  girarSelectorSimulacion: (nodoId: string, posicion: number) => void;
   /** true justo después de recuperar un autoguardado al abrir la app */
   avisoRecuperado: boolean;
   descartarAvisoRecuperado: () => void;
@@ -855,6 +867,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
     modoSimulacion: false,
     simulacionManual: new Set(),
     simulacionEstado: new Set(),
+    simulacionPosiciones: new Map(),
     simulacionResultado: null,
     avisoRecuperado: false,
     exportacionPdf: null,
@@ -926,6 +939,7 @@ export const useEditor = create<EstadoEditor>((set, get) => {
           modoSimulacion: false,
           simulacionManual: new Set(),
           simulacionEstado: new Set(),
+          simulacionPosiciones: new Map(),
           simulacionResultado: null,
         });
         return;
@@ -935,20 +949,45 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         modoSimulacion: true,
         simulacionManual: new Set(),
         simulacionEstado: resultado.bobinasEnergizadas,
+        simulacionPosiciones: new Map(),
         simulacionResultado: resultado,
       });
     },
 
     accionarSimulacion(nodoId, accionado) {
-      const { simulacionManual, simulacionEstado, hojaActivaId } = get();
+      const { simulacionManual, simulacionEstado, simulacionPosiciones, hojaActivaId } = get();
       const clave = `${hojaActivaId}:${nodoId}`;
       if (simulacionManual.has(clave) === accionado) return; // sin cambio
       const manual = new Set(simulacionManual);
       if (accionado) manual.add(clave);
       else manual.delete(clave);
-      const resultado = simular(proyectoVolcado(get()), manual, simulacionEstado);
+      const resultado = simular(
+        proyectoVolcado(get()),
+        manual,
+        simulacionEstado,
+        simulacionPosiciones,
+      );
       set({
         simulacionManual: manual,
+        simulacionEstado: resultado.bobinasEnergizadas,
+        simulacionResultado: resultado,
+      });
+    },
+
+    girarSelectorSimulacion(nodoId, posicion) {
+      const { simulacionManual, simulacionEstado, simulacionPosiciones, hojaActivaId } = get();
+      const clave = `${hojaActivaId}:${nodoId}`;
+      if ((simulacionPosiciones.get(clave) ?? 1) === posicion) return; // sin cambio
+      const posiciones = new Map(simulacionPosiciones);
+      posiciones.set(clave, posicion);
+      const resultado = simular(
+        proyectoVolcado(get()),
+        simulacionManual,
+        simulacionEstado,
+        posiciones,
+      );
+      set({
+        simulacionPosiciones: posiciones,
         simulacionEstado: resultado.bobinasEnergizadas,
         simulacionResultado: resultado,
       });
@@ -1023,21 +1062,30 @@ export const useEditor = create<EstadoEditor>((set, get) => {
         atributosBase.referencia == null
       ) {
         const usadas: string[] = [];
+        // Aparatos ya colocados, en orden — la hoja ACTIVA primero (es
+        // donde se está dibujando) y después el resto del proyecto. El
+        // orden importa para la sugerencia de vinculación de E78.
+        const colocados: AparatoColocado[] = [];
+        const anotar = (attrs: Record<string, unknown> | undefined) => {
+          const r = attrs?.referencia;
+          if (typeof r !== "string" || r.trim() === "") return;
+          usadas.push(r);
+          const t = attrs?.tipo_aparato;
+          if (typeof t === "string") colocados.push({ tipoAparato: t, referencia: r.trim() });
+        };
         for (const n of get().nodos) {
-          const r = (n.data as Record<string, unknown>).atributos as
-            | Record<string, unknown>
-            | undefined;
-          if (typeof r?.referencia === "string" && r.referencia.trim() !== "") {
-            usadas.push(r.referencia);
-          }
+          anotar((n.data as Record<string, unknown>).atributos as Record<string, unknown> | undefined);
         }
         for (const h of get().proyecto.hojas) {
-          for (const hn of h.nodos ?? []) {
-            const r = hn.atributos?.referencia;
-            if (typeof r === "string" && r.trim() !== "") usadas.push(r);
-          }
+          if (h.id === get().hojaActivaId) continue; // ya recorrida arriba, en el espejo
+          for (const hn of h.nodos ?? []) anotar(hn.atributos);
         }
-        const siguiente = proximaReferencia(atributosBase.tipo_aparato, usadas);
+        // E78: una pieza accesorio (bobina, contacto auxiliar) nace ya
+        // vinculada al aparato que la necesita, en vez de con un número
+        // propio que después hay que corregir a mano para que la
+        // simulación la reconozca.
+        const sugerida = referenciaSugeridaAccesorio(atributosBase.tipo_aparato, colocados);
+        const siguiente = sugerida ?? proximaReferencia(atributosBase.tipo_aparato, usadas);
         if (siguiente) atributosBase.referencia = siguiente;
       }
       const data: DatosSimbolo = {

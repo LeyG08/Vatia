@@ -3,7 +3,7 @@ import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { ESCALA, useEditor, type DatosSimbolo } from "../lib/store";
 import { obtenerSimbolo, svgLimpio } from "../lib/libreria";
 import { anotacionNodo } from "../lib/anotaciones";
-import { TIPOS_CONTACTO_MANUAL } from "../lib/simulacion";
+import { TIPOS_CONTACTO_MANUAL, posicionesDeSelector } from "../lib/simulacion";
 import type { SimboloDef } from "../lib/tipos";
 
 const DIRECCIONES = [
@@ -83,6 +83,13 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const manualSimulacion = useEditor((s) => s.simulacionManual);
   const hojaActivaId = useEditor((s) => s.hojaActivaId);
   const accionarSimulacion = useEditor((s) => s.accionarSimulacion);
+  const girarSelectorSimulacion = useEditor((s) => s.girarSelectorSimulacion);
+  // E78: llave selectora accionable. Las posiciones no salen de la ficha
+  // técnica sino de los propios terminales del símbolo (`pos1`, `pos2`,
+  // `pos3`…), que es donde ya estaba declarada la topología real.
+  const posicionSimulacion = useEditor((s) =>
+    s.simulacionPosiciones.get(`${s.hojaActivaId}:${id}`),
+  );
   // Resalta en el lienzo los símbolos que comparten la MISMA referencia
   // (IEC 61346) que el seleccionado — pedido explícito: "en los
   // multifilares... a la hora de hacerlo quedan vinculados para la
@@ -106,7 +113,15 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const energizado =
     modoSimulacion && resultadoSimulacion?.aparatos.get(claveSimulacion) === true;
   const accionado = modoSimulacion && manualSimulacion.has(claveSimulacion);
-  const accionable = modoSimulacion && tipoAparato !== null && TIPOS_CONTACTO_MANUAL.has(tipoAparato);
+  const posicionesSelector = simbolo
+    ? posicionesDeSelector(simbolo.metadata.puntos_conexion.map((p) => p.id))
+    : [];
+  const esSelector = tipoAparato === "selector" && posicionesSelector.length > 0;
+  const posicionActual = posicionSimulacion ?? posicionesSelector[0];
+  const accionable =
+    modoSimulacion &&
+    ((tipoAparato !== null && TIPOS_CONTACTO_MANUAL.has(tipoAparato)) ||
+      (esSelector && posicionesSelector.length > 1));
   // pulsador_emergencia enclava mecánicamente (se togglea con un clic);
   // pulsador/interruptor_posicion son momentáneos: conducen solo
   // mientras se los mantiene apretados (press/release real, no un clic).
@@ -114,10 +129,18 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const onAccionarInicio = accionable
     ? (e: React.PointerEvent) => {
         e.stopPropagation();
+        if (esSelector) {
+          // Un clic pasa a la posición siguiente y vuelve a la primera
+          // al llegar al final — igual que girar la llave con la mano.
+          const i = posicionesSelector.indexOf(posicionActual);
+          const siguiente = posicionesSelector[(i + 1) % posicionesSelector.length];
+          girarSelectorSimulacion(id, siguiente);
+          return;
+        }
         accionarSimulacion(id, esEnclavable ? !accionado : true);
       }
     : undefined;
-  const onAccionarFin = accionable && !esEnclavable
+  const onAccionarFin = accionable && !esEnclavable && !esSelector
     ? (e: React.PointerEvent) => {
         e.stopPropagation();
         accionarSimulacion(id, false);
@@ -162,6 +185,18 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
   const lineasConSentido = sentidoGiro
     ? [...lineas, { texto: `⟳ Sentido: ${NOMBRE_SENTIDO[sentidoGiro]}`, secundaria: true }]
     : lineas;
+  // E78: posición de la llave selectora, solo en simulación — es estado
+  // de uso, no un dato de la ficha técnica.
+  const lineasFinales =
+    modoSimulacion && esSelector
+      ? [
+          ...lineasConSentido,
+          {
+            texto: `⟲ Posición ${posicionActual} de ${posicionesSelector.length}`,
+            secundaria: true,
+          },
+        ]
+      : lineasConSentido;
 
   return (
     <div
@@ -232,11 +267,11 @@ function NodoSimbolo({ id, data, selected }: NodeProps<Node<DatosSimbolo>>) {
           </Fragment>
         );
       })}
-      {lineasConSentido.length > 0 && (
+      {lineasFinales.length > 0 && (
         <div
           className={`anotacion-nodo${esCarga ? " anotacion-carga" : ""}`}
         >
-          {lineasConSentido.map((l, i) => (
+          {lineasFinales.map((l, i) => (
             <div key={i} className={l.secundaria ? "anotacion-sec" : undefined}>
               {l.texto}
             </div>

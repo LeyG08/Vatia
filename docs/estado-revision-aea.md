@@ -59,8 +59,8 @@ para una etapa posterior.
 > **S00124 se mudó a `libreria-simbolos/comando/`** (E15) — dejó de ser
 > parte de esta tabla, que documenta solo la librería de fuerza
 > (`simbolos/`). La librería de comando/control (56 símbolos, S00124 +
-> S00130 + S00134–S00188, 52 verificados + 4 pendientes de revisión:
-> S00185–188, relé térmico multipolar, E76) tiene su propia galería
+> S00130 + S00134–S00188) está **completa: los 56 verificados**. Tiene su
+> propia galería
 > (`libreria-simbolos/comando/index.html`) y su historial de revisión en
 > `HISTORIAL.md` E15–E15.6 (lote piloto), E16–E16.1 (segundo lote),
 > E66–E66.1 (retardo a la desconexión), E67–E67.1 (sensores de
@@ -71,10 +71,12 @@ para una etapa posterior.
 > multipolar, envolvente compartido por todos los polos), E74–E74.1
 > (interruptor diferencial multipolar, toroide sumador compartido),
 > E75–E75.1 (fusible y seccionador fusible multipolares, sin enlace
-> mecánico entre polos, a propósito) y E76 (relé térmico multipolar, caja
-> compartida, pendiente de aprobación). E77 corrige dos bugs de
-> interacción del editor (arrastre de pulsador en simulación, conexión
-> entre dos terminales "entrada") ajenos a la librería de símbolos. No se
+> mecánico entre polos, a propósito) y E76–E76.1 (relé térmico
+> multipolar, caja compartida, con los conductores cortados en el borde
+> del recuadro, aprobado). E77 (dos bugs de interacción del editor) y E78
+> (llave selectora simulable, bobinas y contactos que nacen vinculados,
+> cargas de comando con lazo completo) son del editor y del motor de
+> simulación, ajenos a la librería de símbolos. No se
 > duplica la tabla acá para no repetir el desfasaje que ya sufrió esta
 > misma tabla dos veces por mantenerse a mano.
 

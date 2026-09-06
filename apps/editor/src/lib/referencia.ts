@@ -83,6 +83,64 @@ export function esAccesorioReferencia(tipoAparato: string): boolean {
   return TIPOS_ACCESORIO_REFERENCIA.has(tipoAparato);
 }
 
+/** Aparatos que se accionan por una bobina de mando dibujada aparte —
+ * son los que "les falta la bobina" mientras nadie la coloque. Hoy solo
+ * el contactor: el resto de los aparatos multipolares de la librería son
+ * de accionamiento manual o térmico. */
+const TIPOS_QUE_NECESITAN_BOBINA = new Set(["contactor"]);
+
+export interface AparatoColocado {
+  tipoAparato: string;
+  referencia: string;
+}
+
+/**
+ * Referencia sugerida al COLOCAR una pieza accesorio (E78).
+ *
+ * Pedido explícito del usuario: "en el contactor no pusiste la bobina
+ * para su activación para la simulación, y para los relés los contactos
+ * que se activan ante su activación". El mecanismo de vinculación ya
+ * existía (compartir `referencia`, E53), pero la referencia automática
+ * numeraba cada pieza por separado — una bobina recién colocada nacía
+ * como "K1" al lado de un contactor "KM1", así que la simulación las
+ * veía como dos aparatos distintos y el contactor nunca cerraba. Había
+ * que corregir el campo a mano para que algo funcionara.
+ *
+ * Ahora la pieza nace ya vinculada al aparato más probable:
+ *  - una BOBINA (`rele_auxiliar`) adopta la referencia del primer
+ *    aparato de mando que todavía no tiene bobina — típicamente el
+ *    contactor recién colocado;
+ *  - un CONTACTO AUXILIAR adopta la referencia de la última bobina
+ *    colocada, que es el aparato que se acaba de armar.
+ *
+ * Devuelve `null` si no hay candidato: ahí se cae a la numeración
+ * normal de `proximaReferencia()`. Sigue siendo un campo editable con
+ * su lista desplegable (E53) — esto es un valor por defecto útil, no
+ * una decisión irreversible.
+ */
+export function referenciaSugeridaAccesorio(
+  tipoAparato: string,
+  colocados: readonly AparatoColocado[],
+): string | null {
+  const refsDeBobinas = new Set(
+    colocados.filter((a) => a.tipoAparato === "rele_auxiliar").map((a) => a.referencia),
+  );
+
+  if (tipoAparato === "rele_auxiliar") {
+    const sinBobina = colocados.filter(
+      (a) => TIPOS_QUE_NECESITAN_BOBINA.has(a.tipoAparato) && !refsDeBobinas.has(a.referencia),
+    );
+    return sinBobina.length > 0 ? sinBobina[0].referencia : null;
+  }
+
+  if (tipoAparato === "contacto_auxiliar") {
+    const bobinas = colocados.filter((a) => a.tipoAparato === "rele_auxiliar");
+    return bobinas.length > 0 ? bobinas[bobinas.length - 1].referencia : null;
+  }
+
+  return null;
+}
+
 /**
  * Avisa (no bloquea — "debería decirte que hay incompatibilidad", pedido
  * explícito) cuando una referencia editada A MANO es sospechosa. Dos

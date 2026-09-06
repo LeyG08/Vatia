@@ -73,9 +73,13 @@
  * - Protecciones (termomagnético, MCCB, guardamotor, diferencial,
  *   fusible, portafusible, térmico) se asumen SIEMPRE cerradas — no
  *   hay disparo por sobrecarga/cortocircuito ni un campo "disparado".
- * - `selector` no tiene un campo de tipo de contacto en el schema (un
- *   selector real tiene varios bloques de contacto independientes por
- *   posición) — no es simulable todavía, se trata como abierto.
+ * - `selector` (E78): SÍ es simulable. No hace falta un campo nuevo en
+ *   el schema — los propios puntos de conexión del símbolo ya declaran
+ *   la topología real de una llave rotativa: un común (`com`) y una
+ *   entrada por posición (`pos1`, `pos2`, `pos3`…). Simular es unir
+ *   `com` con el `posN` de la posición seleccionada; el resto queda
+ *   abierto. La posición la elige el usuario en modo simulación
+ *   (`posiciones`, análogo a `manual` para los pulsadores).
  * - `temporizador` se resuelve como una bobina instantánea: no hay
  *   dimensión de tiempo (el retardo a la conexión no se simula).
  * - Un `contacto_auxiliar` con `tipo_contacto: "NA+NC"` u "otra" no es
@@ -131,9 +135,39 @@ export const TIPOS_CONTACTO_MANUAL = new Set([
  * separado como "energizada" o no. */
 const TIPOS_BOBINA = new Set(["rele_auxiliar", "temporizador"]);
 
+/** Cargas de comando que necesitan el lazo completo L→carga→N para
+ * funcionar, igual que una bobina (E78). Se resuelven aparte de los
+ * sumideros del unifilar (motor, instrumento), que se dibujan con un
+ * solo terminal y no tienen cómo cerrar el lazo en el plano. */
+const TIPOS_CARGA_LAZO = new Set(["lampara_piloto", "sirena_alarma"]);
+
 const MAX_ITERACIONES = 25;
 
 export type ManualSimulacion = ReadonlySet<string>;
+
+/** Posición elegida de cada llave selectora en modo simulación: clave
+ * `${hojaId}:${nodoId}` → número de posición (1-based, la misma que
+ * numera los terminales `pos1`/`pos2`/`pos3` del símbolo). Un selector
+ * que no figure acá se entiende en la posición 1 — igual que una llave
+ * real, que siempre está en ALGUNA posición, nunca "en ninguna". */
+export type PosicionesSimulacion = ReadonlyMap<string, number>;
+
+/** Nombre del terminal de una posición de selector (E78). */
+export function terminalPosicionSelector(posicion: number): string {
+  return `pos${posicion}`;
+}
+
+/** Números de posición declarados por los terminales de un selector,
+ * ordenados. `[]` si el aparato no sigue la convención `com`/`posN`
+ * (símbolo de otro tipo, o uno futuro no contemplado). */
+export function posicionesDeSelector(handles: Iterable<string>): number[] {
+  const nums: number[] = [];
+  for (const h of handles) {
+    const m = /^pos(\d+)$/.exec(h);
+    if (m) nums.push(Number.parseInt(m[1], 10));
+  }
+  return nums.sort((a, b) => a - b);
+}
 
 export interface ResultadoSimulacion {
   /** clave `${hojaId}:${nodoId}` → true si el aparato conduce (interruptor
@@ -269,6 +303,12 @@ interface RedHoja {
   terminales: Map<string, Set<string>>;
   esFuente: (rep: string) => boolean;
   esRetornoN: (rep: string) => boolean;
+  /** true si la hoja tiene AL MENOS un retorno (barra de neutro/común).
+   * Lo usa la regla de las cargas de 2 terminales: donde hay retorno se
+   * exige el lazo completo L→carga→N; donde no lo hay (una hoja de
+   * fuerza dibujada sin barra de neutro) se cae a la regla vieja, más
+   * laxa, para no apagar de golpe planos que ya funcionaban. */
+  hayRetorno: boolean;
 }
 
 /** Arma la red eléctrica de UNA hoja para esta vuelta de iteración. */
@@ -276,6 +316,7 @@ function construirRed(
   hoja: Hoja,
   bobinasEnergizadas: ReadonlySet<string>,
   manual: ManualSimulacion,
+  posiciones: PosicionesSimulacion,
 ): RedHoja {
   const uf = new UnionFind();
   const terminales = new Map<string, Set<string>>();
@@ -309,6 +350,25 @@ function construirRed(
 
     const tipo = tipoAparatoDe(nodo);
     if (tipo && TIPOS_BOBINA.has(tipo)) continue; // carga: nunca une sus terminales
+
+    // E78: llave selectora. Los terminales del propio símbolo ya
+    // describen la topología real (`com` + `pos1`/`pos2`/`pos3`…), así
+    // que simularla es unir el común con la posición elegida y dejar
+    // las demás abiertas — no hace falta ningún campo nuevo de ficha
+    // técnica. Sin elección previa se asume la posición 1: una llave
+    // real siempre está en alguna posición.
+    if (tipo === "selector") {
+      const disponibles = posicionesDeSelector(arr);
+      if (arr.includes("com") && disponibles.length > 0) {
+        const elegida = posiciones.get(`${hoja.id}:${nodoId}`) ?? disponibles[0];
+        const handle = terminalPosicionSelector(elegida);
+        if (arr.includes(handle)) uf.union(clave(nodoId, "com"), clave(nodoId, handle));
+        continue;
+      }
+      // Selector con terminales fuera de la convención: se deja abierto
+      // (conservador), como antes de E78.
+      continue;
+    }
 
     if (arr.length !== 2) {
       if (!tipo) {
@@ -385,6 +445,7 @@ function construirRed(
     terminales,
     esFuente: (rep) => fuenteReps.has(rep),
     esRetornoN: (rep) => retornoReps.has(rep),
+    hayRetorno: retornoReps.size > 0,
   };
 }
 
@@ -398,6 +459,7 @@ export function simular(
   proyecto: Proyecto,
   manual: ManualSimulacion = new Set(),
   estadoInicial: ReadonlySet<string> = new Set(),
+  posiciones: PosicionesSimulacion = new Map(),
 ): ResultadoSimulacion {
   let bobinasEnergizadas = new Set(estadoInicial);
   let aparatos = new Map<string, boolean>();
@@ -410,7 +472,7 @@ export function simular(
     const nuevasBobinas = new Set<string>();
 
     for (const hoja of proyecto.hojas) {
-      const red = construirRed(hoja, bobinasEnergizadas, manual);
+      const red = construirRed(hoja, bobinasEnergizadas, manual, posiciones);
 
       for (const nodo of hoja.nodos) {
         if (nodo.tipo === "alimentador" || nodo.tipo === "barra") continue;
@@ -441,8 +503,32 @@ export function simular(
           continue;
         }
 
-        // Sumidero genérico (motor, lámpara, sirena, instrumento…): vivo
-        // si algún terminal suyo llega a una fuente.
+        // E78: cargas de comando (lámpara piloto, sirena) — se les
+        // exige el LAZO COMPLETO, fuente de un lado y retorno del otro,
+        // igual que a una bobina. Una lámpara de señalización con un
+        // solo cable a la fase no enciende en la realidad, y antes acá
+        // aparecía encendida (bastaba con que UN terminal llegara a una
+        // fuente). La regla se aplica solo donde la hoja declara algún
+        // retorno: en una hoja de fuerza dibujada sin barra de neutro no
+        // hay con qué cerrar el lazo y apagarlas todas sería peor que la
+        // aproximación vieja.
+        if (TIPOS_CARGA_LAZO.has(tipo) && red.hayRetorno) {
+          const energizada =
+            handles.length === 2 &&
+            (() => {
+              const repA = red.find(nodo.id, handles[0]);
+              const repB = red.find(nodo.id, handles[1]);
+              return (
+                (red.esFuente(repA) && red.esRetornoN(repB)) ||
+                (red.esFuente(repB) && red.esRetornoN(repA))
+              );
+            })();
+          aparatos.set(clave, energizada);
+          continue;
+        }
+
+        // Sumidero genérico (motor del unifilar, instrumento…): vivo si
+        // algún terminal suyo llega a una fuente.
         const activo = handles.some((h) => red.esFuente(red.find(nodo.id, h)));
         aparatos.set(clave, activo);
       }
